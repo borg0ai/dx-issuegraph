@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storeops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storeops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Deleter returns the named-row erasure surface for this store.
@@ -86,7 +86,7 @@ func (s *deleter) Delete(ctx context.Context, req issueops.DeleteRequest) (issue
 		for _, table := range sweptTables {
 			_ = schema.DrainCall(ctx, tx, "CALL DOLT_ADD(?)", table)
 		}
-		msg := fmt.Sprintf("bd: delete %d issue(s)", result.Deleted)
+		msg := fmt.Sprintf("issuegraph: delete %d issue(s)", result.Deleted)
 		if err := schema.DrainCall(ctx, tx, "CALL DOLT_COMMIT('-m', ?, '--author', ?)",
 			msg, s.store.commitAuthorString()); err != nil && !isDoltNothingToCommit(err) {
 			return fmt.Errorf("dolt commit: %w", err)

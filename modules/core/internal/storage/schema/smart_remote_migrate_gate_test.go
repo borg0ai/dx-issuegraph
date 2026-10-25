@@ -42,7 +42,7 @@ func expectSmartRemoteReadForRemote(mock sqlmock.Sqlmock, remoteName string, loc
 		WillReturnRows(sqlmock.NewRows([]string{"active_branch()"}).AddRow("main"))
 	ref := "remotes/" + remoteName + "/main"
 	mock.ExpectQuery(`SHOW TABLES AS OF '` + ref + `' LIKE 'schema_migrations'`).
-		WillReturnRows(sqlmock.NewRows([]string{"Tables_in_beads"}).AddRow("schema_migrations"))
+		WillReturnRows(sqlmock.NewRows([]string{"Tables_in_issuegraph"}).AddRow("schema_migrations"))
 	mock.ExpectQuery(`SHOW COLUMNS FROM schema_migrations AS OF '` + ref + `' LIKE 'content_hash'`).
 		WillReturnRows(sqlmock.NewRows([]string{"Field"}).AddRow("content_hash"))
 	mock.ExpectQuery(`SELECT version, content_hash FROM schema_migrations AS OF 'remotes/` + remoteName + `/main'`).
@@ -70,7 +70,7 @@ func expectRemoteMaxReread(mock sqlmock.Sqlmock, remoteName string, remote map[i
 	// same as the first read, so it issues the historical shape probes too.
 	ref := "remotes/" + remoteName + "/main"
 	mock.ExpectQuery(`SHOW TABLES AS OF '` + ref + `' LIKE 'schema_migrations'`).
-		WillReturnRows(sqlmock.NewRows([]string{"Tables_in_beads"}).AddRow("schema_migrations"))
+		WillReturnRows(sqlmock.NewRows([]string{"Tables_in_issuegraph"}).AddRow("schema_migrations"))
 	mock.ExpectQuery(`SHOW COLUMNS FROM schema_migrations AS OF '` + ref + `' LIKE 'content_hash'`).
 		WillReturnRows(sqlmock.NewRows([]string{"Field"}).AddRow("content_hash"))
 	mock.ExpectQuery(`SELECT version, content_hash FROM schema_migrations AS OF 'remotes/` + remoteName + `/main'`).
@@ -305,7 +305,7 @@ func TestSmartGateRouting(t *testing.T) {
 		}
 	})
 
-	t.Run("smart opted out (BD_SMART_GATE=0): no extra reads, blunt block", func(t *testing.T) {
+	t.Run("smart opted out (ISSUEGRAPH_SMART_GATE=0): no extra reads, blunt block", func(t *testing.T) {
 		t.Setenv(SmartGateEnv, "0")
 		t.Setenv(AllowRemoteMigrateEnv, "0")
 		db, mock, _ := sqlmock.New()
@@ -332,7 +332,7 @@ func TestSmartGateRouting(t *testing.T) {
 		}
 	})
 
-	t.Run("unparseable BD_SMART_GATE value: gate stays enabled but the blunt block names the parse failure", func(t *testing.T) {
+	t.Run("unparseable ISSUEGRAPH_SMART_GATE value: gate stays enabled but the blunt block names the parse failure", func(t *testing.T) {
 		if floor < 2 {
 			t.Skip("floor too low to construct a below-floor case")
 		}
@@ -421,7 +421,7 @@ type fakeAdopter struct {
 	// counted by aheadBehindCalls. Wired into the adopter only when
 	// withAheadBehind is true, so the tests that leave it off keep exercising
 	// the IsStrictAncestor-only fallback an injection site that never wired
-	// the newer callback would take (gastownhall/beads#6575).
+	// the newer callback would take (borg0ai/dx-issuegraph#6575).
 	withAheadBehind  bool
 	aheadResult      int
 	behindResult     int
@@ -818,7 +818,7 @@ func TestSmartGateRoutingFastForward(t *testing.T) {
 }
 
 // TestSmartGateRoutingDataBehind covers the equal-version path's ancestry
-// check (gastownhall/beads#6575): schema parity with the cached remote ref is
+// check (borg0ai/dx-issuegraph#6575): schema parity with the cached remote ref is
 // not proof of first-mover status, because a clone can be level on schema and
 // behind on data commits. These subtests pin the ROUTING around canned
 // ancestry results; the genuinely data-behind clone — two real clones, a
@@ -849,7 +849,7 @@ func TestSmartGateRoutingDataBehind(t *testing.T) {
 		if gateErr.FallbackReason != fallbackReasonDataBehind {
 			t.Errorf("FallbackReason = %q, want %q", gateErr.FallbackReason, fallbackReasonDataBehind)
 		}
-		if !strings.Contains(gateErr.UserMessage(), "Run `bd dolt pull` first") {
+		if !strings.Contains(gateErr.UserMessage(), "Run `issuegraph dolt pull` first") {
 			t.Errorf("UserMessage should name the pull-first remedy:\n%s", gateErr.UserMessage())
 		}
 		if fa.ancestorCalls != 1 {
@@ -991,7 +991,7 @@ func TestSmartGateRoutingDataBehind(t *testing.T) {
 		// shared store the first-mover auto-migrate stays suppressed (#5920),
 		// so pulling clears this stop and the retry still needs consent.
 		msg := gateErr.UserMessage()
-		if !strings.Contains(msg, "Run `bd dolt pull` first") {
+		if !strings.Contains(msg, "Run `issuegraph dolt pull` first") {
 			t.Errorf("shared store should still get the pull-first remedy:\n%s", msg)
 		}
 		if strings.Contains(msg, "proceeds on its own") {
@@ -1025,10 +1025,10 @@ func TestSmartGateRoutingDataBehind(t *testing.T) {
 		}
 	})
 
-	// An unparseable BD_SMART_GATE value normally outranks the routing reason,
+	// An unparseable ISSUEGRAPH_SMART_GATE value normally outranks the routing reason,
 	// but it must not bury data-behind: that stop stands whatever the env says,
 	// and it is the only reason carrying a remedy the operator can act on now.
-	t.Run("unparseable BD_SMART_GATE does not bury the pull-first remedy", func(t *testing.T) {
+	t.Run("unparseable ISSUEGRAPH_SMART_GATE does not bury the pull-first remedy", func(t *testing.T) {
 		t.Setenv(SmartGateEnv, "yes")
 		t.Setenv(AllowRemoteMigrateEnv, "0")
 		db, mock, _ := sqlmock.New()
@@ -1046,7 +1046,7 @@ func TestSmartGateRoutingDataBehind(t *testing.T) {
 		if gateErr.FallbackReason != fallbackReasonDataBehind {
 			t.Errorf("FallbackReason = %q, want %q (the env complaint must not outrank it)", gateErr.FallbackReason, fallbackReasonDataBehind)
 		}
-		if msg := gateErr.UserMessage(); !strings.Contains(msg, "Run `bd dolt pull` first") {
+		if msg := gateErr.UserMessage(); !strings.Contains(msg, "Run `issuegraph dolt pull` first") {
 			t.Errorf("UserMessage lost the pull-first remedy:\n%s", msg)
 		}
 		if err := mock.ExpectationsWereMet(); err != nil {
@@ -1056,10 +1056,10 @@ func TestSmartGateRoutingDataBehind(t *testing.T) {
 }
 
 // TestSmartGateRoutingDataBehindShapes covers the widened data-behind
-// predicate (gastownhall/beads#6575 review finding F2): the stop is keyed on
+// predicate (borg0ai/dx-issuegraph#6575 review finding F2): the stop is keyed on
 // behind >= 1 whatever ahead is, not on the strict-ancestor relation.
 //
-// The narrower form protected only a clone with zero local commits, and bd
+// The narrower form protected only a clone with zero local commits, and issuegraph
 // auto-commits every write — so "has local commits AND is behind" is the
 // ORDINARY multi-machine state, and it reaches the identical wedge (the
 // pending migration lands on a history missing the remote's commits either
@@ -1201,9 +1201,9 @@ func TestSmartGateRoutingDataBehindShapes(t *testing.T) {
 // was measured to work, the shared-store consequence has to survive the
 // precedence choice that made data-behind outrank shared-store, and the blunt
 // migrate-or-adopt options must not be offered — in this state
-// `bd migrate --force` is the bug (and its follow-up `bd dolt push` is
+// `issuegraph migrate --force` is the bug (and its follow-up `issuegraph dolt push` is
 // rejected non-fast-forward while the clone is still behind) while
-// `bd bootstrap` no-ops against an existing workspace.
+// `issuegraph bootstrap` no-ops against an existing workspace.
 func TestDataBehindRemedySurfaces(t *testing.T) {
 	base := func(shared, diverged bool) *RemoteMigrateGateError {
 		return &RemoteMigrateGateError{
@@ -1226,7 +1226,7 @@ func TestDataBehindRemedySurfaces(t *testing.T) {
 			}
 			for _, o := range opts {
 				for _, c := range o.Commands {
-					if c == "bd migrate --force" || c == "bd bootstrap" {
+					if c == "issuegraph migrate --force" || c == "issuegraph bootstrap" {
 						t.Errorf("diverged=%v: option %q offers %q, which was measured not to work in this state", diverged, o.ID, c)
 					}
 				}
@@ -1234,7 +1234,7 @@ func TestDataBehindRemedySurfaces(t *testing.T) {
 			if d := e.AgentDirective(); !strings.Contains(d, DataBehindRemedyCommand) {
 				t.Errorf("diverged=%v: AgentDirective must name the remedy:\n%s", diverged, d)
 			}
-			if body := e.userBody(); strings.Contains(body, "bd bootstrap") {
+			if body := e.userBody(); strings.Contains(body, "issuegraph bootstrap") {
 				t.Errorf("diverged=%v: the body must not send the operator to a no-op bootstrap:\n%s", diverged, body)
 			}
 		}

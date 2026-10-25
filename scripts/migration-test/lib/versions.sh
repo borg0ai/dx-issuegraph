@@ -14,7 +14,7 @@ readonly CONFIGURED_SQLITE_VERSION="v0.50.3"
 readonly PRE_CANONICAL_SQLITE_VERSION="v0.17.0"
 # This source-tag-qualified lane deliberately has no release asset.
 readonly SOURCE_TAG_SQLITE_VERSION="v0.9.1"
-readonly SOURCE_TAG_SQLITE_MODULE="github.com/steveyegge/beads"
+readonly SOURCE_TAG_SQLITE_MODULE="github.com/borg0ai/dx-issuegraph"
 readonly SOURCE_TAG_SQLITE_MODULE_SUM="h1:2KRCRCEtHvfMzmhYrpZzWl2rk2Y1Wq9p2awTdQIK9yY="
 readonly SOURCE_TAG_SQLITE_GOMOD_SUM="h1:CNV215xONrxBs18j3BXx/xvl1qyCO2SeQRqiTN213Vg="
 readonly SOURCE_TAG_SQLITE_COMMIT="e3c8554fa2c3e4b9caf7e296e9c8abbe24211a72"
@@ -66,9 +66,9 @@ readonly DOLT_TEST_RUNTIME_SHA256="f66318f08ed66e409fc39363ae0fff8ce6fbf6dba9f5b
 # Classic SQLite files that must be retained byte-for-byte for rollback before
 # the manual bridge removes the active copies.
 declare -ar CLASSIC_SQLITE_ROLLBACK_FILES=(
-    "beads.db"
-    "beads.db-wal"
-    "beads.db-shm"
+    "issuegraph.db"
+    "issuegraph.db-wal"
+    "issuegraph.db-shm"
     "metadata.json"
     "config.json"
     "config.yaml"
@@ -89,36 +89,36 @@ declare -ar LEGACY_DOLT_ROLLBACK_FILES=(
 # reviewing the official asset, checksum, source capabilities, and supported
 # migration outcome instead of silently discovering them at runtime.
 declare -Ar STRICT_RELEASE_ASSETS=(
-    ["v0.17.0|linux|amd64"]="beads_0.17.0_linux_amd64.tar.gz"
-    ["v0.49.6|linux|amd64"]="beads_0.49.6_linux_amd64.tar.gz"
-    ["v0.50.3|linux|amd64"]="beads_0.50.3_linux_amd64.tar.gz"
-    ["v0.55.4|linux|amd64"]="beads_0.55.4_linux_amd64.tar.gz"
-    ["v0.56.1|linux|amd64"]="beads_0.56.1_linux_amd64.tar.gz"
-    ["v0.57.0|linux|amd64"]="beads_0.57.0_linux_amd64.tar.gz"
-    ["v0.62.0|linux|amd64"]="beads_0.62.0_linux_amd64.tar.gz"
-    ["v0.63.3|linux|amd64"]="beads_0.63.3_linux_amd64.tar.gz"
-    ["v1.0.0|linux|amd64"]="beads_1.0.0_linux_amd64.tar.gz"
-    ["v1.0.1|linux|amd64"]="beads_1.0.1_linux_amd64.tar.gz"
-    ["v1.1.0|linux|amd64"]="beads_1.1.0_linux_amd64.tar.gz"
-    ["v1.1.2|linux|amd64"]="beads_1.1.2_linux_amd64.tar.gz"
-    ["v1.2.2|linux|amd64"]="beads_1.2.2_linux_amd64.tar.gz"
+    ["v0.17.0|linux|amd64"]="issuegraph_0.17.0_linux_amd64.tar.gz"
+    ["v0.49.6|linux|amd64"]="issuegraph_0.49.6_linux_amd64.tar.gz"
+    ["v0.50.3|linux|amd64"]="issuegraph_0.50.3_linux_amd64.tar.gz"
+    ["v0.55.4|linux|amd64"]="issuegraph_0.55.4_linux_amd64.tar.gz"
+    ["v0.56.1|linux|amd64"]="issuegraph_0.56.1_linux_amd64.tar.gz"
+    ["v0.57.0|linux|amd64"]="issuegraph_0.57.0_linux_amd64.tar.gz"
+    ["v0.62.0|linux|amd64"]="issuegraph_0.62.0_linux_amd64.tar.gz"
+    ["v0.63.3|linux|amd64"]="issuegraph_0.63.3_linux_amd64.tar.gz"
+    ["v1.0.0|linux|amd64"]="issuegraph_1.0.0_linux_amd64.tar.gz"
+    ["v1.0.1|linux|amd64"]="issuegraph_1.0.1_linux_amd64.tar.gz"
+    ["v1.1.0|linux|amd64"]="issuegraph_1.1.0_linux_amd64.tar.gz"
+    ["v1.1.2|linux|amd64"]="issuegraph_1.1.2_linux_amd64.tar.gz"
+    ["v1.2.2|linux|amd64"]="issuegraph_1.2.2_linux_amd64.tar.gz"
     # darwin/arm64: reviewed 2026-08-29 (ga-9sghx) so the corpus can run
     # natively on Apple Silicon. Every asset below was confirmed to exist via
-    # `gh release view <version> -R gastownhall/beads`, and every checksum was
-    # taken from that release's own goreleaser-published checksums.txt (the
+    # `gh release view <version> -R borg0ai/dx-issuegraph`, and every checksum was
+    # taken from that release's own goreleaser-published SHA256SUMS (the
     # same provenance as the linux|amd64 entries above).
-    ["v0.17.0|darwin|arm64"]="beads_0.17.0_darwin_arm64.tar.gz"
-    ["v0.49.6|darwin|arm64"]="beads_0.49.6_darwin_arm64.tar.gz"
-    ["v0.50.3|darwin|arm64"]="beads_0.50.3_darwin_arm64.tar.gz"
-    ["v0.55.4|darwin|arm64"]="beads_0.55.4_darwin_arm64.tar.gz"
-    ["v0.56.1|darwin|arm64"]="beads_0.56.1_darwin_arm64.tar.gz"
-    ["v0.57.0|darwin|arm64"]="beads_0.57.0_darwin_arm64.tar.gz"
-    ["v0.62.0|darwin|arm64"]="beads_0.62.0_darwin_arm64.tar.gz"
-    ["v0.63.3|darwin|arm64"]="beads_0.63.3_darwin_arm64.tar.gz"
-    ["v1.0.0|darwin|arm64"]="beads_1.0.0_darwin_arm64.tar.gz"
-    ["v1.0.1|darwin|arm64"]="beads_1.0.1_darwin_arm64.tar.gz"
-    ["v1.1.0|darwin|arm64"]="beads_1.1.0_darwin_arm64.tar.gz"
-    ["v1.1.2|darwin|arm64"]="beads_1.1.2_darwin_arm64.tar.gz"
+    ["v0.17.0|darwin|arm64"]="issuegraph_0.17.0_darwin_arm64.tar.gz"
+    ["v0.49.6|darwin|arm64"]="issuegraph_0.49.6_darwin_arm64.tar.gz"
+    ["v0.50.3|darwin|arm64"]="issuegraph_0.50.3_darwin_arm64.tar.gz"
+    ["v0.55.4|darwin|arm64"]="issuegraph_0.55.4_darwin_arm64.tar.gz"
+    ["v0.56.1|darwin|arm64"]="issuegraph_0.56.1_darwin_arm64.tar.gz"
+    ["v0.57.0|darwin|arm64"]="issuegraph_0.57.0_darwin_arm64.tar.gz"
+    ["v0.62.0|darwin|arm64"]="issuegraph_0.62.0_darwin_arm64.tar.gz"
+    ["v0.63.3|darwin|arm64"]="issuegraph_0.63.3_darwin_arm64.tar.gz"
+    ["v1.0.0|darwin|arm64"]="issuegraph_1.0.0_darwin_arm64.tar.gz"
+    ["v1.0.1|darwin|arm64"]="issuegraph_1.0.1_darwin_arm64.tar.gz"
+    ["v1.1.0|darwin|arm64"]="issuegraph_1.1.0_darwin_arm64.tar.gz"
+    ["v1.1.2|darwin|arm64"]="issuegraph_1.1.2_darwin_arm64.tar.gz"
 )
 declare -Ar STRICT_RELEASE_SHA256=(
     ["v0.17.0|linux|amd64"]="d4d08617a324c85b45c9628bc519d659a9ff9c7c37da67aa48727e0af7f19a75"

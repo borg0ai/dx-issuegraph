@@ -9,16 +9,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
 )
 
 // Tests for the CreateIfMissing guard on CREATE DATABASE.
 //
 // REQUIREMENTS (from shadow database bug analysis):
-// 1. Normal bd operations (list, show, ready, etc.) must NOT create databases.
+// 1. Normal issuegraph operations (list, show, ready, etc.) must NOT create databases.
 //    If the database doesn't exist on the server, error out with a clear message.
-// 2. Only bd init should create databases (CreateIfMissing=true).
+// 2. Only issuegraph init should create databases (CreateIfMissing=true).
 // 3. When a configured server is unreachable and an explicit port is set,
 //    auto-start must NOT launch a different server.
 // 4. Existing databases with data must remain accessible after server restart.
@@ -160,7 +160,7 @@ func TestCreateGuard_MissingDB_DefaultConfig(t *testing.T) {
 	assertDatabaseNotExists(t, testServerPort, dbName)
 }
 
-// TestCreateGuard_MissingDB_CreateIfMissing verifies that bd init CAN create
+// TestCreateGuard_MissingDB_CreateIfMissing verifies that issuegraph init CAN create
 // a new database when CreateIfMissing=true. This ensures the fix doesn't
 // break the init flow.
 func TestCreateGuard_MissingDB_CreateIfMissing(t *testing.T) {
@@ -216,29 +216,29 @@ func TestCreateGuard_ExistingDB_NoFlag(t *testing.T) {
 	defer store.Close()
 }
 
-// TestCreateGuard_ExistingDB_DoesNotCreateMissingBeadsDir verifies that a
-// normal write-capable store open does not materialize a missing .beads/
+// TestCreateGuard_ExistingDB_DoesNotCreateMissingIssueGraphDir verifies that a
+// normal write-capable store open does not materialize a missing .issuegraph/
 // directory as a side effect. Only explicit init/bootstrap-style flows should
 // create local filesystem state.
-func TestCreateGuard_ExistingDB_DoesNotCreateMissingBeadsDir(t *testing.T) {
+func TestCreateGuard_ExistingDB_DoesNotCreateMissingIssueGraphDir(t *testing.T) {
 	skipIfNoServer(t)
 
 	ctx := context.Background()
 	baseDir := t.TempDir()
-	beadsDir := filepath.Join(baseDir, ".beads")
-	dbPath := filepath.Join(beadsDir, "dolt")
-	dbName := fmt.Sprintf("test_guard_missing_beads_%d", testServerPort)
+	issuegraphDir := filepath.Join(baseDir, ".issuegraph")
+	dbPath := filepath.Join(issuegraphDir, "dolt")
+	dbName := fmt.Sprintf("test_guard_missing_issuegraph_%d", testServerPort)
 
 	createTestDatabase(t, testServerPort, dbName)
 	t.Cleanup(func() { dropTestDatabase(t, testServerPort, dbName) })
 
 	cfg := &Config{
-		Path:         dbPath,
-		BeadsDir:     beadsDir,
-		ServerHost:   "127.0.0.1",
-		ServerPort:   testServerPort,
-		Database:     dbName,
-		MaxOpenConns: 1,
+		Path:          dbPath,
+		IssueGraphDir: issuegraphDir,
+		ServerHost:    "127.0.0.1",
+		ServerPort:    testServerPort,
+		Database:      dbName,
+		MaxOpenConns:  1,
 	}
 
 	store, err := New(ctx, cfg)
@@ -247,13 +247,13 @@ func TestCreateGuard_ExistingDB_DoesNotCreateMissingBeadsDir(t *testing.T) {
 	}
 	defer store.Close()
 
-	if _, err := os.Stat(beadsDir); !os.IsNotExist(err) {
-		t.Fatalf("expected missing beadsDir to stay absent, got err=%v", err)
+	if _, err := os.Stat(issuegraphDir); !os.IsNotExist(err) {
+		t.Fatalf("expected missing issuegraphDir to stay absent, got err=%v", err)
 	}
-	if _, err := os.Stat(filepath.Join(beadsDir, credentialKeyFile)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, credentialKeyFile)); !os.IsNotExist(err) {
 		t.Fatalf("expected no credential key side effect, got err=%v", err)
 	}
-	if _, err := os.Stat(filepath.Join(beadsDir, "dolt-server.port")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "dolt-server.port")); !os.IsNotExist(err) {
 		t.Fatalf("expected no port-file side effect, got err=%v", err)
 	}
 }
@@ -341,8 +341,8 @@ func TestCreateGuard_ReadOnly_MissingDB(t *testing.T) {
 }
 
 // TestCreateGuard_UnderscoreInName verifies that the exact-match existence check
-// works correctly for database names containing underscores (common in beads
-// naming: "beads_vulcan-clean"). A similar-named database must not cause a
+// works correctly for database names containing underscores (common in issuegraph
+// naming: "issuegraph_vulcan-clean"). A similar-named database must not cause a
 // false positive.
 func TestCreateGuard_UnderscoreInName(t *testing.T) {
 	skipIfNoServer(t)
@@ -443,12 +443,12 @@ func TestCreateGuard_ErrorMessage(t *testing.T) {
 	if !strings.Contains(errMsg, dbName) {
 		t.Errorf("error should mention database name %q, got: %s", dbName, errMsg)
 	}
-	// Should suggest bd init
-	if !strings.Contains(errMsg, "bd init") {
-		t.Errorf("error should suggest 'bd init', got: %s", errMsg)
+	// Should suggest issuegraph init
+	if !strings.Contains(errMsg, "issuegraph init") {
+		t.Errorf("error should suggest 'issuegraph init', got: %s", errMsg)
 	}
-	// Should suggest bd doctor
-	if !strings.Contains(errMsg, "bd doctor") {
-		t.Errorf("error should suggest 'bd doctor', got: %s", errMsg)
+	// Should suggest issuegraph doctor
+	if !strings.Contains(errMsg, "issuegraph doctor") {
+		t.Errorf("error should suggest 'issuegraph doctor', got: %s", errMsg)
 	}
 }

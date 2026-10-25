@@ -22,7 +22,7 @@ func TestComputeEventsAutoPruneBoundIsANoOpWithBothFloorsDisabled(t *testing.T) 
 	defer db.Close()
 
 	// No expectations at all: with nothing to protect the journal, maintenance
-	// must not so much as read the counter. `bd events prune --before <head+1>`
+	// must not so much as read the counter. `issuegraph events prune --before <head+1>`
 	// with the same floors would delete everything, which is exactly the
 	// difference — one was asked for.
 	bound, skip, err := ComputeEventsAutoPruneBoundInTx(context.Background(), db, 0, 0, time.Now())
@@ -105,7 +105,7 @@ func TestComputeEventsAutoPruneBoundStopsAtTheNarrowestFloor(t *testing.T) {
 			}
 			defer db.Close()
 
-			mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM bd_events_seq")).
+			mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM issuegraph_events_seq")).
 				WillReturnRows(sqlmock.NewRows([]string{"next_seq"}).AddRow(tc.head))
 			if tc.retainRows > 0 {
 				rows := sqlmock.NewRows([]string{"seq"})
@@ -151,7 +151,7 @@ func TestComputeEventsAutoPruneBoundSkipsAnEmptyJournal(t *testing.T) {
 	}
 	defer db.Close()
 
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM bd_events_seq")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM issuegraph_events_seq")).
 		WillReturnRows(sqlmock.NewRows([]string{"next_seq"}).AddRow(0))
 
 	_, skip, err := ComputeEventsAutoPruneBoundInTx(context.Background(), db, 7, 100, time.Now())
@@ -177,7 +177,7 @@ func TestPruneEventsBatchIsAnOrderedPrefixDelete(t *testing.T) {
 	}
 	defer db.Close()
 
-	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM bd_events_journal WHERE seq < ? ORDER BY seq ASC LIMIT 500")).
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM issuegraph_events_journal WHERE seq < ? ORDER BY seq ASC LIMIT 500")).
 		WithArgs(int64(42)).WillReturnResult(sqlmock.NewResult(0, 7))
 
 	n, err := PruneEventsBatchInTx(context.Background(), db, 42, 500)

@@ -42,8 +42,8 @@ func TestAssertGatewaySessionDatabase(t *testing.T) {
 	})
 
 	// Before this assertion the direct gateway open accepted the mismatch in
-	// silence: bd went on to read team_a's identity and adopt it as the
-	// workspace's own, on a `bd init --database=team_b` that never reached
+	// silence: issuegraph went on to read team_a's identity and adopt it as the
+	// workspace's own, on a `issuegraph init --database=team_b` that never reached
 	// team_b at all.
 	t.Run("credential-scoped gateway is caught and both databases are named", func(t *testing.T) {
 		err := assertGatewaySessionDatabase(ctx, gatewaySessionMock(t, "team_a"), "team_b")

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // dataBehindFallbackReason is the literal behind
@@ -49,7 +49,7 @@ func TestLenientGateWarningBody_ShapedDecisions(t *testing.T) {
 			// is the shaped arm least likely to be exercised by hand in
 			// embedded mode, which is exactly why the helper's predicate
 			// needs it pinned: its recovery is the consent command, not the
-			// blunt bullets' `bd migrate --force`.
+			// blunt bullets' `issuegraph migrate --force`.
 			name:     "shared no remote",
 			decision: "shared-no-remote",
 			shared:   true,
@@ -101,7 +101,7 @@ func TestLenientGateWarningBody_BluntRefusalKeepsSharedGuidance(t *testing.T) {
 // non-data-behind arms, to the front of the body; both arms shipped
 // unterminated and the package stayed green, because the helper-level tests
 // above never see the composed text and the only composed assertions
-// (remote_sync_gate_test.go) are BEADS_TEST_EMBEDDED_DOLT-gated and
+// (remote_sync_gate_test.go) are ISSUEGRAPH_TEST_EMBEDDED_DOLT-gated and
 // Contains-only, so they are blind to both termination and ordering.
 func TestLenientGateWarning_ComposedOutput(t *testing.T) {
 	shapes := []struct {
@@ -191,8 +191,8 @@ func TestLenientGateWarning_ComposedOutput(t *testing.T) {
 					// stop exists to prevent — which the data-behind body
 					// itself mentions, so routing the body through here
 					// would regress it silently.
-					if strings.Contains(got, "bd migrate --force") {
-						t.Errorf("remote-sync confirmation names `bd migrate --force`; got:\n%s", got)
+					if strings.Contains(got, "issuegraph migrate --force") {
+						t.Errorf("remote-sync confirmation names `issuegraph migrate --force`; got:\n%s", got)
 					}
 					return
 				}

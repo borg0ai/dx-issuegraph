@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // recordingRunner delegates to a real Runner and records every statement it

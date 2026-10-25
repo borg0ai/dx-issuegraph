@@ -1,0 +1,13 @@
+# Test issuegraph lint command
+
+issuegraph init --prefix test
+
+# Create a bug without required sections - should have warnings
+issuegraph create 'Bug without sections' --type bug
+
+# Create a chore - no required sections
+issuegraph create 'Simple chore' --type chore
+
+# Lint all issues - bug should have warnings
+! issuegraph lint
+stdout 'Bug without sections'

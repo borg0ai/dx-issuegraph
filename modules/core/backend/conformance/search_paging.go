@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storageops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storageops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // This file holds the paging half of the SearchIssues contract: the keyset
@@ -258,7 +258,7 @@ func testSearchPagingKeysetComposes(t *testing.T, f Factory) {
 const (
 	pagingCapFixtureSize = 6
 	pagingCapFlagSource  = "--max-rows"
-	pagingCapEnvSource   = "BEADS_MAX_ROWS"
+	pagingCapEnvSource   = "ISSUEGRAPH_MAX_ROWS"
 )
 
 func seedPagingCapFixture(t *testing.T, s storage.DoltStorage) []string {
@@ -282,7 +282,7 @@ func pagingCapFilter(maxRows int, source string) types.IssueFilter {
 // under the cap is unaffected; MaxRows:0 disables the cap; and a Limit at or
 // under the cap cannot fire it.
 //
-// The typed shape is the contract, not a convenience: modules/cli/max_rows.go
+// The typed shape is the contract, not a convenience: apps/cli/max_rows.go
 // classifies with errors.As and converts exactly this error to exit code 2, so a
 // backend answering any other shape silently loses the circuit breaker while
 // every row-count assertion still passes.

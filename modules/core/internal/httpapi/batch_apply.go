@@ -9,10 +9,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The wire adapter over issueops.BatchApplier: an ORDERED, heterogeneous plan
@@ -90,7 +90,7 @@ var (
 
 	// applyNullablePatchMembers is the closed set on which explicit `null`
 	// CLEARS rather than refuses, exactly as it is for PATCH
-	// /v0/beads/issues/{id}: they are the members the role models as Field[*T],
+	// /v0/issuegraph/issues/{id}: they are the members the role models as Field[*T],
 	// because a pointer is the only thing a clear has to write.
 	applyNullablePatchMembers = map[string]bool{
 		"estimated_minutes": true,
@@ -603,7 +603,7 @@ func applyPatch(prefix string, encoded json.RawMessage, raw map[string]json.RawM
 }
 
 // applyLabelPatch projects the label edit, which is the FULL patch here rather
-// than PATCH /v0/beads/issues/{id}'s complete replacement: a plan edits a label
+// than PATCH /v0/issuegraph/issues/{id}'s complete replacement: a plan edits a label
 // set it did not compose, and replacement would mean reading it back first.
 func applyLabelPatch(prefix string, encoded json.RawMessage) (issueops.LabelPatch, *Result) {
 	var raw map[string]json.RawMessage
@@ -939,7 +939,7 @@ func (s *Server) failApplyBatch(w http.ResponseWriter, r *http.Request, request 
 			"the plan's edges would create a dependency cycle; nothing was written"), ""))
 
 	// The edge existence refusals are 400s rather than 404s, conforming to
-	// POST /v0/beads/dependencies:add: an edge describes a relation rather than
+	// POST /v0/issuegraph/dependencies:add: an edge describes a relation rather than
 	// acting on a row, and its target may legitimately be an "external:"
 	// reference this database holds nothing for.
 	case errors.As(err, &endpoint):
@@ -996,7 +996,7 @@ func (s *Server) failApplyBatch(w http.ResponseWriter, r *http.Request, request 
 		s.fail(w, r, applyPreconditionResult(request, itemErr, err, at))
 
 	// A target an update or a close NAMED is a resource this request failed to
-	// address, which is POST /v0/beads/issues:delete's 404 rather than the edge
+	// address, which is POST /v0/issuegraph/issues:delete's 404 rather than the edge
 	// refusal's 400 above.
 	case errors.Is(err, storage.ErrNotFound):
 		s.fail(w, r, at(NotFound(), ""))

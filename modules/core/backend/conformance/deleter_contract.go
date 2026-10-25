@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the semantic contract every implementation of
@@ -239,7 +239,7 @@ func RunDeleterRefusesDependentsOutsideTheRequest(t *testing.T, ctx context.Cont
 	}
 
 	// Naming BOTH ends is not a guarded case: the request is deleting the edge
-	// too. Refusing it would make `bd delete a b` fail on exactly the pair a
+	// too. Refusing it would make `issuegraph delete a b` fail on exactly the pair a
 	// caller took care to list together.
 	result, err := fixture.Deleter.Delete(ctx, publicops.DeleteRequest{IDs: []string{blocker, dependent}})
 	if err != nil {
@@ -316,7 +316,7 @@ func RunDeleterCascadeDeletesTheClosure(t *testing.T, ctx context.Context, fixtu
 //
 // The other cascade cases are durable-only or edge-free, so nothing else
 // asserts what a cascade rooted at a WISP does to the durable rows hanging off
-// it. `bd wisp gc` deletes wisps with cascade hardcoded, so routine
+// it. `issuegraph wisp gc` deletes wisps with cascade hardcoded, so routine
 // housekeeping runs through this quadrant.
 //
 // The chain is two edges deep on purpose, and its second link is durable, so
@@ -457,7 +457,7 @@ func RunDeleterGuardsADurableNamedWithAWispDependent(t *testing.T, ctx context.C
 // the two edge shapes that cross planes, which no case counted.
 //
 // The number is a claim about what the delete DID, and both routes print it —
-// `bd delete` says "Removed N dependency link(s)" and the wire field carries
+// `issuegraph delete` says "Removed N dependency link(s)" and the wire field carries
 // it. The unit-of-work body counted each plane's ids against that plane's
 // table only, so an edge whose deleted end is the TARGET in the OTHER plane's
 // table was counted by neither query while being removed anyway. The store
@@ -660,7 +660,7 @@ func RunDeleterRewritesReferencesInNeighbors(t *testing.T, ctx context.Context, 
 // PREVIEW-VERSUS-RUN IS HALF A TEST, and the half it is missing is the one a
 // caller reads. The two counts agreeing says only that the two calls walked the
 // same code; both can be zero, or both can be wrong by the same amount, and
-// every comparison below still passes. `bd delete --dry-run` prints these
+// every comparison below still passes. `issuegraph delete --dry-run` prints these
 // numbers as "this will also remove N labels and M dependencies", and a preview
 // that under-reports is how a caller consents to a deletion it did not agree to.
 //
@@ -727,7 +727,7 @@ func RunDeleterDryRunChangesNothing(t *testing.T, ctx context.Context, fixture D
 //
 // EXACTLY ONE, not at most one. The range this case used to assert passed
 // whether or not the entry was written, which is precisely the direction that
-// regressed once already: the port of `bd delete` onto this role reached its
+// regressed once already: the port of `issuegraph delete` onto this role reached its
 // transaction through a helper that mints no Dolt commit, embedded deletes
 // stopped being versioned, and no contract case went red — the hole was found
 // by a CLI test and patched at the CLI. A lower bound that cannot fail is not
@@ -911,7 +911,7 @@ func RunDeleterSettlesTheChildrenOfADeletedParent(t *testing.T, ctx context.Cont
 //
 // IT IS ROLE-REACHABLE. DeleteRequest.IDs "names the rows to delete, IN EITHER
 // PLANE", and the unforced guard has "no wisp exemption at either end", so a
-// forced `bd delete <wisp>` with durable dependents is a documented mode rather
+// forced `issuegraph delete <wisp>` with durable dependents is a documented mode rather
 // than an out-of-band poke — which is why blocked_state.go's wisp carve-out,
 // which covers the store's own wisp-delete entry points, does not cover this
 // one.
@@ -1159,7 +1159,7 @@ func RunDeleterVersionOutranksForceAndCascade(t *testing.T, ctx context.Context,
 //
 // The collapse arm is the falsifying sibling. Without it the rule reads as
 // "expected-version deletes take one element", and an implementation that
-// counted MENTIONS rather than distinct ids would refuse `bd delete a a`, which
+// counted MENTIONS rather than distinct ids would refuse `issuegraph delete a a`, which
 // DeleteRequest.IDs promises is one row. The repeated mention is spelled
 // untrimmed, so it also says the count happens after normalization.
 func RunDeleterRefusesAnExpectedVersionAcrossSeveralIDs(t *testing.T, ctx context.Context, fixture DeleterFixture) {

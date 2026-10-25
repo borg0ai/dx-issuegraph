@@ -10,7 +10,7 @@
 -- bytes, so the same comment — a stack trace, a diff, a captured agent
 -- transcript — writes fine against a durable issue and fails with MySQL Error
 -- 1105 against a wisp. That is a wire-visible divergence on one documented
--- member: `POST /v0/beads/issues/{id}/comments` resolves its anchor across both
+-- member: `POST /v0/issuegraph/issues/{id}/comments` resolves its anchor across both
 -- planes deliberately, so a caller cannot know which side of the bound it is on
 -- until the write fails. Widening is the fix rather than a documented caveat —
 -- the planes should not diverge on what a comment may contain, and the caveat

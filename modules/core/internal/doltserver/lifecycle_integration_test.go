@@ -15,14 +15,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil/integration"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/testutil/integration"
 )
 
-// setupLifecycleTestDir creates a temp .beads directory with an initialized
-// dolt database. Returns the beadsDir path.
+// setupLifecycleTestDir creates a temp .issuegraph directory with an initialized
+// dolt database. Returns the issuegraphDir path.
 func setupLifecycleTestDir(t *testing.T) string {
 	t.Helper()
 	doltBin := integration.RequireDolt(t)
@@ -30,12 +30,12 @@ func setupLifecycleTestDir(t *testing.T) string {
 	tmpDir := t.TempDir()
 	configureDoltTestIdentity(t, doltBin, tmpDir)
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0700); err != nil {
-		t.Fatalf("failed to create beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0700); err != nil {
+		t.Fatalf("failed to create issuegraph dir: %v", err)
 	}
 
-	doltDir := filepath.Join(beadsDir, "dolt")
+	doltDir := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(doltDir, 0700); err != nil {
 		t.Fatalf("failed to create dolt dir: %v", err)
 	}
@@ -48,18 +48,18 @@ func setupLifecycleTestDir(t *testing.T) string {
 	}
 
 	// Ensure no shared server mode interference.
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "0")
-	t.Setenv("BEADS_DOLT_AUTO_START", "1")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", "1")
 
-	return beadsDir
+	return issuegraphDir
 }
 
 func configureDoltTestIdentity(t *testing.T, doltBin, home string) {
 	t.Helper()
 
 	for _, args := range [][]string{
-		{"config", "--global", "--add", "user.name", "beads-test"},
-		{"config", "--global", "--add", "user.email", "beads@test"},
+		{"config", "--global", "--add", "user.name", "issuegraph-test"},
+		{"config", "--global", "--add", "user.email", "issuegraph@test"},
 	} {
 		cmd := exec.Command(doltBin, args...)
 		cmd.Env = doltTestEnv(home)
@@ -104,13 +104,13 @@ func waitForPortClosed(t *testing.T, port int, timeout time.Duration) {
 // Start → verify state files → connect → execute SQL → Stop → verify cleanup.
 // Would have caught: GH#2542 (zombie servers not cleaning up state files).
 func TestLifecycle_StartStopCycle(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
 	// Start server.
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -131,8 +131,8 @@ func TestLifecycle_StartStopCycle(t *testing.T) {
 	t.Logf("Server started: PID=%d Port=%d", state.PID, state.Port)
 
 	// Verify state files exist.
-	pidFile := filepath.Join(beadsDir, doltserver.PIDFileName)
-	portFile := filepath.Join(beadsDir, doltserver.PortFileName)
+	pidFile := filepath.Join(issuegraphDir, doltserver.PIDFileName)
+	portFile := filepath.Join(issuegraphDir, doltserver.PortFileName)
 	if !integration.FileExists(pidFile) {
 		t.Error("PID file does not exist after Start")
 	}
@@ -158,7 +158,7 @@ func TestLifecycle_StartStopCycle(t *testing.T) {
 	_ = db.Close()
 
 	// Stop server.
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Fatalf("Stop: %v", err)
 	}
 	reg.Deregister(state.PID)
@@ -180,13 +180,13 @@ func TestLifecycle_StartStopCycle(t *testing.T) {
 // a new Start() cleans up stale state and the data survives.
 // Would have caught: GH#2636 (infinite restart loop with zombie processes).
 func TestLifecycle_CrashRecovery(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
 	// Start server and insert data.
-	state1, err := doltserver.Start(beadsDir)
+	state1, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start (first): %v", err)
 	}
@@ -221,13 +221,13 @@ func TestLifecycle_CrashRecovery(t *testing.T) {
 	t.Logf("Server PID %d killed, stale state files left behind", state1.PID)
 
 	// Verify stale PID file still exists (crash didn't clean up).
-	pidFile := filepath.Join(beadsDir, doltserver.PIDFileName)
+	pidFile := filepath.Join(issuegraphDir, doltserver.PIDFileName)
 	if !integration.FileExists(pidFile) {
 		t.Log("PID file was already cleaned up (unexpected but not fatal)")
 	}
 
 	// Start server again — should clean up stale state and work.
-	state2, err := doltserver.Start(beadsDir)
+	state2, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start (second): %v", err)
 	}
@@ -256,7 +256,7 @@ func TestLifecycle_CrashRecovery(t *testing.T) {
 	_ = db2.Close()
 
 	// Clean stop.
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Fatalf("Stop (cleanup): %v", err)
 	}
 	reg.Deregister(state2.PID)
@@ -266,13 +266,13 @@ func TestLifecycle_CrashRecovery(t *testing.T) {
 // Stop → Start cycles.
 // Would have caught: GH#2756 (cold-start regression losing working set).
 func TestLifecycle_RestartDataPersistence(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
 	// Start, write data, stop.
-	state1, err := doltserver.Start(beadsDir)
+	state1, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start (first): %v", err)
 	}
@@ -292,13 +292,13 @@ func TestLifecycle_RestartDataPersistence(t *testing.T) {
 	}
 	_ = db.Close()
 
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Fatalf("Stop: %v", err)
 	}
 	reg.Deregister(state1.PID)
 
 	// Restart and verify data.
-	state2, err := doltserver.Start(beadsDir)
+	state2, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start (second): %v", err)
 	}
@@ -316,7 +316,7 @@ func TestLifecycle_RestartDataPersistence(t *testing.T) {
 	}
 	_ = db2.Close()
 
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Fatalf("Stop (cleanup): %v", err)
 	}
 	reg.Deregister(state2.PID)
@@ -326,16 +326,16 @@ func TestLifecycle_RestartDataPersistence(t *testing.T) {
 // does not affect repo B's server.
 // Would have caught: GH#2595 (stale cleanup kills healthy servers from other repos).
 func TestLifecycle_MultiRepoIsolation(t *testing.T) {
-	beadsDirA := setupLifecycleTestDir(t)
-	beadsDirB := setupLifecycleTestDir(t)
+	issuegraphDirA := setupLifecycleTestDir(t)
+	issuegraphDirB := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diagA := integration.NewDiagnostics(t, beadsDirA)
+	diagA := integration.NewDiagnostics(t, issuegraphDirA)
 	diagA.CaptureOnFailure()
-	diagB := integration.NewDiagnostics(t, beadsDirB)
+	diagB := integration.NewDiagnostics(t, issuegraphDirB)
 	diagB.CaptureOnFailure()
 
 	// Start both servers.
-	stateA, err := doltserver.Start(beadsDirA)
+	stateA, err := doltserver.Start(issuegraphDirA)
 	if err != nil {
 		t.Fatalf("Start(A): %v", err)
 	}
@@ -344,7 +344,7 @@ func TestLifecycle_MultiRepoIsolation(t *testing.T) {
 	}
 	t.Logf("Repo A: PID=%d Port=%d", stateA.PID, stateA.Port)
 
-	stateB, err := doltserver.Start(beadsDirB)
+	stateB, err := doltserver.Start(issuegraphDirB)
 	if err != nil {
 		t.Fatalf("Start(B): %v", err)
 	}
@@ -354,7 +354,7 @@ func TestLifecycle_MultiRepoIsolation(t *testing.T) {
 	t.Logf("Repo B: PID=%d Port=%d", stateB.PID, stateB.Port)
 
 	// KillStaleServers on repo A.
-	killed, err := doltserver.KillStaleServers(beadsDirA)
+	killed, err := doltserver.KillStaleServers(issuegraphDirA)
 	if err != nil {
 		t.Fatalf("KillStaleServers(A): %v", err)
 	}
@@ -374,9 +374,9 @@ func TestLifecycle_MultiRepoIsolation(t *testing.T) {
 	_ = dbB.Close()
 
 	// Cleanup both.
-	_ = doltserver.Stop(beadsDirA)
+	_ = doltserver.Stop(issuegraphDirA)
 	reg.Deregister(stateA.PID)
-	_ = doltserver.Stop(beadsDirB)
+	_ = doltserver.Stop(issuegraphDirB)
 	reg.Deregister(stateB.PID)
 }
 
@@ -384,9 +384,9 @@ func TestLifecycle_MultiRepoIsolation(t *testing.T) {
 // calls during a Start() don't cause data races or incorrect state.
 // Would have caught: TOCTOU bugs in PID file reads during server startup.
 func TestLifecycle_ConcurrentIsRunningStart(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
 	var wg sync.WaitGroup
@@ -399,7 +399,7 @@ func TestLifecycle_ConcurrentIsRunningStart(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		<-ready
-		state, err := doltserver.Start(beadsDir)
+		state, err := doltserver.Start(issuegraphDir)
 		if err != nil {
 			startErr.Store(&err)
 			return
@@ -416,7 +416,7 @@ func TestLifecycle_ConcurrentIsRunningStart(t *testing.T) {
 			defer wg.Done()
 			<-ready
 			for j := 0; j < 20; j++ {
-				state, err := doltserver.IsRunning(beadsDir)
+				state, err := doltserver.IsRunning(issuegraphDir)
 				if err != nil {
 					isRunningErrors <- err
 					return
@@ -452,7 +452,7 @@ func TestLifecycle_ConcurrentIsRunningStart(t *testing.T) {
 	}
 
 	// Cleanup.
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Fatalf("Stop: %v", err)
 	}
 	reg.Deregister(state.PID)
@@ -462,8 +462,8 @@ func TestLifecycle_ConcurrentIsRunningStart(t *testing.T) {
 // the PID file points to a non-dolt process (PID was reused by the OS).
 // Would have caught: False-positive IsRunning when PID recycled.
 func TestLifecycle_PIDReuseDetection(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	issuegraphDir := setupLifecycleTestDir(t)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
 	// Start a non-dolt process (sleep) and write its PID to the PID file.
@@ -480,12 +480,12 @@ func TestLifecycle_PIDReuseDetection(t *testing.T) {
 	t.Logf("sleep process PID: %d", sleepPID)
 
 	// Write the sleep PID as if it were the dolt server.
-	corruptor := integration.NewStateCorruptor(t, beadsDir)
+	corruptor := integration.NewStateCorruptor(t, issuegraphDir)
 	corruptor.WriteStalePID(sleepPID)
 	corruptor.WriteStalePort(3306) // Arbitrary port.
 
 	// IsRunning should detect this is NOT a dolt process and return false.
-	state, err := doltserver.IsRunning(beadsDir)
+	state, err := doltserver.IsRunning(issuegraphDir)
 	if err != nil {
 		t.Fatalf("IsRunning: %v", err)
 	}

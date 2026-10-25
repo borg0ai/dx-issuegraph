@@ -9,8 +9,8 @@ func TestIsEphemeralID(t *testing.T) {
 		id   string
 		want bool
 	}{
-		{"bd-wisp-abc123", true},
-		{"bd-wisp-8ajy9h", true},
+		{"issuegraph-wisp-abc123", true},
+		{"issuegraph-wisp-8ajy9h", true},
 		{"gt-wisp-patrol1", true},
 		{"bd-1234", false},
 		{"bd-abc", false},
@@ -26,7 +26,7 @@ func TestIsEphemeralID(t *testing.T) {
 }
 
 func TestPartitionIDs(t *testing.T) {
-	ids := []string{"bd-wisp-a", "bd-123", "bd-wisp-b", "bd-456"}
+	ids := []string{"issuegraph-wisp-a", "bd-123", "issuegraph-wisp-b", "bd-456"}
 	eph, dolt := partitionIDs(ids)
 	if len(eph) != 2 {
 		t.Errorf("ephemeral count %d, want 2", len(eph))
@@ -43,10 +43,10 @@ func TestAllEphemeral(t *testing.T) {
 	if allEphemeral([]string{}) {
 		t.Error("empty should return false")
 	}
-	if !allEphemeral([]string{"bd-wisp-a", "bd-wisp-b"}) {
+	if !allEphemeral([]string{"issuegraph-wisp-a", "issuegraph-wisp-b"}) {
 		t.Error("all wisp should return true")
 	}
-	if allEphemeral([]string{"bd-wisp-a", "bd-123"}) {
+	if allEphemeral([]string{"issuegraph-wisp-a", "bd-123"}) {
 		t.Error("mixed should return false")
 	}
 }

@@ -7,9 +7,9 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storeops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storeops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // MetadataCAS returns the conditional single-key metadata write for this store.
@@ -62,7 +62,7 @@ func (m *metadataCAS) CompareAndSetKey(ctx context.Context, req issueops.Compare
 			// ephemeral swap needs.
 			return nil, "", nil
 		}
-		return write.Tables, fmt.Sprintf("bd: compare-and-set metadata %s.%s", plan.IssueID, plan.Key), nil
+		return write.Tables, fmt.Sprintf("issuegraph: compare-and-set metadata %s.%s", plan.IssueID, plan.Key), nil
 	}); err != nil {
 		return issueops.CompareAndSetKeyResult{}, err
 	}

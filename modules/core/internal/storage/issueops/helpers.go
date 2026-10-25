@@ -14,11 +14,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/idgen"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/idgen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // IsWisp returns true if the issue should be routed to the wisps table.
@@ -524,7 +524,7 @@ func ReadConfigPrefix(ctx context.Context, tx DBTX) (string, error) {
 		underscoreYamlPrefix := strings.TrimSpace(config.GetString("issue_prefix"))
 		debug.Logf("Debug: missing config.issue_prefix in database (err=%v, db value=%q, yaml issue-prefix=%q, yaml issue_prefix=%q)\n",
 			err, configPrefix, yamlPrefix, underscoreYamlPrefix)
-		return "", fmt.Errorf("%w: issue_prefix config is missing (run 'bd init --prefix <prefix>' for a new project, or 'bd bootstrap' to clone an existing remote; this check reads the database's config table, so adding 'issue-prefix' to config.yaml does not satisfy it)", storage.ErrNotInitialized)
+		return "", fmt.Errorf("%w: issue_prefix config is missing (run 'issuegraph init --prefix <prefix>' for a new project, or 'issuegraph bootstrap' to clone an existing remote; this check reads the database's config table, so adding 'issue-prefix' to config.yaml does not satisfy it)", storage.ErrNotInitialized)
 	} else if err != nil {
 		return "", fmt.Errorf("failed to get config: %w", err)
 	}

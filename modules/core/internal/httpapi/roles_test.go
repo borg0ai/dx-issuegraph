@@ -12,11 +12,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // These tests cover the OTHER database source: a backend whose facade is a
@@ -1010,7 +1010,7 @@ func (d *roleCycleDetector) DetectCycles(_ context.Context, req issueops.DetectC
 // roleSweeper is the store-shaped source's bulk-clearance role. Every case
 // hands Listen a COMPLETE source for a reason that bites hardest here: the
 // alternative is a server that binds and then nil-dereferences on the one
-// request that deletes beads.
+// request that deletes issuegraph.
 // roleMetadataCAS is the store-shaped source's conditional metadata write, the
 // same shape as roleSweeper and for the same reason.
 type roleMetadataCAS struct {
@@ -1206,7 +1206,7 @@ func TestListenRequiresExactlyOneDatabaseSource(t *testing.T) {
 		{
 			// The other destructive role: missing it, the server binds,
 			// advertises issues.delete, and nil-dereferences on the first
-			// request that erases a named bead.
+			// request that erases a named issue.
 			name:    "no deleter",
 			cfg:     rolesConfigWithout(func(c *Config) { c.Deleter = nil }),
 			wantErr: "no database source",
@@ -1232,7 +1232,7 @@ func TestListenRequiresExactlyOneDatabaseSource(t *testing.T) {
 		{
 			// The absence that would cost most: the server binds, advertises
 			// issues.sweep, and nil-dereferences on the first request that
-			// deletes beads in bulk.
+			// deletes issuegraph in bulk.
 			name:    "no sweeper",
 			cfg:     rolesConfigWithout(func(c *Config) { c.Sweeper = nil }),
 			wantErr: "no database source",
@@ -1407,7 +1407,7 @@ func TestConfiguredRolesServeTheSameReadyBytesAsAProvider(t *testing.T) {
 		Reader: &roleReader{page: issueops.IssuePage{Items: items}},
 	}))
 
-	for _, path := range []string{"/v0/beads/ready", "/v0/beads/issues"} {
+	for _, path := range []string{"/v0/issuegraph/ready", "/v0/issuegraph/issues"} {
 		fromProvider := viaProvider.get(t, path)
 		fromRoles := viaRoles.get(t, path)
 
@@ -1469,7 +1469,7 @@ func TestConfiguredRolesAnswerEveryDatabaseRoute(t *testing.T) {
 	}))
 
 	t.Run("ready", func(t *testing.T) {
-		resp := ts.get(t, "/v0/beads/ready?sort=oldest")
+		resp := ts.get(t, "/v0/issuegraph/ready?sort=oldest")
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -1488,7 +1488,7 @@ func TestConfiguredRolesAnswerEveryDatabaseRoute(t *testing.T) {
 	})
 
 	t.Run("count ready", func(t *testing.T) {
-		resp := ts.get(t, "/v0/beads/ready:count?label=api")
+		resp := ts.get(t, "/v0/issuegraph/ready:count?label=api")
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -1510,7 +1510,7 @@ func TestConfiguredRolesAnswerEveryDatabaseRoute(t *testing.T) {
 	})
 
 	t.Run("query", func(t *testing.T) {
-		resp := ts.get(t, "/v0/beads/issues:query?q=type%3Dbug+OR+label%3Durgent&sort=priority")
+		resp := ts.get(t, "/v0/issuegraph/issues:query?q=type%3Dbug+OR+label%3Durgent&sort=priority")
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -1537,7 +1537,7 @@ func TestConfiguredRolesAnswerEveryDatabaseRoute(t *testing.T) {
 	})
 
 	t.Run("list", func(t *testing.T) {
-		resp := ts.get(t, "/v0/beads/issues")
+		resp := ts.get(t, "/v0/issuegraph/issues")
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -1553,7 +1553,7 @@ func TestConfiguredRolesAnswerEveryDatabaseRoute(t *testing.T) {
 	})
 
 	t.Run("get", func(t *testing.T) {
-		resp := ts.get(t, "/v0/beads/issues/bd-1")
+		resp := ts.get(t, "/v0/issuegraph/issues/bd-1")
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -1584,7 +1584,7 @@ func TestConfiguredRolesAnswerEveryDatabaseRoute(t *testing.T) {
 	})
 
 	t.Run("config list", func(t *testing.T) {
-		resp := ts.get(t, "/v0/beads/config")
+		resp := ts.get(t, "/v0/issuegraph/config")
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -1614,7 +1614,7 @@ func TestConfiguredRolesAnswerEveryDatabaseRoute(t *testing.T) {
 	})
 
 	t.Run("config get", func(t *testing.T) {
-		resp := ts.get(t, "/v0/beads/config/status.custom")
+		resp := ts.get(t, "/v0/issuegraph/config/status.custom")
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -1630,7 +1630,7 @@ func TestConfiguredRolesAnswerEveryDatabaseRoute(t *testing.T) {
 	})
 
 	t.Run("stats", func(t *testing.T) {
-		resp := ts.get(t, "/v0/beads/stats?skip_blocked=true")
+		resp := ts.get(t, "/v0/issuegraph/stats?skip_blocked=true")
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -1651,7 +1651,7 @@ func TestConfiguredRolesAnswerEveryDatabaseRoute(t *testing.T) {
 	})
 
 	t.Run("stats for one assignee", func(t *testing.T) {
-		resp := ts.get(t, "/v0/beads/stats?assignee=alice&skip_blocked=true")
+		resp := ts.get(t, "/v0/issuegraph/stats?assignee=alice&skip_blocked=true")
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -1667,7 +1667,7 @@ func TestConfiguredRolesAnswerEveryDatabaseRoute(t *testing.T) {
 	})
 
 	t.Run("dependencies", func(t *testing.T) {
-		resp := ts.get(t, "/v0/beads/dependencies?issue_id=bd-1&issue_id=bd-9&type=blocks")
+		resp := ts.get(t, "/v0/issuegraph/dependencies?issue_id=bd-1&issue_id=bd-9&type=blocks")
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -1702,7 +1702,7 @@ func TestConfiguredRolesAnswerEveryDatabaseRoute(t *testing.T) {
 func TestConfiguredRolesKeepTheDocumentedRefusals(t *testing.T) {
 	t.Run("a missing issue is 404", func(t *testing.T) {
 		ts := newTestServer(t, rolesConfig(Config{Reader: &roleReader{err: fmt.Errorf("get bd-404: %w", storage.ErrNotFound)}}))
-		resp := ts.get(t, "/v0/beads/issues/bd-404")
+		resp := ts.get(t, "/v0/issuegraph/issues/bd-404")
 		if resp.StatusCode != http.StatusNotFound {
 			t.Fatalf("status = %d, want 404: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -1716,7 +1716,7 @@ func TestConfiguredRolesKeepTheDocumentedRefusals(t *testing.T) {
 		// arrives at the handler exactly as it does from a unit-of-work reader —
 		// and must still be mapped to its parameter rather than to a 500.
 		ts := newTestServer(t, rolesConfig(Config{Reader: &roleReader{err: errors.New("invalid status bogus")}}))
-		resp := ts.get(t, "/v0/beads/issues?status=bogus")
+		resp := ts.get(t, "/v0/issuegraph/issues?status=bogus")
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -1750,7 +1750,7 @@ func TestConfiguredRolesKeepTheDocumentedRefusals(t *testing.T) {
 
 	t.Run("a role failure is the generic 500", func(t *testing.T) {
 		ts := newTestServer(t, rolesConfig(Config{Reader: &roleReader{err: errors.New("backend is unreachable")}}))
-		resp := ts.get(t, "/v0/beads/ready")
+		resp := ts.get(t, "/v0/issuegraph/ready")
 		if resp.StatusCode != http.StatusInternalServerError {
 			t.Fatalf("status = %d, want 500: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -1801,7 +1801,7 @@ func TestStartupNamesTheDatabaseSource(t *testing.T) {
 func TestARolesRequestReportsNoUnitOfWorkTime(t *testing.T) {
 	ts := newTestServer(t, rolesConfig(Config{}))
 
-	if resp := ts.get(t, "/v0/beads/ready"); resp.StatusCode != http.StatusOK {
+	if resp := ts.get(t, "/v0/issuegraph/ready"); resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200", resp.StatusCode)
 	}
 	line := findLogLine(t, ts.stderr.String(), "op="+OpListReadyWork)
@@ -1848,8 +1848,8 @@ func TestARoleThatAnswersWithNothingIsNotDereferenced(t *testing.T) {
 		silent := newTestServer(t, rolesConfig(Config{}))
 		missed := newTestServer(t, rolesConfig(Config{Reader: &roleReader{err: fmt.Errorf("get bd-1: %w", storage.ErrNotFound)}}))
 
-		got := silent.get(t, "/v0/beads/issues/bd-1")
-		want := missed.get(t, "/v0/beads/issues/bd-1")
+		got := silent.get(t, "/v0/issuegraph/issues/bd-1")
+		want := missed.get(t, "/v0/issuegraph/issues/bd-1")
 		if got.StatusCode != http.StatusNotFound {
 			t.Fatalf("status = %d, want 404: %s", got.StatusCode, readAll(t, got))
 		}
@@ -1921,9 +1921,9 @@ func (s hookableStore) BatchCreator() (issueops.BatchCreator, error) { return s.
 
 // TestListenRefusesARoleThatFiresTheWorkspaceHooks.
 //
-// `bd serve` documents that hooks do not fire, and a store is the surface that
+// `issuegraph serve` documents that hooks do not fire, and a store is the surface that
 // most easily makes them: its accessors hand out its decorators, deliberately,
-// so that a CLI claim keeps its on_update — and bd's own chain is
+// so that a CLI claim keeps its on_update — and issuegraph's own chain is
 // caller -> HookFiringStore -> InstrumentedStorage -> raw. So the one line a
 // caller with a store would obviously write, store.IssueClaimer(), returns
 // exactly the claimer this server may not serve.
@@ -1987,7 +1987,7 @@ func TestListenRefusesARoleThatFiresTheWorkspaceHooks(t *testing.T) {
 	//
 	// Their per-request cost is what makes them worth naming individually: the
 	// commenter fires once per comment, which is what an agent posting progress
-	// into a thread does in a loop; the ready claimer once per bead a polling
+	// into a thread does in a loop; the ready claimer once per issue a polling
 	// drainer picks up; the batch closer once per landed item plus one for the
 	// claim it chains; the batch creator once per item, so a hundred-item batch
 	// is a hundred subprocesses inside one HTTP call.
@@ -2055,7 +2055,7 @@ func (serveHookRunner) Run(string, *types.Issue) {}
 // The unit-of-work seam used to carry no hook layer, so the provider arm could
 // not break the no-hooks contract. It can now: proxied mode wraps its provider
 // so the CLI's writes fire hooks on both plumbings, and that provider is the
-// one `bd serve` finds already open. Serving it would run a user's subprocess
+// one `issuegraph serve` finds already open. Serving it would run a user's subprocess
 // per landed mutation, for as long as the server is up.
 func TestListenRefusesAProviderThatFiresTheWorkspaceHooks(t *testing.T) {
 	inner := &fakeProvider{}
@@ -2076,7 +2076,7 @@ func TestListenRefusesAProviderThatFiresTheWorkspaceHooks(t *testing.T) {
 	}
 
 	// And the provider BENEATH the hook layer — the value the refusal sends a
-	// caller to, and what modules/cli hands Listen — has to be servable.
+	// caller to, and what apps/cli hands Listen — has to be servable.
 	srv, err := listen(uow.UnwrapProvider(notifying))
 	if err != nil {
 		t.Fatalf("Listen: %v, want a bound server for the provider beneath the hook layer", err)

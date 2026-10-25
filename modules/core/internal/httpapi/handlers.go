@@ -5,15 +5,15 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
 )
 
 // handleHealth answers from the process and touches nothing that can fail.
 //
 // This is LIVENESS, not readiness: it stays 200 while the database is
 // unreachable, wedged, or an hour dead. The documented readiness probe is
-// GET /v0/beads/ready?limit=1, which goes through the semaphore and a real
+// GET /v0/issuegraph/ready?limit=1, which goes through the semaphore and a real
 // transaction.
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	if !s.requireNoQuery(w, r) {
@@ -64,7 +64,7 @@ func (s *Server) requireNoQuery(w http.ResponseWriter, r *http.Request) bool {
 // contextResponse projects the workspace snapshot onto the wire.
 //
 // The snapshot's own fields come from domain.PublishedContext, which is the
-// projection `bd context` publishes too — so the identity this server hands an
+// projection `issuegraph context` publishes too — so the identity this server hands an
 // automation client and the identity the CLI prints beside it are the same
 // seven values read the same way, not two field-by-field copies kept in sync
 // by hand.
@@ -76,7 +76,7 @@ func (s *Server) requireNoQuery(w http.ResponseWriter, r *http.Request) bool {
 // — so this handler cannot publish one by forgetting to leave it out. Nor can
 // it publish the database bind endpoint (advertising it invites clients to
 // bypass this API and dial a server whose trust model is "root with an empty
-// password on loopback") or the absolute host paths. BeadsDir and RepoRoot ARE
+// password on loopback") or the absolute host paths. IssueGraphDir and RepoRoot ARE
 // published, deliberately: they are the most legible workspace identity for
 // the operator reading a single-workspace server, and the document says so.
 //
@@ -99,12 +99,12 @@ func contextResponse(info domain.ContextInfo, schemaVersion int, capabilities []
 		SchemaVersion: schemaVersion,
 		Capabilities:  capabilities,
 
-		BdVersion: published.BdVersion,
-		Backend:   published.Backend,
-		DoltMode:  published.DoltMode,
-		Database:  published.Database,
-		BeadsDir:  &published.BeadsDir,
-		RepoRoot:  &published.RepoRoot,
-		ProjectId: published.ProjectID,
+		BdVersion:     published.BdVersion,
+		Backend:       published.Backend,
+		DoltMode:      published.DoltMode,
+		Database:      published.Database,
+		IssueGraphDir: &published.IssueGraphDir,
+		RepoRoot:      &published.RepoRoot,
+		ProjectId:     published.ProjectID,
 	}
 }

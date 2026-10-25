@@ -30,7 +30,7 @@ type serverCandidate struct {
 // ("swept 1 orphaned test dolt sql-server process(es): [21881]") says a
 // fixture leaked but not WHICH one, and the PID is gone by the time anyone
 // reads the log — so a CI failure on a package with hundreds of tests left
-// the reader nothing to grep for. A leaked server's cwd is the .beads/dolt
+// the reader nothing to grep for. A leaked server's cwd is the .issuegraph/dolt
 // directory under the suite's own temp tree, and Go names those after the
 // test that made them (a t.TempDir() is <root>/TestSomeName1234/001), so the
 // directory identifies the leaking test directly.
@@ -75,7 +75,7 @@ func (s SweptServer) String() string {
 // directories. A deleted working directory is a strong leak signal — a
 // t.TempDir() cleanup ran on top of a still-live detached server — but it is
 // NOT by itself proof of a TEST server: a production server is spawned with
-// cmd.Dir = <workspace>/.beads/dolt, so a developer who moved or deleted that
+// cmd.Dir = <workspace>/.issuegraph/dolt, so a developer who moved or deleted that
 // workspace, or whose external volume was unmounted, would have their live
 // server reaped by any test run on the box. Requiring the deleted path to
 // have been under a temp dir keeps the arm pointed at test debris only.
@@ -171,7 +171,7 @@ func tempDirRoots() []string {
 // /private/tmp, /var/folders/xx/yy/T, a pinned suite root) passes.
 //
 // The home test doubles as the breadth test: a directory holding the user's
-// home holds their workspaces too, so a deleted .beads/dolt under it would
+// home holds their workspaces too, so a deleted .issuegraph/dolt under it would
 // again look like test debris.
 //
 // The one home that anchors no workspaces is a SANDBOX home: CI harnesses
@@ -241,7 +241,7 @@ func isUnderFixedTempRoots(path, goos string) bool {
 // CI harnesses (scripts/ci/lib/test-env.sh) mktemp -d their sandbox HOME under
 // it. macOS additionally gives every user a per-user temp tree under
 // /var/folders and points TMPDIR at it, so a suite that pins HOME to a
-// t.TempDir() (modules/cli/test_repo_beads_guard_test.go, internal/beads/testmain_test.go)
+// t.TempDir() (apps/cli/test_repo_issuegraph_guard_test.go, internal/issuegraph/testmain_test.go)
 // puts HOME under /var/folders/xx/yy/T — which without this entry disqualified
 // os.TempDir() itself and left the deleted-cwd arm inert on every Mac
 // (wy-j2zc8q).
@@ -275,7 +275,7 @@ func isUnderFixedTempRoots(path, goos string) bool {
 // carve-out would then spare /var/tmp itself as a sweep root — putting every
 // other user's deleted-cwd dolt server on the box in range of the kill arm.
 // isSharedTempRoot is what closes that: a sandbox HOME may rescue a root
-// nested INSIDE an entry here (/var/tmp/beads-gate-probe, the shape
+// nested INSIDE an entry here (/var/tmp/issuegraph-gate-probe, the shape
 // test-env.sh builds), never the entry itself. So adding /var/tmp widens the
 // orphan arm by nothing — a bare TMPDIR=/var/tmp is judged exactly as it was
 // before this row existed (TestSandboxHomeUnderVarTmpTMPDIR).

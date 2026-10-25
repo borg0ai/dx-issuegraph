@@ -5,21 +5,21 @@ import (
 	"os"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 // ServerMode describes who owns and manages the dolt sql-server lifecycle.
 type ServerMode int
 
 const (
-	// ServerModeOwned means beads auto-starts and manages the server.
+	// ServerModeOwned means issuegraph auto-starts and manages the server.
 	// This is the default for standalone users with no explicit port config.
 	ServerModeOwned ServerMode = iota
 
 	// ServerModeExternal means the user manages the server lifecycle
-	// (e.g., systemd, Docker, Hosted Dolt, VPS). Beads never starts or
+	// (e.g., systemd, Docker, Hosted Dolt, VPS). IssueGraph never starts or
 	// stops the server. Determined when metadata.json has an explicit
-	// dolt_server_port or BEADS_DOLT_SHARED_SERVER is set.
+	// dolt_server_port or ISSUEGRAPH_DOLT_SHARED_SERVER is set.
 	ServerModeExternal
 
 	// ServerModeEmbedded is the legacy in-process embedded dolt path.
@@ -41,12 +41,12 @@ func (m ServerMode) String() string {
 	}
 }
 
-// ResolveServerMode determines the server mode from the given beadsDir.
+// ResolveServerMode determines the server mode from the given issuegraphDir.
 // This is the single source of truth for how the server lifecycle is managed.
 //
 // Decision logic (checked in order):
-//  1. BEADS_DOLT_SERVER_MODE=1 env var             -> ServerModeExternal
-//  2. BEADS_DOLT_SHARED_SERVER env var is set       -> ServerModeExternal
+//  1. ISSUEGRAPH_DOLT_SERVER_MODE=1 env var             -> ServerModeExternal
+//  2. ISSUEGRAPH_DOLT_SHARED_SERVER env var is set       -> ServerModeExternal
 //     2b. host-based inference (HostImpliesServerMode) -> ServerModeExternal
 //  3. metadata.json dolt_mode == "embedded"         -> ServerModeEmbedded
 //  4. metadata.json has explicit dolt_server_port   -> ServerModeExternal
@@ -58,9 +58,9 @@ func (m ServerMode) String() string {
 //
 // The function loads metadata.json only if the file exists, to avoid
 // triggering the legacy config.json -> metadata.json migration side effect.
-func ResolveServerMode(beadsDir string) ServerMode {
-	// 1. BEADS_DOLT_SERVER_MODE=1 env var -> external (explicit server mode)
-	if os.Getenv("BEADS_DOLT_SERVER_MODE") == "1" {
+func ResolveServerMode(issuegraphDir string) ServerMode {
+	// 1. ISSUEGRAPH_DOLT_SERVER_MODE=1 env var -> external (explicit server mode)
+	if os.Getenv("ISSUEGRAPH_DOLT_SERVER_MODE") == "1" {
 		return ServerModeExternal
 	}
 
@@ -74,9 +74,9 @@ func ResolveServerMode(beadsDir string) ServerMode {
 	var fileCfg *configfile.Config
 
 	// Only load config if metadata.json exists (avoids legacy migration side effect)
-	metadataPath := configfile.ConfigPath(beadsDir)
+	metadataPath := configfile.ConfigPath(issuegraphDir)
 	if _, err := os.Stat(metadataPath); err == nil {
-		if cfg, loadErr := configfile.Load(beadsDir); loadErr == nil && cfg != nil {
+		if cfg, loadErr := configfile.Load(issuegraphDir); loadErr == nil && cfg != nil {
 			fileCfg = cfg
 		}
 	}
@@ -107,6 +107,6 @@ func ResolveServerMode(beadsDir string) ServerMode {
 		return ServerModeExternal
 	}
 
-	// 5. Default: beads owns the server
+	// 5. Default: issuegraph owns the server
 	return ServerModeOwned
 }

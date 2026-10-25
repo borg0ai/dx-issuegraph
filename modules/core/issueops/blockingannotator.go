@@ -33,7 +33,7 @@ type BlockingRequest struct {
 // IssueBlocking is one issue's blocking decoration.
 //
 // The json tags are the wire names: this struct IS the element
-// GET /v0/beads/dependencies/blocking emits, so there is no second shape for
+// GET /v0/issuegraph/dependencies/blocking emits, so there is no second shape for
 // the same fact.
 type IssueBlocking struct {
 	// ID is the annotated id, spelled exactly as the request spelled it.
@@ -109,7 +109,7 @@ type BlockingResult struct {
 // promise below holds; what "best-effort" names is the standing the annotation
 // has at a front door, which prints it beside a row and never decides anything
 // on it. What a front door does with a FAILURE is its own policy and not this
-// contract's — and `bd list`'s two routes do not agree on it today: the direct
+// contract's — and `issuegraph list`'s two routes do not agree on it today: the direct
 // one renders the page undecorated and the proxied one fails the command. This
 // role reports its failures either way; converging the two is a behavior
 // question recorded for the owner as A-blk-1.

@@ -20,9 +20,9 @@ package storereadycounter
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // New returns the ready-count surface backed by a store handle. *DoltStore and
@@ -30,7 +30,7 @@ import (
 // below storage.DoltStorage, not above it.
 //
 // THE PARAMETER IS THE CHEAP SEAM ITSELF, not storage.DoltStorage, which is the
-// one thing this body does differently from its siblings. `bd ready --json`
+// one thing this body does differently from its siblings. `issuegraph ready --json`
 // used to ask for that seam at RUNTIME — unwrap the decorators, type-assert to
 // storage.ReadyWorkCounter, and fall back to an unbounded ready query when the
 // assertion missed. Reached through an accessor the question is settled at

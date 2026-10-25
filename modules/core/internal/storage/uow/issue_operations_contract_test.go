@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/backend/conformance"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestIssueOperationsCreateRoutesInfraTypesToWisps(t *testing.T) {
@@ -116,7 +116,7 @@ func newUOWIssueOperationsFixture(t *testing.T, ctx context.Context) conformance
 	t.Helper()
 	operations, provider := newRealIssueOperationsWithProvider(t, ctx)
 	return conformance.IssueOperationsStagingFixture{
-		IssuePrefix: "bd",
+		IssuePrefix: "issuegraph",
 		Operations:  operations,
 		CreateIssue: func(ctx context.Context, issue *types.Issue, actor string) error {
 			return RunTx(ctx, provider, func(ctx context.Context, uw UnitOfWork) (string, error) {
@@ -172,7 +172,7 @@ func newUOWIssueOperationsFixture(t *testing.T, ctx context.Context) conformance
 // The set of supported destinations is part of the frozen scaffolding surface
 // (bd-kue5t): every uow role wiring reaches its scalar reads through here, so a
 // role slice that needs a new destination type routes the addition through a
-// follow-up commit against that bead rather than adding a second scanner of its
+// follow-up commit against that issue rather than adding a second scanner of its
 // own.
 //
 // A SQL NULL is not a valid source for any of the numeric or boolean

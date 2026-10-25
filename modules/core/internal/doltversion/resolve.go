@@ -14,11 +14,11 @@ import (
 // PATH. It is checked first specifically so it can be used as an emergency
 // override (e.g. "the PATH dolt is broken, point at a known-good one for
 // this one invocation") without editing any persisted config.
-const DoltBinEnvVar = "BEADS_DOLT_BIN"
+const DoltBinEnvVar = "ISSUEGRAPH_DOLT_BIN"
 
 // Source identifies which resolution step produced the dolt binary path
 // Resolve returned, so callers can report it in diagnostics (e.g. "using
-// dolt from BEADS_DOLT_BIN" vs "using dolt from PATH") without the caller
+// dolt from ISSUEGRAPH_DOLT_BIN" vs "using dolt from PATH") without the caller
 // needing to re-derive it.
 type Source int
 
@@ -30,9 +30,9 @@ const (
 	// values, even on error, so callers can report where a failed
 	// candidate came from. Zero-valuing this (rather than SourceEnv, the
 	// prior first iota) avoids a zero Source silently misreporting itself
-	// as "from BEADS_DOLT_BIN" if a caller forgets to check an error.
+	// as "from ISSUEGRAPH_DOLT_BIN" if a caller forgets to check an error.
 	SourceUnknown Source = iota
-	// SourceEnv means the path came from the BEADS_DOLT_BIN environment
+	// SourceEnv means the path came from the ISSUEGRAPH_DOLT_BIN environment
 	// variable (or the equivalent ResolveOptions.EnvValue override).
 	SourceEnv
 	// SourceSidecar means the path came from a clone-local sidecar setting
@@ -66,7 +66,7 @@ func (s Source) String() string {
 // where a caller specifically wants "whatever is in the environment right
 // now", for which ReadEnvOverride is provided as a small helper.
 type ResolveOptions struct {
-	// EnvValue is the value of BEADS_DOLT_BIN, or "" if unset. Highest
+	// EnvValue is the value of ISSUEGRAPH_DOLT_BIN, or "" if unset. Highest
 	// precedence: an explicit, non-empty EnvValue that fails validation is
 	// an error, not a signal to fall through to SidecarValue or PATH — an
 	// operator who named a specific binary almost certainly wants an error
@@ -79,7 +79,7 @@ type ResolveOptions struct {
 	SidecarValue string
 }
 
-// ReadEnvOverride reads BEADS_DOLT_BIN from the process environment. It is a
+// ReadEnvOverride reads ISSUEGRAPH_DOLT_BIN from the process environment. It is a
 // thin helper for callers that want Resolve's default env behavior without
 // wiring os.Getenv at each call site; Resolve itself never reads the
 // environment implicitly, to keep it testable as a pure function of
@@ -103,7 +103,7 @@ func ReadEnvOverride() string {
 // Explicit env/sidecar values are absolutized (filepath.Abs against the
 // process's current directory) before validation, and the absolute form is
 // what gets returned and probed. This matters for a bare, separator-free
-// value like BEADS_DOLT_BIN=dolt-next: os.Stat/exec on a bare name without
+// value like ISSUEGRAPH_DOLT_BIN=dolt-next: os.Stat/exec on a bare name without
 // a path separator resolve it two DIFFERENT ways — Go's os/exec (and the
 // OS exec syscalls on Unix) treat a name with no separator as a PATH
 // lookup, while os.Stat treats it as cwd-relative. Without absolutizing
@@ -145,7 +145,7 @@ func Resolve(opts ResolveOptions) (string, Source, error) {
 }
 
 // completeExecutableExt completes a Windows executable extension on an
-// explicitly-named path spelled without one: BEADS_DOLT_BIN=C:\tools\dolt
+// explicitly-named path spelled without one: ISSUEGRAPH_DOLT_BIN=C:\tools\dolt
 // should find C:\tools\dolt.exe the same way cmd.exe or exec.LookPath
 // would. os.Lstat has no PATHEXT concept, so without this the explicit
 // path reported "not found" while dolt.exe sat right there. The exact

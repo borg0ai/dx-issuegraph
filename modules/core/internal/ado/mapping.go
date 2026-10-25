@@ -6,13 +6,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// IssueToBeads converts an ADO WorkItem (via TrackerIssue) to a beads Issue.
+// IssueToIssueGraph converts an ADO WorkItem (via TrackerIssue) to a issuegraph Issue.
 // Returns nil if the TrackerIssue's Raw field is not a *WorkItem.
-func (m *adoFieldMapper) IssueToBeads(ti *tracker.TrackerIssue) *tracker.IssueConversion {
+func (m *adoFieldMapper) IssueToIssueGraph(ti *tracker.TrackerIssue) *tracker.IssueConversion {
 	if ti == nil {
 		return nil
 	}
@@ -27,30 +27,30 @@ func (m *adoFieldMapper) IssueToBeads(ti *tracker.TrackerIssue) *tracker.IssueCo
 	// Extract owner from AssignedTo (can be string or identity map).
 	owner := extractAssignedTo(wi.GetField(FieldAssignedTo))
 
-	// Parse tags, filtering out internal beads:* tags.
+	// Parse tags, filtering out internal issuegraph:* tags.
 	allTags := parseTags(wi.GetStringField(FieldTags))
-	labels := filterBeadsTags(allTags)
+	labels := filterIssueGraphTags(allTags)
 
 	issue := &types.Issue{
 		Title:       wi.GetStringField(FieldTitle),
 		Description: desc,
-		Priority:    m.PriorityToBeads(wi.GetField(FieldPriority)),
-		Status:      m.StatusToBeads(wi.GetField(FieldState)),
-		IssueType:   m.TypeToBeads(wi.GetField(FieldWorkItemType)),
+		Priority:    m.PriorityToIssueGraph(wi.GetField(FieldPriority)),
+		Status:      m.StatusToIssueGraph(wi.GetField(FieldState)),
+		IssueType:   m.TypeToIssueGraph(wi.GetField(FieldWorkItemType)),
 		Owner:       owner,
 		Labels:      labels,
 	}
 
-	// Restore blocked status from beads:blocked tag (ADO has no blocked state,
+	// Restore blocked status from issuegraph:blocked tag (ADO has no blocked state,
 	// so blocked maps to Active + tag on push; reverse it here on pull).
-	if issue.Status == types.StatusInProgress && hasBeadsTag(wi.GetStringField(FieldTags), "beads:blocked") {
+	if issue.Status == types.StatusInProgress && hasIssueGraphTag(wi.GetStringField(FieldTags), "issuegraph:blocked") {
 		issue.Status = types.StatusBlocked
 	}
 
-	// Restore original beads priority from tracker metadata when the mapping
-	// is lossy (beads 3 and 4 both map to ADO 4).
+	// Restore original issuegraph priority from tracker metadata when the mapping
+	// is lossy (issuegraph 3 and 4 both map to ADO 4).
 	if ti.Metadata != nil {
-		if bp, ok := ti.Metadata["beads_priority"]; ok {
+		if bp, ok := ti.Metadata["issuegraph_priority"]; ok {
 			var p int
 			var valid bool
 			switch v := bp.(type) {
@@ -79,11 +79,11 @@ func (m *adoFieldMapper) IssueToBeads(ti *tracker.TrackerIssue) *tracker.IssueCo
 
 	// Preserve ADO-specific metadata for round-trip fidelity.
 	meta := buildMetadata(wi)
-	// Carry forward beads_priority from TrackerIssue metadata so it survives
+	// Carry forward issuegraph_priority from TrackerIssue metadata so it survives
 	// even when the engine uses conv.Issue.Metadata instead of extIssue.Metadata.
 	if ti.Metadata != nil {
-		if bp, ok := ti.Metadata["beads_priority"]; ok {
-			meta["beads_priority"] = bp
+		if bp, ok := ti.Metadata["issuegraph_priority"]; ok {
+			meta["issuegraph_priority"] = bp
 		}
 	}
 	if len(meta) > 0 {
@@ -96,7 +96,7 @@ func (m *adoFieldMapper) IssueToBeads(ti *tracker.TrackerIssue) *tracker.IssueCo
 	return &tracker.IssueConversion{Issue: issue, Dependencies: ExtractLinkDeps(wi)}
 }
 
-// IssueToTracker converts a beads Issue to a map of ADO work item field values.
+// IssueToTracker converts a issuegraph Issue to a map of ADO work item field values.
 func (m *adoFieldMapper) IssueToTracker(issue *types.Issue) map[string]interface{} {
 	fields := map[string]interface{}{
 		FieldTitle:    issue.Title,
@@ -112,17 +112,17 @@ func (m *adoFieldMapper) IssueToTracker(issue *types.Issue) map[string]interface
 		}
 	}
 
-	// Build tags: user labels + internal beads tags for round-trip fidelity.
+	// Build tags: user labels + internal issuegraph tags for round-trip fidelity.
 	tags := append([]string{}, issue.Labels...)
 	if issue.Status == types.StatusBlocked {
-		tags = append(tags, "beads:blocked")
+		tags = append(tags, "issuegraph:blocked")
 	}
 	if len(tags) > 0 {
 		fields[FieldTags] = buildTagString(tags)
 	}
 
-	// Store original beads priority in metadata for lossy mappings
-	// (beads 3 and 4 both map to ADO priority 4).
+	// Store original issuegraph priority in metadata for lossy mappings
+	// (issuegraph 3 and 4 both map to ADO priority 4).
 	if issue.Priority == 3 || issue.Priority == 4 {
 		var meta map[string]interface{}
 		if len(issue.Metadata) > 0 {
@@ -131,7 +131,7 @@ func (m *adoFieldMapper) IssueToTracker(issue *types.Issue) map[string]interface
 		if meta == nil {
 			meta = make(map[string]interface{})
 		}
-		meta["beads_priority"] = strconv.Itoa(issue.Priority)
+		meta["issuegraph_priority"] = strconv.Itoa(issue.Priority)
 		if raw, err := json.Marshal(meta); err == nil {
 			issue.Metadata = json.RawMessage(raw)
 		}
@@ -253,19 +253,19 @@ func buildTagString(tags []string) string {
 	return strings.Join(tags, "; ")
 }
 
-// filterBeadsTags removes internal beads:* tags from a tag slice.
-func filterBeadsTags(tags []string) []string {
+// filterIssueGraphTags removes internal issuegraph:* tags from a tag slice.
+func filterIssueGraphTags(tags []string) []string {
 	var out []string
 	for _, t := range tags {
-		if !strings.HasPrefix(t, "beads:") {
+		if !strings.HasPrefix(t, "issuegraph:") {
 			out = append(out, t)
 		}
 	}
 	return out
 }
 
-// hasBeadsTag checks if a specific beads:* tag is present in an ADO tag string.
-func hasBeadsTag(tagStr, tag string) bool {
+// hasIssueGraphTag checks if a specific issuegraph:* tag is present in an ADO tag string.
+func hasIssueGraphTag(tagStr, tag string) bool {
 	for _, t := range parseTags(tagStr) {
 		if t == tag {
 			return true

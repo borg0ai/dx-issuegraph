@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the contract every implementation of publicops.EdgeReader
@@ -31,7 +31,7 @@ import (
 // row.
 //
 // What is deliberately NOT here:
-//   - the mapping from `bd dep list`'s arguments to a request, which is the
+//   - the mapping from `issuegraph dep list`'s arguments to a request, which is the
 //     command's job;
 //   - the INBOUND direction, which this role does not have (edgereader.go:157-164
 //     says why) and which Relations answers hydrated for one anchor;

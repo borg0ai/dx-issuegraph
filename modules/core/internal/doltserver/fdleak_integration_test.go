@@ -11,8 +11,8 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/testutil/integration"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil/integration"
 )
 
 // TestStart_ServerDoesNotInheritCallerFDs is the end-to-end regression test for
@@ -25,9 +25,9 @@ import (
 // mechanism itself is unix-wide and is unit-tested per-platform in
 // internal/fdhygiene.
 func TestStart_ServerDoesNotInheritCallerFDs(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
 	// Stand in for the caller's leaked descriptor: opened without O_CLOEXEC,
@@ -50,14 +50,14 @@ func TestStart_ServerDoesNotInheritCallerFDs(t *testing.T) {
 		t.Fatalf("fixture fd %d is already close-on-exec; the test would pass vacuously", leakFD)
 	}
 
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
 	if p, findErr := os.FindProcess(state.PID); findErr == nil {
 		reg.Register(p)
 	}
-	t.Cleanup(func() { _ = doltserver.Stop(beadsDir) })
+	t.Cleanup(func() { _ = doltserver.Stop(issuegraphDir) })
 
 	target, err := os.Readlink(fmt.Sprintf("/proc/self/fd/%d", leakFD))
 	if err != nil {

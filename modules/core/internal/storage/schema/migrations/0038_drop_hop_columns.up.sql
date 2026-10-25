@@ -1,7 +1,7 @@
 -- Migration 0038: Drop HOP-specific quality_score and crystallizes columns.
 --
--- These were Gas Town agent credibility fields that don't belong in beads.
--- No version of beads' embedded schema migrations ever created them; legacy
+-- These were Gas Town agent credibility fields that don't belong in issuegraph.
+-- No version of issuegraph' embedded schema migrations ever created them; legacy
 -- DBs may have them from the pre-migration Go schema. Each DROP is guarded by
 -- an INFORMATION_SCHEMA check so missing columns are a clean no-op rather
 -- than relying on Dolt's "does not have column" error wording.

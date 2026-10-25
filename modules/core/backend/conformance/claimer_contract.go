@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the semantic contract every implementation of
@@ -618,7 +618,7 @@ func RunClaimerRefusesIncompleteRequestsAndAnAbsentIDWithoutTouchingState(t *tes
 // exists if and only if its issue is a live claim (in_progress with the row's
 // holder as assignee) on this node" — and issueops.ClaimIssueInTx grants it
 // ("what makes the claim recoverable — a worker that dies stops heartbeating
-// and bd reclaim later reverts the issue"). Neither sentence has an observer at
+// and issuegraph reclaim later reverts the issue"). Neither sentence has an observer at
 // this seam today, on any leg.
 //
 // THE LEASE IS READ AS A RAW ROW, and it has to be. A claim that granted a

@@ -1,10 +1,10 @@
 package httpapi
 
 import (
-	"github.com/steveyegge/beads/internal/eventsjournal"
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/eventsjournal"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Compile-time proof that the generated wire types ARE the canonical structs,
@@ -36,19 +36,19 @@ var (
 
 	// The cycle pair is pinned to the ROLE package rather than to
 	// internal/types, because that is where its canonical structs live: the
-	// role's result IS what `bd dep cycles --json` marshals.
+	// role's result IS what `issuegraph dep cycles --json` marshals.
 	_ apigen.Cycle       = issueops.Cycle{}
 	_ apigen.CycleMember = issueops.CycleMember{}
 
 	// Same reason, one role over: BlockingAnnotator's result element IS what
-	// `bd list` renders its decoration from.
+	// `issuegraph list` renders its decoration from.
 	_ apigen.IssueBlocking = issueops.IssueBlocking{}
 
 	// The journal record is pinned to neither internal/types nor a role package
 	// but to the journal's own leaf: eventsjournal.Record is what
-	// `bd events tail` prints one of per line, and the committed golden fixture
+	// `issuegraph events tail` prints one of per line, and the committed golden fixture
 	// is a byte-level pin on that encoding. This assignment is what stops a
-	// regenerated mirror from quietly giving GET /v0/beads/events a record shape
+	// regenerated mirror from quietly giving GET /v0/issuegraph/events a record shape
 	// the golden never sees.
 	_ apigen.EventRecord = eventsjournal.Record{}
 

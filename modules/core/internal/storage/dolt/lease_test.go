@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // leaseState reads an issue's claim state plus its lease-row overlay (the
@@ -245,10 +245,10 @@ func TestUnclaimOwnershipAndLease(t *testing.T) {
 }
 
 // TestBareUpdateClaimDoesNotArmLease is the regression guard for bd-9hpgf
-// (GH#4716): a plain interactive claim — `bd update -s in_progress -a <who>`
+// (GH#4716): a plain interactive claim — `issuegraph update -s in_progress -a <who>`
 // with no worker/lease semantics intended — must NOT arm a lease. Nobody
 // heartbeats an interactive session, so an armed lease just lapses and the
-// reclaim reaper reverts the bead out from under its owner.
+// reclaim reaper reverts the issue out from under its owner.
 func TestBareUpdateClaimDoesNotArmLease(t *testing.T) {
 	store, cleanup := setupConcurrentTestStore(t)
 	defer cleanup()

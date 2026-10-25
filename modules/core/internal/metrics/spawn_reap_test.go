@@ -17,7 +17,7 @@ import (
 // transient Z between the child's exit and the Wait goroutine's waitpid is
 // the normal reaped-child path, not a failure -- see the poll loop below.
 func TestStartDetachedReapsExitedChild(t *testing.T) {
-	if os.Getenv("BD_TEST_FLUSHER_HELPER") == "1" {
+	if os.Getenv("ISSUEGRAPH_TEST_FLUSHER_HELPER") == "1" {
 		// Stay alive long enough for the parent to observe a live pid.
 		// An instant-exit helper can vanish from `ps` before the first
 		// poll, which looks identical to a successful reap and would
@@ -27,7 +27,7 @@ func TestStartDetachedReapsExitedChild(t *testing.T) {
 	}
 
 	cmd := exec.Command(os.Args[0], "-test.run=^TestStartDetachedReapsExitedChild$") //nolint:gosec // test binary re-exec
-	cmd.Env = append(os.Environ(), "BD_TEST_FLUSHER_HELPER=1")
+	cmd.Env = append(os.Environ(), "ISSUEGRAPH_TEST_FLUSHER_HELPER=1")
 	cmd.Stdin = nil
 	cmd.Stdout = nil
 	cmd.Stderr = nil

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 // TestVersionReconcilerContract runs the VersionReconciler contract against the
@@ -80,7 +80,7 @@ func newUOWVersionReconcilerFixture(t *testing.T, ctx context.Context, prefix st
 				if err := uw.ConfigUseCase().SetLocalMetadata(ctx, workapi.MetadataKeyVersion, recorded); err != nil {
 					return "", err
 				}
-				return "bd: seed version markers",
+				return "issuegraph: seed version markers",
 					uw.ConfigUseCase().SetLocalMetadata(ctx, workapi.MetadataKeyVersionMax, highWaterMark)
 			})
 		},

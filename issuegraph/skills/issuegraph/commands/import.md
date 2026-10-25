@@ -10,7 +10,7 @@ The command is not supported in proxied-server mode.
 ## Usage
 
 ```bash
-issuegraph import                         # Read .beads/<import.path>
+issuegraph import                         # Read .issuegraph/<import.path>
 issuegraph import backup.jsonl            # Read a specific file
 issuegraph import --input backup.jsonl    # Same as -i backup.jsonl
 issuegraph import -                       # Read JSONL from stdin
@@ -19,7 +19,7 @@ issuegraph import --dry-run backup.jsonl  # Parse and report without writing
 issuegraph import --json backup.jsonl     # Return a structured result
 ```
 
-With no file argument, the source is the `import.path` file under `.beads/`;
+With no file argument, the source is the `import.path` file under `.issuegraph/`;
 `import.path` defaults to `issues.jsonl`. Use either a positional file or
 `--input`/`-i`, not both. The special path `-` reads stdin. With `--global` and
 no file, the source is `global-issues.jsonl` in the active IssueGraph directory.

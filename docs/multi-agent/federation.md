@@ -32,19 +32,19 @@ timings and the failure modes.
 
 ### Enable Federation-Compatible Sync
 
-Edit `.beads/config.yaml` or `~/.config/bd/config.yaml`:
+Edit `.issuegraph/config.yaml` or `~/.config/issuegraph/config.yaml`:
 
 ```yaml
 federation:
-  remote: dolthub://myorg/beads          # Primary remote (optional)
+  remote: dolthub://myorg/issuegraph          # Primary remote (optional)
   sovereignty: T2                        # Data sovereignty tier
 ```
 
 Or via environment variables:
 
 ```bash
-export BD_FEDERATION_REMOTE="dolthub://myorg/beads"
-export BD_FEDERATION_SOVEREIGNTY="T2"
+export ISSUEGRAPH_FEDERATION_REMOTE="dolthub://myorg/issuegraph"
+export ISSUEGRAPH_FEDERATION_SOVEREIGNTY="T2"
 ```
 
 ### Data Sovereignty Tiers
@@ -86,17 +86,17 @@ issuegraph federation add-peer <name> <endpoint>
 
 ```bash
 # Add a staging environment on DoltHub
-issuegraph federation add-peer staging dolthub://myorg/staging-beads
+issuegraph federation add-peer staging dolthub://myorg/staging-issuegraph
 
 # Add a cloud backup
-issuegraph federation add-peer backup gs://mybucket/beads-backup
-issuegraph federation add-peer backup-s3 s3://mybucket/beads-backup
+issuegraph federation add-peer backup gs://mybucket/issuegraph-backup
+issuegraph federation add-peer backup-s3 s3://mybucket/issuegraph-backup
 
 # Add a local backup
-issuegraph federation add-peer local file:///home/user/beads-backup
+issuegraph federation add-peer local file:///home/user/issuegraph-backup
 
 # Add a partner organization
-issuegraph federation add-peer partner-town dolthub://partner-org/beads
+issuegraph federation add-peer partner-town dolthub://partner-org/issuegraph
 ```
 
 ### Credentials
@@ -106,7 +106,7 @@ prompted interactively) store SQL credentials AES-256 encrypted, locally.
 Stored credentials are used automatically during sync:
 
 ```bash
-issuegraph federation add-peer town-gamma 192.168.1.100:3306/beads --user sync-bot
+issuegraph federation add-peer town-gamma 192.168.1.100:3306/issuegraph --user sync-bot
 ```
 
 ### JSON Output
@@ -114,8 +114,8 @@ issuegraph federation add-peer town-gamma 192.168.1.100:3306/beads --user sync-b
 For scripting, use the `--json` flag:
 
 ```bash
-issuegraph --json federation add-peer staging dolthub://myorg/staging-beads
-# {"added":"staging","url":"dolthub://myorg/staging-beads","has_auth":false,"sovereignty":""}
+issuegraph --json federation add-peer staging dolthub://myorg/staging-issuegraph
+# {"added":"staging","url":"dolthub://myorg/staging-issuegraph","has_auth":false,"sovereignty":""}
 ```
 
 ### Verify Configuration
@@ -213,33 +213,33 @@ Two rules follow, and a federated deployment owes both:
 The guard is **opt-in**: it arms only where you name this replica.
 
 ```bash
-export BEADS_NODE_ID=mini          # per-machine; or `issuegraph config set node_id mini`
+export ISSUEGRAPH_NODE_ID=mini          # per-machine; or `issuegraph config set node_id mini`
 ```
 
 Two rules about what to name, both load-bearing:
 
-- **`node_id` names the STORE, not the host.** One value per beads *database*.
-  Hosts that are clients of the *same* dolt sql-server (`BEADS_DOLT_SERVER_HOST`,
+- **`node_id` names the STORE, not the host.** One value per issuegraph *database*.
+  Hosts that are clients of the *same* dolt sql-server (`ISSUEGRAPH_DOLT_SERVER_HOST`,
   a systemd/Docker server, Hosted Dolt, a VPS) are **one replica** no matter how
   many machines they are — give them all the same value, or leave it unset. Give
   them distinct ids and you rebuild the very fail-closed regression described
   below: a supervisor would match no worker's lease and reclaim 0 forever. Name a
   replica only where there is a real sync interval between it and the others.
 - **`node_id` is per-machine, so it must never be committed.** The project
-  `.beads/config.yaml` is a git-**tracked** file. A `node_id` committed there
+  `.issuegraph/config.yaml` is a git-**tracked** file. A `node_id` committed there
   propagates one machine's identity to every clone that pulls it, and then every
   comparison matches: the guard is fully *armed* and fully *inert*, and `laptop`
   reaps `mini`'s leases exactly as if they were local — the precise hazard this
   feature exists to close, now happening while you believe you are protected.
   That is worse than not setting it at all. `issuegraph config set node_id` therefore
-  writes the **user-global** `~/.config/bd/config.yaml`, alongside the other
+  writes the **user-global** `~/.config/issuegraph/config.yaml`, alongside the other
   per-machine state (`sync-state.json`, `push-state.json`, `redirect`). Use the
-  env var or that command; never hand-add `node_id` to `.beads/config.yaml`.
+  env var or that command; never hand-add `node_id` to `.issuegraph/config.yaml`.
 
 There is deliberately no hostname fallback. The hostname answers the wrong
 question — it names the client *process's* machine, not the store — and
 guessing gets it wrong in the topologies that most need automated reclaim:
-with a shared or remote dolt sql-server (`BEADS_DOLT_SERVER_HOST`, Hosted
+with a shared or remote dolt sql-server (`ISSUEGRAPH_DOLT_SERVER_HOST`, Hosted
 Dolt, a VPS) many hosts are clients of ONE store with no sync interval
 between them, so a per-hostname identity would stop a supervisor reaping any
 worker's lease at all; in a container the hostname is a per-run container ID;
@@ -321,6 +321,6 @@ issuegraph doctor --deep
 ## Reference
 
 - Configuration: See [Configuration](/reference/configuration) for all federation settings
-- Source: `modules/cli/federation.go`
+- Source: `apps/cli/federation.go`
 - Storage interfaces: `internal/storage/versioned.go`
 - Dolt implementation: `internal/storage/dolt/store.go`

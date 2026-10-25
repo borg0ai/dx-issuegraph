@@ -1,4 +1,4 @@
-module github.com/steveyegge/beads
+module github.com/borg0ai/dx-issuegraph
 
 go 1.26.5
 

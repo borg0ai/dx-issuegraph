@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // preReshapeVersion is the last schema version before the 0041/0043/0050
@@ -42,7 +42,7 @@ const crossUpgradeTimeout = 4 * time.Minute
 // heads' id PK with real row diffs to reconcile, so Dolt refuses the merge
 // outright ("cannot merge because table dependencies has different primary
 // keys ..."). The refusal must be recognized by dberrors.IsAncestorPKMismatch
-// — the classifier behind bd dolt pull's recovery guidance — pinning the
+// — the classifier behind issuegraph dolt pull's recovery guidance — pinning the
 // handler against a real Dolt error rather than hardcoded strings.
 //
 // (Scenario (c) of the audit — clones already forked by broken-1.0.5 random
@@ -107,11 +107,11 @@ func TestCrossUpgradeBoundaryMerge(t *testing.T) {
 		if mergeErr == nil {
 			t.Fatal("merge across the PK boundary with stranded deltas converged cleanly; " +
 				"expected Dolt's different-primary-keys refusal (if Dolt learned to merge " +
-				"this, the recovery guidance in modules/cli/dolt.go may be obsolete)")
+				"this, the recovery guidance in apps/cli/dolt.go may be obsolete)")
 		}
 		if !dberrors.IsAncestorPKMismatch(mergeErr) {
 			t.Errorf("dberrors.IsAncestorPKMismatch must recognize the real refusal "+
-				"(bd dolt pull guidance depends on it), got unrecognized error: %v", mergeErr)
+				"(issuegraph dolt pull guidance depends on it), got unrecognized error: %v", mergeErr)
 		}
 		if table := dberrors.AncestorPKMismatchTable(mergeErr); table != "dependencies" {
 			t.Errorf("AncestorPKMismatchTable = %q, want %q (error: %v)", table, "dependencies", mergeErr)

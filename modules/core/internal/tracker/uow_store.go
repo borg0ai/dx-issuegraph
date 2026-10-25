@@ -4,10 +4,10 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // NewUOWStore adapts a proxied unit-of-work provider to the tracker Store
@@ -71,7 +71,7 @@ func (s *uowStore) SearchIssues(ctx context.Context, query string, filter types.
 // back to the wisp plane, because that ordering is the direct backend's
 // deliberate contract, not an accident of its implementation:
 // issueops.GetIssueByExternalRefInTx queries `issues` and only falls through to
-// `wisps` on sql.ErrNoRows, and says why ("so that pushed ephemeral beads are
+// `wisps` on sql.ErrNoRows, and says why ("so that pushed ephemeral issuegraph are
 // found during pull dedup").
 //
 // A single merged search cannot express that. SearchIssues with neither plane
@@ -80,7 +80,7 @@ func (s *uowStore) SearchIssues(ctx context.Context, query string, filter types.
 // external_ref present on BOTH planes, direct mode returns the issue and a
 // merged search returns whichever row happens to sort first. The consumer is
 // the pull dedup in engine.go, which then UPDATES the returned row with remote
-// content, making the divergence a silent write to the wrong local bead in
+// content, making the divergence a silent write to the wrong local issue in
 // proxied mode only.
 //
 // Both plane reads share ONE unit of work. They must: uow.RunTxRead opens a
@@ -109,7 +109,7 @@ func (s *uowStore) GetIssueByExternalRef(ctx context.Context, ref string) (*type
 		// Ephemeral is the only flag that routes to the wisps plane alone, but it
 		// ALSO contributes `ephemeral = 1`, a predicate the direct backend's
 		// `SELECT id FROM wisps WHERE external_ref = ?` does not have — it would
-		// drop wisp-plane rows carrying ephemeral=0 (NoHistory beads, and typed
+		// drop wisp-plane rows carrying ephemeral=0 (NoHistory issuegraph, and typed
 		// wisps minted without the flag; see types.IssueFilter.EphemeralTier),
 		// trading this divergence for a narrower one. The merged search adds no
 		// predicate, and its issues leg is already known empty from the search
@@ -142,7 +142,7 @@ func (s *uowStore) GetDependenciesWithMetadata(ctx context.Context, id string) (
 func (s *uowStore) CreateIssue(ctx context.Context, issue *types.Issue, actor string) error {
 	return uow.RunTx(ctx, s.provider, func(ctx context.Context, uw uow.UnitOfWork) (string, error) {
 		_, err := uw.IssueUseCase().CreateIssue(ctx, domain.CreateIssueParams{Issue: issue}, actor)
-		return "bd: tracker create", err
+		return "issuegraph: tracker create", err
 	})
 }
 
@@ -162,13 +162,13 @@ func (s *uowStore) ApplyIssueUpdate(ctx context.Context, id string, updates map[
 	}
 	return uow.RunTx(ctx, s.provider, func(ctx context.Context, uw uow.UnitOfWork) (string, error) {
 		_, err := uw.IssueUseCase().ApplyUpdate(ctx, id, domain.UpdateSpec{Fields: fields, SetLabels: setLabels}, actor)
-		return "bd: tracker update", err
+		return "issuegraph: tracker update", err
 	})
 }
 
 func (s *uowStore) AddDependency(ctx context.Context, dep *types.Dependency, actor string) error {
 	return uow.RunTx(ctx, s.provider, func(ctx context.Context, uw uow.UnitOfWork) (string, error) {
 		_, err := uw.DependencyUseCase().AddDependencies(ctx, []*types.Dependency{dep}, actor, domain.BulkAddDepsOpts{})
-		return "bd: tracker dependency", err
+		return "issuegraph: tracker dependency", err
 	})
 }

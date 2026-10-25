@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // newTestStore creates a dolt store on the shared database with branch isolation.
@@ -71,7 +71,7 @@ func TestEnginePullMatchesExistingIssueByLocalID(t *testing.T) {
 		UpdatedAt:   time.Now().UTC(),
 	}}
 	tracker.fieldMapper = &mockMapper{
-		issueToBeads: func(ti *TrackerIssue) *IssueConversion {
+		issueToIssueGraph: func(ti *TrackerIssue) *IssueConversion {
 			return &IssueConversion{
 				Issue: &types.Issue{
 					ID:          "bd-local",
@@ -134,7 +134,7 @@ func TestEnginePullSkipsNoopUpdate(t *testing.T) {
 		UpdatedAt:   time.Now().UTC(),
 	}}
 	tracker.fieldMapper = &mockMapper{
-		issueToBeads: func(ti *TrackerIssue) *IssueConversion {
+		issueToIssueGraph: func(ti *TrackerIssue) *IssueConversion {
 			return &IssueConversion{
 				Issue: &types.Issue{
 					ID:          "bd-local",
@@ -193,7 +193,7 @@ func TestEnginePullUpdatesLabelsOnExistingIssue(t *testing.T) {
 		UpdatedAt:   time.Now().UTC(),
 	}}
 	tracker.fieldMapper = &mockMapper{
-		issueToBeads: func(ti *TrackerIssue) *IssueConversion {
+		issueToIssueGraph: func(ti *TrackerIssue) *IssueConversion {
 			return &IssueConversion{
 				Issue: &types.Issue{
 					ID:          "bd-local",
@@ -255,7 +255,7 @@ func TestEnginePullClosesExistingIssueAndSyncsLabels(t *testing.T) {
 		Labels:     []string{"remote-a", "remote-b"},
 		UpdatedAt:  time.Now().UTC(),
 	}}
-	tracker.fieldMapper = &mockMapper{issueToBeads: func(ti *TrackerIssue) *IssueConversion {
+	tracker.fieldMapper = &mockMapper{issueToIssueGraph: func(ti *TrackerIssue) *IssueConversion {
 		return &IssueConversion{Issue: &types.Issue{
 			ID:        "bd-closed-boundary",
 			Title:     ti.Title,
@@ -333,7 +333,7 @@ func TestEnginePullDryRunTreatsLabelOnlyChangeAsUpdate(t *testing.T) {
 		UpdatedAt:   time.Now().UTC(),
 	}}
 	tracker.fieldMapper = &mockMapper{
-		issueToBeads: func(ti *TrackerIssue) *IssueConversion {
+		issueToIssueGraph: func(ti *TrackerIssue) *IssueConversion {
 			return &IssueConversion{
 				Issue: &types.Issue{
 					ID:          "bd-local",
@@ -387,7 +387,7 @@ func TestEnginePullDoesNotTreatPreviousPullAsLocalConflict(t *testing.T) {
 
 	tracker := newMockTracker("test")
 	tracker.fieldMapper = &mockMapper{
-		issueToBeads: func(ti *TrackerIssue) *IssueConversion {
+		issueToIssueGraph: func(ti *TrackerIssue) *IssueConversion {
 			return &IssueConversion{
 				Issue: &types.Issue{
 					ID:          "bd-local",
@@ -1469,7 +1469,7 @@ func TestEnginePushWithContentEqual(t *testing.T) {
 }
 
 // TestEnginePushWithContentHash verifies the local_metadata content-hash
-// short-circuit (gastownhall/beads#4214): once an issue has been pushed, an
+// short-circuit (borg0ai/dx-issuegraph#4214): once an issue has been pushed, an
 // unchanged re-push must skip the remote fetch entirely (zero FetchIssue calls),
 // and a local content change must invalidate the hash so the issue is pushed
 // again.
@@ -1722,7 +1722,7 @@ func TestEnginePushExcludeEphemeral(t *testing.T) {
 		Priority:  2,
 	}
 	ephemeral := &types.Issue{
-		ID:        "bd-wisp-eph1",
+		ID:        "issuegraph-wisp-eph1",
 		Title:     "Ephemeral wisp",
 		Status:    types.StatusOpen,
 		IssueType: types.TypeTask,
@@ -2510,8 +2510,8 @@ func TestEnginePullCreatesDependenciesForUnchangedIssues(t *testing.T) {
 		{Identifier: "EXT-1", Title: issue1.Title, Description: issue1.Description},
 		{Identifier: "EXT-2", Title: issue2.Title, Description: issue2.Description},
 	}
-	tracker.fieldMapper = &mockMapper{issueToBeads: func(ti *TrackerIssue) *IssueConversion {
-		conv := (&mockMapper{}).IssueToBeads(ti)
+	tracker.fieldMapper = &mockMapper{issueToIssueGraph: func(ti *TrackerIssue) *IssueConversion {
+		conv := (&mockMapper{}).IssueToIssueGraph(ti)
 		if ti.Identifier == "EXT-1" {
 			conv.Dependencies = []DependencyInfo{
 				{FromExternalID: "EXT-1", ToExternalID: "EXT-2", Type: string(types.DepBlocks)},
@@ -2578,8 +2578,8 @@ func TestEnginePullDoesNotCreateDependenciesForLocallyModifiedSkippedIssue(t *te
 		{Identifier: "EXT-1", Title: "Remote child", UpdatedAt: lastSync.Add(10 * time.Minute)},
 		{Identifier: "EXT-2", Title: "Parent", UpdatedAt: lastSync.Add(10 * time.Minute)},
 	}
-	tracker.fieldMapper = &mockMapper{issueToBeads: func(ti *TrackerIssue) *IssueConversion {
-		conv := (&mockMapper{}).IssueToBeads(ti)
+	tracker.fieldMapper = &mockMapper{issueToIssueGraph: func(ti *TrackerIssue) *IssueConversion {
+		conv := (&mockMapper{}).IssueToIssueGraph(ti)
 		if ti.Identifier == "EXT-1" {
 			conv.Dependencies = []DependencyInfo{
 				{FromExternalID: "EXT-1", ToExternalID: "EXT-2", Type: string(types.DepBlocks)},
@@ -2627,8 +2627,8 @@ func TestEnginePullDryRunPreviewsDependencies(t *testing.T) {
 		{Identifier: "EXT-1", Title: issue1.Title},
 		{Identifier: "EXT-2", Title: issue2.Title},
 	}
-	tracker.fieldMapper = &mockMapper{issueToBeads: func(ti *TrackerIssue) *IssueConversion {
-		conv := (&mockMapper{}).IssueToBeads(ti)
+	tracker.fieldMapper = &mockMapper{issueToIssueGraph: func(ti *TrackerIssue) *IssueConversion {
+		conv := (&mockMapper{}).IssueToIssueGraph(ti)
 		if ti.Identifier == "EXT-1" {
 			conv.Dependencies = []DependencyInfo{
 				{FromExternalID: "EXT-1", ToExternalID: "EXT-2", Type: string(types.DepBlocks)},
@@ -2689,8 +2689,8 @@ func TestEnginePullFiltersDependencyTypes(t *testing.T) {
 		{Identifier: "EXT-2", Title: "Parent"},
 		{Identifier: "EXT-3", Title: "Blocker"},
 	}
-	tracker.fieldMapper = &mockMapper{issueToBeads: func(ti *TrackerIssue) *IssueConversion {
-		conv := (&mockMapper{}).IssueToBeads(ti)
+	tracker.fieldMapper = &mockMapper{issueToIssueGraph: func(ti *TrackerIssue) *IssueConversion {
+		conv := (&mockMapper{}).IssueToIssueGraph(ti)
 		if ti.Identifier == "EXT-1" {
 			conv.Dependencies = []DependencyInfo{
 				{FromExternalID: "EXT-1", ToExternalID: "EXT-2", Type: string(types.DepParentChild)},
@@ -2747,8 +2747,8 @@ func TestEnginePullFiltersLinearRelationsBySource(t *testing.T) {
 		{Identifier: "EXT-SRC-2", Title: "Parent"},
 		{Identifier: "EXT-SRC-3", Title: "Related parent"},
 	}
-	tracker.fieldMapper = &mockMapper{issueToBeads: func(ti *TrackerIssue) *IssueConversion {
-		conv := (&mockMapper{}).IssueToBeads(ti)
+	tracker.fieldMapper = &mockMapper{issueToIssueGraph: func(ti *TrackerIssue) *IssueConversion {
+		conv := (&mockMapper{}).IssueToIssueGraph(ti)
 		if ti.Identifier == "EXT-SRC-1" {
 			conv.Dependencies = []DependencyInfo{
 				{
@@ -3183,9 +3183,9 @@ func TestEngineWarnCollectsMessages(t *testing.T) {
 	}
 }
 
-// TestEngineExcludeIDPrefix verifies that beads whose ID starts with the
+// TestEngineExcludeIDPrefix verifies that issuegraph whose ID starts with the
 // configured prefix are skipped from push. Mirrors mayor's bd-ee0
-// houmanoids_www use case where `hw-mol-*` workflow-artifact beads must
+// houmanoids_www use case where `hw-mol-*` workflow-artifact issuegraph must
 // not propagate to Linear regardless of issue type.
 func TestEngineExcludeIDPrefix(t *testing.T) {
 	ctx := context.Background()
@@ -3216,13 +3216,13 @@ func TestEngineExcludeIDPrefix(t *testing.T) {
 	}
 	for _, i := range tracker.created {
 		if strings.HasPrefix(i.ID, "hw-mol-") {
-			t.Errorf("hw-mol- bead leaked through filter: %s", i.ID)
+			t.Errorf("hw-mol- issue leaked through filter: %s", i.ID)
 		}
 	}
 }
 
 // TestEngineExcludeIDPatterns verifies the comma-separated substring filter:
-// beads whose ID contains ANY listed substring (anywhere in the ID) are
+// issuegraph whose ID contains ANY listed substring (anywhere in the ID) are
 // skipped.
 func TestEngineExcludeIDPatterns(t *testing.T) {
 	ctx := context.Background()
@@ -3260,7 +3260,7 @@ func TestEngineExcludeIDPatterns(t *testing.T) {
 	}
 }
 
-// TestEngineExcludeIDBoth verifies union semantics: a bead matching EITHER
+// TestEngineExcludeIDBoth verifies union semantics: a issue matching EITHER
 // the prefix rule OR the patterns rule is excluded.
 func TestEngineExcludeIDBoth(t *testing.T) {
 	ctx := context.Background()
@@ -3304,17 +3304,17 @@ func TestEngineExcludeIDBoth(t *testing.T) {
 	}
 }
 
-// TestEngineExcludeID_AlreadySynced verifies that a bead with an existing
+// TestEngineExcludeID_AlreadySynced verifies that a issue with an existing
 // external_ref but matching an exclude rule produces NO update API call.
 // The Linear-side issue is left alone (the spec calls this out: users who
-// add a rule for an already-synced bead must manually archive/delete the
+// add a rule for an already-synced issue must manually archive/delete the
 // remote issue if desired).
 func TestEngineExcludeID_AlreadySynced(t *testing.T) {
 	ctx := context.Background()
 	store := newTestStore(t)
 	defer store.Close()
 
-	// A previously-synced bead — has external_ref. After the new exclude
+	// A previously-synced issue — has external_ref. After the new exclude
 	// rule lands, it must not be updated.
 	stale := &types.Issue{
 		ID: "hw-mol-stale", Title: "Previously synced", Status: types.StatusOpen,
@@ -3339,16 +3339,16 @@ func TestEngineExcludeID_AlreadySynced(t *testing.T) {
 		t.Fatalf("Sync() not successful: %s", result.Error)
 	}
 	if len(tracker.updated) != 0 {
-		t.Errorf("excluded already-synced bead was updated: %v", tracker.updated)
+		t.Errorf("excluded already-synced issue was updated: %v", tracker.updated)
 	}
 	if len(tracker.created) != 0 {
-		t.Errorf("excluded already-synced bead was created: %d", len(tracker.created))
+		t.Errorf("excluded already-synced issue was created: %d", len(tracker.created))
 	}
 }
 
 // TestEngineDryRunRespectsExcludeID verifies that --dry-run does not print
-// "Would create" / "Would update" lines for excluded beads. Asserts via the
-// engine's stats: an excluded bead increments Skipped, not Created or
+// "Would create" / "Would update" lines for excluded issuegraph. Asserts via the
+// engine's stats: an excluded issue increments Skipped, not Created or
 // Updated.
 func TestEngineDryRunRespectsExcludeID(t *testing.T) {
 	ctx := context.Background()
@@ -3379,7 +3379,7 @@ func TestEngineDryRunRespectsExcludeID(t *testing.T) {
 	if len(tracker.created) != 0 {
 		t.Errorf("dry-run created issues: %d", len(tracker.created))
 	}
-	// PushStats.Created counts intended creates; the excluded bead must NOT
+	// PushStats.Created counts intended creates; the excluded issue must NOT
 	// count there. Only hw-real-1 should be classified as a would-be create.
 	if result.PushStats.Created != 1 {
 		t.Errorf("PushStats.Created = %d, want 1 (only hw-real-1 should be a would-be create)", result.PushStats.Created)

@@ -1,0 +1,11 @@
+# Test issuegraph close error cases
+
+issuegraph init --prefix test
+
+# Close nonexistent issue should fail
+! issuegraph close nonexistent-id
+stderr 'no issue found'
+
+# Close with no args and no last-touched should fail
+! issuegraph close
+stderr 'no issue ID provided'

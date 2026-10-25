@@ -51,10 +51,10 @@ type BootstrapResult struct {
 }
 
 // Bootstrapper describes SEEDING A SUBSTRATE'S IDENTITY: the one-time write
-// that turns a database bd can connect to into a workspace bd can use.
+// that turns a database issuegraph can connect to into a workspace issuegraph can use.
 //
-// WHY ONLY THIS SLICE OF `bd init` IS A ROLE. Everything else init does —
-// creating .beads/, writing metadata.json and config.yaml, initializing a git
+// WHY ONLY THIS SLICE OF `issuegraph init` IS A ROLE. Everything else init does —
+// creating .issuegraph/, writing metadata.json and config.yaml, initializing a git
 // repository, installing hooks, rendering agent instructions, starting a Dolt
 // server — CREATES the substrate or the workspace around it. A role is reached
 // through an accessor ON a store, so it cannot be what makes the store exist;
@@ -79,11 +79,11 @@ type BootstrapResult struct {
 // endpoint would be asking a running server to identify a workspace that is by
 // construction already identified, which is precisely the refusal below.
 // Bootstrapping over an unauthenticated surface is also a different risk class
-// from reading one: `bd serve`'s document is reads plus a claim plus one
+// from reading one: `issuegraph serve`'s document is reads plus a claim plus one
 // destructive sweep, and an operation that stamps a shared database's identity
 // belongs to whatever provisions the database, not to a request. The identity a
 // remote caller can act on is already published — ContextResponse.project_id on
-// GET /v0/beads/context is InitVerifier's answer, on the wire, today.
+// GET /v0/issuegraph/context is InitVerifier's answer, on the wire, today.
 //
 // Deterministic request-validation failures match ErrValidation; result values
 // are unspecified when error is non-nil.
@@ -96,7 +96,7 @@ type Bootstrapper interface {
 	// both — and the reason it is either rather than both is that a substrate
 	// several rigs share carries a prefix one of them chose, and overwriting it
 	// renames every id the others are about to mint. A partial identity is
-	// refused for the same reason it is reported: bd cannot tell a half-written
+	// refused for the same reason it is reported: issuegraph cannot tell a half-written
 	// bootstrap from a deliberately half-provisioned database, and guessing
 	// wrong destroys the one it did not mean.
 	//
@@ -109,7 +109,7 @@ type Bootstrapper interface {
 	// IT WRITES THE IDENTITY AND NOTHING ELSE — the prefix and the project id,
 	// the same two markers the refusal reads and VerifyIdentity answers with.
 	//
-	// The per-clone bookkeeping `bd init` also seeds is deliberately NOT here.
+	// The per-clone bookkeeping `issuegraph init` also seeds is deliberately NOT here.
 	// The repository and clone fingerprints, the synced-at marker and the
 	// recorded binary version are rewritten on EVERY init, adopt or not — a
 	// fresh clone of an already-identified database needs its own fingerprints

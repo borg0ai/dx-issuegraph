@@ -8,14 +8,14 @@ set -euo pipefail
 # Verifies that upgrading from a previous release preserves:
 #   1. Issue data (issues created before upgrade are visible after)
 #   2. Storage mode (embedded stays embedded, shared stays shared)
-#   3. Role config (beads.role git config is not cleared or changed)
-#   4. Doctor health (bd doctor quick passes after upgrade)
-#   5. Mutations (bd update after upgrade persists correctly)
+#   3. Role config (issuegraph.role git config is not cleared or changed)
+#   4. Doctor health (issuegraph doctor quick passes after upgrade)
+#   5. Mutations (issuegraph update after upgrade persists correctly)
 #
 # Usage:
 #   ./scripts/upgrade-smoke-test.sh              # test previous release → candidate
 #   ./scripts/upgrade-smoke-test.sh v0.62.0      # test specific version → candidate
-#   CANDIDATE_BIN=./bd ./scripts/upgrade-smoke-test.sh  # use prebuilt candidate
+#   CANDIDATE_BIN=./issuegraph ./scripts/upgrade-smoke-test.sh  # use prebuilt candidate
 #
 #   # Test multiple versions (space-separated):
 #   SMOKE_VERSIONS="v0.62.0 v0.61.0 v0.60.0" ./scripts/upgrade-smoke-test.sh
@@ -23,7 +23,7 @@ set -euo pipefail
 
 # The candidate binary is built from the current worktree if CANDIDATE_BIN
 # is not set. The previous release binary is downloaded and cached in
-# ~/.cache/beads-regression/.
+# ~/.cache/issuegraph-regression/.
 #
 # Exit codes:
 #   0  All scenarios passed
@@ -67,7 +67,7 @@ if [ -n "${1:-}" ]; then
     PREV_VERSION="$1"
 else
     # Default: fetch the latest release tag before the current version
-    CURRENT_VERSION=$(grep 'Version = ' "$PROJECT_ROOT/modules/cli/version.go" \
+    CURRENT_VERSION=$(grep 'Version = ' "$PROJECT_ROOT/apps/cli/version.go" \
         | head -1 | sed 's/.*"\(.*\)".*/\1/')
     # Try to get the previous release tag from git
     PREV_VERSION=$(git -C "$PROJECT_ROOT" tag --sort=-version:refname \
@@ -92,7 +92,7 @@ echo ""
 # Binary management
 # ---------------------------------------------------------------------------
 
-CACHE_DIR="${HOME}/.cache/beads-regression"
+CACHE_DIR="${HOME}/.cache/issuegraph-regression"
 mkdir -p "$CACHE_DIR"
 
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -109,8 +109,8 @@ get_previous_binary() {
         return
     fi
 
-    local asset="beads_${PREV_VER_BARE}_${OS}_${ARCH}.tar.gz"
-    local url="https://github.com/gastownhall/beads/releases/download/${PREV_VERSION}/${asset}"
+    local asset="issuegraph_${PREV_VER_BARE}_${OS}_${ARCH}.tar.gz"
+    local url="https://github.com/borg0ai/dx-issuegraph/releases/download/${PREV_VERSION}/${asset}"
 
     echo -e "${YELLOW}Downloading ${PREV_VERSION} binary...${NC}" >&2
     local tmpdir
@@ -122,15 +122,15 @@ get_previous_binary() {
     fi
 
     tar -xzf "$tmpdir/archive.tar.gz" -C "$tmpdir"
-    local bd_path
-    bd_path=$(find "$tmpdir" -name bd -type f | head -1)
-    if [ -z "$bd_path" ]; then
-        echo -e "${RED}bd binary not found in archive${NC}" >&2
+    local issuegraph_path
+    issuegraph_path=$(find "$tmpdir" -name issuegraph -type f | head -1)
+    if [ -z "$issuegraph_path" ]; then
+        echo -e "${RED}issuegraph binary not found in archive${NC}" >&2
         rm -rf "$tmpdir"
         exit 1
     fi
 
-    cp -f "$bd_path" "$cached"
+    cp -f "$issuegraph_path" "$cached"
     chmod +x "$cached"
     rm -rf "$tmpdir"
     echo "$cached"
@@ -142,9 +142,9 @@ build_candidate() {
         return
     fi
 
-    local candidate="$CACHE_DIR/bd-candidate-$$"
+    local candidate="$CACHE_DIR/issuegraph-candidate-$$"
     echo -e "${YELLOW}Building candidate binary...${NC}" >&2
-    (cd "$PROJECT_ROOT" && go build -o "$candidate" github.com/steveyegge/beads/modules/cli) >&2
+    (cd "$PROJECT_ROOT" && go build -o "$candidate" github.com/borg0ai/dx-issuegraph/apps/cli) >&2
     echo "$candidate"
 }
 
@@ -196,15 +196,15 @@ finish_scenario() {
 # Create an isolated workspace with git init
 new_workspace() {
     local dir
-    dir=$(mktemp -d -t bd-upgrade-XXXXXX)
+    dir=$(mktemp -d -t issuegraph-upgrade-XXXXXX)
     git -C "$dir" init --quiet
     git -C "$dir" config user.name "upgrade-test"
-    git -C "$dir" config user.email "test@beads.test"
+    git -C "$dir" config user.email "test@issuegraph.test"
     echo "$dir"
 }
 
 # Run previous/candidate binary FROM the workspace directory.
-# This is critical: git operations (beads.role, remote detection) must use
+# This is critical: git operations (issuegraph.role, remote detection) must use
 # $WS's git repo, not whichever repo this script is running from.
 prev() { (cd "$WS" && "$PREV_BIN" "$@"); }
 cand() { (cd "$WS" && "$CAND_BIN" "$@"); }
@@ -225,10 +225,10 @@ prev_create() {
     _CREATED_ID="${_CREATED_ID:-created}"
 }
 
-# Return true when the embedded Dolt database directory (or legacy beads.db)
-# exists inside the workspace .beads directory.
+# Return true when the embedded Dolt database directory (or legacy issuegraph.db)
+# exists inside the workspace .issuegraph directory.
 embedded_db_exists() {
-    [ -d "$WS/.beads/embeddeddolt" ] || [ -f "$WS/.beads/beads.db" ]
+    [ -d "$WS/.issuegraph/embeddeddolt" ] || [ -f "$WS/.issuegraph/issuegraph.db" ]
 }
 
 # ---------------------------------------------------------------------------
@@ -241,7 +241,7 @@ WS=$(new_workspace)
 
 # Init with previous version (run from $WS so git ops use $WS's repo)
 prev_init 2>/dev/null || true
-git -C "$WS" config beads.role maintainer
+git -C "$WS" config issuegraph.role maintainer
 
 # Create test data (prev_create handles missing --silent in older binaries)
 _CREATED_ID=""
@@ -253,11 +253,11 @@ prev_create --title "Another issue" --type bug || true
 cand_init 2>/dev/null || true
 
 # Verify
-ROLE=$(git -C "$WS" config --get beads.role 2>/dev/null || echo "MISSING")
+ROLE=$(git -C "$WS" config --get issuegraph.role 2>/dev/null || echo "MISSING")
 if [ "$ROLE" = "maintainer" ]; then
-    pass "beads.role preserved (maintainer)"
+    pass "issuegraph.role preserved (maintainer)"
 else
-    fail "beads.role changed to '$ROLE' (expected maintainer)"
+    fail "issuegraph.role changed to '$ROLE' (expected maintainer)"
 fi
 
 if [ -n "${ID1:-}" ]; then
@@ -275,9 +275,9 @@ fi
 
 # Doctor check
 if cand doctor quick 2>/dev/null; then
-    pass "bd doctor quick passes"
+    pass "issuegraph doctor quick passes"
 else
-    fail "bd doctor quick fails after upgrade"
+    fail "issuegraph doctor quick fails after upgrade"
 fi
 
 rm -rf "$WS"
@@ -293,16 +293,16 @@ WS=$(new_workspace)
 
 # Init as contributor with previous version
 prev_init 2>/dev/null || true
-git -C "$WS" config beads.role contributor
+git -C "$WS" config issuegraph.role contributor
 
 # Upgrade
 cand_init 2>/dev/null || true
 
-ROLE=$(git -C "$WS" config --get beads.role 2>/dev/null || echo "MISSING")
+ROLE=$(git -C "$WS" config --get issuegraph.role 2>/dev/null || echo "MISSING")
 if [ "$ROLE" = "contributor" ]; then
-    pass "beads.role preserved (contributor)"
+    pass "issuegraph.role preserved (contributor)"
 else
-    fail "beads.role changed to '$ROLE' (expected contributor)"
+    fail "issuegraph.role changed to '$ROLE' (expected contributor)"
 fi
 
 rm -rf "$WS"
@@ -318,13 +318,13 @@ WS=$(new_workspace)
 
 # Init with previous version
 prev_init 2>/dev/null || true
-git -C "$WS" config beads.role maintainer
+git -C "$WS" config issuegraph.role maintainer
 
-# Check if old binary was able to initialize .beads/.
+# Check if old binary was able to initialize .issuegraph/.
 # Pre-embedded releases (< v0.63.0) used server mode and require an external
-# Dolt server that is not available in CI, so their init may not create .beads/.
-if [ -d "$WS/.beads" ]; then
-    pass "Beads initialized before upgrade"
+# Dolt server that is not available in CI, so their init may not create .issuegraph/.
+if [ -d "$WS/.issuegraph" ]; then
+    pass "IssueGraph initialized before upgrade"
 else
     pass "Pre-upgrade check skipped (old binary may require external Dolt server)"
 fi
@@ -356,7 +356,7 @@ finish_scenario
 # Scenario 4: Role must not be left unset after non-interactive init
 # ---------------------------------------------------------------------------
 
-scenario "Non-interactive init: beads.role must be set"
+scenario "Non-interactive init: issuegraph.role must be set"
 
 WS=$(new_workspace)
 
@@ -364,27 +364,27 @@ WS=$(new_workspace)
 # config is written to $WS's repo, not the repo this script runs from)
 cand_init 2>/dev/null || true
 
-ROLE=$(git -C "$WS" config --get beads.role 2>/dev/null || echo "MISSING")
+ROLE=$(git -C "$WS" config --get issuegraph.role 2>/dev/null || echo "MISSING")
 if [ "$ROLE" != "MISSING" ] && [ -n "$ROLE" ]; then
-    pass "beads.role set after non-interactive init ($ROLE)"
+    pass "issuegraph.role set after non-interactive init ($ROLE)"
 else
-    fail "beads.role NOT set after non-interactive init"
+    fail "issuegraph.role NOT set after non-interactive init"
 fi
 
 rm -rf "$WS"
 finish_scenario
 
 # ---------------------------------------------------------------------------
-# Scenario 5: Mutation — bd update after version upgrade must persist
+# Scenario 5: Mutation — issuegraph update after version upgrade must persist
 # ---------------------------------------------------------------------------
 
-scenario "MUTATION: init with old → create → upgrade → bd update → verify persisted"
+scenario "MUTATION: init with old → create → upgrade → issuegraph update → verify persisted"
 
 WS=$(new_workspace)
 
 # Init and create an issue with the previous version
 prev_init 2>/dev/null || true
-git -C "$WS" config beads.role maintainer
+git -C "$WS" config issuegraph.role maintainer
 
 _CREATED_ID=""
 prev_create --title "Mutation target issue" --type task || true
@@ -405,14 +405,14 @@ else
 
     # Mutate using the candidate binary
     cand update "$MUT_ID" --notes "smoke test mutation" 2>/dev/null || true
-    pass "bd update ran without fatal error"
+    pass "issuegraph update ran without fatal error"
 
     # Read back and verify the mutation persisted
     SHOW_OUT=$(cand show "$MUT_ID" 2>/dev/null || echo "")
     if echo "$SHOW_OUT" | grep -q "smoke test mutation"; then
         pass "Updated notes persisted and visible after mutation"
     else
-        fail "Updated notes NOT visible after bd update (mutation did not persist)"
+        fail "Updated notes NOT visible after issuegraph update (mutation did not persist)"
     fi
 
     rm -rf "$WS"
@@ -429,15 +429,15 @@ fi
 # the rewritten ready_issues/blocked_issues views never get queried on a
 # migrated DB. This scenario populates a dependency with the OLD binary (so the
 # row is written in the pre-0041 schema), upgrades, then exercises the exact
-# blocker paths that fail when the data-copy is wrong: bd ready, bd blocked,
-# bd close — the surface of the current Dolt errno 1105 on a stale schema.
+# blocker paths that fail when the data-copy is wrong: issuegraph ready, issuegraph blocked,
+# issuegraph close — the surface of the current Dolt errno 1105 on a stale schema.
 
 scenario "Dependency blocker paths survive upgrade (ready/blocked/close on migrated deps)"
 
 WS=$(new_workspace)
 
 prev_init 2>/dev/null || true
-git -C "$WS" config beads.role maintainer
+git -C "$WS" config issuegraph.role maintainer
 
 # Blocker (task) and a dependent (bug depends-on task → bug is blocked).
 _CREATED_ID=""
@@ -473,14 +473,14 @@ else
 
     # 1. Blocker queries must not error on the migrated dependency rows.
     if cand ready >/dev/null 2>&1; then
-        pass "bd ready succeeds after upgrade"
+        pass "issuegraph ready succeeds after upgrade"
     else
-        fail "bd ready errors after upgrade (migrated dependency schema regression)"
+        fail "issuegraph ready errors after upgrade (migrated dependency schema regression)"
     fi
     if cand blocked >/dev/null 2>&1; then
-        pass "bd blocked succeeds after upgrade"
+        pass "issuegraph blocked succeeds after upgrade"
     else
-        fail "bd blocked errors after upgrade (migrated dependency schema regression)"
+        fail "issuegraph blocked errors after upgrade (migrated dependency schema regression)"
     fi
 
     # 2. The dependent must still be reported blocked post-migration — proves
@@ -492,12 +492,12 @@ else
         fail "Blocked issue '$BLOCKED_ID' not reported blocked after upgrade (data-copy may have dropped the row)"
     fi
 
-    # 3. Closing the blocker must succeed (this is the bd close errno 1105
+    # 3. Closing the blocker must succeed (this is the issuegraph close errno 1105
     #    surface) and must unblock the dependent (is_blocked recompute).
     if cand close "$BLOCKER_ID" >/dev/null 2>&1; then
-        pass "bd close on blocker succeeds after upgrade"
+        pass "issuegraph close on blocker succeeds after upgrade"
     else
-        fail "bd close errors after upgrade (errno 1105 / stale depends_on_id regression)"
+        fail "issuegraph close errors after upgrade (errno 1105 / stale depends_on_id regression)"
     fi
 
     READY_OUT=$(cand ready 2>/dev/null || echo "")
@@ -532,7 +532,7 @@ scenario "Wisp plane survives upgrade (list/ready/blocked/update on migrated wis
 WS=$(new_workspace)
 
 prev_init 2>/dev/null || true
-git -C "$WS" config beads.role maintainer
+git -C "$WS" config issuegraph.role maintainer
 
 _CREATED_ID=""
 prev_create --ephemeral --title "Smoke wisp" --type task || true
@@ -577,14 +577,14 @@ else
     # 2. Blocker queries must not error on the migrated wisp plane. These read
     #    wisps and wisp_dependencies through views the chain rewrites.
     if cand ready >/dev/null 2>&1; then
-        pass "bd ready succeeds on the migrated wisp plane"
+        pass "issuegraph ready succeeds on the migrated wisp plane"
     else
-        fail "bd ready errors after upgrade (migrated wisp schema regression)"
+        fail "issuegraph ready errors after upgrade (migrated wisp schema regression)"
     fi
     if cand blocked >/dev/null 2>&1; then
-        pass "bd blocked succeeds on the migrated wisp plane"
+        pass "issuegraph blocked succeeds on the migrated wisp plane"
     else
-        fail "bd blocked errors after upgrade (migrated wisp schema regression)"
+        fail "issuegraph blocked errors after upgrade (migrated wisp schema regression)"
     fi
 
     # 3. Wisps must stay writable — this is the storage_class default path.
@@ -596,13 +596,13 @@ else
             fail "Wisp mutation did not persist after upgrade"
         fi
     else
-        fail "bd update on a migrated wisp errors after upgrade"
+        fail "issuegraph update on a migrated wisp errors after upgrade"
     fi
 
     if cand doctor quick >/dev/null 2>&1; then
-        pass "bd doctor quick passes on the migrated wisp plane"
+        pass "issuegraph doctor quick passes on the migrated wisp plane"
     else
-        fail "bd doctor quick fails after the wisp upgrade"
+        fail "issuegraph doctor quick fails after the wisp upgrade"
     fi
 
     rm -rf "$WS"

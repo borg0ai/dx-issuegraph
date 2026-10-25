@@ -3,9 +3,9 @@
 package embeddeddolt
 
 import (
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/workapi/storereader"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi/storereader"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // IssueReader returns the guarded issue-query surface for this store.

@@ -19,7 +19,7 @@ set -euo pipefail
 # creating fresh databases and immediately calling the procedure: 2.1.8 0/40
 # broken, 2.2.0 0/60, 2.3.0 3/60, 2.3.1 3/100. That is what made
 # TestFreshBootstrapHealIncarnation fail on a coin flip the day
-# releases/latest moved to 2.3.x, and it also puts bd dolt compact/flatten
+# releases/latest moved to 2.3.x, and it also puts issuegraph dolt compact/flatten
 # and the #4566 fresh-bootstrap heal at risk on 2.3.x. Raise this pin only
 # once a Dolt release is confirmed clean by that same measurement.
 readonly version="2.2.0"

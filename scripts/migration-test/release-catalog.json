@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "module": "github.com/steveyegge/beads",
+  "module": "github.com/borg0ai/dx-issuegraph",
   "versions": [
     {
       "version": "v0.9.1",
@@ -15,7 +15,7 @@
         "size": 582960
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.9.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.9.1",
         "source_relation": "matches_proxy_origin"
       }
     },
@@ -71,7 +71,7 @@
         "size": 763788
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.9.6",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.9.6",
         "source_relation": "matches_proxy_origin"
       }
     },
@@ -127,7 +127,7 @@
         "size": 1000561
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.9.11",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.9.11",
         "source_relation": "matches_proxy_origin"
       }
     },
@@ -235,11 +235,11 @@
         "size": 1132089
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.17.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.17.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 6574402,
-          "name": "beads_0.17.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.17.0_linux_amd64.tar.gz",
           "digest": "sha256:d4d08617a324c85b45c9628bc519d659a9ff9c7c37da67aa48727e0af7f19a75"
         }
       }
@@ -257,11 +257,11 @@
         "size": 1153779
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.17.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.17.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 6590353,
-          "name": "beads_0.17.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.17.1_linux_amd64.tar.gz",
           "digest": "sha256:cfab0d7f221510120364b6441ff4fc53a3ab75b675eb0566bb978ea3189e2816"
         }
       }
@@ -279,11 +279,11 @@
         "size": 1169092
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.17.2",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.17.2",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 6591698,
-          "name": "beads_0.17.2_linux_amd64.tar.gz",
+          "name": "issuegraph_0.17.2_linux_amd64.tar.gz",
           "digest": "sha256:94fd67d2f867bad0abd4fb2fb7d1711bbd9aa13f36eb10f617166232a34a389a"
         }
       }
@@ -301,11 +301,11 @@
         "size": 1334376
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.17.7",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.17.7",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 6721383,
-          "name": "beads_0.17.7_linux_amd64.tar.gz",
+          "name": "issuegraph_0.17.7_linux_amd64.tar.gz",
           "digest": "sha256:116561e5df083bb85e0c3b81c40bed299c4853f3446846c927da3114be96d43d"
         }
       }
@@ -323,11 +323,11 @@
         "size": 1341162
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.19.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.19.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 6761193,
-          "name": "beads_0.19.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.19.0_linux_amd64.tar.gz",
           "digest": "sha256:c75f36a77928209ca03033dadadc2e11105eb6f1ba57fcdb8e6573c545b57ac4"
         }
       }
@@ -345,11 +345,11 @@
         "size": 1424583
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.20.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.20.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 6788993,
-          "name": "beads_0.20.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.20.0_linux_amd64.tar.gz",
           "digest": "sha256:df3a380e1492ee768d6cd10b2079982c174fa7d344fb0a2d8cf8a2b7519e87eb"
         }
       }
@@ -367,11 +367,11 @@
         "size": 1319771
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.20.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.20.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 6775848,
-          "name": "beads_0.20.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.20.1_linux_amd64.tar.gz",
           "digest": "sha256:d7b22e0012b3e80730622a38d8c3369da7e14fb0d3bc23357acc0aeb0d5c400a"
         }
       }
@@ -389,11 +389,11 @@
         "size": 1345782
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.21.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.21.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 6789328,
-          "name": "beads_0.21.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.21.1_linux_amd64.tar.gz",
           "digest": "sha256:162076e42a57942973c02c94d46940abdbb6b0794218d675ceff334080bedb90"
         }
       }
@@ -411,11 +411,11 @@
         "size": 1346032
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.21.2",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.21.2",
         "source_relation": "tag_drift",
         "linux_amd64_asset": {
           "size": 6789449,
-          "name": "beads_0.21.2_linux_amd64.tar.gz",
+          "name": "issuegraph_0.21.2_linux_amd64.tar.gz",
           "digest": "sha256:1ede94b38f6f3ec5bc50b507c5491a9a508c0c88ca3299c2daed964a4816da1b"
         }
       }
@@ -433,11 +433,11 @@
         "size": 1490355
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.21.4",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.21.4",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 6842652,
-          "name": "beads_0.21.4_linux_amd64.tar.gz",
+          "name": "issuegraph_0.21.4_linux_amd64.tar.gz",
           "digest": "sha256:edc9a3262c0edc0f4e9a05f1fcd86d612be1434af4a38a5563879d3a54b125f8"
         }
       }
@@ -455,11 +455,11 @@
         "size": 1500524
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.21.5",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.21.5",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 6842693,
-          "name": "beads_0.21.5_linux_amd64.tar.gz",
+          "name": "issuegraph_0.21.5_linux_amd64.tar.gz",
           "digest": "sha256:39682a1118ada8d771528ff1c825ce50ea536e37805595700c68379dde9ba93e"
         }
       }
@@ -477,11 +477,11 @@
         "size": 21430475
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.21.6",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.21.6",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7137954,
-          "name": "beads_0.21.6_linux_amd64.tar.gz",
+          "name": "issuegraph_0.21.6_linux_amd64.tar.gz",
           "digest": "sha256:f17b37144f36b8604d04281948c5850900aa44351cc5b10aefd864fcb2a588cd"
         }
       }
@@ -499,11 +499,11 @@
         "size": 21316446
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.21.7",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.21.7",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7137858,
-          "name": "beads_0.21.7_linux_amd64.tar.gz",
+          "name": "issuegraph_0.21.7_linux_amd64.tar.gz",
           "digest": "sha256:4c1643a02954df33d7a9c362d359c7ebae1f0ac576d54fc4ca2c8fd81f7821c5"
         }
       }
@@ -521,11 +521,11 @@
         "size": 14361216
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.21.8",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.21.8",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7111532,
-          "name": "beads_0.21.8_linux_amd64.tar.gz",
+          "name": "issuegraph_0.21.8_linux_amd64.tar.gz",
           "digest": "sha256:27db39afa09bb29d6e32f04d41756ca955739c2e3f5b669b129eb06502ed3d73"
         }
       }
@@ -543,11 +543,11 @@
         "size": 14480103
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.21.9",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.21.9",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7121528,
-          "name": "beads_0.21.9_linux_amd64.tar.gz",
+          "name": "issuegraph_0.21.9_linux_amd64.tar.gz",
           "digest": "sha256:f695c58e192902c4c39a3ed2e3c303524a387db55a41994cfc258f0f78e631c3"
         }
       }
@@ -565,11 +565,11 @@
         "size": 14626281
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.22.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.22.0",
         "source_relation": "tag_drift",
         "linux_amd64_asset": {
           "size": 7240653,
-          "name": "beads_0.22.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.22.0_linux_amd64.tar.gz",
           "digest": "sha256:b1ce87c4e4d44da0014d9397eb597d7b99de4dcc97021b8fe279b2c2a3fa5961"
         }
       }
@@ -587,11 +587,11 @@
         "size": 1691617
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.22.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.22.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7261224,
-          "name": "beads_0.22.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.22.1_linux_amd64.tar.gz",
           "digest": "sha256:2dce5d837406a047103ef75261c5bd2307d4646126262d69f48801183a989df9"
         }
       }
@@ -609,11 +609,11 @@
         "size": 1903107
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.23.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.23.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7302335,
-          "name": "beads_0.23.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.23.0_linux_amd64.tar.gz",
           "digest": "sha256:ca2ca496e02534adc389461485e881bc2bec05ba20255eb633b8131d8edad5a4"
         }
       }
@@ -631,11 +631,11 @@
         "size": 2124649
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.23.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.23.1",
         "source_relation": "tag_drift",
         "linux_amd64_asset": {
           "size": 7320783,
-          "name": "beads_0.23.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.23.1_linux_amd64.tar.gz",
           "digest": "sha256:ae44a2fec58283ef1b9f13009fd24d7133e8fd7ca9651d3d1bf880c5d782c433"
         }
       }
@@ -653,11 +653,11 @@
         "size": 1873287
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.24.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.24.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7451654,
-          "name": "beads_0.24.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.24.0_linux_amd64.tar.gz",
           "digest": "sha256:133b9be7ac5ed35086b3a1d055df39eb41ce6ac1a3d544562a2b1ae2152d877b"
         }
       }
@@ -675,11 +675,11 @@
         "size": 1947301
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.24.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.24.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7481280,
-          "name": "beads_0.24.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.24.1_linux_amd64.tar.gz",
           "digest": "sha256:63c20d9e52cc25fb16652f6cd9cf08b347be5b2724c551a2a5e06feee24ba8a2"
         }
       }
@@ -697,11 +697,11 @@
         "size": 2130714
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.24.2",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.24.2",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7484589,
-          "name": "beads_0.24.2_linux_amd64.tar.gz",
+          "name": "issuegraph_0.24.2_linux_amd64.tar.gz",
           "digest": "sha256:41f30d9a8a6262e3419271da2dc31f29698c0d07f88b7e80b8045c7245ea44a6"
         }
       }
@@ -719,11 +719,11 @@
         "size": 1959396
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.24.3",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.24.3",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7521883,
-          "name": "beads_0.24.3_linux_amd64.tar.gz",
+          "name": "issuegraph_0.24.3_linux_amd64.tar.gz",
           "digest": "sha256:f273e4863b2097093d321198e7bba3b2782ce3834815af7aa5e2edf55eb05a81"
         }
       }
@@ -741,11 +741,11 @@
         "size": 2006610
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.24.4",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.24.4",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7558083,
-          "name": "beads_0.24.4_linux_amd64.tar.gz",
+          "name": "issuegraph_0.24.4_linux_amd64.tar.gz",
           "digest": "sha256:24b0cb4cf96b9110cf77c1b8669d9e1b36536ef07c150024e278c69c31ba2ca2"
         }
       }
@@ -763,11 +763,11 @@
         "size": 2279742
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.24.5",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.24.5",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7545409,
-          "name": "beads_0.24.5_linux_amd64.tar.gz",
+          "name": "issuegraph_0.24.5_linux_amd64.tar.gz",
           "digest": "sha256:fb477f7045b5990817260f64289dba332ad4387bae4c896dd93dae4d63aaef79"
         }
       }
@@ -785,11 +785,11 @@
         "size": 2027271
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.25.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.25.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7580336,
-          "name": "beads_0.25.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.25.0_linux_amd64.tar.gz",
           "digest": "sha256:d6e68bd1459f65a9db73b2cb913a003b009e7770c083db43d3982a13a14e1ec4"
         }
       }
@@ -807,11 +807,11 @@
         "size": 2033591
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.25.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.25.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7591945,
-          "name": "beads_0.25.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.25.1_linux_amd64.tar.gz",
           "digest": "sha256:9d1e06ec0d1e7f7e8fe830bc9247b0e66e9da810fda5b28e7f819ddd1457e5dc"
         }
       }
@@ -829,11 +829,11 @@
         "size": 2113531
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.26.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.26.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7606145,
-          "name": "beads_0.26.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.26.0_linux_amd64.tar.gz",
           "digest": "sha256:164a3aff89c0940bdd7270715e45f63116ed0063dd82cfeb28427fed6f102cde"
         }
       }
@@ -851,11 +851,11 @@
         "size": 2148879
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.26.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.26.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7630920,
-          "name": "beads_0.26.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.26.1_linux_amd64.tar.gz",
           "digest": "sha256:88d91df40b155c1c8221d806a09d81506cdf63d893c23ed941687456ac7fff1e"
         }
       }
@@ -873,11 +873,11 @@
         "size": 2151270
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.26.2",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.26.2",
         "source_relation": "tag_drift",
         "linux_amd64_asset": {
           "size": 7632356,
-          "name": "beads_0.26.2_linux_amd64.tar.gz",
+          "name": "issuegraph_0.26.2_linux_amd64.tar.gz",
           "digest": "sha256:272a843bd197e9562c7443b0bc9d7dc7976b3518c279970e63ae3953eb379c0c"
         }
       }
@@ -895,11 +895,11 @@
         "size": 2157681
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.27.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.27.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7635020,
-          "name": "beads_0.27.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.27.0_linux_amd64.tar.gz",
           "digest": "sha256:9f0f50c3a4a93a50aba38f8f1d53d9b6d4d422e54480965e51de6aba7453c621"
         }
       }
@@ -917,11 +917,11 @@
         "size": 2200275
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.27.2",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.27.2",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7654910,
-          "name": "beads_0.27.2_linux_amd64.tar.gz",
+          "name": "issuegraph_0.27.2_linux_amd64.tar.gz",
           "digest": "sha256:ebd72969db4aaf4159134bae5d0f186f443362da272bd9856904fcbbe1a2f4bb"
         }
       }
@@ -939,11 +939,11 @@
         "size": 2216993
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.28.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.28.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7675930,
-          "name": "beads_0.28.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.28.0_linux_amd64.tar.gz",
           "digest": "sha256:9ff19ccc16714fdae468185f412e36ae677879937caa5fbb8f05c10b039df99d"
         }
       }
@@ -961,11 +961,11 @@
         "size": 2252018
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.29.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.29.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7648237,
-          "name": "beads_0.29.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.29.0_linux_amd64.tar.gz",
           "digest": "sha256:67fff26d4078fb56f5af5926d14fa568249c43c39f3459fcf5500c09b9fedfea"
         }
       }
@@ -983,11 +983,11 @@
         "size": 2579883
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.30.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.30.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 7986620,
-          "name": "beads_0.30.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.30.0_linux_amd64.tar.gz",
           "digest": "sha256:ad9cb80203bdabffc60b7401bb85e7f726029616e401524790f114be70a83795"
         }
       }
@@ -1018,11 +1018,11 @@
         "size": 2319335
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.30.2",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.30.2",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8034768,
-          "name": "beads_0.30.2_linux_amd64.tar.gz",
+          "name": "issuegraph_0.30.2_linux_amd64.tar.gz",
           "digest": "sha256:231cc3923b07549508a4a06bfb728a78fccaad813ab4466fb0c49a014959a37a"
         }
       }
@@ -1040,11 +1040,11 @@
         "size": 2890544
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.30.3",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.30.3",
         "source_relation": "tag_drift",
         "linux_amd64_asset": {
           "size": 8380991,
-          "name": "beads_0.30.3_linux_amd64.tar.gz",
+          "name": "issuegraph_0.30.3_linux_amd64.tar.gz",
           "digest": "sha256:2334119a697b8b261c0867fdcc95519945aa3843703d44ee89c380f0dd3c6f9e"
         }
       }
@@ -1062,11 +1062,11 @@
         "size": 2860544
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.30.6",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.30.6",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8392417,
-          "name": "beads_0.30.6_linux_amd64.tar.gz",
+          "name": "issuegraph_0.30.6_linux_amd64.tar.gz",
           "digest": "sha256:a0fe91788910c00f5fd52959e696a9fcc01188fbc9c81619a3c88ff39bac3aea"
         }
       }
@@ -1084,11 +1084,11 @@
         "size": 2943140
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.30.7",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.30.7",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8472009,
-          "name": "beads_0.30.7_linux_amd64.tar.gz",
+          "name": "issuegraph_0.30.7_linux_amd64.tar.gz",
           "digest": "sha256:c275f4d3d35d318b1e8183fb48e774e3c21bcb3877a08f256595509232d1e93c"
         }
       }
@@ -1106,11 +1106,11 @@
         "size": 2999353
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.31.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.31.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8498811,
-          "name": "beads_0.31.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.31.0_linux_amd64.tar.gz",
           "digest": "sha256:5f6da2fb31e6aef045b62c57756730547aca73413cb3d6012b00e8f90b9183a3"
         }
       }
@@ -1128,11 +1128,11 @@
         "size": 2992258
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.32.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.32.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8485586,
-          "name": "beads_0.32.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.32.0_linux_amd64.tar.gz",
           "digest": "sha256:903542eeedc306230b70d2a01ba8539488af72b8b79b92bff1e88a7e6ac8f4d2"
         }
       }
@@ -1150,11 +1150,11 @@
         "size": 2996601
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.32.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.32.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8485380,
-          "name": "beads_0.32.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.32.1_linux_amd64.tar.gz",
           "digest": "sha256:6e809906b4bd64108ed68dc4b68c8d1a22376892e090eaa44f77ef3d4391bd9f"
         }
       }
@@ -1172,11 +1172,11 @@
         "size": 18276109
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.33.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.33.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8524406,
-          "name": "beads_0.33.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.33.0_linux_amd64.tar.gz",
           "digest": "sha256:a4d388d25834fd65df83dc3f41c72bd0290752adaba6c9f4581101a5639f0d26"
         }
       }
@@ -1194,11 +1194,11 @@
         "size": 18277307
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.33.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.33.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8524634,
-          "name": "beads_0.33.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.33.1_linux_amd64.tar.gz",
           "digest": "sha256:9eef1bda74d1f0689d018b23d66b63b6a68cbf8cc1a81590904bd831e4cb1f6f"
         }
       }
@@ -1216,11 +1216,11 @@
         "size": 18278033
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.33.2",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.33.2",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8524953,
-          "name": "beads_0.33.2_linux_amd64.tar.gz",
+          "name": "issuegraph_0.33.2_linux_amd64.tar.gz",
           "digest": "sha256:6ab2c9fb683482762a5d41bddc48fbd316ae422492743ade09f6e4d0e8e7ff0f"
         }
       }
@@ -1238,11 +1238,11 @@
         "size": 18340703
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.34.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.34.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8588314,
-          "name": "beads_0.34.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.34.0_linux_amd64.tar.gz",
           "digest": "sha256:2499fb6e580274909c1b5690fbdb0108302d932109a9002c143ae799ff403500"
         }
       }
@@ -1260,11 +1260,11 @@
         "size": 18407404
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.35.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.35.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8673606,
-          "name": "beads_0.35.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.35.0_linux_amd64.tar.gz",
           "digest": "sha256:4e99f9608d38574e4d10ad503b4552831267802546873fba59ce6702da33d760"
         }
       }
@@ -1282,11 +1282,11 @@
         "size": 18550993
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.36.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.36.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8741513,
-          "name": "beads_0.36.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.36.0_linux_amd64.tar.gz",
           "digest": "sha256:e45864f922e725bf66f9c3247c5c87a345d0d9385182628d1181a1c1f69d5984"
         }
       }
@@ -1304,11 +1304,11 @@
         "size": 18122043
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.37.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.37.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8921916,
-          "name": "beads_0.37.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.37.0_linux_amd64.tar.gz",
           "digest": "sha256:5ffdc0f32d2d71593d47a8724f6e38b4fbb9a666c4291b18238d4670eb640338"
         }
       }
@@ -1326,11 +1326,11 @@
         "size": 18191760
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.38.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.38.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8962919,
-          "name": "beads_0.38.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.38.0_linux_amd64.tar.gz",
           "digest": "sha256:65729a09160503ad34518531007b192db34ba191cbba738c85af285e3d56b93e"
         }
       }
@@ -1348,11 +1348,11 @@
         "size": 18740879
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.39.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.39.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8965437,
-          "name": "beads_0.39.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.39.0_linux_amd64.tar.gz",
           "digest": "sha256:c5304a278fb050a18d678b7c5afecc102e54ba164aca97c11dc4269b7e624b19"
         }
       }
@@ -1370,11 +1370,11 @@
         "size": 18750840
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.39.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.39.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 8969278,
-          "name": "beads_0.39.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.39.1_linux_amd64.tar.gz",
           "digest": "sha256:552df7179cc7d72ae1fe93b11a27ef4897249ba37fc61d0aa5dc2975bd1d5103"
         }
       }
@@ -1392,11 +1392,11 @@
         "size": 18776930
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.40.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.40.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 9017913,
-          "name": "beads_0.40.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.40.0_linux_amd64.tar.gz",
           "digest": "sha256:ee3c1105ee9da43edeb95812a5a2366f27b6ea4b3b654b6f4a2dd6391e3b8ba0"
         }
       }
@@ -1414,11 +1414,11 @@
         "size": 18845419
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.41.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.41.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 9356389,
-          "name": "beads_0.41.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.41.0_linux_amd64.tar.gz",
           "digest": "sha256:c9fbf221d855a69b2ad206ff12801699ec5845cf623a369b352954a5a851613f"
         }
       }
@@ -1436,11 +1436,11 @@
         "size": 19052908
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.42.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.42.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 9438723,
-          "name": "beads_0.42.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.42.0_linux_amd64.tar.gz",
           "digest": "sha256:b1721b8a5a311f10d3f9ff372f27337037279964a0252001b8c7590f9a1d35df"
         }
       }
@@ -1458,11 +1458,11 @@
         "size": 3885574
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.43.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.43.0",
         "source_relation": "tag_drift",
         "linux_amd64_asset": {
           "size": 9559632,
-          "name": "beads_0.43.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.43.0_linux_amd64.tar.gz",
           "digest": "sha256:73497f6b1e302d62f6663044c65a65b75136835aab6b494191386c73a1660eee"
         }
       }
@@ -1480,11 +1480,11 @@
         "size": 3999456
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.44.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.44.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 9645096,
-          "name": "beads_0.44.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.44.0_linux_amd64.tar.gz",
           "digest": "sha256:c3881191cb20dfc7089d7966856e9c19cb09c1c92e7c8496eec71dfd0f5ef551"
         }
       }
@@ -1502,11 +1502,11 @@
         "size": 4045109
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.45.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.45.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 9669434,
-          "name": "beads_0.45.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.45.0_linux_amd64.tar.gz",
           "digest": "sha256:2e31ace201774949374cd5e2871eb510fb2ad0709973ed9603f07daeda98de52"
         }
       }
@@ -1524,11 +1524,11 @@
         "size": 4048458
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.46.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.46.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 9672188,
-          "name": "beads_0.46.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.46.0_linux_amd64.tar.gz",
           "digest": "sha256:be0bcde5ffbb790dc71058ba2e10e37baf100d3ceffe7841f7c7440c9cb9aea7"
         }
       }
@@ -1546,11 +1546,11 @@
         "size": 4422825
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.47.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.47.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 11580549,
-          "name": "beads_0.47.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.47.0_linux_amd64.tar.gz",
           "digest": "sha256:7dbbdf8c84f8ed9327d296482c6d49dde376506af240f00ced27f520fa86aacc"
         }
       }
@@ -1568,11 +1568,11 @@
         "size": 4475478
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.47.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.47.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 11583823,
-          "name": "beads_0.47.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.47.1_linux_amd64.tar.gz",
           "digest": "sha256:6003e3732fbdb35696acaa2cdb6883bb80429e31f8474aa1027cd8b75ee9af8b"
         }
       }
@@ -1616,11 +1616,11 @@
         "size": 5394722
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.49.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.49.0",
         "source_relation": "tag_drift",
         "linux_amd64_asset": {
           "size": 11745492,
-          "name": "beads_0.49.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.49.0_linux_amd64.tar.gz",
           "digest": "sha256:04e25d118b287a17738b347e1c84b4a5698eb5ccfd84a802ed1cd48b220cc1ed"
         }
       }
@@ -1638,11 +1638,11 @@
         "size": 5465780
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.49.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.49.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 11894755,
-          "name": "beads_0.49.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.49.1_linux_amd64.tar.gz",
           "digest": "sha256:cf74d80b3015dc432111f8881da6d8784dcab0e3d0605309979b8fdd59c76dbe"
         }
       }
@@ -1660,11 +1660,11 @@
         "size": 4453988
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.49.2",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.49.2",
         "source_relation": "tag_drift",
         "linux_amd64_asset": {
           "size": 12051570,
-          "name": "beads_0.49.2_linux_amd64.tar.gz",
+          "name": "issuegraph_0.49.2_linux_amd64.tar.gz",
           "digest": "sha256:32a79c3250e5f32fa847068d7574eed4b6664663033bf603a8f393680b03237b"
         }
       }
@@ -1682,11 +1682,11 @@
         "size": 4457570
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.49.3",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.49.3",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 12051912,
-          "name": "beads_0.49.3_linux_amd64.tar.gz",
+          "name": "issuegraph_0.49.3_linux_amd64.tar.gz",
           "digest": "sha256:f84d534bd1c53f0dd404f4b86dc6678d26af712884658e1e43e7a6bb080b3124"
         }
       }
@@ -1704,11 +1704,11 @@
         "size": 4575854
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.49.4",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.49.4",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 12172909,
-          "name": "beads_0.49.4_linux_amd64.tar.gz",
+          "name": "issuegraph_0.49.4_linux_amd64.tar.gz",
           "digest": "sha256:b7043a1071a25414da4f1be2492d33d2af59955b2b5782e91eb06ceb85c6b8fa"
         }
       }
@@ -1726,11 +1726,11 @@
         "size": 4563889
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.49.5",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.49.5",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 12386355,
-          "name": "beads_0.49.5_linux_amd64.tar.gz",
+          "name": "issuegraph_0.49.5_linux_amd64.tar.gz",
           "digest": "sha256:69f721a39a56da8f7c7a741f3e56791d33a55854d6ffe65d25a3120d3c83848c"
         }
       }
@@ -1748,11 +1748,11 @@
         "size": 4645320
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.49.6",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.49.6",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 12205002,
-          "name": "beads_0.49.6_linux_amd64.tar.gz",
+          "name": "issuegraph_0.49.6_linux_amd64.tar.gz",
           "digest": "sha256:8546dc9a47e11dc31ac2bc9a0224a9c690975e91850932cbb62623053fbb7db8"
         }
       }
@@ -1783,18 +1783,18 @@
         "size": 4367283
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.50.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.50.1",
         "source_relation": "tag_drift",
         "linux_amd64_asset": {
           "size": 11861915,
-          "name": "beads_0.50.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.50.1_linux_amd64.tar.gz",
           "digest": "sha256:eb65ea265d536972af9b4a9247e105a872e2f26194f723c0b7a9e40fe2e2b021"
         }
       }
     },
     {
       "version": "v0.50.2",
-      "sum": "h1:ypduwCVdNqgBDGJ8wXVhKLky+QPW8n/wKMbfdVYJ8Ik=",
+      "sum": "h1:ypduwCVdNqgIssueGraphGJ8wXVhKLky+QPW8n/wKMbfdVYJ8Ik=",
       "go_mod_sum": "h1:f+iDTH0k8C8MEOS/HHZCa2uFcUMO+a4kUgIwVkeir44=",
       "origin": {
         "hash": "3bdc97878c74b455cbde036a0e7fe9c1a386c5af",
@@ -1805,11 +1805,11 @@
         "size": 4382742
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.50.2",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.50.2",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 11863361,
-          "name": "beads_0.50.2_linux_amd64.tar.gz",
+          "name": "issuegraph_0.50.2_linux_amd64.tar.gz",
           "digest": "sha256:361cf95eb640c31519df668c117c384befeee4a093b5711a1f69a87bb226085c"
         }
       }
@@ -1827,11 +1827,11 @@
         "size": 4384080
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.50.3",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.50.3",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 11869622,
-          "name": "beads_0.50.3_linux_amd64.tar.gz",
+          "name": "issuegraph_0.50.3_linux_amd64.tar.gz",
           "digest": "sha256:e94b09e0b6a9324bbc0e81ea36bccaaa42172a926bfedfb389e9a26dedb63184"
         }
       }
@@ -1849,11 +1849,11 @@
         "size": 3704047
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.51.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.51.0",
         "source_relation": "tag_drift",
         "linux_amd64_asset": {
           "size": 11067981,
-          "name": "beads_0.51.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.51.0_linux_amd64.tar.gz",
           "digest": "sha256:7dbd730d5da62d478827440a70ce703321c95dfaa96fddba32b464489cd935dc"
         }
       }
@@ -1871,11 +1871,11 @@
         "size": 3710686
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.52.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.52.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 11069765,
-          "name": "beads_0.52.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.52.0_linux_amd64.tar.gz",
           "digest": "sha256:f0fe4aa9c7d443b5b3cb2c7fdab96267251823d56aa4be78449ef4d00a2527e8"
         }
       }
@@ -1984,11 +1984,11 @@
         "size": 3608305
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.55.4",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.55.4",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 47171746,
-          "name": "beads_0.55.4_linux_amd64.tar.gz",
+          "name": "issuegraph_0.55.4_linux_amd64.tar.gz",
           "digest": "sha256:e0fa25456dd82890230eef17653448a0bf995104c78864be91c5ed84426a5f49"
         }
       }
@@ -2019,11 +2019,11 @@
         "size": 3516686
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.56.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.56.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 13682928,
-          "name": "beads_0.56.1_linux_amd64.tar.gz",
+          "name": "issuegraph_0.56.1_linux_amd64.tar.gz",
           "digest": "sha256:4f9f6cc44465a11613ff529009901eaaf841c6b1f91c15e002b0ecda2015a15c"
         }
       }
@@ -2041,11 +2041,11 @@
         "size": 4199503
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.57.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.57.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 13977499,
-          "name": "beads_0.57.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.57.0_linux_amd64.tar.gz",
           "digest": "sha256:f8629d5627bed7d25f06f92334addc171d679f9aed9d08c5d42a9684205dc04b"
         }
       }
@@ -2063,11 +2063,11 @@
         "size": 4981313
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.58.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.58.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 12339169,
-          "name": "beads_0.58.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.58.0_linux_amd64.tar.gz",
           "digest": "sha256:7043fc667422780b59dd3212f71061e328a1f605068f67aa114eb2f630fd1a35"
         }
       }
@@ -2085,11 +2085,11 @@
         "size": 4339646
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.59.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.59.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 12351628,
-          "name": "beads_0.59.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.59.0_linux_amd64.tar.gz",
           "digest": "sha256:d4395c4d3ab6312c50f8c3db4eeb97a357aec6716354a2c9318de3f33350702f"
         }
       }
@@ -2107,11 +2107,11 @@
         "size": 3716607
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.60.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.60.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 12594531,
-          "name": "beads_0.60.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.60.0_linux_amd64.tar.gz",
           "digest": "sha256:6b9f332365d3d4fc501ba288b92fffedb6dc28788e832ad4a7ed28baf899cf18"
         }
       }
@@ -2129,11 +2129,11 @@
         "size": 3829448
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.61.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.61.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 12655844,
-          "name": "beads_0.61.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.61.0_linux_amd64.tar.gz",
           "digest": "sha256:f9302138ed292b089052742123d49c0d5928042e9e2337b68e791a6e6409c89b"
         }
       }
@@ -2151,11 +2151,11 @@
         "size": 4031796
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.62.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.62.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 12884929,
-          "name": "beads_0.62.0_linux_amd64.tar.gz",
+          "name": "issuegraph_0.62.0_linux_amd64.tar.gz",
           "digest": "sha256:4cca7265b22e5c3ca8d62ab0b9752bec31f68b7f5fa636282a4c7e5454c35535"
         }
       }
@@ -2212,11 +2212,11 @@
         "size": 4185369
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v0.63.3",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.63.3",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 46400411,
-          "name": "beads_0.63.3_linux_amd64.tar.gz",
+          "name": "issuegraph_0.63.3_linux_amd64.tar.gz",
           "digest": "sha256:5f4efd2e010209b3f381dbcd783b2a3a652f50ea72f40ef04c8ba434d408bf9e"
         }
       }
@@ -2234,11 +2234,11 @@
         "size": 4281692
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v1.0.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v1.0.0",
         "source_relation": "tag_drift",
         "linux_amd64_asset": {
           "size": 46403345,
-          "name": "beads_1.0.0_linux_amd64.tar.gz",
+          "name": "issuegraph_1.0.0_linux_amd64.tar.gz",
           "digest": "sha256:7057db1e92428fcf5c08d5dc6b07ead57e588b262cba78b9a26893d55bd29fdb"
         }
       }
@@ -2256,11 +2256,11 @@
         "size": 4561045
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v1.0.1",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v1.0.1",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 46834471,
-          "name": "beads_1.0.1_linux_amd64.tar.gz",
+          "name": "issuegraph_1.0.1_linux_amd64.tar.gz",
           "digest": "sha256:1d2364d5d7083a4634a9e734ca87822fb79c2b6625988f9f791e3376313b1b77"
         }
       }
@@ -2278,11 +2278,11 @@
         "size": 4561330
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v1.0.2",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v1.0.2",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 46834435,
-          "name": "beads_1.0.2_linux_amd64.tar.gz",
+          "name": "issuegraph_1.0.2_linux_amd64.tar.gz",
           "digest": "sha256:66280bca14581218684027fee000810c2e40a9c6fe00e876ff64bdcb01a036c0"
         }
       }
@@ -2300,11 +2300,11 @@
         "size": 4732953
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v1.0.3",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v1.0.3",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 47243934,
-          "name": "beads_1.0.3_linux_amd64.tar.gz",
+          "name": "issuegraph_1.0.3_linux_amd64.tar.gz",
           "digest": "sha256:1ef5dca818d7e81574df9e9f9fc2a16ab711da09b0fa7b822ae162d9a81c8912"
         }
       }
@@ -2322,11 +2322,11 @@
         "size": 5303557
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v1.0.4",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v1.0.4",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 47668079,
-          "name": "beads_1.0.4_linux_amd64.tar.gz",
+          "name": "issuegraph_1.0.4_linux_amd64.tar.gz",
           "digest": "sha256:643e602e27f666c8726abff0f22001e2b5883988fa960204bde20a3129d448a5"
         }
       }
@@ -2357,11 +2357,11 @@
         "size": 7021062
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v1.1.0",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v1.1.0",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 49110681,
-          "name": "beads_1.1.0_linux_amd64.tar.gz",
+          "name": "issuegraph_1.1.0_linux_amd64.tar.gz",
           "digest": "sha256:b0f3dd607c3fb989ee08d0a6854fba80d0402971eb108f9af6170bc14d491a34"
         }
       }
@@ -2392,11 +2392,11 @@
         "size": 7242310
       },
       "github_release": {
-        "html_url": "https://github.com/gastownhall/beads/releases/tag/v1.1.2",
+        "html_url": "https://github.com/borg0ai/dx-issuegraph/releases/tag/v1.1.2",
         "source_relation": "matches_proxy_origin",
         "linux_amd64_asset": {
           "size": 49106037,
-          "name": "beads_1.1.2_linux_amd64.tar.gz",
+          "name": "issuegraph_1.1.2_linux_amd64.tar.gz",
           "digest": "sha256:a72d71ed374955dc9f83a0f90b54bd7b6a0016709dd1676ae2e368651ed401c2"
         }
       }

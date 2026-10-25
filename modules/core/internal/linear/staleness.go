@@ -14,24 +14,24 @@ const (
 	debounceThreshold     = 5 * time.Minute
 )
 
-// WriteLastPullTimestamp writes the current time as ISO 8601 to .beads/last_pull.
-func WriteLastPullTimestamp(beadsDir string) error {
-	if beadsDir == "" {
-		return fmt.Errorf("beadsDir must not be empty")
+// WriteLastPullTimestamp writes the current time as ISO 8601 to .issuegraph/last_pull.
+func WriteLastPullTimestamp(issuegraphDir string) error {
+	if issuegraphDir == "" {
+		return fmt.Errorf("issuegraphDir must not be empty")
 	}
-	path := filepath.Join(beadsDir, lastPullFileName)
+	path := filepath.Join(issuegraphDir, lastPullFileName)
 	ts := time.Now().UTC().Format(time.RFC3339)
 	return os.WriteFile(path, []byte(ts+"\n"), 0600)
 }
 
-// ReadLastPullTimestamp reads the last pull timestamp from .beads/last_pull.
+// ReadLastPullTimestamp reads the last pull timestamp from .issuegraph/last_pull.
 // Returns the zero time if the file doesn't exist or is unreadable.
-func ReadLastPullTimestamp(beadsDir string) (time.Time, error) {
-	if beadsDir == "" {
-		return time.Time{}, fmt.Errorf("beadsDir must not be empty")
+func ReadLastPullTimestamp(issuegraphDir string) (time.Time, error) {
+	if issuegraphDir == "" {
+		return time.Time{}, fmt.Errorf("issuegraphDir must not be empty")
 	}
-	path := filepath.Join(beadsDir, lastPullFileName)
-	data, err := os.ReadFile(path) // #nosec G304 -- path is constrained to the beads directory.
+	path := filepath.Join(issuegraphDir, lastPullFileName)
+	data, err := os.ReadFile(path) // #nosec G304 -- path is constrained to the issuegraph directory.
 	if err != nil {
 		if os.IsNotExist(err) {
 			return time.Time{}, nil
@@ -51,8 +51,8 @@ func ReadLastPullTimestamp(beadsDir string) (time.Time, error) {
 
 // IsPullStale returns true if the last pull is older than the given threshold,
 // or if no pull has ever been recorded.
-func IsPullStale(beadsDir string, threshold time.Duration) bool {
-	lastPull, err := ReadLastPullTimestamp(beadsDir)
+func IsPullStale(issuegraphDir string, threshold time.Duration) bool {
+	lastPull, err := ReadLastPullTimestamp(issuegraphDir)
 	if err != nil || lastPull.IsZero() {
 		return true
 	}
@@ -69,8 +69,8 @@ type StalenessInfo struct {
 }
 
 // GetStalenessInfo returns detailed staleness information for display and logic.
-func GetStalenessInfo(beadsDir string, threshold time.Duration) StalenessInfo {
-	lastPull, err := ReadLastPullTimestamp(beadsDir)
+func GetStalenessInfo(issuegraphDir string, threshold time.Duration) StalenessInfo {
+	lastPull, err := ReadLastPullTimestamp(issuegraphDir)
 	if err != nil || lastPull.IsZero() {
 		return StalenessInfo{NeverPulled: true, IsStale: true}
 	}
@@ -85,8 +85,8 @@ func GetStalenessInfo(beadsDir string, threshold time.Duration) StalenessInfo {
 
 // IsWithinDebounce returns true if the last pull completed within the
 // debounce window (5 minutes), preventing agent loops.
-func IsWithinDebounce(beadsDir string) bool {
-	lastPull, err := ReadLastPullTimestamp(beadsDir)
+func IsWithinDebounce(issuegraphDir string) bool {
+	lastPull, err := ReadLastPullTimestamp(issuegraphDir)
 	if err != nil || lastPull.IsZero() {
 		return false
 	}

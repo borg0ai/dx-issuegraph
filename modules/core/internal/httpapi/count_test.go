@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The pins for GET /v0/beads/issues:count. These are pure: the count path runs
+// The pins for GET /v0/issuegraph/issues:count. These are pure: the count path runs
 // end to end over a real listener against a fake ROLE, so what is asserted here
 // is the WIRE EDGE — that every documented parameter reaches the role's request
 // unchanged, that `group_by` chooses between the role's two methods, and that
@@ -22,10 +22,10 @@ import (
 //
 // What a fake cannot prove is what the numbers MEAN: that a bare count really
 // includes closed rows where a listing hides them, and that `include_infra`
-// really moves the set in four directions at once. Those live in modules/cli's
+// really moves the set in four directions at once. Those live in apps/cli's
 // TestProxiedServerServeCount against real Dolt, over seeded rows.
 
-const countPath = "/v0/beads/issues:count"
+const countPath = "/v0/issuegraph/issues:count"
 
 func newCountServer(t *testing.T, counter *roleCounter) *testServer {
 	t.Helper()
@@ -49,7 +49,7 @@ func countBody(t *testing.T, resp *http.Response) (int64, *map[string]int) {
 }
 
 // TestCountPathReachesItsHandler is the sweep and delete rows' twin: a LITERAL
-// segment registered beside the claim's wildcard `/v0/beads/issues/{idop}`,
+// segment registered beside the claim's wildcard `/v0/issuegraph/issues/{idop}`,
 // where ServeMux precedence is by specificity rather than registration order.
 // It is also registered beside the plain collection GET, which matches the
 // whole path and so cannot claim this one.
@@ -176,7 +176,7 @@ func TestCountForwardsEveryDocumentedParameter(t *testing.T) {
 //
 // The zero value of IncludeInfra is the whole plane story on this operation and
 // it is worth an assertion of its own: false means DURABLE ONLY — no wisps, no
-// `no_history` beads stored in that tier — and a handler that defaulted it on
+// `no_history` issuegraph stored in that tier — and a handler that defaulted it on
 // would silently start counting ephemeral rows a scripted caller has never
 // counted.
 func TestCountDefaultsToTheDurablePlaneAndNoBucketing(t *testing.T) {

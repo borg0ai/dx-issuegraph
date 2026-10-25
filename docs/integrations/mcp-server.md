@@ -1,6 +1,6 @@
 ---
 title: MCP Server
-description: Run the beads-mcp server for MCP-only environments like Claude Desktop where the issuegraph CLI is unavailable
+description: Run the issuegraph-mcp server for MCP-only environments like Claude Desktop where the issuegraph CLI is unavailable
 ---
 
 Use issuegraph in MCP-only environments.
@@ -19,13 +19,13 @@ Use MCP server when CLI is unavailable:
 ### Using uv (Recommended)
 
 ```bash
-uv tool install beads-mcp
+uv tool install issuegraph-mcp
 ```
 
 ### Using pip
 
 ```bash
-pip install beads-mcp
+pip install issuegraph-mcp
 ```
 
 ## Configuration
@@ -37,8 +37,8 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "beads": {
-      "command": "beads-mcp"
+    "issuegraph": {
+      "command": "issuegraph-mcp"
     }
   }
 }
@@ -51,8 +51,8 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "beads": {
-      "command": "beads-mcp"
+    "issuegraph": {
+      "command": "issuegraph-mcp"
     }
   }
 }
@@ -64,8 +64,8 @@ Add to MCP settings:
 
 ```json
 {
-  "beads": {
-    "command": "beads-mcp",
+  "issuegraph": {
+    "command": "issuegraph-mcp",
     "args": []
   }
 }
@@ -78,8 +78,8 @@ Create `.vscode/mcp.json` in your project:
 ```json
 {
   "servers": {
-    "beads": {
-      "command": "beads-mcp"
+    "issuegraph": {
+      "command": "issuegraph-mcp"
     }
   }
 }
@@ -96,8 +96,8 @@ Create `.vscode/mcp.json` in your project:
 ```json
 {
   "servers": {
-    "beads": {
-      "command": "beads-mcp",
+    "issuegraph": {
+      "command": "issuegraph-mcp",
       "args": []
     }
   }
@@ -155,18 +155,18 @@ The MCP server translates to appropriate `issuegraph` commands.
 
 ### Server won't start
 
-Check if `beads-mcp` is in PATH:
+Check if `issuegraph-mcp` is in PATH:
 
 ```bash
-which beads-mcp
+which issuegraph-mcp
 ```
 
 If not found:
 
 ```bash
 # Reinstall
-pip uninstall beads-mcp
-pip install beads-mcp
+pip uninstall issuegraph-mcp
+pip install issuegraph-mcp
 ```
 
 ### Tools not appearing
@@ -179,7 +179,7 @@ pip install beads-mcp
 
 ```bash
 # Check directory permissions
-ls -la .beads/
+ls -la .issuegraph/
 
 # Initialize if needed
 issuegraph init --quiet

@@ -4,7 +4,7 @@
 -- issue in_progress forever. These columns let a claim expire:
 --
 --   lease_expires_at  the wall-clock instant after which the claim is stale and
---                     a reaper (bd reclaim) may revert the issue to ready.
+--                     a reaper (issuegraph reclaim) may revert the issue to ready.
 --   heartbeat_at      the last time the lease owner proved it was still alive.
 --   row_lock          a random BIGINT rewritten by EVERY mutating path on the
 --                     row. Dolt has no real row locking and merges concurrent

@@ -31,7 +31,7 @@ func NewContainerProvider() (*ContainerProvider, error) {
 	defer cancel()
 
 	ctr, err := dolt.Run(ctx, DoltDockerImage,
-		dolt.WithDatabase("beads_test"),
+		dolt.WithDatabase("issuegraph_test"),
 		testcontainers.WithEnv(map[string]string{"DOLT_ROOT_HOST": "%"}),
 	)
 	if err != nil {
@@ -62,7 +62,7 @@ func (p *ContainerProvider) Port() int {
 }
 
 // WritePortFile writes the container port to the given shared server directory
-// so that bd subprocesses can discover it via DefaultConfig / readPortFile.
+// so that issuegraph subprocesses can discover it via DefaultConfig / readPortFile.
 func (p *ContainerProvider) WritePortFile(serverDir string) error {
 	portPath := filepath.Join(serverDir, "dolt-server.port")
 	return os.WriteFile(portPath, []byte(strconv.Itoa(p.port)), 0600)

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The request body's member vocabulary. The schema is
@@ -38,15 +38,15 @@ var sweepMembers = []string{
 	sweepDryRunMember,
 }
 
-// handleSweep answers POST /v0/beads/issues:sweep — one of the two DESTRUCTIVE
+// handleSweep answers POST /v0/issuegraph/issues:sweep — one of the two DESTRUCTIVE
 // operations on this surface, the other being issues:delete.
 //
-// WHAT THIS HANDLER DOES NOT DO. It does not decide which beads are closed,
+// WHAT THIS HANDLER DOES NOT DO. It does not decide which issuegraph are closed,
 // does not match the glob, does not recheck closed_at, does not protect pinned
-// beads, and — the one that matters most — does not implement the
+// issuegraph, and — the one that matters most — does not implement the
 // require-a-filter safety gate. All of that is issueops.Sweeper, the same
-// library surface `bd prune` calls, so this endpoint could not erase every
-// closed bead in a workspace by omission even if a future edit here forgot the
+// library surface `issuegraph prune` calls, so this endpoint could not erase every
+// closed issue in a workspace by omission even if a future edit here forgot the
 // rule existed. With the gate in the CLI handler instead, a second front door
 // would be one handler away from an unguarded mass delete.
 //
@@ -55,7 +55,7 @@ var sweepMembers = []string{
 //
 // NO ACTOR IS INFERRED, for the reason the claim gives: the server's own
 // identity is meaningless to a remote caller. Unlike the claim, the actor is
-// OPTIONAL here — a deleted bead leaves no row to attribute the deletion on —
+// OPTIONAL here — a deleted issue leaves no row to attribute the deletion on —
 // and it is validated by the same rules when present, because it reaches the
 // same commit-message interpolation.
 func (s *Server) handleSweep(w http.ResponseWriter, r *http.Request) {
@@ -120,7 +120,7 @@ func (s *Server) sweepRequest(w http.ResponseWriter, r *http.Request) (issueops.
 	// bearer is not a per-caller right: one shared token admits a client to
 	// everything published here, so being authenticated says nothing about
 	// whether this particular deletion was meant. A remote caller that omits
-	// the member must not get weaker protection than the operator typing `bd
+	// the member must not get weaker protection than the operator typing `issuegraph
 	// prune`, which protects unless --ignore-references is passed. Leaving the
 	// zero value would have inverted exactly that: locally you opt OUT of
 	// protection, remotely you had to opt IN.

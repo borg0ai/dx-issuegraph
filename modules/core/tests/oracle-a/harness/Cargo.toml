@@ -4,7 +4,7 @@ version = "0.0.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 
-# Standalone conformance harness for Oracle A — the bd refactor-safety
+# Standalone conformance harness for Oracle A — the issuegraph refactor-safety
 # differential (see PROVENANCE.md). It is intentionally out-of-workspace: concrete
 # dependency versions and no workspace inheritance, so it builds on its own with a
 # plain `cargo build --release --bins` and captures goldens into its OWN

@@ -22,7 +22,7 @@ Commit the small tracked configuration files if your project policy requires
 them:
 
 ```bash
-git add .beads/.gitignore .beads/metadata.json .beads/config.yaml .gitignore
+git add .issuegraph/.gitignore .issuegraph/metadata.json .issuegraph/config.yaml .gitignore
 git commit -m "Initialize issuegraph issue tracker"
 ```
 
@@ -34,7 +34,7 @@ issuegraph dolt pull
 issuegraph dolt push
 ```
 
-No `beads-sync` Git branch, protected-branch exception, or issuegraph-managed Git
+No `issuegraph-sync` Git branch, protected-branch exception, or issuegraph-managed Git
 worktree is required.
 
 ## Why Protected Branches Are Safe
@@ -64,8 +64,8 @@ latest issue state.
 ## Legacy Sync-Branch Cleanup
 
 Older issuegraph versions documented an experimental `sync.branch` workflow that
-committed `.beads` changes to a branch such as `beads-sync` and used hidden Git
-worktrees under `.git/beads-worktrees/`. That workflow has been removed.
+committed `.issuegraph` changes to a branch such as `issuegraph-sync` and used hidden Git
+worktrees under `.git/issuegraph-worktrees/`. That workflow has been removed.
 
 If an old checkout still has sync-branch config, clear it:
 
@@ -77,12 +77,12 @@ If stale hidden worktrees prevent branch checkout, remove them and prune Git's
 worktree registry:
 
 ```bash
-rm -rf .git/beads-worktrees
-rm -rf .git/worktrees/beads-*
+rm -rf .git/issuegraph-worktrees
+rm -rf .git/worktrees/issuegraph-*
 git worktree prune
 ```
 
-If a remote `beads-sync` branch exists only for the removed workflow, archive or
+If a remote `issuegraph-sync` branch exists only for the removed workflow, archive or
 delete it according to your repository policy after confirming all current issue
 data has been synced through Dolt.
 

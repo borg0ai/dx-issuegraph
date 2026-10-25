@@ -2,8 +2,8 @@
 
 Last reviewed: 2026-07-07
 
-Freshness source: `modules/cli/*.go`, especially command error exits and JSON error
-helpers in `modules/cli/errors.go`.
+Freshness source: `apps/cli/*.go`, especially command error exits and JSON error
+helpers in `apps/cli/errors.go`.
 
 This document describes the error handling patterns used throughout the issuegraph codebase and provides guidelines for when each pattern should be applied.
 
@@ -51,7 +51,7 @@ command after flushing metrics first. A handful of pre-existing direct
 `os.Exit(1)` calls also remain inside handler bodies; new command code should
 return a `HandleError*` value instead of adding more.
 
-**Files using this pattern:** nearly every command in `modules/cli/` — search for
+**Files using this pattern:** nearly every command in `apps/cli/` — search for
 `return HandleError` (e.g. `create.go`, `defer.go`, `dolt.go`, `unclaim.go`,
 `compact.go`).
 
@@ -67,7 +67,7 @@ return a `HandleError*` value instead of adding more.
 
 **Example:**
 ```go
-if err := createConfigYaml(beadsDir, false); err != nil {
+if err := createConfigYaml(issuegraphDir, false); err != nil {
     fmt.Fprintf(os.Stderr, "Warning: failed to create config.yaml: %v\n", err)
     // Non-fatal - continue anyway
 }
@@ -80,10 +80,10 @@ if err := createConfigYaml(beadsDir, false); err != nil {
 - Core functionality still works
 
 **Files using this pattern:**
-- `modules/cli/init.go` (lines 155-157, 161-163, 167-169, 188-190, 236-238, 272-274, etc.)
-- `modules/cli/sync.go` (lines 156, 257, 281, 329, 335, 720-722, 740, 743, 752, 762)
-- `modules/cli/create.go` (lines 333-334, 340-341)
-- `modules/cli/sync.go` *(handles Dolt sync operations)*
+- `apps/cli/init.go` (lines 155-157, 161-163, 167-169, 188-190, 236-238, 272-274, etc.)
+- `apps/cli/sync.go` (lines 156, 257, 281, 329, 335, 720-722, 740, 743, 752, 762)
+- `apps/cli/create.go` (lines 333-334, 340-341)
+- `apps/cli/sync.go` *(handles Dolt sync operations)*
 
 ---
 
@@ -107,9 +107,9 @@ _ = os.Remove(tempPath)
 - Primary error already reported
 
 **Files using this pattern:**
-- `modules/cli/init.go` (line 209, 326-327)
-- `modules/cli/sync.go` (lines 696-698)
-- `modules/cli/sync.go` *(sync cleanup)*
+- `apps/cli/init.go` (line 209, 326-327)
+- `apps/cli/sync.go` (lines 696-698)
+- `apps/cli/sync.go` *(sync cleanup)*
 - Dozens of other locations throughout the codebase
 
 ---
@@ -166,7 +166,7 @@ if err != nil {
 ### Creating Auxiliary Config Files → Pattern B (Warn)
 
 ```go
-if err := createConfigYaml(localBeadsDir, false); err != nil {
+if err := createConfigYaml(localIssueGraphDir, false); err != nil {
     fmt.Fprintf(os.Stderr, "Warning: failed to create config.yaml: %v\n", err)
     // Non-fatal - continue anyway
 }
@@ -253,7 +253,7 @@ if err := installGitHooks(); err != nil {
 if err := installGitHooks(); err != nil {
     yellow := color.New(color.FgYellow).SprintFunc()
     fmt.Fprintf(os.Stderr, "\n%s Failed to install git hooks: %v\n", yellow("⚠"), err)
-    fmt.Fprintf(os.Stderr, "You can try again with: %s\n\n", cyan("bd doctor --fix"))
+    fmt.Fprintf(os.Stderr, "You can try again with: %s\n\n", cyan("issuegraph doctor --fix"))
 }
 ```
 
@@ -303,7 +303,7 @@ Tracking metadata **enhances functionality** but the system works without it:
 
 ```go
 // Pattern B: Warn and continue
-if err := store.SetMetadata(ctx, "bd_version", Version); err != nil {
+if err := store.SetMetadata(ctx, "issuegraph_version", Version); err != nil {
     fmt.Fprintf(os.Stderr, "Warning: failed to store version metadata: %v\n", err)
     // Non-fatal - continue anyway
 }
@@ -318,13 +318,13 @@ if err := store.SetMetadata(ctx, "last_import_hash", hash); err != nil {
 ```
 
 **Examples:**
-- `bd_version` - Enables version mismatch warnings on upgrades
+- `issuegraph_version` - Enables version mismatch warnings on upgrades
 - `repo_id` / `clone_id` - Helps with collision detection across clones
 - `last_import_hash` - Optimizes staleness detection (falls back to mtime if unavailable)
 
 **Rationale:** System degrades gracefully if tracking metadata is unavailable. Core functionality (creating issues, importing data) still works. Failures here might indicate temporary issues (e.g., read-only filesystem) that shouldn't block the entire operation.
 
-**See also:** `modules/cli/init.go` lines 206-272 for detailed inline documentation of this distinction.
+**See also:** `apps/cli/init.go` lines 206-272 for detailed inline documentation of this distinction.
 
 ### File Permission Errors
 
@@ -361,7 +361,7 @@ defer func() {
 
 ### Error Helpers
 
-`modules/cli/errors.go` provides the shared helpers that enforce consistency. Pattern A
+`apps/cli/errors.go` provides the shared helpers that enforce consistency. Pattern A
 handlers return one of the `HandleError*` values; Pattern B uses `WarnError`:
 
 ```go
@@ -390,7 +390,7 @@ func WarnError(format string, args ...interface{})
 
 ## References
 
-- `modules/cli/errors.go` - The `HandleError*` / `WarnError` / `SilentExit` helpers and the `exitError` sentinel that `main()` maps to an exit code
-- `modules/cli/defer.go` - Clean example of Pattern A: `return HandleError(...)` from a `RunE` with `SilenceUsage`/`SilenceErrors` set
-- `modules/cli/init.go` - Examples of all three patterns
-- `modules/cli/sync.go` - Examples of Pattern B for metadata operations and Pattern C for cleanup operations
+- `apps/cli/errors.go` - The `HandleError*` / `WarnError` / `SilentExit` helpers and the `exitError` sentinel that `main()` maps to an exit code
+- `apps/cli/defer.go` - Clean example of Pattern A: `return HandleError(...)` from a `RunE` with `SilenceUsage`/`SilenceErrors` set
+- `apps/cli/init.go` - Examples of all three patterns
+- `apps/cli/sync.go` - Examples of Pattern B for metadata operations and Pattern C for cleanup operations

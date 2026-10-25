@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestIssueLinksToDependencies_NormalizesBlockDirection(t *testing.T) {
@@ -47,29 +47,29 @@ func TestIssueLinksToDependencies_NormalizesBlockDirection(t *testing.T) {
 	}
 }
 
-func TestLinkFromBeadsDependencyPushDirection(t *testing.T) {
+func TestLinkFromIssueGraphDependencyPushDirection(t *testing.T) {
 	issue := gitLabIssue("bd-a", "https://gitlab.example.com/group/project/-/issues/10", types.TypeTask)
 	blocker := gitLabDep("bd-b", "https://gitlab.example.com/group/project/-/work_items/20", types.DepBlocks)
 
-	link, ok := LinkFromBeadsDependency(issue, blocker)
+	link, ok := LinkFromIssueGraphDependency(issue, blocker)
 	if !ok {
-		t.Fatal("LinkFromBeadsDependency returned false")
+		t.Fatal("LinkFromIssueGraphDependency returned false")
 	}
 	if link.SourceIID != 20 || link.TargetIID != 10 || link.LinkType != gitLabLinkBlocks {
 		t.Fatalf("link = %+v, want GitLab #20 blocks #10", link)
 	}
 
 	related := gitLabDep("bd-c", "gitlab:30", types.DepRelatesTo)
-	link, ok = LinkFromBeadsDependency(issue, related)
+	link, ok = LinkFromIssueGraphDependency(issue, related)
 	if !ok {
-		t.Fatal("LinkFromBeadsDependency related returned false")
+		t.Fatal("LinkFromIssueGraphDependency related returned false")
 	}
 	if link.SourceIID != 10 || link.TargetIID != 30 || link.LinkType != gitLabLinkRelatesTo {
 		t.Fatalf("related link = %+v, want unordered GitLab relates_to #10 #30", link)
 	}
 
 	milestone := gitLabDep("bd-epic", "https://gitlab.example.com/group/project/-/milestones/5", types.DepBlocks)
-	if _, ok := LinkFromBeadsDependency(issue, milestone); ok {
+	if _, ok := LinkFromIssueGraphDependency(issue, milestone); ok {
 		t.Fatal("milestone endpoint should not produce an issue link")
 	}
 }

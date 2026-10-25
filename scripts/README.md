@@ -12,7 +12,6 @@ make ci-pr-core
 make ci-pr-policy
 make ci-pr-lint
 make ci-package-mcp
-make ci-package-npm
 ```
 
 Each wrapper auto-detects the repository root, sources `.buildflags` when it
@@ -21,11 +20,11 @@ invokes Go in the default build mode, and records per-command timing through
 
 Broad Go test wrappers also source `scripts/ci/lib/test-env.sh`, which creates a
 temporary HOME/XDG/Dolt root, isolates Git global/system config, clears runtime
-IssueGraph/Dolt environment variables, and sets `BEADS_TEST_SKIP=dolt` before tests
+IssueGraph/Dolt environment variables, and sets `ISSUEGRAPH_TEST_SKIP=dolt` before tests
 run. This keeps local `make test` and `make ci-pr-core` results comparable to
 the fast PR-core contract even on shared agent hosts. Set
-`BEADS_TEST_ENV_RUN_DOLT=1` only when intentionally running the Dolt-dependent
-tests through these broad wrappers, or `BEADS_TEST_ENV_DISABLE=1` when debugging
+`ISSUEGRAPH_TEST_ENV_RUN_DOLT=1` only when intentionally running the Dolt-dependent
+tests through these broad wrappers, or `ISSUEGRAPH_TEST_ENV_DISABLE=1` when debugging
 against your real local configuration.
 
 The broad Go wrappers also cap package and test parallelism to `4` by default
@@ -40,13 +39,9 @@ boundaries.
 Package gate wrappers validate publishable/package-adjacent surfaces:
 
 - `make ci-package-mcp` builds or consumes an `issuegraph` binary, puts it on `PATH` as
-  `bd`, then runs locked MCP package `uv sync`, Ruff, mypy, pytest, and build
+  `issuegraph`, then runs locked MCP package `uv sync`, Ruff, mypy, pytest, and build
   checks.
-- `make ci-package-npm` builds or consumes the native binary expected by
-  `npm-package/bin/bd`, runs the npm package test suite, and checks
-  `npm pack --dry-run`.
-
-Set `BEADS_TEST_BD_BINARY=/path/to/bd` for MCP and npm package gates to reuse a
+Set `ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY=/path/to/issuegraph` for the MCP package gate to reuse a
 prebuilt candidate binary instead of rebuilding it inside the wrapper.
 
 ## pr-preflight.sh
@@ -55,14 +50,14 @@ Read-only PR safety check for agents and maintainers.
 
 ```bash
 # Before implementing or opening a related PR
-./scripts/pr-preflight.sh --search "topic keywords" --repo gastownhall/beads
+./scripts/pr-preflight.sh --search "topic keywords" --repo borg0ai/dx-issuegraph
 
 # Before changing, closing, or merging an existing PR
-./scripts/pr-preflight.sh 123 --repo gastownhall/beads
+./scripts/pr-preflight.sh 123 --repo borg0ai/dx-issuegraph
 ```
 
 It reports contributor/fork status, draft/review/merge/check state, risky diff
-signals such as `.beads/` changes or missing tests, and the required
+signals such as `.issuegraph/` changes or missing tests, and the required
 contributor-protection next steps. It does not replace code review or local
 validation.
 
@@ -88,181 +83,18 @@ Lint Markdown files before posting them with `gh ... --body-file`.
 The lint catches literal `\n` sequences, which render poorly on GitHub, and
 `GH#123` references, which do not auto-link like `#123` or `owner/repo#123`.
 
-## release.sh (⭐ The Easy Button)
+## update-versions.sh
 
-**One-command release** from version bump to local installation.
-
-### Usage
-
-```bash
-# Full release (does everything)
-./scripts/release.sh 0.9.3
-
-# Preview what would happen
-./scripts/release.sh 0.9.3 --dry-run
-```
-
-### What It Does
-
-This master script automates the **entire release process**:
-
-1. ✅ Stops running Dolt servers (avoids version conflicts)
-2. ✅ Runs tests and linting
-3. ✅ Bumps version in all files
-4. ✅ Commits and pushes version bump
-5. ✅ Creates and pushes git tag
-6. ✅ Verifies or opens the Homebrew core formula PR
-7. ✅ Upgrades local Homebrew installation
-8. ✅ Verifies everything works
-
-**After this script completes, your system is running the new version!**
-
-### Examples
+Updates version numbers across all issuegraph components. It performs no git
+operations; review the diff and commit yourself.
 
 ```bash
-# Release version 0.9.3
-./scripts/release.sh 0.9.3
-
-# Preview a release (no changes made)
-./scripts/release.sh 1.0.0 --dry-run
+./scripts/update-versions.sh 0.9.3
+./scripts/update-versions.sh 1.1.0-rc.1
 ```
 
-### Prerequisites
-
-- Clean git working directory
-- All changes committed
-- golangci-lint installed
-- Homebrew installed (for local upgrade)
-- Push access to gastownhall/beads
-
-### Output
-
-The script provides colorful, step-by-step progress output:
-- 🟨 Yellow: Current step
-- 🟩 Green: Step completed
-- 🟥 Red: Errors
-- 🟦 Blue: Section headers
-
-### What Happens Next
-
-After the script finishes:
-- GitHub Actions builds binaries for all platforms (~5 minutes)
-- PyPI package is published automatically
-- Homebrew core formula is verified or tracked through its canonical PR
-- Users can `brew upgrade beads` to get the new version after Homebrew merges
-- GitHub Release is created with binaries and changelog
-
----
-
-## bump-version.sh
-
-Bumps the version number across all issuegraph components in a single command.
-
-### Usage
-
-```bash
-# Show usage
-./scripts/bump-version.sh
-
-# Update versions (shows diff, no commit)
-./scripts/bump-version.sh 0.9.3
-
-# Update versions and auto-commit
-./scripts/bump-version.sh 0.9.3 --commit
-```
-
-### What It Does
-
-Updates version in all these files:
-- `modules/cli/version.go` - issuegraph CLI version constant
-- `plugins/beads/.claude-plugin/plugin.json` - Claude plugin version
-- `plugins/beads/.codex-plugin/plugin.json` - Codex plugin version
-- `.claude-plugin/marketplace.json` - Claude marketplace plugin version
-- `integrations/beads-mcp/pyproject.toml` - MCP server version
-- `README.md` - Alpha status version
-- `PLUGIN.md` - Version requirements
-
-### Features
-
-- **Validates** semantic versioning format (MAJOR.MINOR.PATCH)
-- **Verifies** all versions match after update
-- **Shows** git diff of changes
-- **Auto-commits** with standardized message (optional)
-- **Cross-platform** compatible (macOS and Linux)
-
-### Examples
-
-```bash
-# Bump to 0.9.3 and review changes
-./scripts/bump-version.sh 0.9.3
-# Review the diff, then manually commit
-
-# Bump to 1.0.0 and auto-commit
-./scripts/bump-version.sh 1.0.0 --commit
-git push origin main
-```
-
-### Why This Script Exists
-
-Previously, version bumps only updated `modules/cli/version.go`, leaving other components out of sync. This script ensures all version numbers stay consistent across the project.
-
-### Safety
-
-- Checks for uncommitted changes before proceeding
-- Refuses to auto-commit if there are existing uncommitted changes
-- Validates version format before making any changes
-- Verifies all versions match after update
-- Shows diff for review before commit
-
----
-
-## sign-windows.sh
-
-Signs Windows executables with an Authenticode certificate using osslsigncode.
-
-### Usage
-
-```bash
-# Sign a Windows executable
-./scripts/sign-windows.sh path/to/bd.exe
-
-# Environment variables required for signing:
-export WINDOWS_SIGNING_CERT_PFX_BASE64="<base64-encoded-pfx>"
-export WINDOWS_SIGNING_CERT_PASSWORD="<certificate-password>"
-```
-
-### What It Does
-
-This script is called automatically by GoReleaser during the release process:
-
-1. **Decodes** the PFX certificate from base64
-2. **Signs** the Windows executable using osslsigncode
-3. **Timestamps** the signature using DigiCert's RFC3161 server
-4. **Replaces** the original binary with the signed version
-5. **Verifies** the signature was applied correctly
-
-### Prerequisites
-
-- `osslsigncode` installed (`apt install osslsigncode` or `brew install osslsigncode`)
-- EV code signing certificate exported as PFX file
-- GitHub secrets configured:
-  - `WINDOWS_SIGNING_CERT_PFX_BASE64` - base64-encoded PFX file
-  - `WINDOWS_SIGNING_CERT_PASSWORD` - certificate password
-
-### Graceful Degradation
-
-If the signing secrets are not configured:
-- The script prints a warning and exits successfully
-- GoReleaser continues without signing
-- The release proceeds with unsigned Windows binaries
-
-This allows releases to work before a certificate is acquired.
-
-### Why This Script Exists
-
-Windows code signing helps reduce antivirus false positives that affect Go binaries.
-Kaspersky and other AV software commonly flag unsigned Go executables as potentially
-malicious due to heuristic detection. See `docs/reference/antivirus.md` for details.
+Run `./scripts/check-versions.sh` afterwards to verify the version files agree.
+Releases themselves run through the `shipify` skill.
 
 ---
 

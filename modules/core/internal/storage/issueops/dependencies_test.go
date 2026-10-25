@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestCheckDependencyCycleInTxSelfDependencyIsWrapPreserving proves the
@@ -207,7 +207,7 @@ func TestCycleReachabilityQueryMultipleTablesTraversesUniqueNodes(t *testing.T) 
 // `WHERE ... = oldID` matches nothing and the row keeps id = depid(issue, oldID).
 // That stale primary key re-forks across clones (#4259) and, once a later rename
 // hands oldID to another issue, becomes the migration-time re-key chain of
-// gastownhall/beads#5268.
+// borg0ai/dx-issuegraph#5268.
 func TestReplaceDependencyTargetRekeysCascadedRows(t *testing.T) {
 	t.Parallel()
 

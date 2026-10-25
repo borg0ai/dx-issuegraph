@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // capturedRequest records a single API call the tracker made.
@@ -62,7 +62,7 @@ func findRequest(reqs []capturedRequest, method, path string) *capturedRequest {
 	return nil
 }
 
-// TestCreateIssue_ClosedCarriesState verifies a closed bead is created and then
+// TestCreateIssue_ClosedCarriesState verifies a closed issue is created and then
 // closed with a follow-up PUT carrying state_event=close.
 func TestCreateIssue_ClosedCarriesState(t *testing.T) {
 	tr, reqs := newRecordingTracker(t, map[string]string{
@@ -91,7 +91,7 @@ func TestCreateIssue_ClosedCarriesState(t *testing.T) {
 	}
 }
 
-// TestCreateIssue_NonClosedSkipsClose verifies a non-closed bead is created
+// TestCreateIssue_NonClosedSkipsClose verifies a non-closed issue is created
 // without a follow-up close request. deferred is included explicitly: deferred
 // work must stay open in GitLab.
 func TestCreateIssue_NonClosedSkipsClose(t *testing.T) {
@@ -155,7 +155,7 @@ func TestCreateIssue_FailedCloseSurfacesWarning(t *testing.T) {
 }
 
 // TestUpdateIssue_StateCarries verifies the update path flips GitLab state to
-// match the bead: a closed bead closes, a reopened bead reopens.
+// match the issue: a closed issue closes, a reopened issue reopens.
 func TestUpdateIssue_StateCarries(t *testing.T) {
 	tests := []struct {
 		name   string

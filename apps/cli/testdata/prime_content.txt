@@ -1,0 +1,15 @@
+# Test issuegraph prime --full includes new sections
+issuegraph init --prefix test
+issuegraph prime --full
+stdout 'Quality Tools'
+stdout 'issuegraph lint'
+stdout 'issuegraph formula list'
+stdout 'issuegraph human'
+stdout 'Lifecycle & Hygiene'
+stdout 'Structured Workflows'
+stdout 'issuegraph defer'
+stdout 'issuegraph supersede'
+stdout 'issuegraph stale'
+stdout 'issuegraph orphans'
+stdout 'issuegraph preflight'
+stdout 'conventions'

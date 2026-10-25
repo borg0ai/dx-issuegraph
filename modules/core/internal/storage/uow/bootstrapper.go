@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // BootstrapperSource is the capability accessor a unit-of-work provider offers
@@ -50,7 +50,7 @@ var _ publicops.Bootstrapper = (*bootstrapper)(nil)
 // ONE VERSION-CONTROL ENTRY, which is what the role's "at most one" permits:
 // one entry rather than one per key.
 //
-// The per-clone bookkeeping `bd init` seeds alongside the identity is not here
+// The per-clone bookkeeping `issuegraph init` seeds alongside the identity is not here
 // and not on the role; see issueops.Bootstrapper for why.
 func (b *bootstrapper) Bootstrap(ctx context.Context, req publicops.BootstrapRequest) (publicops.BootstrapResult, error) {
 	req, err := workapi.ValidateBootstrapRequest(req)
@@ -76,6 +76,6 @@ func (b *bootstrapper) Bootstrap(ctx context.Context, req publicops.BootstrapReq
 		}
 
 		result := publicops.BootstrapResult{Prefix: req.Prefix, ProjectID: req.ProjectID}
-		return result, "bd: bootstrap " + req.Prefix, nil
+		return result, "issuegraph: bootstrap " + req.Prefix, nil
 	})
 }

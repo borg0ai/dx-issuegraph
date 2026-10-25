@@ -1,6 +1,6 @@
 // Package formula provides parsing and validation for .formula.json files.
 //
-// Formulas are high-level workflow templates that compile down to proto beads.
+// Formulas are high-level workflow templates that compile down to proto issuegraph.
 // They support:
 //   - Variable definitions with defaults and validation
 //   - Step definitions that become issue hierarchies
@@ -104,7 +104,7 @@ type Formula struct {
 	Pointcuts []*Pointcut `json:"pointcuts,omitempty"`
 
 	// Phase indicates the recommended instantiation phase: "liquid" (pour) or "vapor" (wisp).
-	// If "vapor", bd pour will warn and suggest using bd mol wisp instead.
+	// If "vapor", issuegraph pour will warn and suggest using issuegraph mol wisp instead.
 	// Patrol and release workflows should typically use "vapor" since they're operational.
 	Phase string `json:"phase,omitempty"`
 
@@ -119,7 +119,7 @@ type Formula struct {
 	Source string `json:"source,omitempty"`
 
 	// Intent is an optional caller-defined hint about the formula's runtime
-	// intent (e.g. "mail_only"). Opaque to bd; consumed by downstream tools.
+	// intent (e.g. "mail_only"). Opaque to issuegraph; consumed by downstream tools.
 	Intent string `json:"intent,omitempty" toml:"intent,omitempty"`
 }
 
@@ -257,8 +257,8 @@ type Step struct {
 	Children []*Step `json:"children,omitempty"`
 
 	// Gate defines an async wait condition for this step.
-	// When set, bd cook creates a gate issue that blocks this step.
-	// Close the gate issue (bd close bd-xxx.gate-stepid) to unblock.
+	// When set, issuegraph cook creates a gate issue that blocks this step.
+	// Close the gate issue (issuegraph close bd-xxx.gate-stepid) to unblock.
 	Gate *Gate `json:"gate,omitempty"`
 
 	// Loop defines iteration for this step.
@@ -282,7 +282,7 @@ type Step struct {
 }
 
 // Gate defines an async wait condition for formula steps.
-// When a step has a Gate, bd cook creates a gate issue that blocks the step.
+// When a step has a Gate, issuegraph cook creates a gate issue that blocks the step.
 // The gate must be closed (manually or via watchers) to unblock the step.
 type Gate struct {
 	// Type is the condition type: gh:run, gh:pr, timer, human, mail.
@@ -301,8 +301,8 @@ type Gate struct {
 	// Repo optionally selects the GitHub repository (OWNER/REPO or
 	// HOST/OWNER/REPO) a gh:run or gh:pr gate's condition is checked
 	// against. Empty means the current Git repository - the same default
-	// as an ad-hoc `bd gate create` gate. Ignored for non-GitHub gate
-	// types (human, timer, bead).
+	// as an ad-hoc `issuegraph gate create` gate. Ignored for non-GitHub gate
+	// types (human, timer, issue).
 	Repo string `json:"repo,omitempty" toml:"repo,omitempty"`
 }
 

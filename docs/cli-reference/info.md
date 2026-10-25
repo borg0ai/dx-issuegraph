@@ -1,36 +1,35 @@
 ---
-title: "bd info"
-description: "Display information about the current database."
+title: "issuegraph info"
+description: "Show database information"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc info`.
+Generated from `issuegraph help --doc info`.
 
 Display information about the current database.
 
-This command helps debug issues where bd is using an unexpected database. It shows:
+This command helps debug issues where issuegraph is using an unexpected database. It shows:
   - The absolute path to the database file
   - Database statistics (issue count)
   - Schema information (with --schema flag)
   - What's new in recent versions (with --whats-new flag)
 
 Examples:
-  bd info
-  bd info --json
-  bd info --schema --json
-  bd info --whats-new
-  bd info --whats-new --json
-  bd info --thanks
+  issuegraph info
+  issuegraph info --json
+  issuegraph info --schema --json
+  issuegraph info --whats-new
+  issuegraph info --whats-new --json
+  issuegraph info --thanks
 
 ```
-bd info [flags]
+issuegraph info [flags]
 ```
 
 **Flags:**
 
 ```
-      --json        Output in JSON format
       --schema      Include schema information in output
       --thanks      Show thank you page for contributors
       --whats-new   Show agent-relevant changes from recent versions

@@ -2,11 +2,11 @@ package journalscan
 
 import "testing"
 
-// TestSQLWritesBeadTable pins the DML detector the completeness guards rest on.
+// TestSQLWritesIssueTable pins the DML detector the completeness guards rest on.
 // A false negative here silently disarms every guard, so the templated forms —
 // plain %s and the explicit-argument-index %[1]s — are covered alongside the
 // literal table names.
-func TestSQLWritesBeadTable(t *testing.T) {
+func TestSQLWritesIssueTable(t *testing.T) {
 	writes := []string{
 		"INSERT INTO issues (id) VALUES (?)",
 		"insert into issues (id) values (?)",
@@ -21,25 +21,25 @@ func TestSQLWritesBeadTable(t *testing.T) {
 		"DELETE FROM `issues` WHERE id = ?",
 	}
 	for _, lit := range writes {
-		if !SQLWritesBeadTable(lit) {
-			t.Errorf("SQLWritesBeadTable(%q) = false, want true", lit)
+		if !SQLWritesIssueTable(lit) {
+			t.Errorf("SQLWritesIssueTable(%q) = false, want true", lit)
 		}
 	}
 
 	reads := []string{
 		"SELECT id FROM issues WHERE id = ?",
 		"SELECT COUNT(*) FROM dependencies",
-		// Aux tables that are not work-bead state.
+		// Aux tables that are not work-issue state.
 		"INSERT INTO events (id) VALUES (?)",
 		"DELETE FROM leases WHERE issue_id = ?",
 		"UPDATE config SET value = ? WHERE `key` = ?",
-		"INSERT INTO bd_events_journal (seq) VALUES (?)",
-		// A table whose name merely starts with a bead table's name.
+		"INSERT INTO issuegraph_events_journal (seq) VALUES (?)",
+		// A table whose name merely starts with a issue table's name.
 		"INSERT INTO issues_archive (id) VALUES (?)",
 	}
 	for _, lit := range reads {
-		if SQLWritesBeadTable(lit) {
-			t.Errorf("SQLWritesBeadTable(%q) = true, want false", lit)
+		if SQLWritesIssueTable(lit) {
+			t.Errorf("SQLWritesIssueTable(%q) = true, want false", lit)
 		}
 	}
 }

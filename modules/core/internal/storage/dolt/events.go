@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // AddComment adds a comment event to an issue
@@ -33,7 +33,7 @@ func (s *DoltStore) AddComment(ctx context.Context, issueID, actor, comment stri
 		if isWisp {
 			return nil
 		}
-		return s.doltAddAndCommit(ctx, []string{"events"}, fmt.Sprintf("bd: comment %s", issueID))
+		return s.doltAddAndCommit(ctx, []string{"events"}, fmt.Sprintf("issuegraph: comment %s", issueID))
 	})
 }
 
@@ -62,7 +62,7 @@ func (s *DoltStore) GetAllEventsSince(ctx context.Context, since time.Time) ([]*
 
 // EventsSince returns durable events strictly after the keyset cursor, ordered
 // by (created_at ASC, id ASC) and bounded by limit. Durable events table only.
-// issueID != "" scopes the feed to one bead's history.
+// issueID != "" scopes the feed to one issue's history.
 func (s *DoltStore) EventsSince(ctx context.Context, cursor storage.EventCursor, issueID string, limit int) ([]*types.Event, error) {
 	var result []*types.Event
 	err := s.withReadTx(ctx, func(tx *sql.Tx) error {
@@ -109,7 +109,7 @@ func (s *DoltStore) addOrImportComment(ctx context.Context, issueID string, inse
 		if isWisp {
 			return nil
 		}
-		return s.doltAddAndCommit(ctx, []string{"comments"}, fmt.Sprintf("bd: comment %s", issueID))
+		return s.doltAddAndCommit(ctx, []string{"comments"}, fmt.Sprintf("issuegraph: comment %s", issueID))
 	})
 	if err != nil {
 		return nil, err

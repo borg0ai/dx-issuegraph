@@ -10,8 +10,8 @@ import (
 
 	mysql "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
 )
 
 // Sentinel errors for the dolt storage layer.
@@ -32,7 +32,7 @@ var (
 
 	// ErrDanglingReference indicates that the pre-push integrity check detected
 	// missing chunks in the local Dolt noms store. The push was aborted to
-	// prevent propagating the corruption to the remote. Run bd dolt verify
+	// prevent propagating the corruption to the remote. Run issuegraph dolt verify
 	// to diagnose and recover.
 	ErrDanglingReference = errors.New("dangling chunk reference")
 
@@ -40,7 +40,7 @@ var (
 	// not complete within the configured timeout. The push was aborted without
 	// verifying chunk integrity — the store is not necessarily corrupt. Large
 	// stores can be shrunk with `dolt gc` (or `CALL DOLT_GC()` on a running
-	// sql-server); the timeout can be raised via the BEADS_FSCK_TIMEOUT
+	// sql-server); the timeout can be raised via the ISSUEGRAPH_FSCK_TIMEOUT
 	// environment variable.
 	ErrFSCKTimeout = errors.New("pre-push integrity check timed out")
 
@@ -59,8 +59,8 @@ func isTableNotExistError(err error) bool {
 
 // isBranchTrackingError returns true if the error indicates that DOLT_PULL
 // failed because upstream branch tracking is not configured. This happens
-// when a remote was added via DOLT_REMOTE('add') or bd dolt remote add
-// rather than via dolt clone / bd bootstrap, leaving repo_state.json with
+// when a remote was added via DOLT_REMOTE('add') or issuegraph dolt remote add
+// rather than via dolt clone / issuegraph bootstrap, leaving repo_state.json with
 // an empty "branches" map (GH#3144).
 func isBranchTrackingError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "did not specify a branch")
@@ -168,12 +168,12 @@ func databaseNotFoundError(cfg *Config) error {
 
 	// Check if backup files exist — strong signal this is a branch-switch or
 	// fresh-clone scenario rather than a server misconfiguration (GH#2327).
-	if HasBackupFiles(cfg.BeadsDir) {
-		b.WriteString("Backup files found in .beads/backup/ — this may be a branch-switch\n")
+	if HasBackupFiles(cfg.IssueGraphDir) {
+		b.WriteString("Backup files found in .issuegraph/backup/ — this may be a branch-switch\n")
 		b.WriteString("or fresh-clone scenario where the Dolt database doesn't exist yet.\n\n")
 		b.WriteString("Use the safe entry point for existing-project recovery:\n")
-		b.WriteString("  bd bootstrap                 # Auto-detect remote/backup/JSONL recovery or initialization\n")
-		b.WriteString("  bd backup restore            # If backup recovery still needs manual restore\n\n")
+		b.WriteString("  issuegraph bootstrap                 # Auto-detect remote/backup/JSONL recovery or initialization\n")
+		b.WriteString("  issuegraph backup restore            # If backup recovery still needs manual restore\n\n")
 		b.WriteString("If this is NOT a branch switch, see common causes below.\n\n")
 	}
 
@@ -183,28 +183,28 @@ func databaseNotFoundError(cfg *Config) error {
 	b.WriteString("  - The server was restarted and is using a different port\n")
 	b.WriteString("  - Another project's Dolt server is running on this port\n\n")
 	b.WriteString("To diagnose:\n")
-	b.WriteString("  bd doctor                  # Check server and database health\n")
-	b.WriteString("  bd dolt status             # Show which data directory the server is using")
+	b.WriteString("  issuegraph doctor                  # Check server and database health\n")
+	b.WriteString("  issuegraph dolt status             # Show which data directory the server is using")
 
 	if cfg.SyncRemote != "" {
-		fmt.Fprintf(&b, "\n\nTip: sync.remote is configured (%s).\nRun bd bootstrap to recover from the remote or confirm what bootstrap will do with --dry-run.", cfg.SyncRemote)
+		fmt.Fprintf(&b, "\n\nTip: sync.remote is configured (%s).\nRun issuegraph bootstrap to recover from the remote or confirm what bootstrap will do with --dry-run.", cfg.SyncRemote)
 	} else {
-		b.WriteString("\n\nTip: If this is an existing project, fresh clone, or shared-server recovery, run bd bootstrap first.\n")
-		b.WriteString("If bootstrap cannot find the expected remote automatically, set sync.remote\nin .beads/config.yaml and re-run bd bootstrap.\n")
-		b.WriteString("Use bd bootstrap --dry-run if you need to confirm the plan before it initializes anything.\n")
-		b.WriteString("Use bd init only when creating a brand-new project with no existing .beads data.")
+		b.WriteString("\n\nTip: If this is an existing project, fresh clone, or shared-server recovery, run issuegraph bootstrap first.\n")
+		b.WriteString("If bootstrap cannot find the expected remote automatically, set sync.remote\nin .issuegraph/config.yaml and re-run issuegraph bootstrap.\n")
+		b.WriteString("Use issuegraph bootstrap --dry-run if you need to confirm the plan before it initializes anything.\n")
+		b.WriteString("Use issuegraph init only when creating a brand-new project with no existing .issuegraph data.")
 	}
 
 	return errors.New(b.String())
 }
 
-// HasBackupFiles checks whether .beads/backup/ contains any JSONL files,
+// HasBackupFiles checks whether .issuegraph/backup/ contains any JSONL files,
 // indicating a prior backup that could be restored (GH#2327).
-func HasBackupFiles(beadsDir string) bool {
-	if beadsDir == "" {
+func HasBackupFiles(issuegraphDir string) bool {
+	if issuegraphDir == "" {
 		return false
 	}
-	backupDir := filepath.Join(beadsDir, "backup")
+	backupDir := filepath.Join(issuegraphDir, "backup")
 	entries, err := os.ReadDir(backupDir)
 	if err != nil {
 		return false

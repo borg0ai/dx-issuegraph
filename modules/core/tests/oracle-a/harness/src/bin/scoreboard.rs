@@ -1,17 +1,17 @@
-//! Run every scenario against the candidate `bd`, diff each against its captured
+//! Run every scenario against the candidate `issuegraph`, diff each against its captured
 //! reference golden, and print an in-scope pass/fail scoreboard.
 //!
-//!   ORACLE_CANDIDATE=/abs/path/to/bd cargo run -p bd-conformance --bin scoreboard
+//!   ORACLE_CANDIDATE=/abs/path/to/issuegraph cargo run -p bd-conformance --bin scoreboard
 //!
-//! Goldens must exist (run `ORACLE_REFERENCE_BD=/abs/path/to/bd capture_golden`
+//! Goldens must exist (run `ORACLE_REFERENCE_BD=/abs/path/to/issuegraph capture_golden`
 //! first). Scenarios without a golden are reported as `no-golden` (skipped).
 
-use bd_conformance::differential::{diff, run_scenario, Trace};
-use bd_conformance::scenarios;
+use issuegraph_conformance::differential::{diff, run_scenario, Trace};
+use issuegraph_conformance::scenarios;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-/// In-scope contract commands (everything else is out-of-scope bd surface).
+/// In-scope contract commands (everything else is out-of-scope issuegraph surface).
 const IN_SCOPE_CMDS: &[&str] = &[
     "init", "create", "show", "list", "ready", "update", "close", "reopen", "delete", "purge",
     "dep", "count", "query", "config", "version", "sql", "comment", "comments", "add", "remove",
@@ -39,7 +39,7 @@ const JSON_OUTPUT_CMDS: &[&str] = &[
     "query", "version", "stats", "comment", "comments",
 ];
 
-fn in_scope(sc: &bd_conformance::differential::Scenario) -> bool {
+fn in_scope(sc: &issuegraph_conformance::differential::Scenario) -> bool {
     for step in &sc.steps {
         let cmd = match step.first() {
             Some(c) => c.as_str(),
@@ -66,7 +66,7 @@ fn main() {
     let bin = match std::env::var("ORACLE_CANDIDATE") {
         Ok(p) => PathBuf::from(p),
         Err(_) => {
-            eprintln!("set ORACLE_CANDIDATE=/path/to/bd");
+            eprintln!("set ORACLE_CANDIDATE=/path/to/issuegraph");
             std::process::exit(2);
         }
     };
@@ -117,11 +117,11 @@ fn main() {
         }
     }
 
-    println!("\n=== bd conformance scoreboard ===");
+    println!("\n=== issuegraph conformance scoreboard ===");
     println!("total scenarios: {}  (no-golden: {nogolden})", scens.len());
     println!("\nIN-SCOPE (contract surface) — the pass target:");
     println!("  PASS: {in_pass}   FAIL: {in_fail}   ({:.0}%)", 100.0 * in_pass as f64 / (in_pass + in_fail).max(1) as f64);
-    println!("\nOUT-OF-SCOPE (bd surface outside the curated contract scenarios):");
+    println!("\nOUT-OF-SCOPE (issuegraph surface outside the curated contract scenarios):");
     println!("  pass: {oos_pass}   fail: {oos_fail}  (informational; not a target)");
     println!("\nin-scope failures by command:");
     for (verb, n) in &in_fail_by_verb {

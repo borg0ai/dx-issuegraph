@@ -120,7 +120,7 @@ func TestClientCreateDatabaseSendsInitialDataSource(t *testing.T) {
 		for _, want := range []string{
 			`"page_id":"329e5bf9-7fae-8080-bb4a-d94e1387655d"`,
 			`"initial_data_source"`,
-			`"Beads ID"`,
+			`"IssueGraph ID"`,
 			`"Status"`,
 			`"Type"`,
 		} {
@@ -128,7 +128,7 @@ func TestClientCreateDatabaseSendsInitialDataSource(t *testing.T) {
 				t.Fatalf("request body missing %q\n%s", want, body)
 			}
 		}
-		_, _ = io.WriteString(w, `{"id":"db_123","url":"https://www.notion.so/db123","data_sources":[{"id":"ds_123","name":"Beads Issues"}]}`)
+		_, _ = io.WriteString(w, `{"id":"db_123","url":"https://www.notion.so/db123","data_sources":[{"id":"ds_123","name":"IssueGraph Issues"}]}`)
 	}))
 	defer server.Close()
 
@@ -152,7 +152,7 @@ func TestClientRetrieveDatabase(t *testing.T) {
 		if r.URL.Path != "/databases/db_123" {
 			t.Fatalf("path = %q", r.URL.Path)
 		}
-		_, _ = io.WriteString(w, `{"id":"db_123","url":"https://www.notion.so/db123","data_sources":[{"id":"ds_123","name":"Beads Issues"}]}`)
+		_, _ = io.WriteString(w, `{"id":"db_123","url":"https://www.notion.so/db123","data_sources":[{"id":"ds_123","name":"IssueGraph Issues"}]}`)
 	}))
 	defer server.Close()
 
@@ -201,7 +201,7 @@ func TestResolveDataSourceReferenceFallsBackToDatabase(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = io.WriteString(w, `{"code":"object_not_found","message":"not found"}`)
 		case "/databases/429e5bf9-7fae-8080-bb4a-d94e1387655d":
-			_, _ = io.WriteString(w, `{"id":"429e5bf9-7fae-8080-bb4a-d94e1387655d","data_sources":[{"id":"529e5bf9-7fae-8080-bb4a-d94e1387655d","name":"Beads Issues"}]}`)
+			_, _ = io.WriteString(w, `{"id":"429e5bf9-7fae-8080-bb4a-d94e1387655d","data_sources":[{"id":"529e5bf9-7fae-8080-bb4a-d94e1387655d","name":"IssueGraph Issues"}]}`)
 		case "/data_sources/529e5bf9-7fae-8080-bb4a-d94e1387655d":
 			_, _ = io.WriteString(w, `{"id":"529e5bf9-7fae-8080-bb4a-d94e1387655d","properties":{"Name":{"type":"title"}}}`)
 		default:

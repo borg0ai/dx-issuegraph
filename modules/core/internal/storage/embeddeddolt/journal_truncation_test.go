@@ -7,8 +7,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestEventsJournalRestartAndRetentionBoundary is the AC03 end-to-end guard: an
@@ -16,7 +16,7 @@ import (
 // whose checkpoint was pruned past must be told so rather than silently skipping
 // to the current floor or receiving an empty success.
 //
-// It runs against the real embedded store — the same read path `bd events
+// It runs against the real embedded store — the same read path `issuegraph events
 // tail --since` takes — so the counter self-heal, the prune floors, and the
 // truncation check are all exercised together rather than mocked.
 //
@@ -26,7 +26,7 @@ import (
 // journalops.Journal, whose body is issueops.ReadEventsPageInTx. Every read
 // below is ReadEventsJournal, which is storage.EventsJournalAccessor's
 // list-only read and a SECOND composition of the same parts: it pays for the
-// head only where the verdict is ambiguous, because `bd events tail --follow`
+// head only where the verdict is ambiguous, because `issuegraph events tail --follow`
 // runs it every second. A mutation of one is invisible to the other, so the
 // role contract cannot stand in for this file. Its page-path twin,
 // TestEventsJournalPageReportsTheHead, could and was deleted with the contract
@@ -104,7 +104,7 @@ func TestEventsJournalRestartAndRetentionBoundary(t *testing.T) {
 		t.Errorf("Head = %d, want %d", trunc.Head, head)
 	}
 
-	// `bd events export` (--since 0) over a pruned journal must not silently
+	// `issuegraph events export` (--since 0) over a pruned journal must not silently
 	// present the surviving suffix as a complete history.
 	_, err = store.ReadEventsJournal(ctx, 0, 0)
 	if exported := requireTruncated(t, err); exported.Floor != all[3].Seq {

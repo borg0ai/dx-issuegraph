@@ -15,23 +15,23 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil/integration"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/testutil/integration"
 	"golang.org/x/sync/errgroup"
 )
 
 // TestHelperMultiStore is the subprocess entry point for multi-DoltStore tests.
-// Only executed when BEADS_MULTISTORE_HELPER=1 is set.
+// Only executed when ISSUEGRAPH_MULTISTORE_HELPER=1 is set.
 func TestHelperMultiStore(t *testing.T) {
-	if os.Getenv("BEADS_MULTISTORE_HELPER") != "1" {
+	if os.Getenv("ISSUEGRAPH_MULTISTORE_HELPER") != "1" {
 		return
 	}
 
-	port := os.Getenv("BEADS_MULTISTORE_PORT")
-	dbName := os.Getenv("BEADS_MULTISTORE_DB")
-	procID := os.Getenv("BEADS_MULTISTORE_PROC_ID")
-	opsStr := os.Getenv("BEADS_MULTISTORE_OPS")
+	port := os.Getenv("ISSUEGRAPH_MULTISTORE_PORT")
+	dbName := os.Getenv("ISSUEGRAPH_MULTISTORE_DB")
+	procID := os.Getenv("ISSUEGRAPH_MULTISTORE_PROC_ID")
+	opsStr := os.Getenv("ISSUEGRAPH_MULTISTORE_OPS")
 
 	if port == "" || dbName == "" || procID == "" {
 		fmt.Fprintf(os.Stderr, "FATAL: missing required env vars\n")
@@ -70,7 +70,7 @@ func TestHelperMultiStore(t *testing.T) {
 		os.Exit(1)
 	}
 
-	// Create issues, mimicking how multiple bd processes would work.
+	// Create issues, mimicking how multiple issuegraph processes would work.
 	var created int
 	for i := 0; i < numOps; i++ {
 		issueID := fmt.Sprintf("mp-%s-%d", procID, i)
@@ -152,7 +152,7 @@ func TestMultiStoreConcurrent_InProcess(t *testing.T) {
 	}
 	schemaDB.Close()
 
-	// Open 5 independent connection pools — each simulates a separate bd process.
+	// Open 5 independent connection pools — each simulates a separate issuegraph process.
 	const numStores = 5
 	const opsPerStore = 10
 	dbs := make([]*sql.DB, numStores)
@@ -317,12 +317,12 @@ func TestMultiStoreConcurrent_Subprocess(t *testing.T) {
 			)
 			cmd.Env = integration.FilterEnv(os.Environ())
 			cmd.Env = append(cmd.Env,
-				"BEADS_MULTISTORE_HELPER=1",
-				"BEADS_MULTISTORE_PORT="+portStr,
-				"BEADS_MULTISTORE_DB="+dbName,
-				"BEADS_MULTISTORE_PROC_ID="+procID,
-				"BEADS_MULTISTORE_OPS="+strconv.Itoa(opsPerProc),
-				"BEADS_TEST_MODE=1",
+				"ISSUEGRAPH_MULTISTORE_HELPER=1",
+				"ISSUEGRAPH_MULTISTORE_PORT="+portStr,
+				"ISSUEGRAPH_MULTISTORE_DB="+dbName,
+				"ISSUEGRAPH_MULTISTORE_PROC_ID="+procID,
+				"ISSUEGRAPH_MULTISTORE_OPS="+strconv.Itoa(opsPerProc),
+				"ISSUEGRAPH_TEST_MODE=1",
 			)
 			out, err := cmd.CombinedOutput()
 			if err != nil {

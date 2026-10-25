@@ -2,7 +2,7 @@
 //
 // The concrete storage implementation lives in the dolt sub-package.
 // This package holds interface and value types that are referenced by
-// both the dolt implementation and its consumers (modules/cli, etc.).
+// both the dolt implementation and its consumers (apps/cli, etc.).
 package storage
 
 import (
@@ -12,14 +12,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
-	"github.com/steveyegge/beads/journalops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/journalops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // The guarded issue-operation error vocabulary is declared and documented by
-// the public contract package, github.com/steveyegge/beads/issueops. These are
+// the public contract package, github.com/borg0ai/dx-issuegraph/issueops. These are
 // the same values, so every storage.ErrX reference and every errors.Is site
 // keeps matching the identical error.
 var (
@@ -44,7 +44,7 @@ type CloseOpenChildrenError = issueops.CloseOpenChildrenError
 
 // ErrNotOwner is returned when an actor tries to unclaim an issue that is claimed
 // by a different actor. Releasing another actor's claim requires the force
-// escape hatch (bd unclaim --force), reserved for admin/reaper use.
+// escape hatch (issuegraph unclaim --force), reserved for admin/reaper use.
 //
 // It is an ALIAS of issueops.ErrNotOwner, which now declares it: a refusal the
 // public Releaser role raises has to be classifiable by a caller that cannot
@@ -63,7 +63,7 @@ var ErrCommitIndeterminate = errors.New("write commit result indeterminate")
 // assignee/status: ErrAlreadyClaimed reads "<sentinel> by <assignee>" and
 // ErrNotClaimable reads "<sentinel>: status <status>". They are the single
 // source of truth for that format so producer and consumer
-// (beads.ParseClaimConflict) cannot drift: the consumer reconstructs its marker
+// (issuegraph.ParseClaimConflict) cannot drift: the consumer reconstructs its marker
 // as ErrAlreadyClaimed.Error()+ClaimedByFragment rather than hardcoding the
 // literal.
 //
@@ -175,7 +175,7 @@ type Storage interface {
 	Counter() (issueops.Counter, error)
 
 	// StatsReporter returns the guarded summary-statistics surface for this
-	// store — `bd status` and its `bd stats` alias. Its own role rather than a
+	// store — `issuegraph status` and its `issuegraph stats` alias. Its own role rather than a
 	// sixth Counter dimension because its numbers are dependency-aware.
 	StatsReporter() (issueops.StatsReporter, error)
 
@@ -190,15 +190,15 @@ type Storage interface {
 	IssueRelations() (issueops.Relations, error)
 
 	// WorkspaceConfig returns the guarded workspace-settings surface for this
-	// store: the durable key-value plane `bd config` reads and writes. It is
+	// store: the durable key-value plane `issuegraph config` reads and writes. It is
 	// its own role rather than more verbs elsewhere because it answers about
 	// the WORKSPACE rather than about an issue, and because a write here can
 	// re-project a value into a normalized lookup table.
 	WorkspaceConfig() (issueops.WorkspaceConfig, error)
 
 	// Memories returns the guarded persistent-memory surface for this store:
-	// the keyed notes `bd remember`, `bd recall`, `bd forget` and `bd memories`
-	// work with, and that `bd prime` injects.
+	// the keyed notes `issuegraph remember`, `issuegraph recall`, `issuegraph forget` and `issuegraph memories`
+	// work with, and that `issuegraph prime` injects.
 	//
 	// IT IS NOT MORE WorkspaceConfig VERBS, and the rule forbidding that is the
 	// least of the reasons. Memories ride in the config table but they are user
@@ -216,7 +216,7 @@ type Storage interface {
 	Memories() (memoryops.Memories, error)
 
 	// VersionReconciler returns the clone-local version markers for this store:
-	// the dolt-ignored pair recording which bd binary last opened this
+	// the dolt-ignored pair recording which issuegraph binary last opened this
 	// workspace and the highest one that ever has. It is its own role rather
 	// than two more keys on WorkspaceConfig because settings are durable and
 	// travel with the database while these two are deliberately per-clone.
@@ -241,7 +241,7 @@ type Storage interface {
 	// blockers dropped. Reads fire no hooks, as for IssueReader.
 	BlockingAnnotator() (issueops.BlockingAnnotator, error)
 	// TreeWalker returns the guarded dependency-tree surface for this store: the
-	// recursive walk from ONE root that `bd dep tree` renders. Its own role
+	// recursive walk from ONE root that `issuegraph dep tree` renders. Its own role
 	// rather than a mode of IssueRelations or EdgeReader because a recursive
 	// walk has a depth, a cycle policy and a node shape of its own. Reads fire
 	// no hooks, as for IssueReader.
@@ -255,20 +255,20 @@ type Storage interface {
 	// fire no hooks, as for IssueReader.
 	GraphCounter() (issueops.GraphCounter, error)
 	// ReadyCounter returns the guarded ready-count surface for this store: the
-	// size of the ready set, which is the number `bd ready`'s pagination
+	// size of the ready set, which is the number `issuegraph ready`'s pagination
 	// publishes and which no other role answers. Counter's predicate is a
 	// filter over one table where the ready predicate is blocker-aware.
 	//
 	// Reads fire no hooks, as for IssueReader.
 	ReadyCounter() (issueops.ReadyCounter, error)
-	// Querier returns the guarded boolean-query surface for this store: `bd
+	// Querier returns the guarded boolean-query surface for this store: `issuegraph
 	// query`'s expression language, which has OR, NOT and parentheses. Its own
 	// role rather than a mode of IssueReader because a ListRequest is a
 	// CONJUNCTION and expresses no disjunction. Reads fire no hooks, as for
 	// IssueReader.
 	Querier() (issueops.Querier, error)
 	// Sweeper returns the guarded bulk-clearance surface for this store —
-	// `bd purge` and `bd prune`, which are one capability over two disjoint
+	// `issuegraph purge` and `issuegraph prune`, which are one capability over two disjoint
 	// tiers rather than two. Its own role because it describes a SET and then
 	// acts on it: no Lifecycle patch names a set, and composing a count with a
 	// delete would reopen the window this role exists to close.
@@ -279,7 +279,7 @@ type Storage interface {
 	// hook_sweeper.go.
 	Sweeper() (issueops.Sweeper, error)
 	// Deleter returns the named-row erasure surface for this store —
-	// `bd delete`. Its own role rather than a Sweeper mode because Sweeper
+	// `issuegraph delete`. Its own role rather than a Sweeper mode because Sweeper
 	// erases a set the caller DESCRIBED and this one erases rows the caller
 	// NAMED: a named row with a dependent the request did not name is refused
 	// unless the caller says cascade or force.
@@ -289,8 +289,8 @@ type Storage interface {
 	// hook_deleter.go.
 	Deleter() (issueops.Deleter, error)
 	// Bootstrapper returns the guarded identity-seeding surface for this store:
-	// the one-time write that turns a database bd can connect to into a
-	// workspace bd can use. It is its own role rather than more keys on
+	// the one-time write that turns a database issuegraph can connect to into a
+	// workspace issuegraph can use. It is its own role rather than more keys on
 	// WorkspaceConfig because it REFUSES an already-identified substrate, which
 	// is a guard no settings write has anywhere to express.
 	//
@@ -299,8 +299,8 @@ type Storage interface {
 	// are not installed yet. See hook_bootstrapper.go.
 	Bootstrapper() (issueops.Bootstrapper, error)
 	// InitVerifier returns the guarded identity-read surface for this store: the
-	// prefix and project id `bd init` adopts, reconciles against, or refuses to
-	// invent. It is NOT Bootstrapper's read half: bd reads this identity on
+	// prefix and project id `issuegraph init` adopts, reconciles against, or refuses to
+	// invent. It is NOT Bootstrapper's read half: issuegraph reads this identity on
 	// paths where it is forbidden to write one — a bts-provisioned team
 	// database, a gateway whose credential may be read-only — and a caller that
 	// must not write must not be handed the writer.
@@ -365,7 +365,7 @@ type Storage interface {
 	// when it has open parent-child dependents, or ErrCloseBlocked when it has a
 	// live direct blocker (an open blocks/waits-for/
 	// conditional-blocks edge) unless opts.Force is set — the historical
-	// `bd close` guard. A bare is_blocked=1 with no live direct blocker (a purely
+	// `issuegraph close` guard. A bare is_blocked=1 with no live direct blocker (a purely
 	// transitive parent-child block, or a stale column) is not refused. The
 	// blocked-check and the close run in ONE transaction, so the guard is atomic
 	// (no TOCTOU). When opts.ExpectedVersion is non-nil it adds an orthogonal
@@ -386,13 +386,13 @@ type Storage interface {
 	// Dependencies
 	AddDependency(ctx context.Context, dep *types.Dependency, actor string) error
 	// AddDependencyWithOptions adds a dependency with explicit options. The
-	// explicit dependency verbs (bd dep add / bd link) pass EmitEvent to record
+	// explicit dependency verbs (issuegraph dep add / issuegraph link) pass EmitEvent to record
 	// a dependency_added history event; AddDependency is the no-event default
 	// used by create-with-deps and structural callers.
 	AddDependencyWithOptions(ctx context.Context, dep *types.Dependency, actor string, opts DependencyAddOptions) error
 	RemoveDependency(ctx context.Context, issueID, dependsOnID string, actor string) error
 	// RemoveDependencyWithOptions removes a dependency with explicit options. The
-	// explicit dependency verb (bd dep remove) passes EmitEvent to record a
+	// explicit dependency verb (issuegraph dep remove) passes EmitEvent to record a
 	// dependency_removed history event; RemoveDependency is the no-event default
 	// used by structural callers (issue delete, reparent, batch, duplicate cleanup).
 	RemoveDependencyWithOptions(ctx context.Context, issueID, dependsOnID string, actor string, opts DependencyRemoveOptions) error
@@ -415,7 +415,7 @@ type Storage interface {
 	// of the whole ready set the page was cut from — the same number
 	// ReadyWorkCounter.CountReadyWork(filter) answers — resolved in the same
 	// read transaction and statements as the page. It is what lets
-	// `bd ready --limit N` print "Showing N of M" without a second pass.
+	// `issuegraph ready --limit N` print "Showing N of M" without a second pass.
 	GetReadyWorkWithCountsAndTotal(ctx context.Context, filter types.WorkFilter) ([]*types.IssueWithCounts, int, error)
 	GetBlockedIssues(ctx context.Context, filter types.WorkFilter) ([]*types.BlockedIssue, error)
 	GetEpicsEligibleForClosure(ctx context.Context) ([]*types.EpicStatus, error)
@@ -491,7 +491,7 @@ type Storage interface {
 	IterIssues(ctx context.Context, query string, filter types.IssueFilter) (Iter[types.Issue], error)
 	// IterDependentsWithMetadata streams dependents (issues that depend on
 	// issueID) with the relationship metadata attached. Replaces the slice
-	// path for bd show --json --include-dependents on hub beads.
+	// path for issuegraph show --json --include-dependents on hub issuegraph.
 	IterDependentsWithMetadata(ctx context.Context, issueID string) (Iter[types.IssueWithDependencyMetadata], error)
 	// IterDependenciesWithMetadata is the inverse direction — issues that
 	// issueID depends on, with metadata.
@@ -537,7 +537,7 @@ type Storage interface {
 	RunInTransaction(ctx context.Context, commitMsg string, fn func(tx Transaction) error) error
 
 	// MergeSlot — serialized conflict resolution primitive.
-	// Each rig has one merge slot bead (<prefix>-merge-slot, labeled gt:slot).
+	// Each rig has one merge slot issue (<prefix>-merge-slot, labeled gt:slot).
 	// The slot ID is derived from the issue_prefix config key.
 	MergeSlotCreate(ctx context.Context, actor string) (*types.Issue, error)
 	MergeSlotCheck(ctx context.Context) (*MergeSlotStatus, error)
@@ -564,7 +564,7 @@ type Storage interface {
 type CloseIssueOptions struct {
 	Reason  string
 	Session string
-	Force   bool // bypass the is_blocked guard (mirrors `bd close --force`)
+	Force   bool // bypass the is_blocked guard (mirrors `issuegraph close --force`)
 	// ExpectedVersion, when non-nil, gates the close on an optimistic-concurrency
 	// check: the close proceeds only if the issue's current RowVersion (the
 	// row_lock token) equals *ExpectedVersion, otherwise it refuses with
@@ -600,7 +600,7 @@ type UpdateIssueOptions struct {
 	ExpectedVersion *int64
 
 	// ExpectedAssignee and ExpectedStatus are semantic-field compare-and-swap
-	// guards (bd-wsqvw, `bd update --if-assignee/--if-status`): when non-nil,
+	// guards (bd-wsqvw, `issuegraph update --if-assignee/--if-status`): when non-nil,
 	// the update proceeds only if the issue's current assignee/status equals
 	// the expected value, else it refuses atomically with
 	// ErrAssigneeMismatch/ErrStatusMismatch naming the actual state. A non-nil
@@ -616,7 +616,7 @@ type UpdateIssueOptions struct {
 }
 
 // MergeSlotStatus is returned by MergeSlotCheck and describes the current
-// state of the merge slot bead.
+// state of the merge slot issue.
 type MergeSlotStatus struct {
 	SlotID    string
 	Available bool
@@ -626,7 +626,7 @@ type MergeSlotStatus struct {
 
 // MergeSlotResult is returned by MergeSlotAcquire.
 type MergeSlotResult struct {
-	// SlotID is the bead ID of the merge slot.
+	// SlotID is the issue ID of the merge slot.
 	SlotID string
 	// Acquired is true when the slot was successfully acquired by the caller.
 	Acquired bool
@@ -641,7 +641,7 @@ type MergeSlotResult struct {
 }
 
 // FastStatisticsStore provides a statistics method that skips the blocked-count
-// traversal for callers that don't need it (e.g. bd stats --no-blocked).
+// traversal for callers that don't need it (e.g. issuegraph stats --no-blocked).
 type FastStatisticsStore interface {
 	// GetStatisticsNoBlocked returns aggregate counts without the blocked-set
 	// computation (computeBlockedIDs). BlockedIssues is nil in the result.
@@ -781,7 +781,7 @@ type StateHasher interface {
 // are the operator's half of the plane — retention and per-instance activation
 // — and journalops states why they are deliberately not on the role.
 type (
-	// EventsJournalRow is journalops.Row: one raw bd_events_journal record.
+	// EventsJournalRow is journalops.Row: one raw issuegraph_events_journal record.
 	EventsJournalRow = journalops.Row
 	// EventsJournalPage is journalops.Page: rows plus the journal head.
 	EventsJournalPage = journalops.Page
@@ -798,7 +798,7 @@ type (
 const EventsJournalTruncatedCode = journalops.TruncatedCode
 
 // EventsJournalAccessor reads and prunes the durable events journal
-// (bd_events_journal) through the store's own transaction machinery. Unlike
+// (issuegraph_events_journal) through the store's own transaction machinery. Unlike
 // RawDBAccessor — which only the server-mode store provides — this works on the
 // embedded store too, which owns its connections and exposes no stable *sql.DB.
 //
@@ -810,7 +810,7 @@ const EventsJournalTruncatedCode = journalops.TruncatedCode
 //
 // ReadEventsJournal is also a SECOND read body, not a narrowing of the role's:
 // it pays for the head read only in the cases where the truncation verdict is
-// ambiguous, because `bd events tail --follow` runs it every second. The two
+// ambiguous, because `issuegraph events tail --follow` runs it every second. The two
 // share the row query and the verdict (issueops.ComputeEventsTruncation) and
 // differ in exactly that, so they are pinned separately.
 type EventsJournalAccessor interface {
@@ -855,7 +855,7 @@ type PendingCommitter interface {
 // dolt_ignore'd tables (wisp and lease tables appear in dolt_status but
 // cannot be staged), so it answers "would CommitPending mint a commit?"
 // without committing. Callers that must refuse to act on a dirty working
-// set (bd dolt remote reset-data) should type-assert to this interface.
+// set (issuegraph dolt remote reset-data) should type-assert to this interface.
 type PendingChangeDetector interface {
 	HasCommittablePending(ctx context.Context) (bool, error)
 }
@@ -883,7 +883,7 @@ type BackupStore interface {
 // THAT IDENTITY IS THIS INTERFACE'S WHOLE CONTRACT. issueops.ReadyCounter
 // states it for every backend, and the store-backed body behind ReadyCounter()
 // (internal/workapi/storereadycounter) is this method plus the shared filter
-// builder. `bd ready`'s "Showing X of N" reaches it that way on both routes; it
+// builder. `issuegraph ready`'s "Showing X of N" reaches it that way on both routes; it
 // no longer type-asserts for the capability itself, so a store that cannot
 // answer fails to compile rather than falling back to an unbounded query.
 type ReadyWorkCounter interface {
@@ -919,7 +919,7 @@ type ExternalDependencyQueryStore interface {
 // that asymmetry is pre-existing and out of scope for this surface.
 //
 // The read methods below let a caller assemble a whole composite view — a
-// bd show-style assembly of counts and relations — inside ONE transaction, so
+// issuegraph show-style assembly of counts and relations — inside ONE transaction, so
 // everything it stitches together is read from a single snapshot and cannot
 // tear across separate engine reads.
 //
@@ -936,7 +936,7 @@ type ExternalDependencyQueryStore interface {
 //
 // # Example Usage
 //
-//	err := store.RunInTransaction(ctx, "bd: create parent and child", func(tx storage.Transaction) error {
+//	err := store.RunInTransaction(ctx, "issuegraph: create parent and child", func(tx storage.Transaction) error {
 //	    // Create parent issue
 //	    if err := tx.CreateIssue(ctx, parentIssue, actor); err != nil {
 //	        return err // Triggers rollback
@@ -968,7 +968,7 @@ type Transaction interface {
 	RemoveDependency(ctx context.Context, issueID, dependsOnID string, actor string) error
 	// RemoveDependencyWithOptions removes a dependency with explicit options.
 	// EmitEvent records a dependency_removed history event for the explicit
-	// bd dep remove verb; RemoveDependency stays silent for structural teardown.
+	// issuegraph dep remove verb; RemoveDependency stays silent for structural teardown.
 	RemoveDependencyWithOptions(ctx context.Context, issueID, dependsOnID string, actor string, opts DependencyRemoveOptions) error
 	GetDependencyRecords(ctx context.Context, issueID string) ([]*types.Dependency, error)
 	// CycleThroughEdges reports a rendered cycle in the static scheduling set
@@ -1016,7 +1016,7 @@ type Transaction interface {
 	//
 	// Each mirrors the Storage-level method of the same name; they add no new
 	// query shape, only the ability to run the existing read on the
-	// transaction's snapshot, so a bd show-style assembly can gather every count
+	// transaction's snapshot, so a issuegraph show-style assembly can gather every count
 	// and relation it needs inside one transaction. All see this transaction's
 	// own uncommitted DURABLE writes; the wisp-tier visibility of the
 	// both-tiers-spanning reads is governed by the TWO-SESSION WISP CAVEAT above.
@@ -1096,7 +1096,7 @@ type DependencyAddOptions struct {
 // RemoveDependencyWithOptions and the transaction-scoped RemoveDependencyWithOptions.
 type DependencyRemoveOptions struct {
 	// EmitEvent records a dependency_removed history event on the source's event
-	// table when a genuine edge is removed. Only the explicit bd dep remove verb
+	// table when a genuine edge is removed. Only the explicit issuegraph dep remove verb
 	// sets it; structural removals (issue delete, reparent, batch, duplicate
 	// cleanup) leave it unset so they wire edges away quietly, matching the
 	// proxied DepInsertOpts.EmitEvent gate so both backends record identical

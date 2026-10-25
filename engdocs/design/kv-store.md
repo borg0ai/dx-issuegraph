@@ -29,7 +29,7 @@ All commands support `--json` for machine-readable output.
 ```bash
 # Store project metadata
 issuegraph kv set primary_language go
-issuegraph kv set entry_point modules/cli/main.go
+issuegraph kv set entry_point apps/cli/main.go
 
 # Retrieve values
 issuegraph kv get primary_language
@@ -39,16 +39,16 @@ issuegraph kv get primary_language
 issuegraph kv list
 # Output:
 # primary_language = go
-# entry_point = modules/cli/main.go
+# entry_point = apps/cli/main.go
 
 # List with prefix filter
 issuegraph kv list entry
 # Output:
-# entry_point = modules/cli/main.go
+# entry_point = apps/cli/main.go
 
 # JSON output
 issuegraph kv list --json
-# Output: [{"key":"primary_language","value":"go","set_at":"2026-01-21T10:30:00Z","set_by":"beads/crew/collins"},...]
+# Output: [{"key":"primary_language","value":"go","set_at":"2026-01-21T10:30:00Z","set_by":"issuegraph/crew/collins"},...]
 
 # Delete a key
 issuegraph kv delete primary_language
@@ -72,7 +72,7 @@ CREATE TABLE kv (
 | `key` | VARCHAR(255) | Primary key, the lookup key |
 | `value` | TEXT | The stored value (always string) |
 | `set_at` | DATETIME | When the value was set (UTC) |
-| `set_by` | VARCHAR(255) | Actor who set it (e.g., "beads/crew/collins", "human") |
+| `set_by` | VARCHAR(255) | Actor who set it (e.g., "issuegraph/crew/collins", "human") |
 
 ### Design Decisions
 
@@ -81,7 +81,7 @@ CREATE TABLE kv (
 - Mixing user data with internal config creates namespace collisions
 - Separate table is cleaner and avoids future conflicts
 
-**Why not make KV pairs into issues/beads?**
+**Why not make KV pairs into issues/issuegraph?**
 - KV is meant to be lightweight - issues have significant overhead (id, title, description, status, priority, type, etc.)
 - Different lifecycle - KV is "set and forget", issues are "open → work → close"
 - Would pollute `issuegraph list` with non-work entries
@@ -95,17 +95,17 @@ CREATE TABLE kv (
 
 KV data syncs via the standard issuegraph-sync mechanism:
 
-1. **Export**: On push, KV table exports to `.beads/kv.jsonl`
-2. **Import**: On pull, `.beads/kv.jsonl` imports back to KV table
+1. **Export**: On push, KV table exports to `.issuegraph/kv.jsonl`
+2. **Import**: On pull, `.issuegraph/kv.jsonl` imports back to KV table
 3. **Merge**: Last-write-wins based on `set_at` timestamp
 
 ### JSONL Format
 
-`.beads/kv.jsonl` - one JSON object per line:
+`.issuegraph/kv.jsonl` - one JSON object per line:
 
 ```jsonl
-{"key":"primary_language","value":"go","set_at":"2026-01-21T10:30:00Z","set_by":"beads/crew/collins"}
-{"key":"entry_point","value":"modules/cli/main.go","set_at":"2026-01-21T10:31:00Z","set_by":"human"}
+{"key":"primary_language","value":"go","set_at":"2026-01-21T10:30:00Z","set_by":"issuegraph/crew/collins"}
+{"key":"entry_point","value":"apps/cli/main.go","set_at":"2026-01-21T10:31:00Z","set_by":"human"}
 ```
 
 This format is:
@@ -135,7 +135,7 @@ These are NOT in scope for v1, but the design accommodates them:
 
 ## Credit
 
-This feature is inspired by PR #1164 from Piyush Jha (@Hackinet). The original PR proposed `bd set/get/clear` as top-level commands; this design groups them under `issuegraph kv` for cleaner namespacing.
+This feature is inspired by PR #1164 from Piyush Jha (@Hackinet). The original PR proposed `issuegraph set/get/clear` as top-level commands; this design groups them under `issuegraph kv` for cleaner namespacing.
 
 ## Questions for Dolt Team
 

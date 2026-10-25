@@ -1,75 +1,75 @@
 ---
-title: "bd kv"
-description: "Commands for working with the beads key-value store."
+title: "issuegraph kv"
+description: "Key-value store commands"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc kv`.
+Generated from `issuegraph help --doc kv`.
 
-Commands for working with the beads key-value store.
+Commands for working with the issuegraph key-value store.
 
 The key-value store is useful for storing flags, environment variables,
 or other user-defined data that persists across sessions.
 
 Examples:
-  bd kv set mykey myvalue    # Set a value
-  bd kv get mykey            # Get a value
-  bd kv clear mykey          # Delete a key
-  bd kv list                 # List all key-value pairs
+  issuegraph kv set mykey myvalue    # Set a value
+  issuegraph kv get mykey            # Get a value
+  issuegraph kv clear mykey          # Delete a key
+  issuegraph kv list                 # List all key-value pairs
 
 ```
-bd kv [flags]
+issuegraph kv [command]
 ```
 
-## bd kv clear
+## issuegraph kv clear
 
-Delete a key from the beads key-value store.
+Delete a key from the issuegraph key-value store.
 
 Examples:
-  bd kv clear feature_flag
-  bd kv clear api_endpoint
+  issuegraph kv clear feature_flag
+  issuegraph kv clear api_endpoint
 
 ```
-bd kv clear <key> [flags]
+issuegraph kv clear <key> [flags]
 ```
 
-## bd kv get
+## issuegraph kv get
 
-Get a value from the beads key-value store.
+Get a value from the issuegraph key-value store.
 
 Examples:
-  bd kv get feature_flag
-  bd kv get api_endpoint
+  issuegraph kv get feature_flag
+  issuegraph kv get api_endpoint
 
 ```
-bd kv get <key> [flags]
+issuegraph kv get <key> [flags]
 ```
 
-## bd kv list
+## issuegraph kv list
 
-List all key-value pairs in the beads key-value store.
+List all key-value pairs in the issuegraph key-value store.
 
 Examples:
-  bd kv list
-  bd kv list --json
+  issuegraph kv list
+  issuegraph kv list --json
 
 ```
-bd kv list [flags]
+issuegraph kv list [flags]
 ```
 
-## bd kv set
+## issuegraph kv set
 
-Set a key-value pair in the beads key-value store.
+Set a key-value pair in the issuegraph key-value store.
 
 This is useful for storing flags, environment variables, or other
 user-defined data that persists across sessions.
 
 Examples:
-  bd kv set feature_flag true
-  bd kv set api_endpoint https://api.example.com
-  bd kv set max_retries 3
+  issuegraph kv set feature_flag true
+  issuegraph kv set api_endpoint https://api.example.com
+  issuegraph kv set max_retries 3
 
 ```
-bd kv set <key> <value> [flags]
+issuegraph kv set <key> <value> [flags]
 ```

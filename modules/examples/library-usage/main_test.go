@@ -6,48 +6,48 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads"
+	"github.com/borg0ai/dx-issuegraph"
 )
 
 // TestExampleCompiles ensures the example code compiles and basic API works
 func TestExampleCompiles(t *testing.T) {
 	// Create temporary database for testing
-	tmpDir, err := os.MkdirTemp("", "beads-example-test-*")
+	tmpDir, err := os.MkdirTemp("", "issuegraph-example-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
-		t.Fatalf("Failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
+		t.Fatalf("Failed to create .issuegraph dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(beadsDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "metadata.json"), []byte(`{"backend":"dolt"}`), 0o600); err != nil {
 		t.Fatalf("Failed to create metadata.json: %v", err)
 	}
 
 	// Open storage
 	ctx := context.Background()
-	store, err := beads.OpenBestAvailable(ctx, beadsDir)
+	store, err := issuegraph.OpenBestAvailable(ctx, issuegraphDir)
 	if err != nil {
 		t.Fatalf("Failed to open storage: %v", err)
 	}
 	defer store.Close()
 
 	// A fresh workspace needs an issue prefix before issues can be created
-	// (bd init normally seeds this).
+	// (issuegraph init normally seeds this).
 	if err := store.SetConfig(ctx, "issue_prefix", "ex"); err != nil {
 		t.Fatalf("Failed to seed issue prefix: %v", err)
 	}
 
 	// Create an issue (from example code)
-	newIssue := &beads.Issue{
+	newIssue := &issuegraph.Issue{
 		ID:          "",
 		Title:       "Test library-created issue",
 		Description: "This verifies the library example works",
-		Status:      beads.StatusOpen,
+		Status:      issuegraph.StatusOpen,
 		Priority:    2,
-		IssueType:   beads.TypeTask,
+		IssueType:   issuegraph.TypeTask,
 	}
 
 	if err := store.CreateIssue(ctx, newIssue, "test"); err != nil {
@@ -59,8 +59,8 @@ func TestExampleCompiles(t *testing.T) {
 	}
 
 	// Get ready work (from example code)
-	ready, err := store.GetReadyWork(ctx, beads.WorkFilter{
-		Status: beads.StatusOpen,
+	ready, err := store.GetReadyWork(ctx, issuegraph.WorkFilter{
+		Status: issuegraph.StatusOpen,
 		Limit:  5,
 	})
 	if err != nil {
@@ -87,7 +87,7 @@ func TestExampleCompiles(t *testing.T) {
 
 	// Update status (from example code)
 	updates := map[string]interface{}{
-		"status": beads.StatusInProgress,
+		"status": issuegraph.StatusInProgress,
 	}
 	if err := store.UpdateIssue(ctx, newIssue.ID, updates, "test"); err != nil {
 		t.Fatalf("Failed to update issue: %v", err)
@@ -114,7 +114,7 @@ func TestExampleCompiles(t *testing.T) {
 		t.Fatalf("Failed to get issue: %v", err)
 	}
 
-	if closed.Status != beads.StatusClosed {
+	if closed.Status != issuegraph.StatusClosed {
 		t.Errorf("Expected status closed, got %v", closed.Status)
 	}
 
@@ -124,38 +124,38 @@ func TestExampleCompiles(t *testing.T) {
 // TestDependencyConstants ensures all constants are accessible
 func TestDependencyConstants(t *testing.T) {
 	// Test that all constants from the example are accessible
-	_ = beads.StatusOpen
-	_ = beads.StatusInProgress
-	_ = beads.StatusClosed
-	_ = beads.StatusBlocked
+	_ = issuegraph.StatusOpen
+	_ = issuegraph.StatusInProgress
+	_ = issuegraph.StatusClosed
+	_ = issuegraph.StatusBlocked
 
-	_ = beads.TypeBug
-	_ = beads.TypeFeature
-	_ = beads.TypeTask
-	_ = beads.TypeEpic
-	_ = beads.TypeChore
+	_ = issuegraph.TypeBug
+	_ = issuegraph.TypeFeature
+	_ = issuegraph.TypeTask
+	_ = issuegraph.TypeEpic
+	_ = issuegraph.TypeChore
 
-	_ = beads.DepBlocks
-	_ = beads.DepRelated
-	_ = beads.DepParentChild
-	_ = beads.DepDiscoveredFrom
+	_ = issuegraph.DepBlocks
+	_ = issuegraph.DepRelated
+	_ = issuegraph.DepParentChild
+	_ = issuegraph.DepDiscoveredFrom
 }
 
 // TestFindDatabasePath tests database discovery
 func TestFindDatabasePath(t *testing.T) {
-	// Create temp directory with .beads
-	tmpDir, err := os.MkdirTemp("", "beads-finddb-*")
+	// Create temp directory with .issuegraph
+	tmpDir, err := os.MkdirTemp("", "issuegraph-finddb-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
-		t.Fatalf("Failed to create .beads dir: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
+		t.Fatalf("Failed to create .issuegraph dir: %v", err)
 	}
 
-	dbPath := filepath.Join(beadsDir, "test.db")
+	dbPath := filepath.Join(issuegraphDir, "test.db")
 	f, err := os.Create(dbPath)
 	if err != nil {
 		t.Fatalf("Failed to create db file: %v", err)
@@ -166,7 +166,7 @@ func TestFindDatabasePath(t *testing.T) {
 	t.Chdir(tmpDir)
 
 	// Test FindDatabasePath
-	found := beads.FindDatabasePath()
+	found := issuegraph.FindDatabasePath()
 	if found == "" {
 		t.Error("Expected to find database, got empty string")
 	}

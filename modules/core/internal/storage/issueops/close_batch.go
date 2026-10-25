@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ValidateCloseBatchRequest applies the request rules every BatchCloser
@@ -42,7 +42,7 @@ func ValidateCloseBatchRequest(request publicops.CloseBatchRequest) error {
 // batch that skipped a mistyped id must not claim it in the log.
 //
 // LANDED is Changed, not "no error": an idempotent re-close persisted nothing,
-// so naming it would put an id in `bd dolt log` under a commit that did not
+// so naming it would put an id in `issuegraph dolt log` under a commit that did not
 // touch it.
 //
 // IT NAMES DURABLE LANDINGS ONLY. The wisp tables are dolt-ignored precisely so
@@ -85,7 +85,7 @@ func CloseBatchCommitMessage(result publicops.CloseBatchResult) string {
 	if len(parts) == 0 {
 		return ""
 	}
-	return "bd: " + strings.Join(parts, "; ")
+	return "issuegraph: " + strings.Join(parts, "; ")
 }
 
 // closeOutcomeIsEphemeral reports whether this landing was on the wisps plane,

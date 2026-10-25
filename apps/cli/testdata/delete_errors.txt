@@ -1,0 +1,11 @@
+# Test issuegraph delete error cases
+
+issuegraph init --prefix test
+
+# Delete with no args should fail
+! issuegraph delete
+stderr 'no issue IDs provided'
+
+# Delete nonexistent issue should fail
+! issuegraph delete nonexistent-id --force
+stderr 'not found'

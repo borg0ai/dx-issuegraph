@@ -17,12 +17,12 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // dsn is the shape a driver or dial error takes in the wild: it names the
 // database user, host and port. No 5xx body may echo any of it.
-const dsn = "dial tcp 127.0.0.1:3306: connect: connection refused (bd_user@tcp(127.0.0.1:3306)/beads)"
+const dsn = "dial tcp 127.0.0.1:3306: connect: connection refused (issuegraph_user@tcp(127.0.0.1:3306)/issuegraph)"
 
 func TestProblemMapping(t *testing.T) {
 	tests := []struct {
@@ -198,7 +198,7 @@ func TestProblemMapping(t *testing.T) {
 			if got := decoded["detail"]; got != staticDetail[tc.wantCode] {
 				t.Errorf("detail = %v, want the static %q", got, staticDetail[tc.wantCode])
 			}
-			for _, leak := range []string{"127.0.0.1", "3306", "bd_user", "tcp", "connection refused", "Deadlock", "unexpected column count"} {
+			for _, leak := range []string{"127.0.0.1", "3306", "issuegraph_user", "tcp", "connection refused", "Deadlock", "unexpected column count"} {
 				if strings.Contains(body, leak) {
 					t.Errorf("5xx body leaks %q from the underlying error: %s", leak, body)
 				}

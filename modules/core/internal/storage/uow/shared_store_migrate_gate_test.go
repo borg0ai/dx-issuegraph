@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 	mysql "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage/schema"
 )
 
 // expectSharedGateProbe mocks the shared-store gate's read sequence on an
@@ -60,8 +60,8 @@ func expectLockRelease(mock sqlmock.Sqlmock, lockName string) {
 		WillReturnRows(sqlmock.NewRows([]string{"released"}).AddRow(1))
 }
 
-// TestInitSchemaSharedStoreGate covers the proxied/`bd serve` open path's half
-// of gastownhall/beads#5920 — and closes the gate leg of #5043, where this
+// TestInitSchemaSharedStoreGate covers the proxied/`issuegraph serve` open path's half
+// of borg0ai/dx-issuegraph#5920 — and closes the gate leg of #5043, where this
 // path ran MigrateUpWithLock with no CheckRemoteMigrateGate variant at all and
 // so migrated a shared database on every open, silently, since v1.2.2.
 func TestInitSchemaSharedStoreGate(t *testing.T) {
@@ -82,14 +82,14 @@ func TestInitSchemaSharedStoreGate(t *testing.T) {
 		}
 		defer db.Close()
 
-		lockName := expectBehindDatabaseThroughPreparation(mock, "beads", 1)
+		lockName := expectBehindDatabaseThroughPreparation(mock, "issuegraph", 1)
 		expectSharedGateProbe(mock, 1, 0)
 		// No migration statement between the gate and the release: the refusal
 		// must land before MigrateUp issues its first one.
 		expectLockRelease(mock, lockName)
 
 		p := &doltSQLProvider{defaultBranch: defaultBranch, db: db, serverEndpoint: "tcp:127.0.0.1:3306"}
-		err = p.initSchema(context.Background(), "beads")
+		err = p.initSchema(context.Background(), "issuegraph")
 		var gateErr *schema.RemoteMigrateGateError
 		if !errors.As(err, &gateErr) {
 			t.Fatalf("initSchema() error = %T (%v), want *schema.RemoteMigrateGateError", err, err)
@@ -114,23 +114,23 @@ func TestInitSchemaSharedStoreGate(t *testing.T) {
 		}
 		defer db.Close()
 
-		lockName := expectBehindDatabaseThroughPreparation(mock, "beads", 1)
+		lockName := expectBehindDatabaseThroughPreparation(mock, "issuegraph", 1)
 		expectSharedGateProbe(mock, 1, 0)
 		expectLockRelease(mock, lockName)
 		// The read-through: attach at the current schema and carry on. Still
 		// no migration statement anywhere.
-		mock.ExpectExec(regexp.QuoteMeta("USE `beads`")).
+		mock.ExpectExec(regexp.QuoteMeta("USE `issuegraph`")).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		p := &doltSQLProvider{defaultBranch: defaultBranch, db: db, serverEndpoint: "tcp:127.0.0.1:3306", readOnly: true}
 		var initErr error
 		stderr := captureStderr(t, func() {
-			initErr = p.initSchema(context.Background(), "beads")
+			initErr = p.initSchema(context.Background(), "issuegraph")
 		})
 		if initErr != nil {
 			t.Fatalf("initSchema() error = %v, want nil — reads must keep working on the old schema", initErr)
 		}
-		for _, want := range []string{"Read-only command", "without migrating", "bd migrate schema"} {
+		for _, want := range []string{"Read-only command", "without migrating", "issuegraph migrate schema"} {
 			if !strings.Contains(stderr, want) {
 				t.Errorf("warning missing %q:\n%s", want, stderr)
 			}
@@ -149,18 +149,18 @@ func TestInitSchemaSharedStoreGate(t *testing.T) {
 		}
 		defer db.Close()
 
-		lockName := schema.MigrationLockName("beads")
+		lockName := schema.MigrationLockName("issuegraph")
 		expectNoSessionDatabase(mock)
-		expectDatabaseExistsProbe(mock, "beads", false)
+		expectDatabaseExistsProbe(mock, "issuegraph", false)
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT GET_LOCK(?, ?)")).
 			WithArgs(lockName, 5).
 			WillReturnRows(sqlmock.NewRows([]string{"locked"}).AddRow(1))
-		mock.ExpectExec(regexp.QuoteMeta("CREATE DATABASE `beads`")).
+		mock.ExpectExec(regexp.QuoteMeta("CREATE DATABASE `issuegraph`")).
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec(regexp.QuoteMeta("USE `beads`")).
+		mock.ExpectExec(regexp.QuoteMeta("USE `issuegraph`")).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT DATABASE(), @@server_uuid, DOLT_HASHOF('HEAD')")).
-			WillReturnRows(sqlmock.NewRows([]string{"database", "server_uuid", "head"}).AddRow("beads", "server-uuid", "initial-head"))
+			WillReturnRows(sqlmock.NewRows([]string{"database", "server_uuid", "head"}).AddRow("issuegraph", "server-uuid", "initial-head"))
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM dolt_log")).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM dolt_status")).
@@ -174,7 +174,7 @@ func TestInitSchemaSharedStoreGate(t *testing.T) {
 		expectLockRelease(mock, lockName)
 
 		p := &doltSQLProvider{defaultBranch: defaultBranch, db: db, serverEndpoint: "tcp:127.0.0.1:3306"}
-		err = p.initSchema(context.Background(), "beads")
+		err = p.initSchema(context.Background(), "issuegraph")
 		if err == nil || !strings.Contains(err.Error(), "reached the first migration statement") {
 			t.Fatalf("initSchema() error = %v, want the fresh bootstrap to migrate", err)
 		}
@@ -192,7 +192,7 @@ func TestInitSchemaSharedStoreGate(t *testing.T) {
 		}
 		defer db.Close()
 
-		lockName := expectBehindDatabaseThroughPreparation(mock, "beads", 1)
+		lockName := expectBehindDatabaseThroughPreparation(mock, "issuegraph", 1)
 		expectSharedGateProbe(mock, 1, 0)
 		mock.ExpectExec(regexp.QuoteMeta("INSERT IGNORE INTO dolt_ignore VALUES (?, true)")).
 			WithArgs(sqlmock.AnyArg()).
@@ -202,7 +202,7 @@ func TestInitSchemaSharedStoreGate(t *testing.T) {
 		p := &doltSQLProvider{defaultBranch: defaultBranch, db: db, serverEndpoint: "tcp:127.0.0.1:3306"}
 		var initErr error
 		_ = captureStderr(t, func() {
-			initErr = p.initSchema(context.Background(), "beads")
+			initErr = p.initSchema(context.Background(), "issuegraph")
 		})
 		if initErr == nil || !strings.Contains(initErr.Error(), "reached the first migration statement") {
 			t.Fatalf("initSchema() error = %v, want the consented open to migrate", initErr)
@@ -224,11 +224,11 @@ func TestInitSchemaSharedStoreGate(t *testing.T) {
 		}
 		defer db.Close()
 
-		mock.ExpectExec(regexp.QuoteMeta("USE `beads`")).
+		mock.ExpectExec(regexp.QuoteMeta("USE `issuegraph`")).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		p := &doltSQLProvider{defaultBranch: defaultBranch, db: db, serverEndpoint: "tcp:127.0.0.1:3306", preview: true}
-		if err := p.initSchema(context.Background(), "beads"); err != nil {
+		if err := p.initSchema(context.Background(), "issuegraph"); err != nil {
 			t.Fatalf("initSchema() error = %v, want the attach-only preview open", err)
 		}
 		if err := mock.ExpectationsWereMet(); err != nil {

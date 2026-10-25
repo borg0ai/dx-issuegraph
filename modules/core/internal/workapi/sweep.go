@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The shared, DATABASE-FREE half of issueops.Sweeper: what a sweep request
 // means, which candidates survive the recheck, and what counts as a citation.
-// Every implementation of the role runs these, so `bd purge` and `bd prune`
+// Every implementation of the role runs these, so `issuegraph purge` and `issuegraph prune`
 // have one definition rather than one per backend.
 //
 // What is NOT here is the sweep itself. Selecting rows and deleting them needs
@@ -71,7 +71,7 @@ func BuildSweepCandidateFilter(in issueops.SweepRequest) types.IssueFilter {
 	ephemeral := in.Tier == issueops.SweepEphemeral
 	// EphemeralTier, not Ephemeral: the tier owns typed wisps whether or not
 	// their minting set the ephemeral flag (older creators set wisp_type but
-	// not ephemeral, and those rows must fall to `bd purge` — they were the
+	// not ephemeral, and those rows must fall to `issuegraph purge` — they were the
 	// rows it exists for). It also keeps the candidate search on the
 	// both-planes merge path, because legacy typed wisps live in the issues
 	// table, not the wisps plane an Ephemeral=true search is routed to.
@@ -156,7 +156,7 @@ func SweepDefenseSkips(s issueops.SweepSkips) int {
 // what the storage seam takes reliably on both planes (a Statuses set, not an
 // ExcludeStatus). Reading the workspace's custom statuses is required, not
 // best-effort: a scan that missed a custom active status would under-protect
-// and delete a bead a live bead still cites.
+// and delete a issue a live issue still cites.
 func NotDoneStatusesForSweep(custom []types.CustomStatus) []types.Status {
 	statuses := []types.Status{
 		types.StatusOpen,
@@ -185,7 +185,7 @@ func BuildSweepReferenceScanFilter(custom []types.CustomStatus) types.IssueFilte
 // issueops.SweepRequest.ProtectReferenced.
 //
 // It is bucketed by FIRST BYTE and each bucket sorted longest-first: the scan
-// runs over every not-done bead's description, notes and comments, where a
+// runs over every not-done issue's description, notes and comments, where a
 // naive strings.Contains per candidate is O(candidates x text). Longest-first
 // inside a bucket is what makes `be-1.1` win over `be-1` where both are
 // candidates and both start at the same offset.

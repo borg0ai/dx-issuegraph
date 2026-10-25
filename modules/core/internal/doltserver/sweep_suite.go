@@ -35,7 +35,7 @@ const SuiteOwnerMarkerName = "testmain.pid"
 // The escape hatch exists for the bisect/triage case — someone who needs the
 // tests' own exit code out of a package with a known leak — not as a lane
 // default.
-const AllowLeakEnv = "BEADS_TEST_ALLOW_LEAK"
+const AllowLeakEnv = "ISSUEGRAPH_TEST_ALLOW_LEAK"
 
 // WriteSuiteOwnerMarker records this process as the owner of root by writing
 // SuiteOwnerMarkerName inside it. Call it from TestMain immediately after
@@ -109,7 +109,7 @@ func decideSuiteRoot(hasMarker, ownerAlive bool) suiteRootAction {
 //
 // parentDir is where the suite creates its roots (os.TempDir() at call time)
 // and prefix is the suite's own os.MkdirTemp pattern minus the random tail
-// (e.g. "beads-bd-tests-"). Both must be non-empty; an empty prefix would
+// (e.g. "issuegraph-issuegraph-tests-"). Both must be non-empty; an empty prefix would
 // glob the entire temp directory and is refused.
 //
 // Call it from TestMain BEFORE creating this run's own root. It is
@@ -128,9 +128,9 @@ func SweepDeadSuiteRoots(parentDir, prefix string) []string {
 }
 
 // removeSuiteRoot removes a suite temp root, making unwritable directories
-// writable first. modules/cli's root doubles as an isolated $HOME, so it can hold
+// writable first. apps/cli's root doubles as an isolated $HOME, so it can hold
 // read-only Go module cache entries that plain os.RemoveAll refuses; this
-// mirrors forceRemoveAll in modules/cli's TestMain.
+// mirrors forceRemoveAll in apps/cli's TestMain.
 func removeSuiteRoot(root string) error {
 	_ = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

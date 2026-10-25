@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the contract every implementation of
@@ -34,7 +34,7 @@ import (
 //
 // What is deliberately NOT here: the fold from an actor's rows to a summary,
 // pinned without a database in internal/workapi/stats_test.go; the
-// flag-to-request mapping, which is `bd status`'s job; and whether the two
+// flag-to-request mapping, which is `issuegraph status`'s job; and whether the two
 // halves of an assignee-scoped answer are one snapshot, which statsreporter.go
 // deliberately does not promise because the store seam cannot offer it.
 
@@ -149,7 +149,7 @@ func RunStatsReporterBlockedCountsTheGraphNotTheStatus(t *testing.T, ctx context
 //
 // Without this an implementation that read the clause the other way — or that
 // dropped the exclusion for open rows entirely — goes green on all three legs,
-// and `bd status`'s headline ReadyIssues differs by one per such row with
+// and `issuegraph status`'s headline ReadyIssues differs by one per such row with
 // nothing saying which answer is right.
 func RunStatsReporterBlockedExcludesByStatusNotByThePinnedFlag(t *testing.T, ctx context.Context, fixture StatsReporterFixture) {
 	t.Helper()
@@ -192,7 +192,7 @@ func RunStatsReporterBlockedExcludesByStatusNotByThePinnedFlag(t *testing.T, ctx
 // case, the exclusion case and the arithmetic case all seed `open`. So a body
 // that spelled the clause `is_blocked = 1 AND status = 'open'` answers all
 // three of them correctly and is wrong for every workspace where somebody has
-// claimed a blocked bead. This is the one fixture in which nothing blocked is
+// claimed a blocked issue. This is the one fixture in which nothing blocked is
 // open.
 //
 // THE BLOCKER IS THE ONLY OPEN ROW HERE, deliberately: OpenIssues moves by one
@@ -203,7 +203,7 @@ func RunStatsReporterBlockedExcludesByStatusNotByThePinnedFlag(t *testing.T, ctx
 // It is worth its own case rather than a seed on the exclusion case because
 // the query is written out THREE times (dolt/queries.go,
 // embeddeddolt/statistics.go, domain/db/issue.go), so this is three votes and
-// not one; and because `bd status`'s headline ReadyIssues is OpenIssues minus
+// not one; and because `issuegraph status`'s headline ReadyIssues is OpenIssues minus
 // this number, so a body that under-counts here reports work as ready that no
 // agent can start.
 //
@@ -304,7 +304,7 @@ func RunStatsReporterSkipBlockedPairsTheTwoPointers(t *testing.T, ctx context.Co
 // EpicsEligibleForClosure and AverageLeadTime are always zero because no
 // implementation computes either. A tripwire that can only fail on good news —
 // the day a backend starts computing one, the doc that calls it always zero
-// and the `bd status` render branch that has never fired get revisited.
+// and the `issuegraph status` render branch that has never fired get revisited.
 func RunStatsReporterExtendedFieldsAreAlwaysZero(t *testing.T, ctx context.Context, fixture StatsReporterFixture) {
 	t.Helper()
 	summary := statsReporterSummary(t, ctx, fixture, publicops.StatsRequest{})

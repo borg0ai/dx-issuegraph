@@ -40,7 +40,7 @@ type TruncatedError struct {
 	// Floor is the first row still retained.
 	//
 	// When the prefix is intact but the retained window has an interior hole
-	// (a restored or hand-edited table; bd's own prune cannot produce one),
+	// (a restored or hand-edited table; issuegraph's own prune cannot produce one),
 	// Since is instead the last seq the engine could serve contiguously from
 	// the caller's checkpoint, and Floor is where the next intact island
 	// starts. A batch with BOTH shapes reports the prefix one; the interior

@@ -11,12 +11,12 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
 )
 
 // The re-key scan reads the typed target columns rather than COALESCEing them,
 // because the duplicate-edge merge has to know which column held the target and
-// which type it would discard (gastownhall/beads#5268).
+// which type it would discard (borg0ai/dx-issuegraph#5268).
 const depScanPattern = `SELECT id, issue_id, depends_on_issue_id, depends_on_wisp_id, depends_on_external, type FROM `
 
 func depScanRows() *sqlmock.Rows {
@@ -280,7 +280,7 @@ func TestRekeyDependencyIDsPlansBothTablesBeforeWriting(t *testing.T) {
 // pre-existing dirty table would fail the open once and never retry, leaving the
 // heal to ride an unrelated user commit. Refusing at plan time keeps the pass
 // write-free and retryable, and DirtyTablesError is the type whose documented
-// recovery (bd dolt commit) already covers it.
+// recovery (issuegraph dolt commit) already covers it.
 func TestRekeyDependencyIDsRefusesToWriteIntoDirtyTable(t *testing.T) {
 	db, mock := newDepMock(t)
 	expectDepScan(mock, "dependencies", depScanRows().
@@ -355,9 +355,9 @@ func planUpdatePairs(plan *depPlan) [][2]string {
 }
 
 // TestPlanDependencyRekeyOrdersRenameChain is the workflow the refusal used to
-// brick, reproduced at the planner: `bd rename A B` leaves the edge's id derived
+// brick, reproduced at the planner: `issuegraph rename A B` leaves the edge's id derived
 // from A while its target column already reads B (the FK cascade beat the
-// rewrite), and a later `bd rename C A` puts a second row on the id the first one
+// rewrite), and a later `issuegraph rename C A` puts a second row on the id the first one
 // needs. Neither row is corrupt and the state is mechanically convergible —
 // vacate the first, then move the second.
 func TestPlanDependencyRekeyOrdersRenameChain(t *testing.T) {
@@ -421,7 +421,7 @@ func TestPlanDependencyRekeyRefusesCycle(t *testing.T) {
 	if !errors.As(err, &conflict) {
 		t.Fatalf("error %v is not a *DependencyRekeyConflictError", err)
 	}
-	for _, want := range []string{"cycle", idA, idB, "bd doctor"} {
+	for _, want := range []string{"cycle", idA, idB, "issuegraph doctor"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("error %q does not mention %q", err, want)
 		}
@@ -443,7 +443,7 @@ func TestPlanDependencyRekeyRefusesMalformedSquatter(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected a refusal when a malformed row squats a planned id")
 	}
-	for _, want := range []string{"random-row", squatted, "no dependency target", "bd doctor"} {
+	for _, want := range []string{"random-row", squatted, "no dependency target", "issuegraph doctor"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("error %q does not mention %q", err, want)
 		}

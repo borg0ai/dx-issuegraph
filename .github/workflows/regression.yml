@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
 
 env:
-  BD_DISABLE_METRICS: "1"
-  BD_DISABLE_EVENT_FLUSH: "1"
+  ISSUEGRAPH_DISABLE_METRICS: "1"
+  ISSUEGRAPH_DISABLE_EVENT_FLUSH: "1"
 
 jobs:
   detect-regression-need:
@@ -58,11 +58,11 @@ jobs:
 
           regression_candidates="$(
             printf '%s\n' "$changed" |
-              grep -Ev '^(modules/cli|internal/storage|internal/types)/.*_test\.go$' ||
+              grep -Ev '^(apps/cli|internal/storage|internal/types)/.*_test\.go$' ||
               true
           )"
 
-          risky_pattern='^(\.github/workflows/regression\.yml|Makefile|go\.(mod|sum)|modules/cli/|internal/storage/|internal/types/|tests/regression/)'
+          risky_pattern='^(\.github/workflows/regression\.yml|Makefile|go\.(mod|sum)|apps/cli/|internal/storage/|internal/types/|tests/regression/)'
           if grep -Eq "$risky_pattern" <<<"$regression_candidates"; then
             echo "run_regression=true" >> "$GITHUB_OUTPUT"
             echo "reason=PR changes CLI, storage, types, regression, or build inputs" >> "$GITHUB_OUTPUT"
@@ -87,12 +87,12 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
 
       - name: Configure Git
         run: |
           git config --global user.name "CI Bot"
-          git config --global user.email "ci@beads.test"
+          git config --global user.email "ci@issuegraph.test"
 
       - name: Install Dolt
         run: ./scripts/ci/install-dolt.sh
@@ -100,13 +100,13 @@ jobs:
       - name: Configure Dolt
         run: |
           dolt config --global --add user.name "CI Bot"
-          dolt config --global --add user.email "ci@beads.test"
+          dolt config --global --add user.email "ci@issuegraph.test"
           dolt version
 
       - name: Pull Dolt sql-server image
         # Without this, isDoltImageCached() returns false in TestMain and the
         # regression suite falls back to embedded Dolt with HOME=<tmpdir>, which
-        # has a known cleanup race (see beads issue: TestCreateWithParentFlag
+        # has a known cleanup race (see issuegraph issue: TestCreateWithParentFlag
         # TempDir RemoveAll "directory not empty" flake). Keep the tag in sync
         # with internal/testutil/testdoltcommon.go:DoltDockerImage.
         run: ./scripts/ci/pull-dolt-image.sh
@@ -114,7 +114,7 @@ jobs:
       - name: Cache baseline binary
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
         with:
-          path: ~/.cache/beads-regression
+          path: ~/.cache/issuegraph-regression
           key: regression-baseline-${{ hashFiles('tests/regression/BASELINE_VERSION') }}
 
       - name: Run regression tests

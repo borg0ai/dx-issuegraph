@@ -1,0 +1,26 @@
+# Test issuegraph config command
+
+issuegraph init --prefix test
+
+# Set a config value
+issuegraph config set jira.url 'https://example.atlassian.net'
+stdout 'Set jira.url'
+
+# Get the config value
+issuegraph config get jira.url
+stdout 'https://example.atlassian.net'
+
+# List all config
+issuegraph config list
+stdout 'jira.url'
+
+# Set another value
+issuegraph config set jira.project 'TEST'
+
+# Unset a value
+issuegraph config unset jira.url
+
+# Verify it's gone - list should not show the URL
+issuegraph config list
+! stdout 'example.atlassian.net'
+stdout 'jira.project'

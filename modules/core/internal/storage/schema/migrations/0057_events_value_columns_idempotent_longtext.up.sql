@@ -16,7 +16,7 @@
 -- Check C forbids editing a migration file that already exists on main;
 -- there is no hash-reconciliation override for that check), so it cannot be
 -- given this guard in place. This migration cannot intercept a raw
--- re-execution of 0048's frozen SQL text by tooling outside bd's own
+-- re-execution of 0048's frozen SQL text by tooling outside issuegraph's own
 -- cursor-gated migrate chain -- that is a separate bug in whatever does
 -- that. What it closes: within the normal migrate path (fresh DB, or a DB
 -- resuming mid-chain) events.old_value/new_value converge to LONGTEXT

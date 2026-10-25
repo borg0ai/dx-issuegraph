@@ -236,13 +236,13 @@ func TestPullIfStaleDebounce(t *testing.T) {
 func TestWriteLastPullTimestamp_EmptyDir(t *testing.T) {
 	err := WriteLastPullTimestamp("")
 	if err == nil {
-		t.Fatal("expected error for empty beadsDir")
+		t.Fatal("expected error for empty issuegraphDir")
 	}
 }
 
 func TestReadLastPullTimestamp_EmptyDir(t *testing.T) {
 	_, err := ReadLastPullTimestamp("")
 	if err == nil {
-		t.Fatal("expected error for empty beadsDir")
+		t.Fatal("expected error for empty issuegraphDir")
 	}
 }

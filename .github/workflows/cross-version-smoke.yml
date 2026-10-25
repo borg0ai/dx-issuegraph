@@ -25,8 +25,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BD_DISABLE_METRICS: "1"
-  BD_DISABLE_EVENT_FLUSH: "1"
+  ISSUEGRAPH_DISABLE_METRICS: "1"
+  ISSUEGRAPH_DISABLE_EVENT_FLUSH: "1"
 
 jobs:
   smoke:
@@ -47,25 +47,25 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
 
       - name: Configure Git
         run: |
           git config --global user.name "CI Bot"
-          git config --global user.email "ci@beads.test"
+          git config --global user.email "ci@issuegraph.test"
 
       - name: Cache previous release binaries
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
         with:
-          path: ~/.cache/beads-regression
+          path: ~/.cache/issuegraph-regression
           key: smoke-binaries-${{ matrix.prev_version }}-${{ runner.os }}
 
       - name: Build candidate binary
-        run: go build -tags gms_pure_go -o /tmp/bd-candidate github.com/steveyegge/beads/modules/cli
+        run: go build -tags gms_pure_go -o /tmp/issuegraph-candidate github.com/borg0ai/dx-issuegraph/apps/cli
 
       - name: Run upgrade smoke tests
         env:
-          CANDIDATE_BIN: /tmp/bd-candidate
+          CANDIDATE_BIN: /tmp/issuegraph-candidate
         run: ./scripts/upgrade-smoke-test.sh ${{ matrix.prev_version }}
 
   versions:
@@ -82,7 +82,7 @@ jobs:
           VERSION_COUNT: ${{ (github.event_name == 'push' && '30') || (github.event_name == 'workflow_dispatch' && inputs.version_count) || '5' }}
         run: |
           VERSIONS=$(gh release list \
-            --repo gastownhall/beads \
+            --repo borg0ai/dx-issuegraph \
             --limit "$VERSION_COUNT" \
             --json tagName \
             --jq '[.[].tagName]')

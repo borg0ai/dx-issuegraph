@@ -11,14 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 )
 
 // This process boundary exercises the real TestMain allocation and exit policy,
 // not just the selector: an ordinary t.TempDir fixture must belong to the suite.
 // A shell blocked on stdin supplies a real process without requiring Dolt.
 func TestSuiteFixtureLeakFailsOwningSuite(t *testing.T) {
-	if os.Getenv("BEADS_SUITE_LEAK_PROBE") == "1" {
+	if os.Getenv("ISSUEGRAPH_SUITE_LEAK_PROBE") == "1" {
 		cwd := t.TempDir()
 		cmd := exec.Command("/bin/sh", "-c", "read line", "dolt", "sql-server")
 		cmd.Dir = cwd
@@ -64,8 +64,8 @@ func TestSuiteFixtureLeakFailsOwningSuite(t *testing.T) {
 	}
 	defer readEnd.Close()
 	defer writeEnd.Close()
-	t.Setenv("BEADS_SUITE_LEAK_PROBE", "1")
-	t.Setenv("BEADS_TEST_SKIP", "dolt")
+	t.Setenv("ISSUEGRAPH_SUITE_LEAK_PROBE", "1")
+	t.Setenv("ISSUEGRAPH_TEST_SKIP", "dolt")
 	t.Setenv(doltserver.AllowLeakEnv, "")
 	// This child is a complete suite, not one of the schema-init helpers
 	// which deliberately bypass suite ownership and shutdown.

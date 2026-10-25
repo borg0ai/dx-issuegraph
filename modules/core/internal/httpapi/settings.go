@@ -9,10 +9,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The four settings operations. Each one decodes its parameters, hands the whole
@@ -20,9 +20,9 @@ import (
 //
 // WHAT IS NOT HERE, as in reads.go: no key is routed to a source, no value is
 // parsed, no projection is performed, no unit of work is opened. All of that is
-// inside issueops.WorkspaceConfig's implementation, which `bd config` reaches
+// inside issueops.WorkspaceConfig's implementation, which `issuegraph config` reaches
 // through the same accessor. This surface cannot answer the multi-source
-// questions `bd config show`, `drift`, `apply` and `validate` ask — three of
+// questions `issuegraph config show`, `drift`, `apply` and `validate` ask — three of
 // their five sources are files on the CLIENT's filesystem — so it publishes no
 // operation that pretends to.
 //
@@ -44,7 +44,7 @@ import (
 // one statement of the rule and the response to a write is what the read that
 // follows it returns.
 
-// handleListSettings answers GET /v0/beads/config.
+// handleListSettings answers GET /v0/issuegraph/config.
 func (s *Server) handleListSettings(w http.ResponseWriter, r *http.Request) {
 	if !s.requireNoQuery(w, r) {
 		return
@@ -77,7 +77,7 @@ func (s *Server) handleListSettings(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, apigen.SettingsPage{Items: items, HasMore: false})
 }
 
-// handleGetSetting answers GET /v0/beads/config/{key}.
+// handleGetSetting answers GET /v0/issuegraph/config/{key}.
 func (s *Server) handleGetSetting(w http.ResponseWriter, r *http.Request) {
 	if !s.requireNoQuery(w, r) {
 		return
@@ -110,7 +110,7 @@ const setSettingValueMember = "value"
 // one request two anchors and a question about what to do when they disagree.
 var setSettingRequestMembers = []string{setSettingValueMember}
 
-// handleSetSetting answers PUT /v0/beads/config/{key}.
+// handleSetSetting answers PUT /v0/issuegraph/config/{key}.
 //
 // WHAT IS NOT HERE, as in the reads above: no key is routed to a source, no
 // value is parsed, and the projection of status.custom and types.custom into
@@ -157,10 +157,10 @@ func (s *Server) handleSetSetting(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, wireSetting(result.Key, result.Value))
 }
 
-// handleUnsetSetting answers DELETE /v0/beads/config/{key}.
+// handleUnsetSetting answers DELETE /v0/issuegraph/config/{key}.
 //
 // NO 404, which is the one place this diverges from DELETE
-// /v0/beads/memories/{key}. That role reports whether a row was found; this one
+// /v0/issuegraph/memories/{key}. That role reports whether a row was found; this one
 // cannot — the storage seam discards the affected-row count on all three legs —
 // and an absent key and a key stored empty are one answer on this plane anyway.
 // So the operation states an intended END STATE, and a caller clearing
@@ -340,7 +340,7 @@ func (s *Server) settingKey(w http.ResponseWriter, r *http.Request) (string, boo
 // when the KEY marks the setting as credential-bearing.
 //
 // The predicate is internal/config's, not re-implemented: it is the same rule
-// `bd config set` uses to refuse writing a secret into a git-tracked file, so
+// `issuegraph config set` uses to refuse writing a secret into a git-tracked file, so
 // the set of keys this surface protects and the set the CLI warns about cannot
 // drift apart. It is a decision about the key ALONE — no
 // value is inspected — which is stated on the wire in `Setting.redacted` so

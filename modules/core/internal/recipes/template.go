@@ -2,41 +2,41 @@ package recipes
 
 import "fmt"
 
-// Template is the universal beads workflow template.
+// Template is the universal issuegraph workflow template.
 // This content is written to all file-based recipes.
-const Template = `# Beads Issue Tracking
+const Template = `# IssueGraph Issue Tracking
 
-This project uses [Beads (bd)](https://github.com/gastownhall/beads) for issue tracking.
+This project uses [IssueGraph (issuegraph)](https://github.com/borg0ai/dx-issuegraph) for issue tracking.
 
 ## Core Rules
 
-- Track ALL work in bd (never use markdown TODOs or comment-based task lists)
-- Use ` + "`bd ready`" + ` to find available work
-- Use ` + "`bd create`" + ` to track new issues/tasks/bugs
+- Track ALL work in issuegraph (never use markdown TODOs or comment-based task lists)
+- Use ` + "`issuegraph ready`" + ` to find available work
+- Use ` + "`issuegraph create`" + ` to track new issues/tasks/bugs
 - Treat commit, push, and Dolt remote sync as policy-controlled handoff actions
-- Run ` + "`bd prime`" + ` for complete workflow context (SSOT for operational commands)
+- Run ` + "`issuegraph prime`" + ` for complete workflow context (SSOT for operational commands)
 - Default to conservative git authority: report status and proposed commands unless the user, orchestrator, or repository profile explicitly authorizes commit/sync/push
 
 ## Quick Reference
 
 ` + "```bash" + `
-bd prime                              # Load complete workflow context (SSOT)
-bd ready                              # Show issues ready to work (no blockers)
-bd list --status=open                 # List all open issues
-bd create "title" -t task -p 2        # Create new issue
-bd update <id> --claim                # Claim work atomically
-bd unclaim <id>                       # Release stuck issue (agent crashed)
-bd close <id>                         # Mark complete
-bd dep add <issue> <depends-on>       # Add dependency
-bd dolt push                          # Sync with remote when authorized
+issuegraph prime                              # Load complete workflow context (SSOT)
+issuegraph ready                              # Show issues ready to work (no blockers)
+issuegraph list --status=open                 # List all open issues
+issuegraph create "title" -t task -p 2        # Create new issue
+issuegraph update <id> --claim                # Claim work atomically
+issuegraph unclaim <id>                       # Release stuck issue (agent crashed)
+issuegraph close <id>                         # Mark complete
+issuegraph dep add <issue> <depends-on>       # Add dependency
+issuegraph dolt push                          # Sync with remote when authorized
 ` + "```" + `
 
 ## Workflow
 
-1. Check for ready work: ` + "`bd ready`" + `
-2. Claim an issue atomically: ` + "`bd update <id> --claim`" + `
+1. Check for ready work: ` + "`issuegraph ready`" + `
+2. Claim an issue atomically: ` + "`issuegraph update <id> --claim`" + `
 3. Do the work
-4. Mark complete: ` + "`bd close <id>`" + `
+4. Mark complete: ` + "`issuegraph close <id>`" + `
 5. Handoff: report changed files, validation, issue status, and any proposed commit/sync/push commands
 
 ## Issue Types
@@ -57,34 +57,34 @@ bd dolt push                          # Sync with remote when authorized
 
 ## Context Loading
 
-Run ` + "`bd prime`" + ` to get complete workflow documentation in AI-optimized format.
-` + "`bd prime`" + ` is the single source of truth for operational commands and session workflow.
+Run ` + "`issuegraph prime`" + ` to get complete workflow documentation in AI-optimized format.
+` + "`issuegraph prime`" + ` is the single source of truth for operational commands and session workflow.
 
-For detailed docs: see AGENTS.md, the beads quickstart
-(https://github.com/gastownhall/beads/blob/main/docs/getting-started/quickstart.md), or run ` + "`bd --help`" + `
+For detailed docs: see AGENTS.md, the issuegraph quickstart
+(https://github.com/borg0ai/dx-issuegraph/blob/main/docs/getting-started/quickstart.md), or run ` + "`issuegraph --help`" + `
 `
 
 // CopilotInstructionsTemplate is the repository instructions file used by the
 // lightweight Copilot CLI plugin recipe.
 const CopilotInstructionsTemplate = `# GitHub Copilot Instructions
 
-This repository uses **Beads (bd)** for issue tracking.
+This repository uses **IssueGraph (issuegraph)** for issue tracking.
 
 ## Core Workflow
 
-- Use ` + "`bd ready`" + ` to find unblocked work
-- Use ` + "`bd create`" + ` to track new work
-- Use ` + "`bd update <id> --claim`" + ` before starting
-- Use ` + "`bd close <id>`" + ` when work is complete
+- Use ` + "`issuegraph ready`" + ` to find unblocked work
+- Use ` + "`issuegraph create`" + ` to track new work
+- Use ` + "`issuegraph update <id> --claim`" + ` before starting
+- Use ` + "`issuegraph close <id>`" + ` when work is complete
 - Treat commit, push, and Dolt remote sync as policy-controlled handoff actions
 - Do not commit, push, or run Dolt remote sync unless explicitly authorized
 
 ## Context Loading
 
-Run ` + "`bd prime`" + ` for the full workflow context.
+Run ` + "`issuegraph prime`" + ` for the full workflow context.
 
-If the Beads Copilot plugin is installed, Copilot CLI will automatically run
-` + "`bd prime`" + ` on session start and before compaction.
+If the IssueGraph Copilot plugin is installed, Copilot CLI will automatically run
+` + "`issuegraph prime`" + ` on session start and before compaction.
 `
 
 // ContentForPath returns the file content that should be written for a recipe path.

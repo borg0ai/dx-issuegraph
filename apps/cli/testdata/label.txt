@@ -1,0 +1,35 @@
+# Test issuegraph label command
+
+issuegraph init --prefix test
+
+# Create an issue
+issuegraph create 'Issue for labels'
+cp stdout issue.txt
+exec sh -c 'grep -oE "test-[a-z0-9]+" issue.txt > id.txt'
+
+# Add a label
+exec sh -c 'issuegraph label add $(cat id.txt) backend'
+stdout 'Added label'
+
+# List labels
+exec sh -c 'issuegraph label list $(cat id.txt)'
+stdout 'backend'
+
+# Add another label
+exec sh -c 'issuegraph label add $(cat id.txt) urgent'
+
+# Verify both labels
+exec sh -c 'issuegraph label list $(cat id.txt)'
+stdout 'backend'
+stdout 'urgent'
+
+# Remove a label
+exec sh -c 'issuegraph label remove $(cat id.txt) urgent'
+
+# Verify removal - should still have backend
+exec sh -c 'issuegraph label list $(cat id.txt)'
+stdout 'backend'
+
+# List all unique labels
+issuegraph label list-all
+stdout 'backend'

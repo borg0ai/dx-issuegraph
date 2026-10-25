@@ -12,12 +12,12 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // doltTransaction implements storage.Transaction for Dolt
@@ -197,11 +197,11 @@ func (s *DoltStore) runDoltTransaction(ctx context.Context, commitMsg string, fn
 	}
 
 	// The journal counter and rows must commit in the SAME SQL transaction as
-	// every mutation they describe. bd_events_journal and bd_events_seq are
+	// every mutation they describe. issuegraph_events_journal and issuegraph_events_seq are
 	// dolt_ignored, so on the default split-transaction shape they would land in
 	// the ignored transaction while the mutation lands in the regular one: a
 	// mixed durable+wisp callback would then make the two transactions contend
-	// with each other on the single bd_events_seq row, and the ignored commit
+	// with each other on the single issuegraph_events_seq row, and the ignored commit
 	// can fail AFTER the regular side has already committed — a mutation with no
 	// journal record, which is exactly the state the same-transaction guarantee
 	// exists to make impossible. In journal mode both planes therefore share the
@@ -863,7 +863,7 @@ func (t *doltTransaction) AddDependencyWithOptions(ctx context.Context, dep *typ
 	// Regular and dolt-ignored tables run on separate SQL sessions, so when
 	// the edge's write table and its target issue live in different tiers,
 	// target reads on the write tx cannot see a target created earlier in
-	// this same logical transaction (e.g. `bd create --deps blocks:<id>`
+	// this same logical transaction (e.g. `issuegraph create --deps blocks:<id>`
 	// swapping the new issue into the target slot). Read the target on its
 	// own tx and hand the row to AddDependencyInTx.
 	crossTierTarget := kind != issueops.DepTargetExternal && t.txFor(targetTable) != t.txFor(table)

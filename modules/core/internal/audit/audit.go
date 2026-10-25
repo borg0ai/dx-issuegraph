@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 const (
-	// FileName is the audit log file name stored under .beads/.
+	// FileName is the audit log file name stored under .issuegraph/.
 	FileName = "interactions.jsonl"
 	idPrefix = "int-"
 )
@@ -54,18 +54,18 @@ type Entry struct {
 }
 
 func Path() (string, error) {
-	beadsDir := beads.FindBeadsDir()
-	if beadsDir == "" {
-		return "", fmt.Errorf("no .beads directory found")
+	issuegraphDir := issuegraph.FindIssueGraphDir()
+	if issuegraphDir == "" {
+		return "", fmt.Errorf("no .issuegraph directory found")
 	}
-	return filepath.Join(beadsDir, FileName), nil
+	return filepath.Join(issuegraphDir, FileName), nil
 }
 
 // Enabled reports whether the optional JSONL interaction sidecar is enabled.
 // First-class issue history is always recorded in the database events tables;
-// this gate only controls .beads/interactions.jsonl.
+// this gate only controls .issuegraph/interactions.jsonl.
 func Enabled() bool {
-	if raw, ok := os.LookupEnv("BD_AUDIT_ENABLED"); ok {
+	if raw, ok := os.LookupEnv("ISSUEGRAPH_AUDIT_ENABLED"); ok {
 		return truthy(raw)
 	}
 	return config.GetBool("audit.enabled")
@@ -80,14 +80,14 @@ func truthy(raw string) bool {
 	}
 }
 
-// EnsureFile creates .beads/interactions.jsonl if it does not exist.
+// EnsureFile creates .issuegraph/interactions.jsonl if it does not exist.
 func EnsureFile() (string, error) {
 	p, err := Path()
 	if err != nil {
 		return "", err
 	}
 	if err := os.MkdirAll(filepath.Dir(p), 0700); err != nil {
-		return "", fmt.Errorf("failed to create .beads directory: %w", err)
+		return "", fmt.Errorf("failed to create .issuegraph directory: %w", err)
 	}
 	if ensureFileBeforeCreateHook != nil {
 		ensureFileBeforeCreateHook(p)
@@ -105,7 +105,7 @@ func EnsureFile() (string, error) {
 	return p, nil
 }
 
-// Append appends an event to .beads/interactions.jsonl as a single JSON line.
+// Append appends an event to .issuegraph/interactions.jsonl as a single JSON line.
 // This is intentionally append-only: callers must not mutate existing lines.
 func Append(e *Entry) (string, error) {
 	if e == nil {
@@ -157,7 +157,7 @@ func Append(e *Entry) (string, error) {
 // AppendIfEnabled appends only when the optional JSONL sidecar is enabled.
 func AppendIfEnabled(e *Entry) (string, error) {
 	if !Enabled() {
-		return "", fmt.Errorf("audit JSONL sidecar is disabled; set audit.enabled=true or BD_AUDIT_ENABLED=1 to write %s", FileName)
+		return "", fmt.Errorf("audit JSONL sidecar is disabled; set audit.enabled=true or ISSUEGRAPH_AUDIT_ENABLED=1 to write %s", FileName)
 	}
 	return Append(e)
 }

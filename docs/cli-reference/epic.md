@@ -1,38 +1,39 @@
 ---
-title: "bd epic"
+title: "issuegraph epic"
 description: "Epic management commands"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc epic`.
+Generated from `issuegraph help --doc epic`.
 
 Epic management commands
 
 ```
-bd epic [flags]
+issuegraph epic [command]
 ```
 
-## bd epic close-eligible
+## issuegraph epic close-eligible
 
 Close epics where all children are complete
 
 ```
-bd epic close-eligible [flags]
+issuegraph epic close-eligible [flags]
 ```
 
 **Flags:**
 
 ```
-      --dry-run   Preview what would be closed without making changes
+      --dry-run         Preview what would be closed without making changes
+  -r, --reason string   Close reason applied to every epic closed (default "All children completed")
 ```
 
-## bd epic status
+## issuegraph epic status
 
 Show epic completion status
 
 ```
-bd epic status [flags]
+issuegraph epic status [flags]
 ```
 
 **Flags:**

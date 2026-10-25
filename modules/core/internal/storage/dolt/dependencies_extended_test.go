@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestAddDependencyCreatedAtUsesUTC(t *testing.T) {
@@ -845,7 +845,7 @@ func TestIsCrossPrefixDep(t *testing.T) {
 	}{
 		{"same prefix", "sh-abc", "sh-def", false},
 		{"different prefix", "sh-abc", "hq-def", true},
-		{"hq to bd", "hq-abc", "bd-def", true},
+		{"hq to issuegraph", "hq-abc", "bd-def", true},
 		{"same prefix with subtype", "hq-cv-abc", "hq-xyz", false},
 		{"no prefix source", "abc", "sh-def", true},
 		{"no prefix either", "abc", "def", false},

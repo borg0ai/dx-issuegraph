@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ValidateAddCommentRequest applies the request rules every Commenter
@@ -33,7 +33,7 @@ func ValidateAddCommentRequest(request publicops.AddCommentRequest) error {
 // AddCommentCommitMessage is the history entry a comment records. It is the
 // spelling both stores' own AddIssueComment already wrote.
 func AddCommentCommitMessage(issueID string) string {
-	return "bd: comment " + issueID
+	return "issuegraph: comment " + issueID
 }
 
 // ExecuteAddComment appends one comment in tx and reports the durable tables

@@ -14,12 +14,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func realDoltTestServerRequired() bool {
-	return os.Getenv("BEADS_TEST_ENV_RUN_DOLT") == "1"
+	return os.Getenv("ISSUEGRAPH_TEST_ENV_RUN_DOLT") == "1"
 }
 
 // TestDoltAutocommitRollbackContentionConverges creates a real same-cell
@@ -77,7 +77,7 @@ func TestRealDoltTestServerRequiredOnlyByExplicitOptIn(t *testing.T) {
 		{name: "non-opt-in Dolt value", runDolt: "true", githubActions: "true", want: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("BEADS_TEST_ENV_RUN_DOLT", tc.runDolt)
+			t.Setenv("ISSUEGRAPH_TEST_ENV_RUN_DOLT", tc.runDolt)
 			t.Setenv("GITHUB_ACTIONS", tc.githubActions)
 			if got := realDoltTestServerRequired(); got != tc.want {
 				t.Fatalf("realDoltTestServerRequired() = %v, want %v", got, tc.want)
@@ -1030,7 +1030,7 @@ func TestSerializationConflictRetry(t *testing.T) {
 //
 // N workers concurrently dequeue from ONE shared ready-front via
 // ClaimReadyIssue until it returns nil, exactly as N agent clones draining a
-// shared Beads work queue would. This is the core Gas Station claim-queue
+// shared IssueGraph work queue would. This is the core Gas Station claim-queue
 // invariant and the scenario the multi-agent port harness depends on:
 //
 //   - every issue is claimed by EXACTLY ONE worker (no double-claim / lost work)

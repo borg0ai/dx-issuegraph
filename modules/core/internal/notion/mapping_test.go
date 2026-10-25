@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestBuildPagePropertiesAndPulledIssueRoundTrip(t *testing.T) {
@@ -63,14 +63,14 @@ func TestBuildPagePropertiesAndPulledIssueRoundTrip(t *testing.T) {
 		CreatedTime:    createdAt,
 		LastEditedTime: updatedAt,
 		Properties: map[string]PageProperty{
-			PropertyTitle:       {Title: []RichText{{PlainText: "Sync from Notion"}}},
-			PropertyBeadsID:     {RichText: []RichText{{PlainText: "bd-123"}}},
-			PropertyStatus:      {Select: &SelectOption{Name: "In Progress"}},
-			PropertyPriority:    {Select: &SelectOption{Name: "High"}},
-			PropertyType:        {Select: &SelectOption{Name: "Feature"}},
-			PropertyDescription: {RichText: []RichText{{PlainText: "Short summary"}}},
-			PropertyAssignee:    {RichText: []RichText{{PlainText: "osamu"}}},
-			PropertyLabels:      {MultiSelect: []SelectOption{{Name: "sync"}, {Name: "notion"}}},
+			PropertyTitle:        {Title: []RichText{{PlainText: "Sync from Notion"}}},
+			PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-123"}}},
+			PropertyStatus:       {Select: &SelectOption{Name: "In Progress"}},
+			PropertyPriority:     {Select: &SelectOption{Name: "High"}},
+			PropertyType:         {Select: &SelectOption{Name: "Feature"}},
+			PropertyDescription:  {RichText: []RichText{{PlainText: "Short summary"}}},
+			PropertyAssignee:     {RichText: []RichText{{PlainText: "osamu"}}},
+			PropertyLabels:       {MultiSelect: []SelectOption{{Name: "sync"}, {Name: "notion"}}},
 		},
 	}
 
@@ -79,21 +79,21 @@ func TestBuildPagePropertiesAndPulledIssueRoundTrip(t *testing.T) {
 		t.Fatalf("external ref = %q", pulled.ExternalRef)
 	}
 
-	beadsIssue, err := BeadsIssueFromPullIssue(pulled, nil)
+	issuegraphIssue, err := IssueGraphIssueFromPullIssue(pulled, nil)
 	if err != nil {
-		t.Fatalf("BeadsIssueFromPullIssue returned error: %v", err)
+		t.Fatalf("IssueGraphIssueFromPullIssue returned error: %v", err)
 	}
-	if beadsIssue.Status != types.StatusInProgress {
-		t.Fatalf("status = %q, want %q", beadsIssue.Status, types.StatusInProgress)
+	if issuegraphIssue.Status != types.StatusInProgress {
+		t.Fatalf("status = %q, want %q", issuegraphIssue.Status, types.StatusInProgress)
 	}
-	if beadsIssue.Priority != 1 {
-		t.Fatalf("priority = %d, want 1", beadsIssue.Priority)
+	if issuegraphIssue.Priority != 1 {
+		t.Fatalf("priority = %d, want 1", issuegraphIssue.Priority)
 	}
-	if beadsIssue.IssueType != types.TypeFeature {
-		t.Fatalf("issue type = %q, want %q", beadsIssue.IssueType, types.TypeFeature)
+	if issuegraphIssue.IssueType != types.TypeFeature {
+		t.Fatalf("issue type = %q, want %q", issuegraphIssue.IssueType, types.TypeFeature)
 	}
-	if len(beadsIssue.Labels) != 2 {
-		t.Fatalf("labels = %v, want 2 labels", beadsIssue.Labels)
+	if len(issuegraphIssue.Labels) != 2 {
+		t.Fatalf("labels = %v, want 2 labels", issuegraphIssue.Labels)
 	}
 }
 
@@ -102,13 +102,13 @@ func TestValidateDataSourceSchema(t *testing.T) {
 
 	ds := &DataSource{
 		Properties: map[string]DataSourceProperty{
-			PropertyTitle:       {Type: "title"},
-			PropertyBeadsID:     {Type: "rich_text"},
-			PropertyStatus:      {Type: "select"},
-			PropertyPriority:    {Type: "select"},
-			PropertyType:        {Type: "select"},
-			PropertyDescription: {Type: "rich_text"},
-			PropertyAssignee:    {Type: "rich_text"},
+			PropertyTitle:        {Type: "title"},
+			PropertyIssueGraphID: {Type: "rich_text"},
+			PropertyStatus:       {Type: "select"},
+			PropertyPriority:     {Type: "select"},
+			PropertyType:         {Type: "select"},
+			PropertyDescription:  {Type: "rich_text"},
+			PropertyAssignee:     {Type: "rich_text"},
 		},
 	}
 

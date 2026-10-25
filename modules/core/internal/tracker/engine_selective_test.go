@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestEnginePushWithIssueIDsFilter(t *testing.T) {
@@ -85,13 +85,13 @@ func TestEnginePullWithIssueIDsSelectiveByExternalRef(t *testing.T) {
 	}
 }
 
-func TestEnginePullWithIssueIDsSelectiveByBeadID(t *testing.T) {
+func TestEnginePullWithIssueIDsSelectiveByIssueID(t *testing.T) {
 	ctx := context.Background()
 	store := newTestStore(t)
 	defer store.Close()
 
 	// Set up the issue_prefix config
-	if err := store.SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+	if err := store.SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 		t.Fatalf("SetConfig error: %v", err)
 	}
 
@@ -118,7 +118,7 @@ func TestEnginePullWithIssueIDsSelectiveByBeadID(t *testing.T) {
 
 	engine := NewEngine(tracker, store, "test-actor")
 
-	// Pull by bead ID — should resolve to EXT-1 via external_ref
+	// Pull by issue ID — should resolve to EXT-1 via external_ref
 	result, err := engine.Sync(ctx, SyncOptions{
 		Pull:     true,
 		IssueIDs: []string{"bd-pullsel"},
@@ -235,12 +235,12 @@ func TestEnginePullWithIssueIDsNotFound(t *testing.T) {
 	}
 }
 
-func TestEnginePullWithBeadIDNoExternalRef(t *testing.T) {
+func TestEnginePullWithIssueIDNoExternalRef(t *testing.T) {
 	ctx := context.Background()
 	store := newTestStore(t)
 	defer store.Close()
 
-	if err := store.SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+	if err := store.SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 		t.Fatalf("SetConfig error: %v", err)
 	}
 
@@ -271,25 +271,25 @@ func TestEnginePullWithBeadIDNoExternalRef(t *testing.T) {
 	}
 }
 
-func TestIsBeadID(t *testing.T) {
+func TestIsIssueID(t *testing.T) {
 	tests := []struct {
 		id     string
 		prefix string
 		want   bool
 	}{
-		{"bd-123", "bd", true},
-		{"bd-abc-def", "bd", true},
-		{"EXT-1", "bd", false},
-		{"https://test.test/EXT-1", "bd", false},
-		{"", "bd", false},
+		{"bd-123", "issuegraph", true},
+		{"bd-abc-def", "issuegraph", true},
+		{"EXT-1", "issuegraph", false},
+		{"https://test.test/EXT-1", "issuegraph", false},
+		{"", "issuegraph", false},
 		{"bd-123", "", false},
 		{"proj-42", "proj", true},
-		{"bd123", "bd", false},
+		{"bd123", "issuegraph", false},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%s_%s", tt.id, tt.prefix), func(t *testing.T) {
-			if got := isBeadID(tt.id, tt.prefix); got != tt.want {
-				t.Errorf("isBeadID(%q, %q) = %v, want %v", tt.id, tt.prefix, got, tt.want)
+			if got := isIssueID(tt.id, tt.prefix); got != tt.want {
+				t.Errorf("isIssueID(%q, %q) = %v, want %v", tt.id, tt.prefix, got, tt.want)
 			}
 		})
 	}

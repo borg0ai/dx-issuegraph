@@ -18,7 +18,7 @@ between machines.
 ## File Structure
 
 ```
-.beads/
+.issuegraph/
 ├── config.yaml        # Project config (git-tracked)
 ├── metadata.json      # Backend metadata (git-tracked)
 ├── .gitignore         # Written by issuegraph init (git-tracked)
@@ -26,9 +26,9 @@ between machines.
 └── dolt/              # Dolt database — server mode (gitignored)
 ```
 
-`issuegraph init` writes `.beads/.gitignore` to keep the database directory and
+`issuegraph init` writes `.issuegraph/.gitignore` to keep the database directory and
 runtime files out of git — no manual gitignore rules are needed. Never track
-the database directory (`.beads/embeddeddolt/` or `.beads/dolt/`) in git or
+the database directory (`.issuegraph/embeddeddolt/` or `.issuegraph/dolt/`) in git or
 via Git LFS.
 
 ## Git Hooks
@@ -49,19 +49,19 @@ the hook is installed or refreshed:
 
 | Hook | What it does |
 |------|--------------|
-| `pre-commit` | Runs chained hooks; when `export.auto` is enabled, exports `.beads/issues.jsonl` so it lands in the same commit |
+| `pre-commit` | Runs chained hooks; when `export.auto` is enabled, exports `.issuegraph/issues.jsonl` so it lands in the same commit |
 | `post-merge` | Runs chained hooks; imports JSONL only as a legacy fallback when no Dolt remote is configured — with `sync.remote` set, `issuegraph dolt pull` is the canonical sync |
 | `pre-push` | Runs chained hooks before push |
 | `post-checkout` | Runs chained hooks after branch checkout |
-| `prepare-commit-msg` | Adds an `Executed-By:` agent identity trailer when an agent (`BD_ACTOR`) makes the commit |
+| `prepare-commit-msg` | Adds an `Executed-By:` agent identity trailer when an agent (`ISSUEGRAPH_ACTOR`) makes the commit |
 
 The shims use section markers to coexist with existing hooks — content
 outside the markers is preserved across installs and upgrades. Install
 variants:
 
 ```bash
-issuegraph hooks install --beads    # Install to .beads/hooks/ (recommended for the Dolt backend)
-issuegraph hooks install --shared   # Install to .beads-hooks/ (versioned, shareable with the team)
+issuegraph hooks install --issuegraph    # Install to .issuegraph/hooks/ (recommended for the Dolt backend)
+issuegraph hooks install --shared   # Install to .issuegraph-hooks/ (versioned, shareable with the team)
 issuegraph hooks install --chain    # Run existing hooks before issuegraph hooks
 ```
 
@@ -104,21 +104,21 @@ For config-driven managers, add issuegraph steps directly. Example `hk.pkl`:
 hooks {
     ["pre-commit"] {
         steps {
-            ["bd-pre-commit"] {
+            ["issuegraph-pre-commit"] {
                 check = "issuegraph hooks run pre-commit"
             }
         }
     }
     ["post-merge"] {
         steps {
-            ["bd-post-merge"] {
+            ["issuegraph-post-merge"] {
                 check = "issuegraph hooks run post-merge"
             }
         }
     }
     ["pre-push"] {
         steps {
-            ["bd-pre-push"] {
+            ["issuegraph-pre-push"] {
                 check = "issuegraph hooks run pre-push \"$@\""
             }
         }
@@ -139,14 +139,14 @@ coreutils is the preferred deadline backend there.
 
 The default deadline is **300 seconds** (5 minutes), which accommodates chained
 pre-commit pipelines (eslint, prettier, TypeScript compilation). Override it
-with the `BEADS_HOOK_TIMEOUT` environment variable:
+with the `ISSUEGRAPH_HOOK_TIMEOUT` environment variable:
 
 ```bash
 # Set a longer timeout (in seconds)
-export BEADS_HOOK_TIMEOUT=600  # 10 minutes
+export ISSUEGRAPH_HOOK_TIMEOUT=600  # 10 minutes
 
 # Or set it per-invocation
-BEADS_HOOK_TIMEOUT=600 git commit -m "..."
+ISSUEGRAPH_HOOK_TIMEOUT=600 git commit -m "..."
 ```
 
 The value must be a positive whole number of seconds. Invalid values and zero
@@ -178,17 +178,17 @@ issuegraph doctor --fix
 
 Dolt stores data under `refs/dolt/data`, separate from Git refs. This means
 issuegraph data does not conflict with protected Git branches, and no separate
-`beads-sync` branch or protected-branch exception is needed. On new projects
+`issuegraph-sync` branch or protected-branch exception is needed. On new projects
 with a Git `origin`, `issuegraph init` configures that origin as the Dolt remote
 automatically.
 
 See [Protected Branches](/reference/protected-branches) for the full
-workflow, including legacy `beads-sync` cleanup.
+workflow, including legacy `issuegraph-sync` cleanup.
 
 ## Git Worktrees
 
 IssueGraph works in Git worktrees without extra setup. Linked worktrees discover the
-repository's `.beads` workspace and sync issue data through Dolt:
+repository's `.issuegraph` workspace and sync issue data through Dolt:
 
 ```bash
 # In a linked worktree
@@ -198,10 +198,10 @@ issuegraph dolt pull
 issuegraph dolt push
 ```
 
-All worktrees share the repository's `.beads` workspace: discovery follows
-`BEADS_DIR` if set, then the main repository's `.beads`, preventing database
+All worktrees share the repository's `.issuegraph` workspace: discovery follows
+`ISSUEGRAPH_DIR` if set, then the main repository's `.issuegraph`, preventing database
 duplication across worktrees. Use `issuegraph where` as the authoritative check for
-which workspace is active — a local `./.beads` may legitimately be absent in
+which workspace is active — a local `./.issuegraph` may legitimately be absent in
 a worktree. Embedded mode (the default) serves one writer at a time; for
 concurrent writers across worktrees, use server mode. See
 [Git Worktrees](/reference/worktrees) for the full guide.
@@ -231,7 +231,7 @@ issuegraph dolt push
 ```
 
 The contributor wizard keeps issue data in a separate planning repository,
-leaving the upstream repo without any `.beads/`. Best for open source
+leaving the upstream repo without any `.issuegraph/`. Best for open source
 contributors, solo developers, and private task tracking on public repos.
 
 `issuegraph init` auto-detects forks and offers to configure `.git/info/exclude`

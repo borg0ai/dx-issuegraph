@@ -1,0 +1,112 @@
+package main
+
+import (
+	"os"
+	"os/exec"
+	"strings"
+
+	"github.com/spf13/cobra"
+
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+)
+
+// mailCmd delegates to an external mail provider.
+// This enables agents to use 'issuegraph mail' consistently, while the actual
+// mail implementation is provided by the orchestrator.
+var mailCmd = &cobra.Command{
+	Use:   "mail [subcommand] [args...]",
+	Short: "Delegate to mail provider (e.g., gt mail)",
+	Long: `Delegates mail operations to an external mail provider.
+
+Agents often type 'issuegraph mail' when working with issuegraph, but mail functionality
+is typically provided by the orchestrator. This command bridges that gap
+by delegating to the configured mail provider.
+
+Configuration (checked in order):
+  1. ISSUEGRAPH_MAIL_DELEGATE or ISSUEGRAPH_MAIL_DELEGATE environment variable
+  2. 'mail.delegate' config setting (issuegraph config set mail.delegate "gt mail")
+
+Examples:
+  # Configure delegation (one-time setup)
+  export ISSUEGRAPH_MAIL_DELEGATE="gt mail"
+  # or
+  issuegraph config set mail.delegate "gt mail"
+
+  # Then use issuegraph mail as if it were gt mail
+  issuegraph mail inbox                    # Lists inbox
+  issuegraph mail send mayor/ -s "Hi"      # Sends mail
+  issuegraph mail read msg-123             # Reads a message`,
+	DisableFlagParsing: true,
+	SilenceUsage:       true,
+	SilenceErrors:      true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		evt := metrics.NewCommandEvent("mail")
+		defer func() {
+			if c := metrics.Global(); c != nil {
+				c.CloseEventAndAdd(evt)
+			}
+		}()
+
+		for _, arg := range args {
+			if arg == "--help" || arg == "-h" {
+				_ = cmd.Help()
+				return nil
+			}
+		}
+
+		delegate := findMailDelegate()
+		if delegate == "" {
+			return HandleErrorWithHint(
+				"no mail delegate configured",
+				"Set ISSUEGRAPH_MAIL_DELEGATE=\"gt mail\" or run: issuegraph config set mail.delegate \"gt mail\"")
+		}
+
+		parts := strings.Fields(delegate)
+		if len(parts) == 0 {
+			return HandleError("invalid mail delegate: %q", delegate)
+		}
+
+		cmdName := parts[0]
+		cmdArgs := append(parts[1:], args...)
+
+		// #nosec G204 - cmdName comes from user configuration (mail_delegate setting)
+		execCmd := exec.Command(cmdName, cmdArgs...)
+		execCmd.Stdin = os.Stdin
+		execCmd.Stdout = os.Stdout
+		execCmd.Stderr = os.Stderr
+
+		if err := execCmd.Run(); err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				return &exitError{Code: exitErr.ExitCode()}
+			}
+			return HandleError("running %s: %v", delegate, err)
+		}
+		return nil
+	},
+}
+
+// findMailDelegate checks for mail delegation configuration
+// Priority: env vars > issuegraph config
+func findMailDelegate() string {
+	// Check environment variables first
+	if delegate := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE"); delegate != "" {
+		return delegate
+	}
+	if delegate := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE"); delegate != "" {
+		return delegate
+	}
+
+	// Check issuegraph config (requires database)
+	// This works even without a database connection since we use direct mode
+	if store != nil {
+		if delegate, err := store.GetConfig(rootCtx, "mail.delegate"); err == nil && delegate != "" {
+			return delegate
+		}
+	}
+
+	return ""
+}
+
+func init() {
+	rootCmd.AddCommand(mailCmd)
+}

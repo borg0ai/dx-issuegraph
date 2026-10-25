@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // mockStore implements the config methods of storage.Storage for testing.
@@ -221,15 +221,15 @@ func TestTracker_InitWithCustomTypeMapping(t *testing.T) {
 	mapper := tr.FieldMapper()
 
 	// Custom "story" type should map from "User Story"
-	got := mapper.TypeToBeads("User Story")
+	got := mapper.TypeToIssueGraph("User Story")
 	if got != "story" {
-		t.Errorf("TypeToBeads(\"User Story\") = %q, want %q", got, "story")
+		t.Errorf("TypeToIssueGraph(\"User Story\") = %q, want %q", got, "story")
 	}
 
 	// Custom "feature" type should map from "Feature"
-	got = mapper.TypeToBeads("Feature")
+	got = mapper.TypeToIssueGraph("Feature")
 	if got != "feature" {
-		t.Errorf("TypeToBeads(\"Feature\") = %q, want %q", got, "feature")
+		t.Errorf("TypeToIssueGraph(\"Feature\") = %q, want %q", got, "feature")
 	}
 
 	// Reverse: "story" should map to "User Story"
@@ -1378,24 +1378,24 @@ func TestGetConfig_YamlOnlyKeyBypassesStore(t *testing.T) {
 }
 
 // TestGetConfig_YamlOnlyKeyReadsFromYaml verifies that ado.pat is
-// read from .beads/config.yaml when set there, without depending on the
+// read from .issuegraph/config.yaml when set there, without depending on the
 // AZURE_DEVOPS_PAT env var.
 func TestGetConfig_YamlOnlyKeyReadsFromYaml(t *testing.T) {
 	const wantPAT = "yaml-config-pat-value"
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
 	yamlBody := "ado.pat: \"" + wantPAT + "\"\n"
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(yamlBody), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(yamlBody), 0o600); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 
 	t.Setenv("AZURE_DEVOPS_PAT", "")
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	t.Setenv("HOME", filepath.Join(tmpDir, "home"))
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, "xdg"))
 	t.Chdir(tmpDir)

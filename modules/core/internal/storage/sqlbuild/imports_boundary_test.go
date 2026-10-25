@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-const modulePrefix = "github.com/steveyegge/beads/"
+const modulePrefix = "github.com/borg0ai/dx-issuegraph/"
 
 // TestImportBoundaries pins the layering around the shared SQL-builder seam
 // (bd-6dnrw.46): sqlbuild is the bottom shared layer under both stacks, and
@@ -26,8 +26,8 @@ func TestImportBoundaries(t *testing.T) {
 
 	rules := []struct {
 		dir       string   // package dir relative to repo root
-		allowed   []string // if set, beads-internal imports must be exactly one of these
-		forbidden []string // if set, these beads-internal imports must not appear
+		allowed   []string // if set, issuegraph-internal imports must be exactly one of these
+		forbidden []string // if set, these issuegraph-internal imports must not appear
 	}{
 		{
 			dir: "internal/storage/sqlbuild",

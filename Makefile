@@ -44,7 +44,7 @@ endif
 endif
 
 .PHONY: all build doctor-build test test-icu-path test-full-cgo test-regression test-upgrade test-cross-version test-migration corpus-regen bench bench-quick clean clean-test-tmp install install-force help check-up-to-date fmt fmt-check check-testing-short
-.PHONY: ci-pr-core ci-pr-policy ci-pr-lint ci-complexity ci-complexity-diff ci-complexity-check ci-package-mcp ci-package-npm
+.PHONY: ci-pr-core ci-pr-policy ci-pr-lint ci-complexity ci-complexity-diff ci-complexity-check ci-package-mcp
 .PHONY: api-gen api-check
 
 # Default target
@@ -52,7 +52,7 @@ all: build
 
 BUILD_DIR := apps/cli/bin
 GO_DIR := modules/core
-CLI_DIR := modules/cli
+CLI_DIR := apps/cli
 GIT_BUILD := $(shell git rev-parse --short HEAD)
 ifeq ($(OS),Windows_NT)
 INSTALL_DIR := $(USERPROFILE)/.local/bin
@@ -137,7 +137,7 @@ endif
 endif
 
 # Diagnose the local build environment for the gms_pure_go/CGO build trap
-# (mybd-t7mk.1). A bare `CGO_ENABLED=1 go -C modules/cli build .` without
+# (mybd-t7mk.1). A bare `CGO_ENABLED=1 go -C apps/cli build .` without
 # -tags=gms_pure_go fails with a C-linker error from go-icu-regex
 # (unicode/uregex.h: No such file or directory) because go-mysql-server
 # links ICU by default under cgo; CGO_ENABLED=0 avoids that but can't open
@@ -162,7 +162,7 @@ doctor-build:
 			echo "PASS: GOFLAGS carries -tags=gms_pure_go; bare 'go build'/'go test' are safe." ;; \
 		*) \
 			echo "WARN: GOFLAGS is missing -tags=gms_pure_go."; \
-			echo "      A bare 'CGO_ENABLED=1 go build ./modules/cli' will fail with a C-linker error"; \
+			echo "      A bare 'CGO_ENABLED=1 go build ./apps/cli' will fail with a C-linker error"; \
 			echo "      (unicode/uregex.h: No such file or directory) from go-icu-regex, because"; \
 			echo "      go-mysql-server links ICU by default under cgo."; \
 			echo ""; \
@@ -170,7 +170,7 @@ doctor-build:
 			echo "        go env -w GOFLAGS=-tags=gms_pure_go"; \
 			echo "      Or build explicitly this once (CGO_ENABLED=1 is required for"; \
 			echo "      embedded Dolt at runtime; CGO_ENABLED=0 cannot open it):"; \
-			echo "        CGO_ENABLED=1 go build -tags gms_pure_go ./modules/cli" ;; \
+			echo "        CGO_ENABLED=1 go build -tags gms_pure_go ./apps/cli" ;; \
 	esac
 
 # Run all tests (skips known broken tests listed in .test-skip)
@@ -250,12 +250,10 @@ api-check:
 ci-package-mcp:
 	@./scripts/ci/package-mcp.sh
 
-ci-package-npm:
-	@./scripts/ci/package-npm.sh
 
 # Run differential regression tests (baseline v0.49.6 vs current worktree).
-# Downloads baseline binary on first run; cached in ~/Library/Caches/beads-regression/.
-# Override baseline: BD_REGRESSION_BASELINE_BIN=/path/to/bd make test-regression
+# Downloads baseline binary on first run; cached in ~/Library/Caches/issuegraph-regression/.
+# Override baseline: ISSUEGRAPH_REGRESSION_BASELINE_BIN=/path/to/issuegraph make test-regression
 test-regression:
 	@echo "Running regression tests (baseline vs candidate)..."
 	go -C $(GO_DIR) test -tags=regression,$(BUILD_TAGS) -timeout=$(REGRESSION_TIMEOUT) -v ./tests/regression/...
@@ -265,7 +263,7 @@ test-regression:
 # Override version: ./scripts/upgrade-smoke-test.sh v0.62.0
 test-upgrade: build
 	@echo "Running upgrade smoke tests..."
-	@CANDIDATE_BIN=./apps/cli/bin/cli ./scripts/upgrade-smoke-test.sh
+	@CANDIDATE_BIN=./apps/cli/bin/issuegraph ./scripts/upgrade-smoke-test.sh
 
 
 # Run cross-version smoke tests (last 30 tags → candidate).
@@ -274,17 +272,17 @@ test-upgrade: build
 # All from v0.30.0: ./scripts/cross-version-smoke-test.sh --from v0.30.0
 test-cross-version: build
 	@echo "Running cross-version smoke tests..."
-	@CANDIDATE_BIN=./apps/cli/bin/cli ./scripts/cross-version-smoke-test.sh
+	@CANDIDATE_BIN=./apps/cli/bin/issuegraph ./scripts/cross-version-smoke-test.sh
 
 # Run the authenticated historical upgrade corpus with strict fidelity checks.
 # All qualified versions: ./scripts/migration-test/run.sh
 # Single version: ./scripts/migration-test/run.sh --version v0.49.6
 test-migration: build
 	@echo "Running migration test harness..."
-	@CANDIDATE_BIN=./apps/cli/bin/cli ./scripts/migration-test/run.sh
+	@CANDIDATE_BIN=./apps/cli/bin/issuegraph ./scripts/migration-test/run.sh
 
-# Regenerate the golden-JSON contract corpus (modules/cli/protocol/testdata/corpus/).
-# Run after any deliberate bd --json wire change; review the diff, then commit.
+# Regenerate the golden-JSON contract corpus (apps/cli/protocol/testdata/corpus/).
+# Run after any deliberate issuegraph --json wire change; review the diff, then commit.
 # A downstream consumer vendors this corpus to detect cross-version drift. Needs Docker (Dolt).
 corpus-regen:
 	@echo "Regenerating contract corpus..."
@@ -365,7 +363,7 @@ fmt-check:
 check-docs:
 	@echo "Building CLI for docs checks..."
 	@CGO_ENABLED=0 go -C $(CLI_DIR) build -tags "$(BUILD_TAGS)" -ldflags="-X main.Build=$(GIT_BUILD)" -o $(abspath $(BUILD_DIR))/cli .
-	@./scripts/check-doc-flags.sh ./apps/cli/bin/cli
+	@./scripts/check-doc-flags.sh ./apps/cli/bin/issuegraph
 	@./scripts/check-doc-freshness.sh
 	@go -C $(GO_DIR) test -tags=gms_pure_go ./test/docsync
 
@@ -407,13 +405,13 @@ clean:
 	rm -f cli
 	rm -f cli.exe
 	rm -f internal/storage/dolt/bench-cpu-*.prof
-	rm -f beads-perf-*.prof
+	rm -f issuegraph-perf-*.prof
 
-# Sweep orphaned modules/cli test temp dirs (e.g. when a test run was SIGKILLed
+# Sweep orphaned apps/cli test temp dirs (e.g. when a test run was SIGKILLed
 # before its TestMain cleanup ran). Safe to run between test runs; will
 # skip dirs in use by a live test process. See bd-3q2u.
 clean-test-tmp:
-	@echo "Sweeping orphaned modules/cli test temp dirs from $${TMPDIR:-/tmp}..."
+	@echo "Sweeping orphaned apps/cli test temp dirs from $${TMPDIR:-/tmp}..."
 	@./scripts/clean-test-tmp.sh
 
 # Show help
@@ -431,7 +429,6 @@ help:
 	@echo "  make ci-complexity-diff - Compare complexity with COMPLEXITY_BASE_REF"
 	@echo "  make ci-complexity-check - Check complexity against the local baseline"
 	@echo "  make ci-package-mcp - Run MCP Python package gate"
-	@echo "  make ci-package-npm - Run npm package gate"
 	@echo "  make test-regression - Run differential regression tests (baseline vs candidate)"
 	@echo "  make test-upgrade  - Run upgrade smoke tests (release stability gate)"
 	@echo "  make test-cross-version - Run cross-version smoke tests (last 30 tags)"
@@ -446,5 +443,5 @@ help:
 	@echo "  make api-gen      - Regenerate HTTP API types from the OpenAPI spec"
 	@echo "  make api-check    - OpenAPI drift gate (regenerate, diff-or-fail, spec tests)"
 	@echo "  make clean        - Remove build artifacts and profile files"
-	@echo "  make clean-test-tmp - Sweep orphaned modules/cli test temp dirs from \$$TMPDIR"
+	@echo "  make clean-test-tmp - Sweep orphaned apps/cli test temp dirs from \$$TMPDIR"
 	@echo "  make help         - Show this help message"

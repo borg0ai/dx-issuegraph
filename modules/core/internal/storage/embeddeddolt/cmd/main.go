@@ -9,12 +9,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
 )
 
 func main() {
-	dir := flag.String("dir", "", "path to .beads directory")
-	database := flag.String("database", "beads", "database name")
+	dir := flag.String("dir", "", "path to .issuegraph directory")
+	database := flag.String("database", "issuegraph", "database name")
 	branch := flag.String("branch", "main", "branch name")
 	flag.Parse()
 

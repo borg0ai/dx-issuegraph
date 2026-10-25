@@ -5,7 +5,7 @@
 // second pool connection so the cursor never deadlocks.
 //
 // Both dependency tables are included so results match the slice path
-// GetDependentsWithMetadata, which the human-readable `bd show` uses.
+// GetDependentsWithMetadata, which the human-readable `issuegraph show` uses.
 // IterDependentsWithMetadata UNION ALLs `dependencies` (permanent-source
 // edges, joined to `issues`) with `wisp_dependencies` (wisp-source edges,
 // joined to `wisps`). WispTableRouting routes every edge to exactly one table
@@ -21,10 +21,10 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // doltDependentsIter streams the issues × dependency join, returning each

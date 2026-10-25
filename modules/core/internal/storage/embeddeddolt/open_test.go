@@ -11,8 +11,8 @@ func TestBuildDSN_SpacesInPath(t *testing.T) {
 	// Regression test for #2920: paths with spaces must not be
 	// percent-encoded (%20) because the Dolt driver's ParseDataSource
 	// uses the path as a literal filesystem path.
-	dir := "/Users/bbrenner/Documents/Scripting Projects/beads/.beads/embeddeddolt"
-	dsn := buildDSN(dir, "beads")
+	dir := "/Users/bbrenner/Documents/Scripting Projects/issuegraph/.issuegraph/embeddeddolt"
+	dsn := buildDSN(dir, "issuegraph")
 
 	if !strings.HasPrefix(dsn, "file://") {
 		t.Fatalf("DSN should start with file://, got %q", dsn)

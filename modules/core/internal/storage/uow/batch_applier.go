@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // BatchApplierSource is the capability accessor a unit-of-work provider offers
@@ -511,7 +511,7 @@ func (r *uowApplyRun) runEndGate(ctx context.Context) error {
 		return fmt.Errorf("final cycle check failed (no edges added): %w", err)
 	}
 	if cyclePath != "" {
-		return domain.NewCycleError("dependency cycle would be created: %s (no edges added; run 'bd dep cycles' for analysis)", cyclePath)
+		return domain.NewCycleError("dependency cycle would be created: %s (no edges added; run 'issuegraph dep cycles' for analysis)", cyclePath)
 	}
 	for _, applied := range r.edges {
 		if storageissueops.IsExternalDepTarget(applied.dep.IssueID, applied.dep.DependsOnID) {

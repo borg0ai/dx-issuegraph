@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // dependencyCommitBoundaryDriver models dependency writes through their SQL
@@ -142,7 +142,7 @@ func TestRemoveDependencySQLCommitResponseLossIsIndeterminateAndNotReplayed(t *t
 		{name: "wisp", activeWisp: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("BEADS_TEST_MODE", "")
+			t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 			breaker := newTestCircuitBreaker(t)
 			driver := &dependencyCommitBoundaryDriver{
 				activeWisp: tc.activeWisp,
@@ -177,7 +177,7 @@ func TestRemoveDependencySQLCommitResponseLossIsIndeterminateAndNotReplayed(t *t
 }
 
 func TestAddExplicitIDWispDependencyIndeterminateCommitTripsCircuitBeforeNextWrite(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	breaker := newTestCircuitBreaker(t)
 	for range circuitFailureThreshold - 1 {
 		breaker.RecordFailure()

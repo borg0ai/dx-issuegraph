@@ -58,14 +58,14 @@ type Page struct {
 // IT IS ONE ROLE WITH ONE METHOD, and being born with one is the point rather
 // than an accident of what shipped first. The plane's other verbs are operator
 // decisions the read holder is deliberately not entitled to, so there is no
-// second shape of this question waiting to be appended: `bd events prune` and
+// second shape of this question waiting to be appended: `issuegraph events prune` and
 // the per-instance activation switch answer to storage.EventsJournalAccessor
 // and storage.EventsJournalConfigurer, which the workspace holds and a
 // publishing surface does not.
 //
 // The read/write entitlement test the role rule applies (can one caller be
 // entitled to the read and not the write?) comes back YES here, loudly, which
-// is why the split exists at all: `bd serve` publishes GET /v0/beads/events and
+// is why the split exists at all: `issuegraph serve` publishes GET /v0/issuegraph/events and
 // documents that it never retains, so handing it a delete would make that
 // documentation the only thing standing between a consumer's checkpoint and a
 // prune.
@@ -95,7 +95,7 @@ type Journal interface {
 	// role imposes no ceiling of its own, because the caller that pages a
 	// hundred thousand records out to a file is as legitimate as the one
 	// polling for ten. A FRONT DOOR may impose one — the HTTP handler behind
-	// GET /v0/beads/events caps its page, and that cap is the HANDLER's promise
+	// GET /v0/issuegraph/events caps its page, and that cap is the HANDLER's promise
 	// to its clients, stated on the operation — and a bounded page still
 	// reports the journal's head, which is how the caller learns there is more.
 	//

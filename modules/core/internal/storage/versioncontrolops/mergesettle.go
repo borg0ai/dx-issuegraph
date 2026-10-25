@@ -9,15 +9,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/kvkeys"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/kvkeys"
 )
 
-// memoryConfigKeyPrefix is the config-table key prefix under which `bd remember`
+// memoryConfigKeyPrefix is the config-table key prefix under which `issuegraph remember`
 // stores persistent memories. It is sourced from the shared kvkeys package so it
-// can never drift from the prefix modules/cli actually writes (kvkeys.Prefix "kv." +
-// kvkeys.MemoryPrefix "memory."), which modules/cli also reserves against generic
-// `bd kv set` keys. Config rows with this prefix are the only config class safe
+// can never drift from the prefix apps/cli actually writes (kvkeys.Prefix "kv." +
+// kvkeys.MemoryPrefix "memory."), which apps/cli also reserves against generic
+// `issuegraph kv set` keys. Config rows with this prefix are the only config class safe
 // to auto-resolve on merge; any other key (issue_prefix above all) is left for
 // the operator.
 const memoryConfigKeyPrefix = kvkeys.MemoryConfigKeyPrefix
@@ -105,7 +105,7 @@ func (e *MergeConflictsError) Unwrap() error { return e.MergeErr }
 // ErrPullBehindFastForwardable marks the one "pull reported success but merged
 // nothing" state that a plain re-pull fixes on its own: the branch this database
 // reads is a strict ANCESTOR of the refreshed remote-tracking ref, so a peer
-// pushed after this pull's fetch and the next pull fast-forwards it. bd sync's
+// pushed after this pull's fetch and the next pull fast-forwards it. issuegraph sync's
 // loop treats it as a transient — like a push race — instead of hard-failing the
 // tick. A genuine divergence (a common ancestor that is neither tip) is NOT
 // wrapped in this and stays a hard error, because retrying cannot converge it.
@@ -194,7 +194,7 @@ func SettleMerge(ctx context.Context, db DBConn, mergeErr error, preMergeClean b
 		if mergeErr != nil {
 			return mergeErr
 		}
-		return fmt.Errorf("pull merge left constraint violations bd cannot auto-repair; inspect dolt_constraint_violations and resolve before retrying")
+		return fmt.Errorf("pull merge left constraint violations issuegraph cannot auto-repair; inspect dolt_constraint_violations and resolve before retrying")
 	}
 
 	if mergeErr != nil && !resolved && !strategyResolved && !repairedViol {
@@ -232,7 +232,7 @@ func SettleMerge(ctx context.Context, db DBConn, mergeErr error, preMergeClean b
 // MergeWithStrategy merges ref into the current branch and, when the merge
 // produces conflicts, resolves EVERY conflicted table with the operator's
 // explicit strategy ("ours" or "theirs") instead of aborting for later
-// resolution. It backs `bd vc merge --strategy` (#4992): the flag existed
+// resolution. It backs `issuegraph vc merge --strategy` (#4992): the flag existed
 // and was documented, but the merge ran as a bare `CALL DOLT_MERGE` inside an
 // implicit autocommit transaction, so Dolt rejected any real conflict with
 // Error 1105 ("@autocommit must be disabled ...") before the strategy could
@@ -325,7 +325,7 @@ func MergeWithStrategy(ctx context.Context, db DBConn, ref, author, strategy str
 	}
 	if had && !repaired {
 		abortMerge(ctx, db, preMergeClean)
-		return conflicts, fmt.Errorf("conflicts resolved with '%s' strategy but merge left constraint violations bd cannot auto-repair; inspect dolt_constraint_violations and resolve before retrying", strategy)
+		return conflicts, fmt.Errorf("conflicts resolved with '%s' strategy but merge left constraint violations issuegraph cannot auto-repair; inspect dolt_constraint_violations and resolve before retrying", strategy)
 	}
 
 	if err := StageAndCommit(ctx, db, dirtyTables,
@@ -386,7 +386,7 @@ func workingSetClean(ctx context.Context, db DBConn) bool {
 //     (or both are equal), the row is resolved keeping the hash — recorded
 //     provenance beats its absence, and the result converges across clones.
 //     Two DIFFERENT non-empty hashes are the #4259 schema fork itself and are
-//     left for the operator (bd doctor reports them as Migration Content Skew).
+//     left for the operator (issuegraph doctor reports them as Migration Content Skew).
 //
 //   - config: persistent memories live in config as kv.memory.* rows (the
 //     pre-pull auto-commit now commits config so they sync). Like metadata,
@@ -400,7 +400,7 @@ func workingSetClean(ctx context.Context, db DBConn) bool {
 //     side's value, so disjoint edits both survive; a cell both sides changed
 //     to different values is settled last-write-wins by updated_at, which also
 //     merges updated_at itself to max(ours, theirs). This is the flagship of
-//     the federation asks: because beads stamps updated_at on every mutation,
+//     the federation asks: because issuegraph stamps updated_at on every mutation,
 //     ANY two same-issue edits between syncs conflict on that cell even when
 //     the semantic fields are disjoint, so the conflict rate is far higher
 //     than the semantic-conflict rate. add/add (no base row), delete/modify

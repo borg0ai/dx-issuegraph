@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/memoryapi"
-	storagememoryops "github.com/steveyegge/beads/internal/storage/memoryops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/memoryapi"
+	storagememoryops "github.com/borg0ai/dx-issuegraph/internal/storage/memoryops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // MemoriesSource is the capability accessor a unit-of-work provider offers for
@@ -74,7 +74,7 @@ func (m *memories) Remember(ctx context.Context, req memoryops.RememberRequest) 
 		if err := cfg.SetConfig(ctx, storageKey, req.Content); err != nil {
 			return false, "", err
 		}
-		return replaced, "bd: remember " + key, nil
+		return replaced, "issuegraph: remember " + key, nil
 	})
 	if err != nil {
 		return memoryops.RememberResult{}, err
@@ -121,7 +121,7 @@ func (m *memories) Forget(ctx context.Context, req memoryops.ForgetRequest) (mem
 		if err := cfg.DeleteConfig(ctx, storageKey); err != nil {
 			return memoryops.ForgetResult{}, "", err
 		}
-		return memoryops.ForgetResult{Key: key, Value: previous, Found: true}, "bd: forget " + key, nil
+		return memoryops.ForgetResult{Key: key, Value: previous, Found: true}, "issuegraph: forget " + key, nil
 	})
 	if err != nil {
 		return memoryops.ForgetResult{}, err

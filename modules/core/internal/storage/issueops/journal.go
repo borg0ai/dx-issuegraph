@@ -10,13 +10,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// The durable events journal records every committed bead mutation as a row in
-// the clone-local bd_events_journal table, written in the SAME transaction as
+// The durable events journal records every committed issue mutation as a row in
+// the clone-local issuegraph_events_journal table, written in the SAME transaction as
 // the mutation itself. Because the row and the mutation commit atomically, the
 // journal can never lag the data or produce a false record.
 //
@@ -25,11 +25,11 @@ import (
 // commit-visibility order can invert seq order: a lower seq can commit after a
 // higher seq is already visible, and a consumer tailing WHERE seq > cursor
 // would permanently skip it. Instead each seq is drawn from the single-row
-// counter table bd_events_seq inside the mutation's own transaction (see
+// counter table issuegraph_events_seq inside the mutation's own transaction (see
 // nextEventSeq). The shared counter row makes concurrent allocators conflict,
 // so exactly one commit order survives; the surviving seqs are gapless and
 // commit-ordered (a rolled-back allocator burns no seq — the increment rolls
-// back with it). This holds on both of bd's Dolt concurrency models: the SQL
+// back with it). This holds on both of issuegraph's Dolt concurrency models: the SQL
 // server aborts the losing commit with a serialization error (retried by the
 // write path), while the embedded engine serializes writers on the counter row.
 //
@@ -254,7 +254,7 @@ func captureBlockedJournalSnapshot(
 }
 
 // recordBlockedJournalChanges compares the stable post-maintenance state with
-// the captured state and journals only beads whose derived is_blocked value
+// the captured state and journals only issuegraph whose derived is_blocked value
 // actually changed. The emitted update carries the complete post-mutation
 // snapshot, allowing a cursor consumer to stay correct without graph queries.
 func recordBlockedJournalChanges(
@@ -304,7 +304,7 @@ func recordBlockedJournalChanges(
 // actor is the acting identity that performed the mutation, as resolved for
 // the audit-events table; "" when the mutation path genuinely has none —
 // derived is_blocked maintenance, and the system surfaces with no request
-// behind them (storage.DeleteIssue, gc and molecule cleanup, `bd repo
+// behind them (storage.DeleteIssue, gc and molecule cleanup, `issuegraph repo
 // remove`). A user-initiated delete is NOT one of those: its rows, cascade
 // included, carry the requesting actor. It is an explicit parameter, not
 // ambient context, so a new call site cannot compile without deciding
@@ -447,7 +447,7 @@ func insertEventRow(ctx context.Context, tx DBTX, op EventOp, issueID string, is
 	}
 	insert := func(seq int64) error {
 		_, err := tx.ExecContext(ctx, `
-			INSERT INTO bd_events_journal (seq, ts, op, issue_id, actor, issue_json, dep_json, comment_json)
+			INSERT INTO issuegraph_events_journal (seq, ts, op, issue_id, actor, issue_json, dep_json, comment_json)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		`, seq, time.Now().UTC(), string(op), issueID, actor, issueJSON, depJSON, commentJSON)
 		return err
@@ -489,12 +489,12 @@ func insertEventRow(ctx context.Context, tx DBTX, op EventOp, issueID string, is
 // a fresh journal. GREATEST also makes this safe to call on a counter that is
 // already ahead — it never moves the counter backwards.
 func healEventSeqCounter(ctx context.Context, tx DBTX) error {
-	if _, err := tx.ExecContext(ctx, "INSERT IGNORE INTO bd_events_seq (id, next_seq) VALUES (0, 0)"); err != nil {
+	if _, err := tx.ExecContext(ctx, "INSERT IGNORE INTO issuegraph_events_seq (id, next_seq) VALUES (0, 0)"); err != nil {
 		return fmt.Errorf("journal: seed seq counter: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `
-		UPDATE bd_events_seq
-		SET next_seq = GREATEST(next_seq, COALESCE((SELECT MAX(seq) FROM bd_events_journal), 0))
+		UPDATE issuegraph_events_seq
+		SET next_seq = GREATEST(next_seq, COALESCE((SELECT MAX(seq) FROM issuegraph_events_journal), 0))
 		WHERE id = 0
 	`); err != nil {
 		return fmt.Errorf("journal: raise seq counter to high-water mark: %w", err)
@@ -503,7 +503,7 @@ func healEventSeqCounter(ctx context.Context, tx DBTX) error {
 }
 
 // nextEventSeq allocates the next journal sequence number from the single-row
-// bd_events_seq counter, INSIDE the caller's transaction. Incrementing the
+// issuegraph_events_seq counter, INSIDE the caller's transaction. Incrementing the
 // shared counter row is what serializes seq assignment: two transactions that
 // both allocate a seq contend on the one row, so only one commit order survives.
 // The value becomes the journal row's seq, yielding gapless, commit-ordered seqs
@@ -517,7 +517,7 @@ func healEventSeqCounter(ctx context.Context, tx DBTX) error {
 // failure instead — see there.
 func nextEventSeq(ctx context.Context, tx DBTX) (int64, error) {
 	advance := func() (int64, error) {
-		res, err := tx.ExecContext(ctx, "UPDATE bd_events_seq SET next_seq = next_seq + 1 WHERE id = 0")
+		res, err := tx.ExecContext(ctx, "UPDATE issuegraph_events_seq SET next_seq = next_seq + 1 WHERE id = 0")
 		if err != nil {
 			return 0, fmt.Errorf("journal: advance seq counter: %w", err)
 		}
@@ -538,7 +538,7 @@ func nextEventSeq(ctx context.Context, tx DBTX) (int64, error) {
 		}
 	}
 	var seq int64
-	if err := tx.QueryRowContext(ctx, "SELECT next_seq FROM bd_events_seq WHERE id = 0").Scan(&seq); err != nil {
+	if err := tx.QueryRowContext(ctx, "SELECT next_seq FROM issuegraph_events_seq WHERE id = 0").Scan(&seq); err != nil {
 		return 0, fmt.Errorf("journal: read seq counter: %w", err)
 	}
 	return seq, nil

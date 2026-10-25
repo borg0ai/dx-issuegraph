@@ -1,16 +1,16 @@
 ---
-title: "bd show"
+title: "issuegraph show"
 description: "Show issue details"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc show`.
+Generated from `issuegraph help --doc show`.
 
 Show issue details
 
 ```
-bd show [id...] [--id=<id>...] [--current] [flags]
+issuegraph show [id...] [--id=<id>...] [--current] [flags]
 ```
 
 **Aliases:** view
@@ -18,12 +18,13 @@ bd show [id...] [--id=<id>...] [--current] [flags]
 **Flags:**
 
 ```
-      --as-of string         Show issue as it existed at a specific commit hash or branch (requires Dolt)
+      --as-of string         Show issue as it existed at a specific commit hash or branch (requires Dolt; commit hashes must be the full 32-character hash from 'issuegraph history', not a prefix)
+      --brief-deps           Reduce each dependency to its identity fields in JSON output (--json only; drops description, design, notes and acceptance criteria)
       --children             Show only the children of this issue
       --current              Show the currently active issue (in-progress, hooked, or last touched)
       --id stringArray       Issue ID (use for IDs that look like flags, e.g., --id=gt--xyz)
       --include-comments     Stream full comment bodies in JSON output (--json only; may be slow on issues with many comments)
-      --include-dependents   Stream full dependent issues in JSON output (--json only; may be slow on hub beads)
+      --include-dependents   Stream full dependent issues in JSON output (--json only; may be slow on hub issuegraph)
       --local-time           Show timestamps in local time instead of UTC
       --long                 Show all available fields (extended metadata, agent identity, gate fields, etc.)
       --refs                 Show issues that reference this issue (reverse lookup)

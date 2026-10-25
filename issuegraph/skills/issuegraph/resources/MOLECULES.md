@@ -8,9 +8,9 @@ issuegraph v0.34.0 introduces a chemistry-inspired workflow system:
 
 | Phase | Name | Storage | Synced? | Use Case |
 |-------|------|---------|---------|----------|
-| **Solid** | Proto | `.beads/` | Yes | Reusable template (epic with `template` label) |
-| **Liquid** | Mol | `.beads/` | Yes | Persistent instance (real issues from template) |
-| **Vapor** | Wisp | `.beads-wisp/` | No | Ephemeral instance (operational work, no audit trail) |
+| **Solid** | Proto | `.issuegraph/` | Yes | Reusable template (epic with `template` label) |
+| **Liquid** | Mol | `.issuegraph/` | Yes | Persistent instance (real issues from template) |
+| **Vapor** | Wisp | `.issuegraph-wisp/` | No | Ephemeral instance (operational work, no audit trail) |
 
 **Phase transitions:**
 - `spawn` / `pour`: Solid (proto) → Liquid (mol)
@@ -50,7 +50,7 @@ issuegraph create "Run tests for {{component}}" --type task
 issuegraph dep add task-id epic-id --type parent-child
 
 # Distill from ad-hoc work (extracts template from existing epic)
-issuegraph mol distill bd-abc123 --as "Release Workflow" --var version=1.0.0
+issuegraph mol distill issuegraph-abc123 --as "Release Workflow" --var version=1.0.0
 ```
 
 **Proto naming convention:** Use `mol-` prefix for clarity (e.g., `mol-release`, `mol-patrol`).
@@ -148,7 +148,7 @@ By default, spawned protos inherit target's phase. Override with flags:
 issuegraph mol bond mol-critical-bug wisp-patrol --pour
 
 # Need ephemeral diagnostic on persistent feature?
-issuegraph mol bond mol-temp-check bd-feature --wisp
+issuegraph mol bond mol-temp-check issuegraph-feature --wisp
 ```
 
 ### Custom Compound Names
@@ -210,8 +210,8 @@ issuegraph mol wisp gc --closed --force      # Purge all closed wisps
 Extract a reusable template from ad-hoc work:
 
 ```bash
-issuegraph mol distill bd-o5xe --as "Release Workflow"
-issuegraph mol distill bd-abc --var feature_name=auth-refactor --var version=1.0.0
+issuegraph mol distill issuegraph-o5xe --as "Release Workflow"
+issuegraph mol distill issuegraph-abc --var feature_name=auth-refactor --var version=1.0.0
 ```
 
 **What distill does:**
@@ -243,7 +243,7 @@ Projects can depend on capabilities shipped by other projects:
 issuegraph ship auth-api                # Marks capability as available
 
 # Project B depends on it
-issuegraph dep add bd-123 external:project-a:auth-api
+issuegraph dep add issuegraph-123 external:project-a:auth-api
 ```
 
 ### Shipping Capabilities
@@ -310,7 +310,7 @@ issuegraph mol spawn mol-deploy --attach mol-rollback --attach-type conditional
 
 ```bash
 # After completing a good workflow organically
-issuegraph mol distill bd-release-epic --as "Release Process" --var version=X.Y.Z
+issuegraph mol distill issuegraph-release-epic --as "Release Process" --var version=X.Y.Z
 # Now team can: issuegraph mol spawn mol-release-process --var version=2.0.0
 ```
 
@@ -349,7 +349,7 @@ issuegraph mol distill bd-release-epic --as "Release Process" --var version=X.Y.
 - Check proto for `{{key}}` placeholders with `issuegraph mol show`
 
 **"Wisp commands fail"**
-- Wisps stored in `.beads-wisp/` (separate from `.beads/`)
+- Wisps stored in `.issuegraph-wisp/` (separate from `.issuegraph/`)
 - Check `issuegraph mol wisp list` for active wisps
 
 **"External dependency not satisfied"**

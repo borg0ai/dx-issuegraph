@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 // recordingIssues captures the filter the reader built, which is the only way
@@ -82,20 +82,20 @@ func newReadServer(t *testing.T, cfg Config) (*testServer, *recordingIssues) {
 // forwarded an absent `sort` as "" would therefore serve hybrid while the
 // frozen document still read `default: priority` — and hybrid demotes older
 // high-priority work, so as soon as `limit` truncates, the page contains
-// DIFFERENT ISSUES from the ones `bd ready` shows. The document tests pin the
+// DIFFERENT ISSUES from the ones `issuegraph ready` shows. The document tests pin the
 // document; only this pins the handler.
 //
 // The wanted value is the LITERAL, not readySortDefault. Comparing the filter
 // against the same constant the handler read would pass for every value that
 // constant could take, including hybrid — the assertion would say only that
 // the handler forwards its own default, which is not the property at risk.
-// TestDefaultsMatchCLIFlags ties that literal to `bd ready --sort`'s
+// TestDefaultsMatchCLIFlags ties that literal to `issuegraph ready --sort`'s
 // registered default and to the frozen document, so all three move together or
 // one of them fails.
 func TestReadyForwardsAnExplicitSortPolicy(t *testing.T) {
 	ts, rec := newReadServer(t, Config{})
 
-	if resp := ts.get(t, "/v0/beads/ready"); resp.StatusCode != http.StatusOK {
+	if resp := ts.get(t, "/v0/issuegraph/ready"); resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200", resp.StatusCode)
 	}
 	filters := rec.readyFilters()
@@ -120,7 +120,7 @@ func TestReadyForwardsAnExplicitSortPolicy(t *testing.T) {
 func TestReadySortIsValidatedAgainstTheDocumentedEnum(t *testing.T) {
 	ts, rec := newReadServer(t, Config{})
 
-	resp := ts.get(t, "/v0/beads/ready?sort=newest")
+	resp := ts.get(t, "/v0/issuegraph/ready?sort=newest")
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", resp.StatusCode)
 	}
@@ -153,13 +153,13 @@ func TestABuilderRefusalIsTheDocumentedBadRequest(t *testing.T) {
 		path  string
 		param string
 	}{
-		{"an issue type outside the workspace vocabulary", "/v0/beads/issues?type=bogus", "type"},
-		{"a status that is not a status", "/v0/beads/issues?status=bogus", "status"},
-		{"a metadata field key the query layer cannot spell", "/v0/beads/issues?metadata_field=1bad=x", "metadata_field"},
-		{"a has-metadata key the query layer cannot spell", "/v0/beads/issues?has_metadata_key=1bad", "has_metadata_key"},
-		{"a metadata field key on the ready surface", "/v0/beads/ready?metadata_field=1bad=x", "metadata_field"},
-		{"a has-metadata key on the ready surface", "/v0/beads/ready?has_metadata_key=1bad", "has_metadata_key"},
-		{"a metadata field key on the count surface", "/v0/beads/issues:count?metadata_field=1bad=x", "metadata_field"},
+		{"an issue type outside the workspace vocabulary", "/v0/issuegraph/issues?type=bogus", "type"},
+		{"a status that is not a status", "/v0/issuegraph/issues?status=bogus", "status"},
+		{"a metadata field key the query layer cannot spell", "/v0/issuegraph/issues?metadata_field=1bad=x", "metadata_field"},
+		{"a has-metadata key the query layer cannot spell", "/v0/issuegraph/issues?has_metadata_key=1bad", "has_metadata_key"},
+		{"a metadata field key on the ready surface", "/v0/issuegraph/ready?metadata_field=1bad=x", "metadata_field"},
+		{"a has-metadata key on the ready surface", "/v0/issuegraph/ready?has_metadata_key=1bad", "has_metadata_key"},
+		{"a metadata field key on the count surface", "/v0/issuegraph/issues:count?metadata_field=1bad=x", "metadata_field"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ts, _ := newReadServer(t, Config{})
@@ -186,7 +186,7 @@ func TestABuilderRefusalIsTheDocumentedBadRequest(t *testing.T) {
 // back as a 500 with the storage method's name wrapped around it.
 func TestAnInvalidMetadataKeyNeverReachesStorage(t *testing.T) {
 	ts, rec := newReadServer(t, Config{})
-	if resp := ts.get(t, "/v0/beads/issues?metadata_field=1bad=x"); resp.StatusCode != http.StatusBadRequest {
+	if resp := ts.get(t, "/v0/issuegraph/issues?metadata_field=1bad=x"); resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", resp.StatusCode)
 	}
 	if n := len(rec.searchFilters()); n != 0 {
@@ -201,7 +201,7 @@ func TestAnInvalidMetadataKeyNeverReachesStorage(t *testing.T) {
 // FILTER parameter WIDENS the result set, so a client one version ahead
 // receives rows it believes it filtered out.
 func TestUnknownReadParameterIsRefusedByName(t *testing.T) {
-	for _, path := range []string{"/v0/beads/ready?bogus=1", "/v0/beads/issues?bogus=1", "/v0/beads/issues/bd-1?bogus=1"} {
+	for _, path := range []string{"/v0/issuegraph/ready?bogus=1", "/v0/issuegraph/issues?bogus=1", "/v0/issuegraph/issues/bd-1?bogus=1"} {
 		ts, _ := newReadServer(t, Config{})
 		resp := ts.get(t, path)
 		if resp.StatusCode != http.StatusBadRequest {
@@ -223,7 +223,7 @@ func TestUnknownReadParameterIsRefusedByName(t *testing.T) {
 func TestAMalformedKnownParameterIsNotReportedAsVersionSkew(t *testing.T) {
 	ts, _ := newReadServer(t, Config{})
 
-	resp := ts.get(t, "/v0/beads/ready?limit=-1&bogus=1")
+	resp := ts.get(t, "/v0/issuegraph/ready?limit=-1&bogus=1")
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", resp.StatusCode)
 	}
@@ -239,7 +239,7 @@ func TestAMalformedKnownParameterIsNotReportedAsVersionSkew(t *testing.T) {
 func TestUnlimitedReadsAreLoopbackOnly(t *testing.T) {
 	t.Run("loopback allows it", func(t *testing.T) {
 		ts, rec := newReadServer(t, Config{})
-		if resp := ts.get(t, "/v0/beads/ready?limit=0"); resp.StatusCode != http.StatusOK {
+		if resp := ts.get(t, "/v0/issuegraph/ready?limit=0"); resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, want 200", resp.StatusCode)
 		}
 		filters := rec.readyFilters()
@@ -253,7 +253,7 @@ func TestUnlimitedReadsAreLoopbackOnly(t *testing.T) {
 		// token file is configured. It is the posture under test here — the
 		// refusal being pinned is about the BIND, not about the credential.
 		ts, rec := newReadServer(t, Config{Addr: "127.0.0.1:0", AllowNonLoopback: true, InsecureNoAuth: true})
-		resp := ts.get(t, "/v0/beads/ready?limit=0")
+		resp := ts.get(t, "/v0/issuegraph/ready?limit=0")
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("status = %d, want 400", resp.StatusCode)
 		}
@@ -279,7 +279,7 @@ func TestGetIssueRefusesAnImpossibleIDFromTheEdge(t *testing.T) {
 	}
 	for _, id := range []string{long, "bd-%01"} {
 		ts, rec := newReadServer(t, Config{})
-		resp := ts.get(t, "/v0/beads/issues/"+id)
+		resp := ts.get(t, "/v0/issuegraph/issues/"+id)
 		if resp.StatusCode != http.StatusNotFound {
 			t.Errorf("GET issue %q: status = %d, want 404", id, resp.StatusCode)
 			continue
@@ -365,7 +365,7 @@ func TestAReadRouteTimesTheUnitsOfWorkItsReaderOpens(t *testing.T) {
 	}
 	ts := newTestServer(t, Config{Provider: provider})
 
-	if resp := ts.get(t, "/v0/beads/ready"); resp.StatusCode != http.StatusOK {
+	if resp := ts.get(t, "/v0/issuegraph/ready"); resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200", resp.StatusCode)
 	}
 	// Two units of work, both through the wrapper: the ready surface's
@@ -402,9 +402,9 @@ func TestListForwardsTheEphemeralPlaneParameter(t *testing.T) {
 		wantSkipWisps bool
 		wantInfraType bool
 	}{
-		{"absent leaves the durable listing alone", "/v0/beads/issues", true, false},
-		{"include_ephemeral admits the plane and takes no type exclusion off", "/v0/beads/issues?include_ephemeral=true", false, false},
-		{"include_infra is the wider one", "/v0/beads/issues?include_infra=true", false, true},
+		{"absent leaves the durable listing alone", "/v0/issuegraph/issues", true, false},
+		{"include_ephemeral admits the plane and takes no type exclusion off", "/v0/issuegraph/issues?include_ephemeral=true", false, false},
+		{"include_infra is the wider one", "/v0/issuegraph/issues?include_infra=true", false, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ts, rec := newReadServer(t, Config{})
@@ -443,7 +443,7 @@ func TestListForwardsTheEphemeralPlaneParameter(t *testing.T) {
 func TestTheEphemeralPlaneParameterIsTheSkewSignal(t *testing.T) {
 	ts, _ := newReadServer(t, Config{})
 
-	resp := ts.get(t, "/v0/beads/issues?include_ephemeral=true")
+	resp := ts.get(t, "/v0/issuegraph/issues?include_ephemeral=true")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: a parameter this build serves must not read as skew", resp.StatusCode)
 	}
@@ -451,7 +451,7 @@ func TestTheEphemeralPlaneParameterIsTheSkewSignal(t *testing.T) {
 	// The neighbouring spelling a client might guess is NOT quietly accepted:
 	// an unknown parameter is refused by name, which is what makes the 200
 	// above mean something.
-	resp = ts.get(t, "/v0/beads/issues?include_ephemerals=true")
+	resp = ts.get(t, "/v0/issuegraph/issues?include_ephemerals=true")
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", resp.StatusCode)
 	}

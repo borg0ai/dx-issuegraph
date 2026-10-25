@@ -8,10 +8,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func newTestUOWProvider(t *testing.T) UnitOfWorkProvider {
@@ -20,9 +20,9 @@ func newTestUOWProvider(t *testing.T) UnitOfWorkProvider {
 	bin, err := exec.LookPath("dolt")
 	require.NoError(t, err)
 
-	bdBin := buildBDBinary(t)
+	issuegraphBin := buildIssueGraphBinary(t)
 	prev := proxy.ResolveExecutable
-	proxy.ResolveExecutable = func() (string, error) { return bdBin, nil }
+	proxy.ResolveExecutable = func() (string, error) { return issuegraphBin, nil }
 	t.Cleanup(func() { proxy.ResolveExecutable = prev })
 
 	t.Setenv("HOME", t.TempDir())
@@ -38,7 +38,7 @@ func newTestUOWProvider(t *testing.T) UnitOfWorkProvider {
 	provider, err := NewDoltServerUOWProvider(
 		context.Background(),
 		storeRootDir,
-		"beads",
+		"issuegraph",
 		logPath,
 		cfgPath,
 		proxy.BackendLocalServer,

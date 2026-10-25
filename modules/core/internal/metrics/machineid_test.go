@@ -20,7 +20,7 @@ func TestCachedMachineIDReusesCacheWithoutRecomputing(t *testing.T) {
 	}
 
 	sentinel := strings.Repeat("ab12", 16) // 64 chars, valid shape
-	dir := filepath.Join(home, ".beads")
+	dir := filepath.Join(home, ".issuegraph")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -34,7 +34,7 @@ func TestCachedMachineIDReusesCacheWithoutRecomputing(t *testing.T) {
 }
 
 // TestCachedMachineIDComputesAndPersistsOnMiss exercises the cold path: no
-// cache file, so the ID is computed once and written to ~/.beads/machine-id
+// cache file, so the ID is computed once and written to ~/.issuegraph/machine-id
 // (0600) for every later invocation to reuse.
 func TestCachedMachineIDComputesAndPersistsOnMiss(t *testing.T) {
 	home := t.TempDir()
@@ -48,7 +48,7 @@ func TestCachedMachineIDComputesAndPersistsOnMiss(t *testing.T) {
 		t.Fatalf("cachedMachineID returned empty ID")
 	}
 
-	path := filepath.Join(home, ".beads", machineIDCacheName)
+	path := filepath.Join(home, ".issuegraph", machineIDCacheName)
 	if !validMachineID(first) {
 		// The platform probe failed (returns "invalid" in sandboxed CI);
 		// a failure must NOT be cached, so the next run retries.
@@ -123,7 +123,7 @@ func TestReadCachedMachineIDRejectsGarbage(t *testing.T) {
 }
 
 // TestInitDisabledDoesNotTouchMachineID: a disabled invocation (the
-// BD_DISABLE_METRICS / DO_NOT_TRACK path — and every `bd --version`) must not
+// ISSUEGRAPH_DISABLE_METRICS / DO_NOT_TRACK path — and every `issuegraph --version`) must not
 // compute, read, or write a machine ID at all. The observable half of that
 // contract is that no cache file appears.
 func TestInitDisabledDoesNotTouchMachineID(t *testing.T) {
@@ -137,7 +137,7 @@ func TestInitDisabledDoesNotTouchMachineID(t *testing.T) {
 		t.Fatalf("Init: %v", err)
 	}
 
-	path := filepath.Join(home, ".beads", machineIDCacheName)
+	path := filepath.Join(home, ".issuegraph", machineIDCacheName)
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		t.Errorf("disabled Init created machine-id cache at %s (stat err=%v)", path, err)
 	}

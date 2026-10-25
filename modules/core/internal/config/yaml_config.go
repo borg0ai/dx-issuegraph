@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/internal/legacydir"
 	"gopkg.in/yaml.v3"
 )
 
@@ -17,17 +18,17 @@ import (
 // rather than the database. These are "startup" settings that are
 // read before the database is opened.
 //
-// This fixes GH#536: users were confused when `bd config set no-db true`
+// This fixes GH#536: users were confused when `issuegraph config set no-db true`
 // appeared to succeed but had no effect (because no-db is read from yaml
 // at startup, not from the database).
 var YamlOnlyKeys = map[string]bool{
-	// Bootstrap flags (affect how bd starts)
+	// Bootstrap flags (affect how issuegraph starts)
 	"no-db": true,
 	"json":  true,
 	// Events journal: read through viper during root pre-run, before the store
 	// is open, so a DB-backed write would be silently unread — the GH#536 class
 	// this map exists to prevent. Without these four entries
-	// `bd config set events-journal true` reports success and changes nothing.
+	// `issuegraph config set events-journal true` reports success and changes nothing.
 	"events-journal":             true,
 	"events-journal-retain-days": true,
 	"events-journal-retain-rows": true,
@@ -46,8 +47,8 @@ var YamlOnlyKeys = map[string]bool{
 	"git.author":      true,
 	"git.no-gpg-sign": true,
 	"no-push":         true,
-	"no-git-ops":      true, // Disable git ops in bd prime session close protocol (GH#593)
-	"agent.profile":   true, // Explicit policy profile for bd prime's close protocol (GH#3423)
+	"no-git-ops":      true, // Disable git ops in issuegraph prime session close protocol (GH#593)
+	"agent.profile":   true, // Explicit policy profile for issuegraph prime's close protocol (GH#3423)
 
 	// Sync settings
 	"sync.remote":     true, // Primary: any Dolt-compatible remote URL
@@ -88,7 +89,7 @@ var YamlOnlyKeys = map[string]bool{
 	"import.path": true,
 
 	// Dolt server settings
-	"dolt.shared-server":      true, // Shared Dolt server at ~/.beads/shared-server/ (GH#2377)
+	"dolt.shared-server":      true, // Shared Dolt server at ~/.issuegraph/shared-server/ (GH#2377)
 	"dolt.max-conns":          true, // Connection pool size override (default 10, GH#3140)
 	"dolt.pool-read-timeout":  true, // Pool per-I/O read deadline override (default 10s, bd-vz0y9)
 	"dolt.pool-write-timeout": true, // Pool per-I/O write deadline override (default 10s, bd-vz0y9)
@@ -150,10 +151,10 @@ var secretKeySegments = map[string]bool{
 // IsSecretKey reports whether a config key holds sensitive material.
 //
 // IT IS A SECURITY CONTROL, not only a lint. Two callers depend on it: the
-// `bd config set` guard that refuses to write a credential into a git-tracked
+// `issuegraph config set` guard that refuses to write a credential into a git-tracked
 // file, and — since the settings surface went on the wire — the redaction in
-// internal/httpapi that decides whether GET /v0/beads/config publishes a
-// value. Redaction is the whole control there: a `bd serve` bearer is optional
+// internal/httpapi that decides whether GET /v0/issuegraph/config publishes a
+// value. Redaction is the whole control there: a `issuegraph serve` bearer is optional
 // and, where configured, shared and surface-wide, so it cannot withhold one
 // value from one caller — and there is no TLS either. A spelling missing from
 // this predicate is a credential served in cleartext.
@@ -204,7 +205,7 @@ func secretKeyEnvVarHint(key string) string {
 	if envVar, ok := secretKeyEnvVarHints[key]; ok {
 		return envVar
 	}
-	return "BD_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
+	return "ISSUEGRAPH_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
 }
 
 // CheckSecretKeyGitSafety checks whether writing key to the project's
@@ -238,7 +239,7 @@ func checkSecretGitTracked(configPath, key string) error {
 			"  git rm --cached %s\n"+
 			"  echo \"config.yaml\" >> %s/.gitignore\n\n"+
 			"To override this check (e.g., for testing):\n"+
-			"  bd config set --force-git-tracked %s \"value\"",
+			"  issuegraph config set --force-git-tracked %s \"value\"",
 		key, configPath,
 		envVar,
 		configPath,
@@ -264,19 +265,19 @@ func SetYamlConfig(key, value string) error {
 }
 
 // SetYamlConfigInDir sets a configuration value in the config.yaml located in
-// the provided beadsDir, bypassing CWD/worktree discovery. Use this when the
+// the provided issuegraphDir, bypassing CWD/worktree discovery. Use this when the
 // caller has already resolved the authoritative workspace and needs to avoid
 // local worktree stubs shadowing the real shared config location.
-func SetYamlConfigInDir(beadsDir, key, value string) error {
+func SetYamlConfigInDir(issuegraphDir, key, value string) error {
 	// Validate specific keys (GH#995)
 	if err := validateYamlConfigValue(key, value); err != nil {
 		return err
 	}
 
-	configPath := filepath.Join(beadsDir, "config.yaml")
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	if _, err := os.Stat(configPath); err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("no config.yaml found in %s (run 'bd init' first)", beadsDir)
+			return fmt.Errorf("no config.yaml found in %s (run 'issuegraph init' first)", issuegraphDir)
 		}
 		return fmt.Errorf("failed to stat config.yaml: %w", err)
 	}
@@ -287,19 +288,19 @@ func SetYamlConfigInDir(beadsDir, key, value string) error {
 var userGlobalKeyPrefixes = []string{"metrics."}
 
 // userGlobalExactKeys are per-MACHINE settings that must never be written to
-// the project .beads/config.yaml, which is a git-TRACKED file (see
-// modules/cli/doctor/gitignore.go: nothing in .beads/.gitignore excludes it). A
+// the project .issuegraph/config.yaml, which is a git-TRACKED file (see
+// apps/cli/doctor/gitignore.go: nothing in .issuegraph/.gitignore excludes it). A
 // committed value propagates one machine's answer to every clone that pulls
 // it, which for these keys is worse than having no value at all.
 //
-// node_id is the exemplar: it names the beads STORE that grants leases here,
+// node_id is the exemplar: it names the issuegraph STORE that grants leases here,
 // and the reclaim guard (issueops.ReclaimExpiredLeasesInTx) compares it
 // against each lease's granted_node. Commit "node_id: mini" and every replica
 // reads "mini", so every comparison matches and the guard is simultaneously
 // fully ARMED and fully INERT — laptop reaps mini's leases exactly as if they
 // were local, which is the precise hazard the guard exists to close, now
 // happening while the operator believes they are protected. Routing the write
-// to ~/.config/bd/config.yaml keeps it per-machine; viper still merges that
+// to ~/.config/issuegraph/config.yaml keeps it per-machine; viper still merges that
 // file, so config.NodeID() reads it back.
 var userGlobalExactKeys = map[string]bool{"node_id": true}
 
@@ -316,13 +317,13 @@ func IsUserGlobalKey(key string) bool {
 }
 
 // readUserGlobalYamlValue reads a single dotted key from the user-global
-// config.yaml ONLY, never project or BEADS_DIR config. It accepts both the
+// config.yaml ONLY, never project or ISSUEGRAPH_DIR config. It accepts both the
 // nested form (metrics:\n  disabled: true) and the flat dotted form
 // (metrics.disabled: true). It returns the raw scalar string and whether the
 // key was present.
 //
 // Consent-bearing settings (metrics enablement and endpoint) are resolved
-// through this rather than merged viper so a repository's .beads/config.yaml can
+// through this rather than merged viper so a repository's .issuegraph/config.yaml can
 // never re-enable metrics for a user who opted out, nor redirect where metrics
 // are sent. See MetricsDisabledByUserConfig / UserMetricsEndpoint.
 func readUserGlobalYamlValue(key string) (string, bool) {
@@ -334,30 +335,30 @@ func readUserGlobalYamlValue(key string) (string, bool) {
 }
 
 // WorkspaceYamlValue reads a single dotted key out of ONE workspace's
-// config.yaml, named by its .beads directory, returning ("", false) when the
+// config.yaml, named by its .issuegraph directory, returning ("", false) when the
 // file or the key is absent.
 //
 // It exists for the cross-workspace opens — routed creates, remote-cache
-// hydration, `bd serve` against another workspace — where the process-wide
-// merged config answers for the directory bd was LAUNCHED from, not for the
+// hydration, `issuegraph serve` against another workspace — where the process-wide
+// merged config answers for the directory issuegraph was LAUNCHED from, not for the
 // workspace about to be written. A setting that governs what gets recorded in a
 // target workspace has to be read from that target.
-func WorkspaceYamlValue(beadsDir, key string) (string, bool) {
-	if beadsDir == "" {
+func WorkspaceYamlValue(issuegraphDir, key string) (string, bool) {
+	if issuegraphDir == "" {
 		return "", false
 	}
-	return readYamlValueAtPath(filepath.Join(beadsDir, "config.yaml"), key)
+	return readYamlValueAtPath(filepath.Join(issuegraphDir, "config.yaml"), key)
 }
 
 // WorkspaceYamlValueStrict reads one dotted key from a workspace config.yaml
 // without conflating a malformed or unreadable file with an absent key. A
 // missing file or key returns present=false and no error; all other I/O and
 // YAML shape errors are returned to the caller.
-func WorkspaceYamlValueStrict(beadsDir, key string) (value string, present bool, err error) {
-	if beadsDir == "" {
+func WorkspaceYamlValueStrict(issuegraphDir, key string) (value string, present bool, err error) {
+	if issuegraphDir == "" {
 		return "", false, nil
 	}
-	data, err := os.ReadFile(filepath.Join(beadsDir, "config.yaml")) //nolint:gosec // beadsDir is caller-resolved workspace state
+	data, err := os.ReadFile(filepath.Join(issuegraphDir, "config.yaml")) //nolint:gosec // issuegraphDir is caller-resolved workspace state
 	if os.IsNotExist(err) {
 		return "", false, nil
 	}
@@ -450,19 +451,19 @@ func yamlScalarString(v interface{}) (string, bool) {
 }
 
 // GetUserYamlConfig reads a single dotted key from the user-global config.yaml
-// ONLY, never project/BEADS_DIR config, returning "" if unset. It is the read
+// ONLY, never project/ISSUEGRAPH_DIR config, returning "" if unset. It is the read
 // counterpart of SetUserYamlConfig/UnsetUserYamlConfig and the generic form of
 // the per-key consent helpers below. User-global keys (see IsUserGlobalKey —
-// currently metrics.*) must be read through this so `bd config get` reports the
+// currently metrics.*) must be read through this so `issuegraph config get` reports the
 // value that actually governs runtime behavior, not the merged value a project's
-// .beads/config.yaml could shadow.
+// .issuegraph/config.yaml could shadow.
 func GetUserYamlConfig(key string) string {
 	raw, _ := readUserGlobalYamlValue(key)
 	return strings.TrimSpace(raw)
 }
 
 // MetricsDisabledByUserConfig reports whether the user-global config.yaml sets
-// metrics.disabled: true. Project/BEADS_DIR config is intentionally ignored so a
+// metrics.disabled: true. Project/ISSUEGRAPH_DIR config is intentionally ignored so a
 // repository can never re-enable metrics for a user who opted out globally.
 // Absent or unparseable values read as "not disabled" (the default).
 func MetricsDisabledByUserConfig() bool {
@@ -478,7 +479,7 @@ func MetricsDisabledByUserConfig() bool {
 }
 
 // UserMetricsEndpoint returns the metrics endpoint configured in the user-global
-// config.yaml, or "" if unset. Project/BEADS_DIR config is intentionally ignored
+// config.yaml, or "" if unset. Project/ISSUEGRAPH_DIR config is intentionally ignored
 // so a repository can never redirect a user's metrics endpoint. Callers fall
 // back to the built-in default when this is empty.
 func UserMetricsEndpoint() string {
@@ -489,7 +490,7 @@ func UserMetricsEndpoint() string {
 // MetricsNoticeShownByUserConfig reports whether the user-global config.yaml
 // records that the first-run metrics disclosure was already shown. Like consent
 // and endpoint, it is resolved from the user-global config ONLY: a repository's
-// .beads/config.yaml must not be able to set metrics.notice_shown: true and
+// .issuegraph/config.yaml must not be able to set metrics.notice_shown: true and
 // suppress the one-time disclosure for a user who has never actually seen it.
 // Absent or unparseable values read as "not shown" (the default).
 func MetricsNoticeShownByUserConfig() bool {
@@ -611,39 +612,39 @@ func UnsetYamlConfig(key string) error {
 // findProjectConfigYaml finds the active config.yaml path for YAML-only config writes.
 //
 // Resolution order:
-//  1. BEADS_DIR/config.yaml (when BEADS_DIR is set)
-//  2. Walk up from CWD to find .beads/config.yaml
+//  1. ISSUEGRAPH_DIR/config.yaml (when ISSUEGRAPH_DIR is set)
+//  2. Walk up from CWD to find .issuegraph/config.yaml
 //
 // This keeps YAML-only config behavior aligned with runtime resolution when
-// BEADS_DIR points to an external runtime directory.
+// ISSUEGRAPH_DIR points to an external runtime directory.
 func findProjectConfigYaml() (string, error) {
-	return findProjectConfigYamlWithFinder(findProjectBeadsDir)
+	return findProjectConfigYamlWithFinder(findProjectIssueGraphDir)
 }
 
-func findProjectConfigYamlWithFinder(findBeadsDir func() string) (string, error) {
-	// Respect BEADS_DIR first when set.
-	if beadsDir := os.Getenv("BEADS_DIR"); beadsDir != "" {
-		configPath := filepath.Join(beadsDir, "config.yaml")
+func findProjectConfigYamlWithFinder(findIssueGraphDir func() string) (string, error) {
+	// Respect ISSUEGRAPH_DIR first when set.
+	if issuegraphDir := legacydir.EnvIssueGraphDir(); issuegraphDir != "" {
+		configPath := filepath.Join(issuegraphDir, "config.yaml")
 		if _, err := os.Stat(configPath); err == nil {
 			return configPath, nil
 		}
-		return "", fmt.Errorf("no config.yaml found in BEADS_DIR (%s) (run 'bd init' first)", beadsDir)
+		return "", fmt.Errorf("no config.yaml found in ISSUEGRAPH_DIR (%s) (run 'issuegraph init' first)", issuegraphDir)
 	}
 
 	if configPath := projectConfigPathFromLoadedState(); configPath != "" {
 		return configPath, nil
 	}
 
-	if findBeadsDir != nil {
-		if beadsDir := findBeadsDir(); beadsDir != "" {
-			configPath := filepath.Join(beadsDir, "config.yaml")
+	if findIssueGraphDir != nil {
+		if issuegraphDir := findIssueGraphDir(); issuegraphDir != "" {
+			configPath := filepath.Join(issuegraphDir, "config.yaml")
 			if _, err := os.Stat(configPath); err == nil {
 				return configPath, nil
 			}
 		}
 	}
 
-	return "", fmt.Errorf("no .beads/config.yaml found (run 'bd init' first)")
+	return "", fmt.Errorf("no .issuegraph/config.yaml found (run 'issuegraph init' first)")
 }
 
 func projectConfigPathFromLoadedState() string {
@@ -654,7 +655,7 @@ func projectConfigPathFromLoadedState() string {
 	if filepath.Base(configPath) != "config.yaml" {
 		return ""
 	}
-	if filepath.Base(filepath.Dir(configPath)) != ".beads" {
+	if filepath.Base(filepath.Dir(configPath)) != ".issuegraph" {
 		return ""
 	}
 	if _, err := os.Stat(configPath); err != nil {
@@ -663,16 +664,16 @@ func projectConfigPathFromLoadedState() string {
 	return configPath
 }
 
-func findProjectBeadsDir() string {
+func findProjectIssueGraphDir() string {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return ""
 	}
 
 	for dir := cwd; dir != filepath.Dir(dir); dir = filepath.Dir(dir) {
-		beadsDir := filepath.Join(dir, ".beads")
-		if info, err := os.Stat(beadsDir); err == nil && info.IsDir() {
-			return beadsDir
+		issuegraphDir := filepath.Join(dir, ".issuegraph")
+		if info, err := os.Stat(issuegraphDir); err == nil && info.IsDir() {
+			return issuegraphDir
 		}
 	}
 
@@ -733,7 +734,7 @@ func updateYamlKey(content, key, value string) (string, error) {
 		result = append(result, newLine)
 	}
 
-	// TODO: `bd config set` is knowingly left unfixed here. This flat-key path
+	// TODO: `issuegraph config set` is knowingly left unfixed here. This flat-key path
 	// has the same bufio.Scanner + strings.Join shape that commentOutYamlKey
 	// had, so it is still exactly one newline short for any terminated
 	// document: updateYamlKey("issue_prefix: vp\ndolt.mode: server\n",
@@ -761,7 +762,7 @@ func updateNestedYamlKey(content, key, value string) (string, bool, error) {
 		// keeps no trace of its text, not even the comments. So there is nothing
 		// to nest into AND nothing to marshal back — fabricating a mapping here
 		// would emit the new key and silently delete everything else in the
-		// file, and `bd init`'s default template is exactly this shape, comments
+		// file, and `issuegraph init`'s default template is exactly this shape, comments
 		// and nothing else. Append the rendered key to the text instead, which
 		// leaves the document byte for byte intact. Falling through to the flat
 		// writer is not an option either: that is what produced a key literally
@@ -999,7 +1000,7 @@ func commentOutYamlKey(content, key string) (string, error) {
 	flatPattern := regexp.MustCompile(`^(\s*)` + regexp.QuoteMeta(key) + `\s*:`)
 	// And the nested one, which is what the writer produces. Missing this half
 	// made an unset silently do nothing once the writer started nesting: the
-	// value stayed live, so bd kept a setting the operator had asked it to
+	// value stayed live, so issuegraph kept a setting the operator had asked it to
 	// forget. Unset is the other direction of the same round-trip property as
 	// set and get, and all three have to agree on the shape.
 	walk := newNestedKeyWalk(key)
@@ -1183,7 +1184,7 @@ func unsupportedUnsetShape(content, key string) error {
 		if i > 0 {
 			where = fmt.Sprintf("%q", strings.Join(segments[:i], "."))
 		}
-		return fmt.Errorf("cannot unset %q: %s is written in flow style ({...}), which bd cannot edit; remove the key by hand", key, where)
+		return fmt.Errorf("cannot unset %q: %s is written in flow style ({...}), which issuegraph cannot edit; remove the key by hand", key, where)
 	}
 	return blockScalarUnsetRefusal(node, key)
 }

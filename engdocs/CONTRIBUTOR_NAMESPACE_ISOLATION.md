@@ -2,13 +2,13 @@
 
 **Issue**: bd-umbf
 **Status**: Design Complete
-**Author**: beads/agents/onyx
+**Author**: issuegraph/agents/onyx
 **Created**: 2025-12-30
 
 ## Problem Statement
 
 When contributors work on issuegraph-the-project using issuegraph-the-tool, their personal
-work-tracking issues can leak into PRs. The `.beads/` directory contains the project's
+work-tracking issues can leak into PRs. The `.issuegraph/` directory contains the project's
 canonical issue database, but contributors' local issues can pollute the diff.
 
 This is a **recursion problem unique to self-hosting projects**.
@@ -17,13 +17,13 @@ This is a **recursion problem unique to self-hosting projects**.
 
 ```
 issuegraph-the-project/
-├── .beads/
+├── .issuegraph/
 │   └── dolt/           ← Project bugs, features, tasks (SHOULD be in PRs)
 └── src/
     └── ...
 
 contributor-working-on-issuegraph/
-├── .beads/
+├── .issuegraph/
 │   └── dolt/           ← Project issues PLUS personal tracking (POLLUTES PRs)
 └── src/
     └── ...
@@ -60,9 +60,9 @@ Each contributor gets a private prefix (e.g., `bd-steve-xxxx`) that's gitignored
 
 **Verdict**: Too fragile for a zero-friction solution.
 
-### Approach 2: Separate Database (BEADS_DIR)
+### Approach 2: Separate Database (ISSUEGRAPH_DIR)
 
-Contributors use `BEADS_DIR` pointing elsewhere for personal tracking.
+Contributors use `ISSUEGRAPH_DIR` pointing elsewhere for personal tracking.
 
 **Pros:**
 - Complete isolation - no pollution possible
@@ -96,8 +96,8 @@ Mark issues as "local-only" vs "project" with a flag.
 
 Automatically detect if user is maintainer or contributor and route new issues
 accordingly:
-- **Maintainer** (SSH access): Issues go to `./.beads/` (project database)
-- **Contributor** (HTTPS fork): Issues go to `~/.beads-planning/` (personal database)
+- **Maintainer** (SSH access): Issues go to `./.issuegraph/` (project database)
+- **Contributor** (HTTPS fork): Issues go to `~/.issuegraph-planning/` (personal database)
 
 **Pros:**
 - Zero-friction for contributors
@@ -119,7 +119,7 @@ accordingly:
    ```go
    func DetectUserRole(repoPath string) (UserRole, error)
    ```
-   - Checks `git config beads.role` for explicit override
+   - Checks `git config issuegraph.role` for explicit override
    - Inspects push URL: SSH → Maintainer, HTTPS → Contributor
    - Defaults to Contributor if uncertain
 
@@ -127,7 +127,7 @@ accordingly:
    ```go
    v.SetDefault("routing.mode", "")  // Empty = disabled by default
    v.SetDefault("routing.default", ".")
-   v.SetDefault("routing.contributor", "~/.beads-planning")
+   v.SetDefault("routing.contributor", "~/.issuegraph-planning")
    ```
 
 3. **Target Repo Calculation** (`internal/routing/routing.go`):
@@ -135,11 +135,11 @@ accordingly:
    func DetermineTargetRepo(config *RoutingConfig, userRole UserRole, repoPath string)
    ```
 
-4. **Contributor Setup Wizard** (`modules/cli/init_contributor.go`):
+4. **Contributor Setup Wizard** (`apps/cli/init_contributor.go`):
    ```bash
    issuegraph init --contributor
    ```
-   Creates `~/.beads-planning/` and configures routing.
+   Creates `~/.issuegraph-planning/` and configures routing.
 
 5. **Documentation**:
    - `docs/multi-agent/routing.md` - Auto-routing mechanics
@@ -149,14 +149,14 @@ accordingly:
 
 1. **Actual Routing in `issuegraph create`** (bd-6x6g):
    ```go
-   // modules/cli/create.go:181
+   // apps/cli/create.go:181
    // TODO(bd-6x6g): Switch to target repo for multi-repo support
    // For now, we just log the target repo in debug mode
    if repoPath != "." {
        debug.Logf("DEBUG: Target repo: %s\n", repoPath)
    }
    ```
-   The routing is calculated but NOT used. Issues still go to `./.beads/`.
+   The routing is calculated but NOT used. Issues still go to `./.issuegraph/`.
 
 2. **Pollution Detection for Preflight** (bd-lfak):
    No way to detect if personal issues are in the PR diff.
@@ -171,14 +171,14 @@ accordingly:
 Make `issuegraph create` actually route to the target repo:
 
 ```go
-// In modules/cli/create.go, after DetermineTargetRepo()
+// In apps/cli/create.go, after DetermineTargetRepo()
 if repoPath != "." {
     // Switch store to target repo
-    targetBeadsDir := expandPath(repoPath)
-    if err := ensureBeadsDir(targetBeadsDir); err != nil {
+    targetIssueGraphDir := expandPath(repoPath)
+    if err := ensureIssueGraphDir(targetIssueGraphDir); err != nil {
         return fmt.Errorf("failed to initialize target repo: %w", err)
     }
-    store, err = storage.OpenStore(filepath.Join(targetBeadsDir, "beads.db"))
+    store, err = storage.OpenStore(filepath.Join(targetIssueGraphDir, "issuegraph.db"))
     if err != nil {
         return fmt.Errorf("failed to open target store: %w", err)
     }
@@ -196,7 +196,7 @@ When a contributor runs `issuegraph create` without routing configured:
 
 Options:
   1. Configure auto-routing (recommended)
-     Creates ~/.beads-planning for personal tracking
+     Creates ~/.issuegraph-planning for personal tracking
 
   2. Continue to current repo
      Issue will appear in the project database (affects PRs)
@@ -209,9 +209,9 @@ Choice [1]:
 Add check in `issuegraph preflight --check`:
 
 ```go
-func checkBeadsPollution(ctx context.Context) (CheckResult, error) {
-    // Get git diff of .beads/issues.jsonl
-    diff, err := gitDiff(".beads/issues.jsonl")
+func checkIssueGraphPollution(ctx context.Context) (CheckResult, error) {
+    // Get git diff of .issuegraph/issues.jsonl
+    diff, err := gitDiff(".issuegraph/issues.jsonl")
     if err != nil {
         return CheckResult{}, err
     }
@@ -261,18 +261,18 @@ Contributor routing works independently of the project repo's sync configuration
 
 | Sync Mode | Project Repo | Planning Repo | Notes |
 |-----------|--------------|---------------|-------|
-| **Direct** | Uses `.beads/` directly | Uses `~/.beads-planning/.beads/` | Both use direct storage, no interaction |
+| **Direct** | Uses `.issuegraph/` directly | Uses `~/.issuegraph-planning/.issuegraph/` | Both use direct storage, no interaction |
 | **Sync-branch** | Uses separate branch for issuegraph | Uses direct storage | Planning repo does NOT inherit `sync.branch` config |
 | **No-db mode** | Lightweight operations | Routes operations to planning repo | Planning repo still uses database |
 | **Server mode** | Background Dolt server | Server bypassed for routed issues | Planning repo operations are synchronous |
 | **Local-only** | No git remote | Works normally | Planning repo can have its own git remote independently |
-| **External (BEADS_DIR)** | Uses separate repo via env var | BEADS_DIR takes precedence over routing | If `BEADS_DIR` is set, routing config is ignored |
+| **External (ISSUEGRAPH_DIR)** | Uses separate repo via env var | ISSUEGRAPH_DIR takes precedence over routing | If `ISSUEGRAPH_DIR` is set, routing config is ignored |
 
 ### Key Principles
 
-1. **Separate databases**: Planning repo is completely independent - it has its own `.beads/` directory
+1. **Separate databases**: Planning repo is completely independent - it has its own `.issuegraph/` directory
 2. **No config inheritance**: Planning repo does not inherit project's `sync.branch`, `no-db`, or server mode settings
-3. **BEADS_DIR precedence**: If `BEADS_DIR` environment variable is set, it overrides routing configuration
+3. **ISSUEGRAPH_DIR precedence**: If `ISSUEGRAPH_DIR` environment variable is set, it overrides routing configuration
 4. **Direct access**: Issues routed to planning repo use direct database access to avoid connection staleness
 
 ## Configuration Reference
@@ -284,46 +284,46 @@ Contributor routing works independently of the project repo's sync configuration
 issuegraph init --contributor
 
 # This configures:
-# - Creates ~/.beads-planning/ with its own database
+# - Creates ~/.issuegraph-planning/ with its own database
 # - Sets routing.mode=auto
-# - Sets routing.contributor=~/.beads-planning
+# - Sets routing.contributor=~/.issuegraph-planning
 
 # Verify
 issuegraph config get routing.mode        # → auto
-issuegraph config get routing.contributor # → ~/.beads-planning
+issuegraph config get routing.contributor # → ~/.issuegraph-planning
 ```
 
 ### Explicit Role Override
 
 ```bash
 # Force maintainer mode (for CI or shared machines)
-git config beads.role maintainer
+git config issuegraph.role maintainer
 
 # Force contributor mode
-git config beads.role contributor
+git config issuegraph.role contributor
 ```
 
-### Manual BEADS_DIR Override
+### Manual ISSUEGRAPH_DIR Override
 
 ```bash
 # Per-command override
-BEADS_DIR=~/.beads-planning issuegraph create "My task" -p 1
+ISSUEGRAPH_DIR=~/.issuegraph-planning issuegraph create "My task" -p 1
 
 # Or per-shell session
-export BEADS_DIR=~/.beads-planning
+export ISSUEGRAPH_DIR=~/.issuegraph-planning
 issuegraph create "My task" -p 1
 ```
 
-**Note**: `issuegraph init` and `issuegraph doctor` also respect `BEADS_DIR`:
+**Note**: `issuegraph init` and `issuegraph doctor` also respect `ISSUEGRAPH_DIR`:
 
 ```bash
-# Initialize directly at BEADS_DIR location (no need to cd)
-mkdir -p ~/.beads-planning/.beads
-export BEADS_DIR=~/.beads-planning/.beads
-issuegraph init --prefix planning    # Creates database at $BEADS_DIR
+# Initialize directly at ISSUEGRAPH_DIR location (no need to cd)
+mkdir -p ~/.issuegraph-planning/.issuegraph
+export ISSUEGRAPH_DIR=~/.issuegraph-planning/.issuegraph
+issuegraph init --prefix planning    # Creates database at $ISSUEGRAPH_DIR
 
-# Doctor checks BEADS_DIR location (not CWD)
-issuegraph doctor                    # Diagnoses database at $BEADS_DIR
+# Doctor checks ISSUEGRAPH_DIR location (not CWD)
+issuegraph doctor                    # Diagnoses database at $ISSUEGRAPH_DIR
 ```
 
 ## Troubleshooting
@@ -339,25 +339,25 @@ issuegraph config get routing.mode
 issuegraph config get routing.contributor
 
 # Check detected role
-git config beads.role  # If set, this overrides auto-detection
+git config issuegraph.role  # If set, this overrides auto-detection
 git remote get-url --push origin  # Should show HTTPS for contributors
 ```
 
 **Solutions**:
 1. Verify `routing.mode` is set to `auto`
 2. Verify `routing.contributor` points to planning repo path
-3. Check that `BEADS_DIR` is NOT set (it overrides routing)
-4. If using SSH URL but want contributor behavior, set `git config beads.role contributor`
+3. Check that `ISSUEGRAPH_DIR` is NOT set (it overrides routing)
+4. If using SSH URL but want contributor behavior, set `git config issuegraph.role contributor`
 
-### BEADS_DIR Conflicts with Routing
+### ISSUEGRAPH_DIR Conflicts with Routing
 
-**Symptom**: Warning message about BEADS_DIR overriding routing config
+**Symptom**: Warning message about ISSUEGRAPH_DIR overriding routing config
 
-**Explanation**: `BEADS_DIR` environment variable takes precedence over all routing configuration. This is intentional for backward compatibility.
+**Explanation**: `ISSUEGRAPH_DIR` environment variable takes precedence over all routing configuration. This is intentional for backward compatibility.
 
 **Solutions**:
-1. **Unset BEADS_DIR** if you want routing to work: `unset BEADS_DIR`
-2. **Keep BEADS_DIR** and ignore routing config (BEADS_DIR will be used)
+1. **Unset ISSUEGRAPH_DIR** if you want routing to work: `unset ISSUEGRAPH_DIR`
+2. **Keep ISSUEGRAPH_DIR** and ignore routing config (ISSUEGRAPH_DIR will be used)
 3. **Use explicit --repo flag** to override both: `issuegraph create "task" -p 1 --repo /path/to/repo`
 
 ### Planning Repo Not Initialized
@@ -366,7 +366,7 @@ git remote get-url --push origin  # Should show HTTPS for contributors
 
 **Diagnosis**:
 ```bash
-ls -la ~/.beads-planning/.beads/  # Should exist
+ls -la ~/.issuegraph-planning/.issuegraph/  # Should exist
 ```
 
 **Solution**:
@@ -384,7 +384,7 @@ issuegraph init --contributor  # Wizard will recreate if missing
 **Solution**:
 ```bash
 # Configure planning repo prefix
-cd ~/.beads-planning
+cd ~/.issuegraph-planning
 issuegraph config set db.prefix plan  # Use "plan-" prefix for planning issues
 cd -  # Return to project repo
 ```
@@ -402,18 +402,18 @@ cd -  # Return to project repo
 ```bash
 # Old (deprecated but still works)
 issuegraph config set contributor.auto_route true
-issuegraph config set contributor.planning_repo ~/.beads-planning
+issuegraph config set contributor.planning_repo ~/.issuegraph-planning
 
 # New (preferred)
 issuegraph config set routing.mode auto
-issuegraph config set routing.contributor ~/.beads-planning
+issuegraph config set routing.contributor ~/.issuegraph-planning
 ```
 
 ## Pollution Detection Heuristics
 
 For `issuegraph preflight`, we can detect pollution by checking:
 
-1. **Source Repo Mismatch**: Issue has `source_repo != "."` but is in `./.beads/`
+1. **Source Repo Mismatch**: Issue has `source_repo != "."` but is in `./.issuegraph/`
 2. **Creator Check**: Issue `created_by` doesn't match known maintainers
 3. **Prefix Mismatch**: Issue prefix doesn't match project prefix
 4. **Timing Heuristic**: Issue created recently on contributor's branch
@@ -455,12 +455,12 @@ This design enables:
 
 3. **How to handle CI environments?**
    - CI typically has HTTPS access even for maintainers
-   - Need explicit `beads.role=maintainer` config or skip routing in CI
+   - Need explicit `issuegraph.role=maintainer` config or skip routing in CI
 
 ## Appendix: Role Detection Algorithm
 
 ```
-1. Check git config beads.role
+1. Check git config issuegraph.role
    - If "maintainer" → Maintainer
    - If "contributor" → Contributor
 

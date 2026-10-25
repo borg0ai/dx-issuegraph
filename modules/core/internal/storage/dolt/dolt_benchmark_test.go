@@ -21,32 +21,32 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 func benchDatabaseName() string {
-	return fmt.Sprintf("beads_test_bench_%d", time.Now().UnixNano())
+	return fmt.Sprintf("issuegraph_test_bench_%d", time.Now().UnixNano())
 }
 
 // benchDoltServerPort decides whether benchmarks may connect to a real Dolt
 // server. Benchmarks must never resolve their server port from ambient
-// BEADS_DOLT_SERVER_PORT/BEADS_DOLT_PORT: gc agent shells set those to point
+// ISSUEGRAPH_DOLT_SERVER_PORT/ISSUEGRAPH_DOLT_PORT: gc agent shells set those to point
 // at a shared production Dolt server, and there is no way to distinguish "a
 // dedicated throwaway benchmark port" from "the shared prod port" other than
 // requiring an explicit, benchmark-only opt-in (be-cfm3z).
 //
-// Returns skip=true with a reason when BEADS_BENCH_DOLT_PORT is unset or
+// Returns skip=true with a reason when ISSUEGRAPH_BENCH_DOLT_PORT is unset or
 // invalid; the caller should b.Skip(reason) rather than connect.
 func benchDoltServerPort() (port int, skip bool, reason string) {
-	v := os.Getenv("BEADS_BENCH_DOLT_PORT")
+	v := os.Getenv("ISSUEGRAPH_BENCH_DOLT_PORT")
 	if v == "" {
-		return 0, true, "set BEADS_BENCH_DOLT_PORT to a dedicated throwaway dolt server to run benchmarks"
+		return 0, true, "set ISSUEGRAPH_BENCH_DOLT_PORT to a dedicated throwaway dolt server to run benchmarks"
 	}
 	p, err := strconv.Atoi(v)
 	if err != nil || p <= 0 {
-		return 0, true, fmt.Sprintf("BEADS_BENCH_DOLT_PORT=%q is not a valid port", v)
+		return 0, true, fmt.Sprintf("ISSUEGRAPH_BENCH_DOLT_PORT=%q is not a valid port", v)
 	}
 	return p, false, ""
 }
@@ -89,12 +89,12 @@ func setupBenchStore(tb testing.TB) (*DoltStore, func()) {
 	}
 
 	// Never resolve the benchmark's server port from ambient env — gc agent
-	// shells set BEADS_DOLT_SERVER_PORT to point at a shared production
+	// shells set ISSUEGRAPH_DOLT_SERVER_PORT to point at a shared production
 	// server (be-cfm3z).
-	tb.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	tb.Setenv("BEADS_DOLT_PORT", "")
-	tb.Setenv("BEADS_TEST_MODE", "1")
-	tb.Setenv("BEADS_TEST_SERVER", "1") // forward-compat opt-in for PR #3632/AD-01's firewall
+	tb.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	tb.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+	tb.Setenv("ISSUEGRAPH_TEST_MODE", "1")
+	tb.Setenv("ISSUEGRAPH_TEST_SERVER", "1") // forward-compat opt-in for PR #3632/AD-01's firewall
 
 	port, skip, reason := benchDoltServerPort()
 	if skip {
@@ -175,12 +175,12 @@ func BenchmarkBootstrapEmbedded(b *testing.B) {
 	}
 
 	// Never resolve the benchmark's server port from ambient env — gc agent
-	// shells set BEADS_DOLT_SERVER_PORT to point at a shared production
+	// shells set ISSUEGRAPH_DOLT_SERVER_PORT to point at a shared production
 	// server (be-cfm3z).
-	b.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	b.Setenv("BEADS_DOLT_PORT", "")
-	b.Setenv("BEADS_TEST_MODE", "1")
-	b.Setenv("BEADS_TEST_SERVER", "1") // forward-compat opt-in for PR #3632/AD-01's firewall
+	b.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	b.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+	b.Setenv("ISSUEGRAPH_TEST_MODE", "1")
+	b.Setenv("ISSUEGRAPH_TEST_SERVER", "1") // forward-compat opt-in for PR #3632/AD-01's firewall
 
 	port, skip, reason := benchDoltServerPort()
 	if skip {
@@ -224,7 +224,7 @@ func BenchmarkBootstrapEmbedded(b *testing.B) {
 }
 
 // BenchmarkColdStart simulates CLI pattern: open store, read one issue, close.
-// This measures the realistic cost of a single bd command.
+// This measures the realistic cost of a single issuegraph command.
 func BenchmarkColdStart(b *testing.B) {
 	// First create a store with data
 	store, cleanup := setupBenchStore(b)
@@ -343,7 +343,7 @@ func BenchmarkCLIWorkflow(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// Simulate: bd ready && bd show <first>
+		// Simulate: issuegraph ready && issuegraph show <first>
 		s, err := New(ctx, cfg)
 		if err != nil {
 			b.Fatalf("failed to open store: %v", err)

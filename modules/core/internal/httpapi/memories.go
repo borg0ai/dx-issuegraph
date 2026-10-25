@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // The memory operations. Each one decodes its parameters, hands the whole
@@ -17,7 +17,7 @@ import (
 // WHAT IS NOT HERE, as in settings.go: no storage key is assembled, no key is
 // derived from content, no search term is folded, no plane is filtered out of
 // the config table this one shares. All of that is memoryops.Memories'
-// implementation, which `bd remember` and `bd memories` reach through the same
+// implementation, which `issuegraph remember` and `issuegraph memories` reach through the same
 // accessor — and the `kv.memory.` encoding in particular is deliberately
 // invisible from here, because a second place that spelled the prefix would be
 // a second place that could spell it wrong.
@@ -45,7 +45,7 @@ var rememberMembers = []string{
 	rememberKeyMember,
 }
 
-// handleRememberMemory answers POST /v0/beads/memories.
+// handleRememberMemory answers POST /v0/issuegraph/memories.
 func (s *Server) handleRememberMemory(w http.ResponseWriter, r *http.Request) {
 	if !s.requireNoQuery(w, r) {
 		return
@@ -78,7 +78,7 @@ func (s *Server) handleRememberMemory(w http.ResponseWriter, r *http.Request) {
 // memorySearchParam is the one query parameter this surface's memory plane
 // takes, and it is deliberately NOT spelled `q`.
 //
-// `q` on GET /v0/beads/issues:query is a boolean expression over issue fields,
+// `q` on GET /v0/issuegraph/issues:query is a boolean expression over issue fields,
 // with a vocabulary and a parse refusal; this is a substring match with
 // neither. Spelling both `q` would let a client that assumed the other meaning
 // send `status=open` and receive a literal search over memory text instead of
@@ -87,7 +87,7 @@ func (s *Server) handleRememberMemory(w http.ResponseWriter, r *http.Request) {
 // actually is.
 const memorySearchParam = "search"
 
-// handleListMemories answers GET /v0/beads/memories.
+// handleListMemories answers GET /v0/issuegraph/memories.
 func (s *Server) handleListMemories(w http.ResponseWriter, r *http.Request) {
 	// The one-parameter shape of the unknown-parameter rule. requireNoQuery is
 	// for operations that take NONE; this one takes exactly one, so it goes
@@ -109,7 +109,7 @@ func (s *Server) handleListMemories(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// The term goes in UNFOLDED and unparsed. Matching semantics are the role's
-	// — case folding included — so that this surface and `bd memories` cannot
+	// — case folding included — so that this surface and `issuegraph memories` cannot
 	// come to disagree about what a search means.
 	result, err := memories.List(r.Context(), memoryops.ListRequest{Search: search})
 	if err != nil {
@@ -133,7 +133,7 @@ func (s *Server) handleListMemories(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, apigen.MemoriesPage{Items: items, HasMore: false})
 }
 
-// handleGetMemory answers GET /v0/beads/memories/{key}.
+// handleGetMemory answers GET /v0/issuegraph/memories/{key}.
 func (s *Server) handleGetMemory(w http.ResponseWriter, r *http.Request) {
 	if !s.requireNoQuery(w, r) {
 		return
@@ -156,9 +156,9 @@ func (s *Server) handleGetMemory(w http.ResponseWriter, r *http.Request) {
 	// A MISS IS A 404 HERE, and this is the one operation on this surface where
 	// that diverges from its settings counterpart. The rule both follow is that
 	// the status reports the distinctions the FRONT DOOR already reports, and
-	// the two front doors differ: `bd config get` on an absent key prints
-	// "(not set)" and exits 0, so getSetting has no 404 to give; `bd recall` on
-	// a miss prints to stderr and exits 1 (printRecallResult in modules/cli, via
+	// the two front doors differ: `issuegraph config get` on an absent key prints
+	// "(not set)" and exits 0, so getSetting has no 404 to give; `issuegraph recall` on
+	// a miss prints to stderr and exits 1 (printRecallResult in apps/cli, via
 	// SilentExit), and the role answers Found rather than a bare value, so the
 	// status here reports a distinction that exists rather than inventing one.
 	//
@@ -174,7 +174,7 @@ func (s *Server) handleGetMemory(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, apigen.Memory{Key: result.Key, Value: result.Value})
 }
 
-// handleForgetMemory answers DELETE /v0/beads/memories/{key} — the third
+// handleForgetMemory answers DELETE /v0/issuegraph/memories/{key} — the third
 // DESTRUCTIVE operation on this surface, and the only one that is a DELETE.
 //
 // WHAT THIS HANDLER DOES NOT DO is the point, as for the sweep and the delete.
@@ -182,7 +182,7 @@ func (s *Server) handleGetMemory(w http.ResponseWriter, r *http.Request) {
 // memory plane, and does not read the value it reports: all of that is inside
 // memoryops.Memories, whose implementation removes exactly the named row in the
 // same transaction that reads it. The memory plane shares one table with the
-// workspace's settings and with the generic `bd kv` namespace, so a delete
+// workspace's settings and with the generic `issuegraph kv` namespace, so a delete
 // written here would be one prefix-length mistake away from erasing a
 // workspace's issue prefix — which is why the role's conformance contract owns
 // that promise and this file does not restate it.
@@ -224,7 +224,7 @@ func (s *Server) handleForgetMemory(w http.ResponseWriter, r *http.Request) {
 // A control character is refused rather than looked up, because a
 // percent-escape in the path decodes to one and a key carrying a newline could
 // only have come from a client assembling paths by concatenation. THE ROLE
-// STAYS VERBATIM: `bd remember --key` accepts any string, so such a memory can
+// STAYS VERBATIM: `issuegraph remember --key` accepts any string, so such a memory can
 // exist, and it stays reachable from the CLI and from the collection read. It
 // is unreachable by path, and the document says so rather than this refusal
 // being discovered.
@@ -252,7 +252,7 @@ func (s *Server) memoryKey(w http.ResponseWriter, r *http.Request) (string, bool
 // It validates the SHAPE and nothing else. Whether the content is empty, and
 // whether a key can be derived from it, are the role's two refusals — routing
 // them through the role is what keeps one definition of what a memory is, and
-// it is what makes `bd remember` and this endpoint refuse the same inputs with
+// it is what makes `issuegraph remember` and this endpoint refuse the same inputs with
 // the same sentences.
 func (s *Server) rememberRequest(w http.ResponseWriter, r *http.Request) (memoryops.RememberRequest, bool) {
 	members, res := decodeJSONObjectBody(w, r)

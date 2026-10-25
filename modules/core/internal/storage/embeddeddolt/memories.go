@@ -6,10 +6,10 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/steveyegge/beads/internal/memoryapi"
-	"github.com/steveyegge/beads/internal/storage"
-	storagememoryops "github.com/steveyegge/beads/internal/storage/memoryops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/memoryapi"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storagememoryops "github.com/borg0ai/dx-issuegraph/internal/storage/memoryops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // Memories returns the guarded persistent-memory surface for this store.

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
 )
 
 // The Reader contract, wired at the unit-of-work backend. This is the one
@@ -204,7 +204,7 @@ func newUOWReaderFixture(t *testing.T, provider UnitOfWorkProvider, prefix strin
 		AddComment: func(ctx context.Context, issueID, author, text string) error {
 			return RunTx(ctx, provider, func(ctx context.Context, uw UnitOfWork) (string, error) {
 				_, err := uw.CommentUseCase().AddCommentToIssue(ctx, issueID, author, text)
-				return "bd: comment " + issueID, err
+				return "issuegraph: comment " + issueID, err
 			})
 		},
 	}

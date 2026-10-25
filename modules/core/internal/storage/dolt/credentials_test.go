@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 func TestEncryptDecryptWithKey(t *testing.T) {
@@ -73,11 +73,11 @@ func TestPrepareDoltCLITransferCommandAppliesCredentialsAndS3Env(t *testing.T) {
 	t.Setenv(awsResponseChecksumValidationEnv, "when_supported")
 	creds := &remoteCredentials{username: "user", password: "pass"}
 
-	cmd, _, cancel := prepareDoltCLITransferCommand(context.Background(), "/tmp/beads-cli", creds, true, "fetch", "peer")
+	cmd, _, cancel := prepareDoltCLITransferCommand(context.Background(), "/tmp/issuegraph-cli", creds, true, "fetch", "peer")
 	defer cancel()
 
-	if cmd.Dir != "/tmp/beads-cli" {
-		t.Fatalf("command dir = %q, want /tmp/beads-cli", cmd.Dir)
+	if cmd.Dir != "/tmp/issuegraph-cli" {
+		t.Fatalf("command dir = %q, want /tmp/issuegraph-cli", cmd.Dir)
 	}
 
 	var gotChecksum, gotUser, gotPassword string
@@ -350,7 +350,7 @@ func TestEncryptDecryptWithWrongKey(t *testing.T) {
 func TestCredentialKeyFileGeneration(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	store := &DoltStore{dbPath: tmpDir, beadsDir: tmpDir}
+	store := &DoltStore{dbPath: tmpDir, issuegraphDir: tmpDir}
 
 	// Key file should not exist yet
 	keyPath := filepath.Join(tmpDir, credentialKeyFile)
@@ -393,13 +393,13 @@ func TestCredentialKeyFileReload(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// First store generates the key
-	store1 := &DoltStore{dbPath: tmpDir, beadsDir: tmpDir}
+	store1 := &DoltStore{dbPath: tmpDir, issuegraphDir: tmpDir}
 	if err := store1.initCredentialKey(t.Context()); err != nil {
 		t.Fatalf("initCredentialKey (store1) failed: %v", err)
 	}
 
 	// Second store should load the same key from file
-	store2 := &DoltStore{dbPath: tmpDir, beadsDir: tmpDir}
+	store2 := &DoltStore{dbPath: tmpDir, issuegraphDir: tmpDir}
 	if err := store2.initCredentialKey(t.Context()); err != nil {
 		t.Fatalf("initCredentialKey (store2) failed: %v", err)
 	}
@@ -413,12 +413,12 @@ func TestCredentialKeyNotPredictable(t *testing.T) {
 	tmpDir1 := t.TempDir()
 	tmpDir2 := t.TempDir()
 
-	store1 := &DoltStore{dbPath: tmpDir1, beadsDir: tmpDir1}
+	store1 := &DoltStore{dbPath: tmpDir1, issuegraphDir: tmpDir1}
 	if err := store1.initCredentialKey(t.Context()); err != nil {
 		t.Fatalf("initCredentialKey (store1) failed: %v", err)
 	}
 
-	store2 := &DoltStore{dbPath: tmpDir2, beadsDir: tmpDir2}
+	store2 := &DoltStore{dbPath: tmpDir2, issuegraphDir: tmpDir2}
 	if err := store2.initCredentialKey(t.Context()); err != nil {
 		t.Fatalf("initCredentialKey (store2) failed: %v", err)
 	}
@@ -431,7 +431,7 @@ func TestCredentialKeyNotPredictable(t *testing.T) {
 
 func TestEncryptDecryptRoundTrip(t *testing.T) {
 	tmpDir := t.TempDir()
-	store := &DoltStore{dbPath: tmpDir, beadsDir: tmpDir}
+	store := &DoltStore{dbPath: tmpDir, issuegraphDir: tmpDir}
 	if err := store.initCredentialKey(t.Context()); err != nil {
 		t.Fatalf("initCredentialKey failed: %v", err)
 	}
@@ -501,7 +501,7 @@ func TestEnsureCredentialKeyAlreadyInitialized(t *testing.T) {
 	key := []byte("0123456789abcdef0123456789abcdef")
 	store := &DoltStore{
 		dbPath:        filepath.Join(tmpDir, "dolt"),
-		beadsDir:      tmpDir,
+		issuegraphDir: tmpDir,
 		credentialKey: append([]byte(nil), key...),
 	}
 
@@ -519,8 +519,8 @@ func TestEnsureCredentialKeyAlreadyInitialized(t *testing.T) {
 func TestEnsureCredentialKeyInitializesWhenMissing(t *testing.T) {
 	tmpDir := t.TempDir()
 	store := &DoltStore{
-		dbPath:   filepath.Join(tmpDir, "dolt"),
-		beadsDir: tmpDir,
+		dbPath:        filepath.Join(tmpDir, "dolt"),
+		issuegraphDir: tmpDir,
 	}
 
 	if err := store.ensureCredentialKey(t.Context()); err != nil {
@@ -541,8 +541,8 @@ func TestAddFederationPeerReturnsCredentialKeyInitError(t *testing.T) {
 	}
 
 	store := &DoltStore{
-		dbPath:   filepath.Join(parentFile, "dolt"),
-		beadsDir: filepath.Join(parentFile, ".beads"),
+		dbPath:        filepath.Join(parentFile, "dolt"),
+		issuegraphDir: filepath.Join(parentFile, ".issuegraph"),
 	}
 
 	err := store.AddFederationPeer(t.Context(), &storage.FederationPeer{
@@ -596,9 +596,9 @@ func TestValidatePeerName(t *testing.T) {
 }
 
 func TestCredentialKeyMigrationFromDbPath(t *testing.T) {
-	// Simulate old layout: key file in .beads/dolt/ (dbPath)
-	beadsDir := t.TempDir()
-	dbPath := filepath.Join(beadsDir, "dolt")
+	// Simulate old layout: key file in .issuegraph/dolt/ (dbPath)
+	issuegraphDir := t.TempDir()
+	dbPath := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(dbPath, 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -613,7 +613,7 @@ func TestCredentialKeyMigrationFromDbPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	store := &DoltStore{dbPath: dbPath, beadsDir: beadsDir}
+	store := &DoltStore{dbPath: dbPath, issuegraphDir: issuegraphDir}
 	if err := store.initCredentialKey(t.Context()); err != nil {
 		t.Fatalf("initCredentialKey failed: %v", err)
 	}
@@ -624,7 +624,7 @@ func TestCredentialKeyMigrationFromDbPath(t *testing.T) {
 	}
 
 	// New location should now have the key
-	newKeyPath := filepath.Join(beadsDir, credentialKeyFile)
+	newKeyPath := filepath.Join(issuegraphDir, credentialKeyFile)
 	newKey, err := os.ReadFile(newKeyPath)
 	if err != nil {
 		t.Fatalf("key file should exist at new location: %v", err)
@@ -640,18 +640,18 @@ func TestCredentialKeyMigrationFromDbPath(t *testing.T) {
 }
 
 func TestCredentialKeyNoGhostDir(t *testing.T) {
-	// In shared-server mode, dbPath (.beads/dolt/) should NOT be created
-	beadsDir := t.TempDir()
-	dbPath := filepath.Join(beadsDir, "dolt") // does not exist
+	// In shared-server mode, dbPath (.issuegraph/dolt/) should NOT be created
+	issuegraphDir := t.TempDir()
+	dbPath := filepath.Join(issuegraphDir, "dolt") // does not exist
 
-	store := &DoltStore{dbPath: dbPath, beadsDir: beadsDir}
+	store := &DoltStore{dbPath: dbPath, issuegraphDir: issuegraphDir}
 	if err := store.initCredentialKey(t.Context()); err != nil {
 		t.Fatalf("initCredentialKey failed: %v", err)
 	}
 
-	// The key should be written to beadsDir, not dbPath
-	if _, err := os.Stat(filepath.Join(beadsDir, credentialKeyFile)); err != nil {
-		t.Error("key file should exist in beadsDir")
+	// The key should be written to issuegraphDir, not dbPath
+	if _, err := os.Stat(filepath.Join(issuegraphDir, credentialKeyFile)); err != nil {
+		t.Error("key file should exist in issuegraphDir")
 	}
 
 	// dbPath directory should NOT have been created
@@ -660,16 +660,16 @@ func TestCredentialKeyNoGhostDir(t *testing.T) {
 	}
 }
 
-// TestCredentialKeyCreatesBeadsDir verifies that initCredentialKey creates the
-// .beads/ directory if it doesn't exist. This is needed for external server
-// setups where bd connects to a pre-existing dolt server without bd init (GH#2641).
-func TestCredentialKeyCreatesBeadsDir(t *testing.T) {
+// TestCredentialKeyCreatesIssueGraphDir verifies that initCredentialKey creates the
+// .issuegraph/ directory if it doesn't exist. This is needed for external server
+// setups where issuegraph connects to a pre-existing dolt server without issuegraph init (GH#2641).
+func TestCredentialKeyCreatesIssueGraphDir(t *testing.T) {
 	parentDir := t.TempDir()
-	beadsDir := filepath.Join(parentDir, ".beads") // does not exist yet
+	issuegraphDir := filepath.Join(parentDir, ".issuegraph") // does not exist yet
 
-	store := &DoltStore{dbPath: "", beadsDir: beadsDir}
+	store := &DoltStore{dbPath: "", issuegraphDir: issuegraphDir}
 	if err := store.initCredentialKey(t.Context()); err != nil {
-		t.Fatalf("initCredentialKey failed when beadsDir doesn't exist: %v", err)
+		t.Fatalf("initCredentialKey failed when issuegraphDir doesn't exist: %v", err)
 	}
 
 	// Key should be generated
@@ -677,19 +677,19 @@ func TestCredentialKeyCreatesBeadsDir(t *testing.T) {
 		t.Fatalf("credentialKey length = %d, want 32", len(store.credentialKey))
 	}
 
-	// .beads/ directory should have been created
-	info, err := os.Stat(beadsDir)
+	// .issuegraph/ directory should have been created
+	info, err := os.Stat(issuegraphDir)
 	if err != nil {
-		t.Fatalf(".beads/ directory should have been created: %v", err)
+		t.Fatalf(".issuegraph/ directory should have been created: %v", err)
 	}
 	if !info.IsDir() {
-		t.Fatal(".beads/ should be a directory")
+		t.Fatal(".issuegraph/ should be a directory")
 	}
 
 	// Key file should exist in the newly created directory
-	keyPath := filepath.Join(beadsDir, credentialKeyFile)
+	keyPath := filepath.Join(issuegraphDir, credentialKeyFile)
 	if _, err := os.Stat(keyPath); err != nil {
-		t.Fatalf("key file should exist in newly created .beads/: %v", err)
+		t.Fatalf("key file should exist in newly created .issuegraph/: %v", err)
 	}
 }
 
@@ -698,15 +698,15 @@ func TestFederationPeerCredentialLifecycleLazyKeyInit(t *testing.T) {
 
 	ctx := context.Background()
 	baseDir := t.TempDir()
-	beadsDir := filepath.Join(baseDir, ".beads")
+	issuegraphDir := filepath.Join(baseDir, ".issuegraph")
 	dbName := fmt.Sprintf("test_federation_credentials_%d", testServerPort)
 
 	assertDatabaseNotExists(t, testServerPort, dbName)
 	t.Cleanup(func() { dropTestDatabase(t, testServerPort, dbName) })
 
 	store, err := New(ctx, &Config{
-		Path:            filepath.Join(beadsDir, "dolt"),
-		BeadsDir:        beadsDir,
+		Path:            filepath.Join(issuegraphDir, "dolt"),
+		IssueGraphDir:   issuegraphDir,
 		ServerHost:      "127.0.0.1",
 		ServerPort:      testServerPort,
 		Database:        dbName,
@@ -729,7 +729,7 @@ func TestFederationPeerCredentialLifecycleLazyKeyInit(t *testing.T) {
 	if err := store.AddFederationPeer(ctx, peer); err != nil {
 		t.Fatalf("AddFederationPeer() error = %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(beadsDir, credentialKeyFile)); err != nil {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, credentialKeyFile)); err != nil {
 		t.Fatalf("expected credential key file after adding peer with password: %v", err)
 	}
 
@@ -855,12 +855,12 @@ func TestCloudAuthCLIRouting(t *testing.T) {
 		{"google creds + gs:// remote", "gs://my-bucket/path", "GOOGLE_APPLICATION_CREDENTIALS", "/path/to/creds.json", true},
 		{"gcs creds + gs:// remote", "gs://my-bucket/path", "GCS_CREDENTIALS_FILE", "/path/to/creds.json", true},
 		{"oci env + oci:// remote", "oci://my-namespace/my-bucket/path", "OCI_TENANCY", "ocid1.tenancy", true},
-		{"dolt env + dolthub:// remote", "dolthub://org/beads", "DOLT_REMOTE_USER", "admin", true},
+		{"dolt env + dolthub:// remote", "dolthub://org/issuegraph", "DOLT_REMOTE_USER", "admin", true},
 		{"dolt env + https:// remote", "https://example.com/repo", "DOLT_REMOTE_USER", "admin", true},
 		{"dolt env + http:// remote", "http://example.com/repo", "DOLT_REMOTE_USER", "admin", true},
 
 		// Per-scheme negative: env var does NOT match remote's scheme → SQL fallback
-		{"azure env + dolthub:// remote", "dolthub://org/beads", "AZURE_STORAGE_ACCOUNT", "myaccount", false},
+		{"azure env + dolthub:// remote", "dolthub://org/issuegraph", "AZURE_STORAGE_ACCOUNT", "myaccount", false},
 		{"azure env + https:// remote", "https://example.com/repo", "AZURE_STORAGE_ACCOUNT", "myaccount", false},
 		{"azure env + s3:// remote", "s3://my-bucket/path", "AZURE_STORAGE_ACCOUNT", "myaccount", false},
 		{"aws env + az:// remote", "az://account.blob.core.windows.net/container", "AWS_ACCESS_KEY_ID", "AKID", false},
@@ -961,14 +961,14 @@ func TestPerRemoteCloudAuthHybrid(t *testing.T) {
 
 	ctx := context.Background()
 	store := openCloudAuthTestStore(t, "hybrid")
-	if err := store.AddRemote(ctx, "primary", "dolthub://org/beads"); err != nil {
+	if err := store.AddRemote(ctx, "primary", "dolthub://org/issuegraph"); err != nil {
 		t.Fatalf("AddRemote primary: %v", err)
 	}
-	if err := store.AddRemote(ctx, "backup", "az://account.blob.core.windows.net/dolt/beads"); err != nil {
+	if err := store.AddRemote(ctx, "backup", "az://account.blob.core.windows.net/dolt/issuegraph"); err != nil {
 		t.Fatalf("AddRemote backup: %v", err)
 	}
-	addCloudAuthCLIRemote(t, store, "primary", "dolthub://org/beads")
-	addCloudAuthCLIRemote(t, store, "backup", "az://account.blob.core.windows.net/dolt/beads")
+	addCloudAuthCLIRemote(t, store, "primary", "dolthub://org/issuegraph")
+	addCloudAuthCLIRemote(t, store, "backup", "az://account.blob.core.windows.net/dolt/issuegraph")
 
 	t.Setenv("AZURE_STORAGE_ACCOUNT", "myaccount")
 

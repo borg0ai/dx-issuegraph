@@ -10,7 +10,7 @@ import (
 	"github.com/yuin/goldmark/renderer/html"
 )
 
-// HTMLToMarkdown converts ADO HTML description to Markdown for beads storage.
+// HTMLToMarkdown converts ADO HTML description to Markdown for issuegraph storage.
 // It sanitizes the HTML first via bluemonday to strip dangerous elements
 // (script tags, event handlers), then converts clean HTML to Markdown.
 // Returns empty string for empty input.
@@ -34,7 +34,7 @@ func HTMLToMarkdown(rawHTML string) (string, error) {
 	return strings.TrimRight(md, " \t\r\n"), nil
 }
 
-// MarkdownToHTML converts beads Markdown description to HTML for ADO storage.
+// MarkdownToHTML converts issuegraph Markdown description to HTML for ADO storage.
 // Uses goldmark with safe renderer settings (no raw HTML passthrough).
 // Returns empty string for empty input.
 func MarkdownToHTML(md string) (string, error) {

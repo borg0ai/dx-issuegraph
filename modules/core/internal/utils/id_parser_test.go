@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 func newTestStore(t *testing.T) *dolt.DoltStore {
@@ -32,7 +32,7 @@ func newTestStore(t *testing.T) *dolt.DoltStore {
 	if err != nil {
 		t.Fatalf("Failed to create dolt store: %v", err)
 	}
-	if err := store.SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+	if err := store.SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 		store.Close()
 		t.Fatalf("Failed to set issue_prefix: %v", err)
 	}
@@ -343,7 +343,7 @@ func TestResolvePartialID_NoConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Don't set config - should use default "bd" prefix
+	// Don't set config - should use default "issuegraph" prefix
 	result, err := utils.ResolvePartialID(ctx, store, "1")
 	if err != nil {
 		t.Fatalf("ResolvePartialID failed with default config: %v", err)
@@ -378,7 +378,7 @@ func TestExtractIssuePrefix(t *testing.T) {
 		{
 			name:     "standard format",
 			issueID:  "bd-a3f8e9",
-			expected: "bd",
+			expected: "issuegraph",
 		},
 		{
 			name:     "custom prefix",
@@ -388,7 +388,7 @@ func TestExtractIssuePrefix(t *testing.T) {
 		{
 			name:     "hierarchical ID",
 			issueID:  "bd-a3f8e9.1.2",
-			expected: "bd",
+			expected: "issuegraph",
 		},
 		{
 			name:     "no hyphen",
@@ -403,7 +403,7 @@ func TestExtractIssuePrefix(t *testing.T) {
 		{
 			name:     "only prefix",
 			issueID:  "bd-",
-			expected: "bd",
+			expected: "issuegraph",
 		},
 		{
 			name:     "multi-part prefix with numeric suffix",
@@ -416,9 +416,9 @@ func TestExtractIssuePrefix(t *testing.T) {
 			expected: "vc", // Word-like suffix (4+ chars, no digit) uses first hyphen (bd-fasa fix)
 		},
 		{
-			name:     "beads-vscode style prefix",
-			issueID:  "beads-vscode-1",
-			expected: "beads-vscode", // Last hyphen before numeric suffix
+			name:     "issuegraph-vscode style prefix",
+			issueID:  "issuegraph-vscode-1",
+			expected: "issuegraph-vscode", // Last hyphen before numeric suffix
 		},
 		{
 			name:     "web-app style prefix",
@@ -541,7 +541,7 @@ func TestExtractIssuePrefixKnown(t *testing.T) {
 		{
 			name:          "no known prefix: falls back to heuristic",
 			issueID:       "vc-baseline-test",
-			knownPrefixes: []string{"bd"},
+			knownPrefixes: []string{"issuegraph"},
 			expected:      "vc", // heuristic: word-like suffix falls back to first hyphen
 		},
 		{
@@ -560,18 +560,18 @@ func TestExtractIssuePrefixKnown(t *testing.T) {
 			name:          "empty known prefixes: falls back to heuristic",
 			issueID:       "bd-a3f8e9",
 			knownPrefixes: nil,
-			expected:      "bd", // heuristic result
+			expected:      "issuegraph", // heuristic result
 		},
 		{
 			name:          "simple known prefix",
 			issueID:       "bd-a3f8e9",
-			knownPrefixes: []string{"bd"},
-			expected:      "bd",
+			knownPrefixes: []string{"issuegraph"},
+			expected:      "issuegraph",
 		},
 		{
 			name:          "known prefix among several",
 			issueID:       "hacker-news-ko4",
-			knownPrefixes: []string{"bd", "gt", "hacker-news"},
+			knownPrefixes: []string{"issuegraph", "gt", "hacker-news"},
 			expected:      "hacker-news",
 		},
 	}
@@ -871,7 +871,7 @@ func TestResolvePartialID_Wisp(t *testing.T) {
 
 	// Create a wisp (ephemeral issue) with a wisp-prefixed ID
 	wisp := &types.Issue{
-		ID:        "bd-wisp-t3st",
+		ID:        "issuegraph-wisp-t3st",
 		Title:     "Test wisp",
 		Status:    types.StatusOpen,
 		Priority:  2,
@@ -881,7 +881,7 @@ func TestResolvePartialID_Wisp(t *testing.T) {
 	if err := store.CreateIssue(ctx, wisp, "test"); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+	if err := store.SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -892,23 +892,23 @@ func TestResolvePartialID_Wisp(t *testing.T) {
 	}{
 		{
 			name:     "full wisp ID",
-			input:    "bd-wisp-t3st",
-			expected: "bd-wisp-t3st",
+			input:    "issuegraph-wisp-t3st",
+			expected: "issuegraph-wisp-t3st",
 		},
 		{
 			name:     "partial hash",
 			input:    "t3st",
-			expected: "bd-wisp-t3st",
+			expected: "issuegraph-wisp-t3st",
 		},
 		{
 			name:     "wisp prefix with hash",
 			input:    "wisp-t3st",
-			expected: "bd-wisp-t3st",
+			expected: "issuegraph-wisp-t3st",
 		},
 		{
 			name:     "partial hash prefix resolves",
 			input:    "t3s",
-			expected: "bd-wisp-t3st", // "t3s" is a leading prefix of the wisp's bare hash "t3st"
+			expected: "issuegraph-wisp-t3st", // "t3s" is a leading prefix of the wisp's bare hash "t3st"
 		},
 	}
 

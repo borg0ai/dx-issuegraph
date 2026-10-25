@@ -3,8 +3,8 @@ package backends_test
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/backends"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/backends"
 )
 
 func TestRegisteredCustomNameIsSupportedAndPreserved(t *testing.T) {

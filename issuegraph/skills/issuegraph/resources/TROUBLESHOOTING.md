@@ -12,7 +12,7 @@ Common issues encountered when using issuegraph and how to resolve them.
 **CLI (web environment or local):**
 - CLI can use server mode (default) or embedded mode (direct database access)
 - Embedded mode has 3-5 second sync delay
-- Web environment: Install via `npm install -g @beads/cli`
+- Web environment: Install via `npm install -g @issuegraph/cli`
 - Web environment: Initialize via `issuegraph init <prefix>` before first use
 
 **Most issues below apply to both interfaces** - the underlying database and server behavior is the same.
@@ -51,13 +51,18 @@ issuegraph version
 **2. If version < 0.15.0, update issuegraph:**
 ```bash
 # Via Homebrew (macOS/Linux)
-brew upgrade beads
+brew upgrade issuegraph
 
-# Via install script
-curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+# Via your package manager
+# macOS (Homebrew)
+brew install systembugtj/luban-homebrew/issuegraph
+# Linux (Nix)
+nix profile install github:systembugtj/cangjie-nix#issuegraph
+# Windows (Scoop)
+scoop bucket add shennong https://github.com/systembugtj/shennong-bucket && scoop install shennong/issuegraph
 
 # Via package manager
-# See https://github.com/gastownhall/beads#installing
+# See https://github.com/borg0ai/dx-issuegraph#installing
 ```
 
 **3. Restart Dolt server after upgrade:**
@@ -116,7 +121,7 @@ issuegraph show issue-1
 This is **expected behavior** when using embedded mode. Understanding requires knowing issuegraph's architecture:
 
 **IssueGraph Architecture:**
-- **Dolt database** (`.beads/dolt/`): Source of truth for all data
+- **Dolt database** (`.issuegraph/dolt/`): Source of truth for all data
 - **Dolt server**: Handles concurrent access and replication
 
 **In embedded mode (without Dolt server):**
@@ -208,16 +213,16 @@ issuegraph init myproject
 ### Current Storage Model
 Current versions of issuegraph do not store project data in SQLite. The default
 embedded mode runs Dolt in-process, stores the live database under
-`.beads/embeddeddolt/`, and permits one writer at a time using a file lock.
+`.issuegraph/embeddeddolt/`, and permits one writer at a time using a file lock.
 A locally managed, per-project SQL server normally stores data under
-`.beads/dolt/` and routes concurrent access through the Dolt SQL server.
-Shared-server data normally lives under `~/.beads/shared-server/dolt/` instead,
+`.issuegraph/dolt/` and routes concurrent access through the Dolt SQL server.
+Shared-server data normally lives under `~/.issuegraph/shared-server/dolt/` instead,
 while an externally managed server owns data on its host. Proxied-server and
 custom configurations can use another configured root.
 
 In embedded or locally managed per-project mode, a cloud-synced project can
 therefore sync a live Dolt directory tree. In shared, external, or custom-root
-server modes, the project `.beads/` directory may contain only client
+server modes, the project `.issuegraph/` directory may contain only client
 configuration, not the live database. Cloud-folder replication is different
 from using a Dolt remote or a Dolt-native backup, and SQLite-era advice about
 standalone database files or a shared local database workaround does not apply.
@@ -232,12 +237,12 @@ issuegraph doctor
 issuegraph dolt status
 ```
 
-Do not delete or reinitialize `.beads/` while diagnosing the problem. Before
+Do not delete or reinitialize `.issuegraph/` while diagnosing the problem. Before
 any repair, identify which mode owns the live database and stop its writers.
-In embedded mode, exit every issuegraph process before copying `.beads/`. For a locally
-managed per-project server, stop that server before copying `.beads/`. For a
+In embedded mode, exit every issuegraph process before copying `.issuegraph/`. For a locally
+managed per-project server, stop that server before copying `.issuegraph/`. For a
 shared, external, proxied, or custom-root server, do not assume that copying
-the project `.beads/` captures the data or stop a shared service unilaterally;
+the project `.issuegraph/` captures the data or stop a shared service unilaterally;
 coordinate with its operator and use its supported backup procedure for the
 actual configured data root.
 
@@ -282,7 +287,7 @@ reconcile it instead of forcing or replacing either side.
 ```bash
 # Embedded or same-host locally managed server:
 # the Dolt process must be able to access this absolute filesystem path.
-issuegraph backup init ~/Dropbox/beads-backup
+issuegraph backup init ~/Dropbox/issuegraph-backup
 issuegraph backup sync
 issuegraph backup status
 ```
@@ -382,7 +387,7 @@ Using MCP tools, dependencies end up reversed from intended.
 **Example:**
 ```python
 # Want: "task-2 depends on task-1" (task-1 blocks task-2)
-beads_add_dependency(issue_id="task-1", depends_on_id="task-2")
+issuegraph_add_dependency(issue_id="task-1", depends_on_id="task-2")
 # Wrong! This makes task-1 depend on task-2
 ```
 
@@ -394,7 +399,7 @@ Parameter confusion between old (`from_id/to_id`) and new (`issue_id/depends_on_
 **Correct MCP usage (issuegraph v0.15.0+):**
 ```python
 # Correct: task-2 depends on task-1
-beads_add_dependency(
+issuegraph_add_dependency(
     issue_id="task-2",        # Issue that has dependency
     depends_on_id="task-1",   # Issue that must complete first
     dep_type="blocks"
@@ -449,7 +454,7 @@ issuegraph sql "SELECT * FROM dependencies" --json | head -50
 
 If problems persist:
 
-1. **Check existing issues:** https://github.com/gastownhall/beads/issues
+1. **Check existing issues:** https://github.com/borg0ai/dx-issuegraph/issues
 2. **Create new issue** with:
    - issuegraph version (`issuegraph version`)
    - Operating system
@@ -459,12 +464,12 @@ If problems persist:
 
 ### Claude Code Skill Issues
 
-If the **bd-issue-tracking skill** provides incorrect guidance:
+If the **issuegraph-issue-tracking skill** provides incorrect guidance:
 
 1. **Check skill version:**
    ```bash
-   ls -la ~/.claude/skills/bd-issue-tracking/
-   head -20 ~/.claude/skills/bd-issue-tracking/SKILL.md
+   ls -la ~/.claude/skills/issuegraph-issue-tracking/
+   head -20 ~/.claude/skills/issuegraph-issue-tracking/SKILL.md
    ```
 
 2. **Report via Claude Code feedback** or user's GitHub
@@ -489,4 +494,4 @@ If the **bd-issue-tracking skill** provides incorrect guidance:
 - [CLI Reference](CLI_REFERENCE.md) - Live command reference pointers
 - [Dependencies Guide](DEPENDENCIES.md) - Understanding dependency types
 - [Workflows](WORKFLOWS.md) - Step-by-step workflow guides
-- [beads GitHub](https://github.com/gastownhall/beads) - Official documentation
+- [issuegraph GitHub](https://github.com/borg0ai/dx-issuegraph) - Official documentation

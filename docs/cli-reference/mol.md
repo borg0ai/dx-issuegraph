@@ -1,11 +1,11 @@
 ---
-title: "bd mol"
-description: "Manage molecules - work templates for agent workflows."
+title: "issuegraph mol"
+description: "Molecule commands (work templates)"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc mol`.
+Generated from `issuegraph help --doc mol`.
 
 Manage molecules - work templates for agent workflows.
 
@@ -28,15 +28,15 @@ Commands:
   burn       Discard wisp
   distill    Extract proto from ad-hoc epic
 
-Use "bd formula list" to list available formulas.
+Use "issuegraph formula list" to list available formulas.
 
 ```
-bd mol [flags]
+issuegraph mol [command]
 ```
 
 **Aliases:** protomolecule
 
-## bd mol bond
+## issuegraph mol bond
 
 Bond two protos or molecules to create a compound.
 
@@ -51,7 +51,7 @@ The bond command is polymorphic - it handles different operand types:
   mol + mol         → join into compound molecule
 
 Formula names (e.g., mol-polecat-arm) are cooked inline as ephemeral protos.
-This avoids needing pre-cooked proto beads in the database.
+This avoids needing pre-cooked proto issuegraph in the database.
 
 Bond types:
   sequential (default) - B runs after A completes
@@ -72,7 +72,7 @@ Dynamic bonding (Christmas Ornament pattern):
   This creates IDs like "parent.child-ref" instead of random hashes.
 
   Example:
-    bd mol bond mol-worker-arm bd-patrol --ref arm-&#123;&#123;worker_name&#125;&#125; --var worker_name=ace
+    issuegraph mol bond mol-worker-arm bd-patrol --ref arm-&#123;&#123;worker_name&#125;&#125; --var worker_name=ace
     # Creates: bd-patrol.arm-ace (and children like bd-patrol.arm-ace.capture)
 
 Use cases:
@@ -81,16 +81,16 @@ Use cases:
   - Spawning per-worker arms on a patrol? Use --ref for readable IDs
 
 Examples:
-  bd mol bond mol-feature mol-deploy                    # Compound proto
-  bd mol bond mol-feature mol-deploy --type parallel    # Run in parallel
-  bd mol bond mol-feature bd-abc123                     # Attach proto to molecule
-  bd mol bond bd-abc123 bd-def456                       # Join two molecules
-  bd mol bond mol-critical-bug wisp-patrol --pour       # Persist found bug
-  bd mol bond mol-temp-check bd-feature --ephemeral          # Ephemeral diagnostic
-  bd mol bond mol-arm bd-patrol --ref arm-&#123;&#123;name&#125;&#125; --var name=ace  # Dynamic child ID
+  issuegraph mol bond mol-feature mol-deploy                    # Compound proto
+  issuegraph mol bond mol-feature mol-deploy --type parallel    # Run in parallel
+  issuegraph mol bond mol-feature bd-abc123                     # Attach proto to molecule
+  issuegraph mol bond bd-abc123 bd-def456                       # Join two molecules
+  issuegraph mol bond mol-critical-bug wisp-patrol --pour       # Persist found bug
+  issuegraph mol bond mol-temp-check bd-feature --ephemeral          # Ephemeral diagnostic
+  issuegraph mol bond mol-arm bd-patrol --ref arm-&#123;&#123;name&#125;&#125; --var name=ace  # Dynamic child ID
 
 ```
-bd mol bond <A> <B> [flags]
+issuegraph mol bond <A> <B> [flags]
 ```
 
 **Aliases:** fart
@@ -107,7 +107,7 @@ bd mol bond <A> <B> [flags]
       --var stringArray   Variable substitution for spawned protos (key=value)
 ```
 
-## bd mol burn
+## issuegraph mol burn
 
 Burn a molecule, deleting it without creating a digest.
 
@@ -122,16 +122,16 @@ The burn operation differs based on molecule phase:
   - Mol (persistent): Cascade delete (syncs to remotes)
 
 CAUTION: This is a destructive operation. The molecule's data will be
-permanently lost. If you want to preserve a summary, use 'bd mol squash'.
+permanently lost. If you want to preserve a summary, use 'issuegraph mol squash'.
 
 Example:
-  bd mol burn bd-abc123              # Delete molecule with no trace
-  bd mol burn bd-abc123 --dry-run    # Preview what would be deleted
-  bd mol burn bd-abc123 --force      # Skip confirmation
-  bd mol burn bd-a1 bd-b2 bd-c3      # Batch delete multiple wisps
+  issuegraph mol burn bd-abc123              # Delete molecule with no trace
+  issuegraph mol burn bd-abc123 --dry-run    # Preview what would be deleted
+  issuegraph mol burn bd-abc123 --force      # Skip confirmation
+  issuegraph mol burn bd-a1 bd-b2 bd-c3      # Batch delete multiple wisps
 
 ```
-bd mol burn <molecule-id> [molecule-id...] [flags]
+issuegraph mol burn <molecule-id> [molecule-id...] [flags]
 ```
 
 **Flags:**
@@ -141,7 +141,7 @@ bd mol burn <molecule-id> [molecule-id...] [flags]
       --force     Skip confirmation prompt
 ```
 
-## bd mol current
+## issuegraph mol current
 
 Show where you are in a molecule workflow.
 
@@ -157,11 +157,11 @@ The output shows all steps with status indicators:
 
 For large molecules (&gt;100 steps), a summary is shown instead.
 Use --limit or --range to view specific steps:
-  bd mol current &lt;id&gt; --limit 50       # Show first 50 steps
-  bd mol current &lt;id&gt; --range 100-150  # Show steps 100-150
+  issuegraph mol current &lt;id&gt; --limit 50       # Show first 50 steps
+  issuegraph mol current &lt;id&gt; --range 100-150  # Show steps 100-150
 
 ```
-bd mol current [molecule-id] [flags]
+issuegraph mol current [molecule-id] [flags]
 ```
 
 **Flags:**
@@ -172,7 +172,7 @@ bd mol current [molecule-id] [flags]
       --range string   Display specific step range (e.g., '1-50', '100-150')
 ```
 
-## bd mol distill
+## issuegraph mol distill
 
 Distill a molecule by extracting a reusable formula from an existing epic.
 
@@ -193,16 +193,16 @@ Variable syntax (both work - we detect which side is the concrete value):
   --var feature-auth=branch    Substitution-style: value=variable
 
 Output locations (first writable wins):
-  1. &lt;resolved-beads-dir&gt;/formulas/ (project-level, default)
-  2. &lt;checkout-root&gt;/.beads/formulas/ (repo-local formulas)
-  3. ~/.beads/formulas/     (user-level, if project not writable)
+  1. &lt;resolved-issuegraph-dir&gt;/formulas/ (project-level, default)
+  2. &lt;checkout-root&gt;/.issuegraph/formulas/ (repo-local formulas)
+  3. ~/.issuegraph/formulas/     (user-level, if project not writable)
 
 Examples:
-  bd mol distill bd-o5xe my-workflow
-  bd mol distill bd-abc release-workflow --var feature_name=auth-refactor
+  issuegraph mol distill bd-o5xe my-workflow
+  issuegraph mol distill bd-abc release-workflow --var feature_name=auth-refactor
 
 ```
-bd mol distill <epic-id> [formula-name] [flags]
+issuegraph mol distill <epic-id> [formula-name] [flags]
 ```
 
 **Flags:**
@@ -213,7 +213,7 @@ bd mol distill <epic-id> [formula-name] [flags]
       --var stringArray   Replace value with {{variable}} placeholder (variable=value)
 ```
 
-## bd mol last-activity
+## issuegraph mol last-activity
 
 Show the most recent activity timestamp for a molecule.
 
@@ -226,19 +226,20 @@ Activity sources:
   molecule_updated - The molecule root itself was updated
 
 Examples:
-  bd mol last-activity hq-wisp-0laki
-  bd mol last-activity hq-wisp-0laki --json
+  issuegraph mol last-activity hq-wisp-0laki
+  issuegraph mol last-activity hq-wisp-0laki --json
 
 ```
-bd mol last-activity <molecule-id> [flags]
+issuegraph mol last-activity <molecule-id> [flags]
 ```
 
-## bd mol pour
+## issuegraph mol pour
 
 Pour a proto into a persistent mol - like pouring molten metal into a mold.
 
 This is the chemistry-inspired command for creating PERSISTENT work from templates.
-The resulting mol lives in .beads/ (permanent storage) and is synced with git.
+The resulting mol is stored as persistent issuegraph in the issue database and
+syncs like any other issue (issuegraph dolt push / pull).
 
 Phase transition: Proto (solid) -&gt; pour -&gt; Mol (liquid)
 
@@ -258,11 +259,11 @@ TIP: Formulas can specify phase:"vapor" to recommend wisp usage.
      If you pour a vapor-phase formula, you'll get a warning.
 
 Examples:
-  bd mol pour mol-feature --var name=auth    # Persistent feature work
-  bd mol pour mol-review --var pr=123        # Persistent code review
+  issuegraph mol pour mol-feature --var name=auth    # Persistent feature work
+  issuegraph mol pour mol-review --var pr=123        # Persistent code review
 
 ```
-bd mol pour <proto-id> [flags]
+issuegraph mol pour <proto-id> [flags]
 ```
 
 **Flags:**
@@ -275,7 +276,7 @@ bd mol pour <proto-id> [flags]
       --var stringArray      Variable substitution (key=value)
 ```
 
-## bd mol progress
+## issuegraph mol progress
 
 Show efficient progress summary for a molecule.
 
@@ -291,19 +292,19 @@ Output includes:
   - ETA: estimated time to completion
 
 Example:
-  bd mol progress bd-hanoi-xyz
+  issuegraph mol progress bd-hanoi-xyz
 
 ```
-bd mol progress [molecule-id] [flags]
+issuegraph mol progress [molecule-id] [flags]
 ```
 
-## bd mol ready
+## issuegraph mol ready
 
 Find molecules where a gate has closed and the workflow is ready to resume.
 
 This command discovers molecules waiting at a gate step where:
-1. The molecule has a gate bead that blocks a step
-2. The gate bead is now closed (condition satisfied)
+1. The molecule has a gate issue that blocks a step
+2. The gate issue is now closed (condition satisfied)
 3. The blocked step is now ready to proceed
 4. No agent currently has this molecule hooked
 
@@ -311,14 +312,20 @@ This enables discovery-based resume without explicit waiter tracking.
 The patrol system uses this to find and dispatch gate-ready molecules.
 
 Examples:
-  bd mol ready --gated           # Find all gate-ready molecules
-  bd mol ready --gated --json    # JSON output for automation
+  issuegraph mol ready --gated           # Find all gate-ready molecules
+  issuegraph mol ready --gated --json    # JSON output for automation
 
 ```
-bd mol ready --gated [flags]
+issuegraph mol ready --gated [flags]
 ```
 
-## bd mol seed
+**Flags:**
+
+```
+      --gated   Find molecules ready for gate-resume dispatch (always on for this subcommand)
+```
+
+## issuegraph mol seed
 
 Verify that a formula is accessible and can be cooked.
 
@@ -327,17 +334,17 @@ and can be loaded. This is useful for verifying system health before
 attempting to spawn work from a formula.
 
 Formula search paths (checked in order):
-  1. &lt;resolved-beads-dir&gt;/formulas/ (active project)
-  2. &lt;checkout-root&gt;/.beads/formulas/ (repo-local formulas)
-  3. ~/.beads/formulas/ (user level)
-  4. $GT_ROOT/.beads/formulas/ (shared workspace root, if GT_ROOT set)
+  1. &lt;resolved-issuegraph-dir&gt;/formulas/ (active project)
+  2. &lt;checkout-root&gt;/.issuegraph/formulas/ (repo-local formulas)
+  3. ~/.issuegraph/formulas/ (user level)
+  4. $GT_ROOT/.issuegraph/formulas/ (shared workspace root, if GT_ROOT set)
 
 Examples:
-  bd mol seed mol-feature                 # Verify specific formula
-  bd mol seed mol-review --var name=test  # Verify with variable substitution
+  issuegraph mol seed mol-feature                 # Verify specific formula
+  issuegraph mol seed mol-review --var name=test  # Verify with variable substitution
 
 ```
-bd mol seed <formula-name> [flags]
+issuegraph mol seed <formula-name> [flags]
 ```
 
 **Flags:**
@@ -346,7 +353,7 @@ bd mol seed <formula-name> [flags]
       --var stringArray   Variable substitution for condition filtering (key=value)
 ```
 
-## bd mol show
+## issuegraph mol show
 
 Show molecule structure and details.
 
@@ -356,10 +363,10 @@ The --parallel flag highlights parallelizable steps:
   - Identifies parallel groups (steps that can run concurrently)
 
 Example:
-  bd mol show bd-patrol --parallel
+  issuegraph mol show bd-patrol --parallel
 
 ```
-bd mol show <molecule-id> [flags]
+issuegraph mol show <molecule-id> [flags]
 ```
 
 **Flags:**
@@ -368,7 +375,7 @@ bd mol show <molecule-id> [flags]
   -p, --parallel   Show parallel step analysis
 ```
 
-## bd mol squash
+## issuegraph mol squash
 
 Squash a molecule's ephemeral children into a single digest issue.
 
@@ -385,7 +392,7 @@ The squash operation:
      OR keeps them with --keep-children (default: delete)
 
 AGENT INTEGRATION:
-Use --summary to provide an AI-generated summary. This keeps bd as a pure
+Use --summary to provide an AI-generated summary. This keeps issuegraph as a pure
 tool - the calling agent (orchestrator worker, Claude Code, etc.) is responsible
 for generating intelligent summaries. Without --summary, a basic concatenation
 of child issue content is used.
@@ -394,13 +401,13 @@ This is part of the wisp workflow: spawn creates wisps,
 execution happens, squash compresses the trace into an outcome (digest).
 
 Example:
-  bd mol squash bd-abc123                    # Squash and promote children
-  bd mol squash bd-abc123 --dry-run          # Preview what would be squashed
-  bd mol squash bd-abc123 --keep-children    # Keep wisps after digest
-  bd mol squash bd-abc123 --summary "Agent-generated summary of work done"
+  issuegraph mol squash bd-abc123                    # Squash and promote children
+  issuegraph mol squash bd-abc123 --dry-run          # Preview what would be squashed
+  issuegraph mol squash bd-abc123 --keep-children    # Keep wisps after digest
+  issuegraph mol squash bd-abc123 --summary "Agent-generated summary of work done"
 
 ```
-bd mol squash <molecule-id> [flags]
+issuegraph mol squash <molecule-id> [flags]
 ```
 
 **Flags:**
@@ -411,7 +418,7 @@ bd mol squash <molecule-id> [flags]
       --summary string   Agent-provided summary (bypasses auto-generation)
 ```
 
-## bd mol stale
+## issuegraph mol stale
 
 Detect molecules (epics with children) that are complete but still open.
 
@@ -424,14 +431,14 @@ A molecule is considered stale if:
 By default, shows all complete-but-unclosed molecules.
 
 Examples:
-  bd mol stale              # List all stale molecules
-  bd mol stale --json       # Machine-readable output
-  bd mol stale --blocking   # Only show those blocking other work
-  bd mol stale --unassigned # Only show unassigned molecules
-  bd mol stale --all        # Include molecules with 0 children
+  issuegraph mol stale              # List all stale molecules
+  issuegraph mol stale --json       # Machine-readable output
+  issuegraph mol stale --blocking   # Only show those blocking other work
+  issuegraph mol stale --unassigned # Only show unassigned molecules
+  issuegraph mol stale --all        # Include molecules with 0 children
 
 ```
-bd mol stale [flags]
+issuegraph mol stale [flags]
 ```
 
 **Flags:**
@@ -442,7 +449,7 @@ bd mol stale [flags]
       --unassigned   Only show unassigned molecules
 ```
 
-## bd mol wisp
+## issuegraph mol wisp
 
 Create or manage wisps - EPHEMERAL molecules for operational workflows.
 
@@ -468,23 +475,23 @@ TIP: Formulas can specify phase:"vapor" to recommend wisp usage.
      If you use pour on a vapor-phase formula, you'll get a warning.
 
 The wisp lifecycle:
-  1. Create: bd mol wisp &lt;proto&gt; or bd create --ephemeral
-  2. Execute: Normal bd operations work on wisp issues
-  3. Squash: bd mol squash &lt;id&gt; (clears Ephemeral flag, promotes to persistent)
-  4. Or burn: bd mol burn &lt;id&gt; (deletes without creating digest)
+  1. Create: issuegraph mol wisp &lt;proto&gt; or issuegraph create --ephemeral
+  2. Execute: Normal issuegraph operations work on wisp issues
+  3. Squash: issuegraph mol squash &lt;id&gt; (clears Ephemeral flag, promotes to persistent)
+  4. Or burn: issuegraph mol burn &lt;id&gt; (deletes without creating digest)
 
 Examples:
-  bd mol wisp beads-release --var version=1.0  # Release workflow
-  bd mol wisp mol-my-workflow                  # Ephemeral operational cycle
-  bd mol wisp list                             # List all wisps
-  bd mol wisp gc                               # Garbage collect old wisps
+  issuegraph mol wisp mol-my-workflow                  # Ephemeral operational cycle
+  issuegraph mol wisp list                             # List all wisps
+  issuegraph mol wisp gc                               # Garbage collect old wisps
 
 Subcommands:
   list  List all wisps in current context
   gc    Garbage collect orphaned wisps
 
 ```
-bd mol wisp [proto-id] [flags]
+issuegraph mol wisp [proto-id] [flags]
+issuegraph mol wisp [command]
 ```
 
 **Flags:**
@@ -495,7 +502,7 @@ bd mol wisp [proto-id] [flags]
       --var stringArray   Variable substitution (key=value)
 ```
 
-### bd mol wisp create
+### issuegraph mol wisp create
 
 Create a wisp from a proto - sublimation from solid to vapor.
 
@@ -516,12 +523,12 @@ The wisp will:
   - Either evaporate (burn) or condense to digest (squash)
 
 Examples:
-  bd mol wisp create mol-patrol                    # Ephemeral patrol cycle
-  bd mol wisp create mol-health-check              # One-time health check
-  bd mol wisp create mol-diagnostics --var target=db  # Diagnostic run
+  issuegraph mol wisp create mol-patrol                    # Ephemeral patrol cycle
+  issuegraph mol wisp create mol-health-check              # One-time health check
+  issuegraph mol wisp create mol-diagnostics --var target=db  # Diagnostic run
 
 ```
-bd mol wisp create <proto-id> [flags]
+issuegraph mol wisp create <proto-id> [flags]
 ```
 
 **Flags:**
@@ -532,14 +539,21 @@ bd mol wisp create <proto-id> [flags]
       --var stringArray   Variable substitution (key=value)
 ```
 
-### bd mol wisp gc
+### issuegraph mol wisp gc
 
 Garbage collect old or abandoned wisps from the database.
 
 A wisp is considered abandoned if:
   - It hasn't been updated in --age duration and is not closed
+  - AND it is not live work: blocked steps (waiting on a dependency), pinned
+    issuegraph, and any step whose status category is wip (in_progress, blocked,
+    hooked) or frozen (deferred, pinned) are never reclaimed by age, no matter
+    how long they have been waiting (GH#4394). Custom statuses count by their
+    configured category, so only plain open (active) and closed (done) steps
+    are age-reclaimable. If the blocked set or the custom-status list cannot be
+    read, the GC aborts rather than risk reclaiming live steps.
 
-Abandoned wisps are deleted without creating a digest. Use 'bd mol squash'
+Abandoned wisps are deleted without creating a digest. Use 'issuegraph mol squash'
 if you want to preserve a summary before garbage collection.
 
 Use --closed to purge ALL closed wisps (regardless of age). This is the
@@ -547,21 +561,21 @@ fastest way to reclaim space from accumulated wisp bloat. Safe by default:
 requires --force to actually delete.
 
 Note: This uses time-based cleanup, appropriate for ephemeral wisps.
-For graph-pressure staleness detection (blocking other work), see 'bd mol stale'.
+For graph-pressure staleness detection (blocking other work), see 'issuegraph mol stale'.
 
 Examples:
-  bd mol wisp gc                                    # Clean abandoned wisps (default: 1h threshold)
-  bd mol wisp gc --dry-run                          # Preview what would be cleaned
-  bd mol wisp gc --age 24h                          # Custom age threshold
-  bd mol wisp gc --all                              # Also clean closed wisps older than threshold
-  bd mol wisp gc --closed                           # Preview closed wisp deletion
-  bd mol wisp gc --closed --force                   # Delete all closed wisps
-  bd mol wisp gc --closed --dry-run                 # Explicit dry-run (same as no --force)
-  bd mol wisp gc --exclude-type agent,rig           # Protect agent and rig wisps from GC
-  bd mol wisp gc --closed --force --exclude-type mol # Delete closed wisps except mol type
+  issuegraph mol wisp gc                                    # Clean abandoned wisps (default: 1h threshold)
+  issuegraph mol wisp gc --dry-run                          # Preview what would be cleaned
+  issuegraph mol wisp gc --age 24h                          # Custom age threshold
+  issuegraph mol wisp gc --all                              # Also clean closed wisps older than threshold
+  issuegraph mol wisp gc --closed                           # Preview closed wisp deletion
+  issuegraph mol wisp gc --closed --force                   # Delete all closed wisps
+  issuegraph mol wisp gc --closed --dry-run                 # Explicit dry-run (same as no --force)
+  issuegraph mol wisp gc --exclude-type agent,rig           # Protect agent and rig wisps from GC
+  issuegraph mol wisp gc --closed --force --exclude-type mol # Delete closed wisps except mol type
 
 ```
-bd mol wisp gc [flags]
+issuegraph mol wisp gc [flags]
 ```
 
 **Flags:**
@@ -575,7 +589,7 @@ bd mol wisp gc [flags]
   -f, --force                  Actually delete (default: preview only)
 ```
 
-### bd mol wisp list
+### issuegraph mol wisp list
 
 List all wisps (ephemeral molecules) in the current context.
 
@@ -591,15 +605,15 @@ The list shows:
 
 Old wisp detection:
   - Old wisps haven't been updated in 24+ hours
-  - Use 'bd mol wisp gc' to clean up old/abandoned wisps
+  - Use 'issuegraph mol wisp gc' to clean up old/abandoned wisps
 
 Examples:
-  bd mol wisp list              # List all wisps
-  bd mol wisp list --json       # JSON output for programmatic use
-  bd mol wisp list --all        # Include closed wisps
+  issuegraph mol wisp list              # List all wisps
+  issuegraph mol wisp list --json       # JSON output for programmatic use
+  issuegraph mol wisp list --all        # Include closed wisps
 
 ```
-bd mol wisp list [flags]
+issuegraph mol wisp list [flags]
 ```
 
 **Flags:**

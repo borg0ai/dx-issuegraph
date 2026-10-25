@@ -1,17 +1,17 @@
 ---
-title: "bd reopen"
-description: "Reopen closed issues by setting status to 'open' and clearing the closed_at timestamp."
+title: "issuegraph reopen"
+description: "Reopen one or more closed issues"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc reopen`.
+Generated from `issuegraph help --doc reopen`.
 
 Reopen closed issues by setting status to 'open' and clearing the closed_at timestamp.
-This is more explicit than 'bd update --status open' and emits a Reopened event.
+This is more explicit than 'issuegraph update --status open' and emits a Reopened event.
 
 ```
-bd reopen [id...] [flags]
+issuegraph reopen [id...] [flags]
 ```
 
 **Flags:**

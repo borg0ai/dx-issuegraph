@@ -2,7 +2,7 @@
 # Binary management — download old releases, build candidate.
 # Extracted from cross-version-smoke-test.sh for reuse.
 
-CACHE_DIR="${HOME}/.cache/beads-regression"
+CACHE_DIR="${HOME}/.cache/issuegraph-regression"
 mkdir -p "$CACHE_DIR"
 
 DOWNLOAD_TIMEOUT="${DOWNLOAD_TIMEOUT:-60}"
@@ -87,7 +87,7 @@ verify_release_binary_version() (
         echo "ERROR: verified $version binary is not executable" >&2
         return 1
     fi
-    probe_root=$(mktemp -d "${TMPDIR:-/tmp}/bd-release-version-probe.XXXXXX") || {
+    probe_root=$(mktemp -d "${TMPDIR:-/tmp}/issuegraph-release-version-probe.XXXXXX") || {
         echo "ERROR: could not create isolated release binary probe" >&2
         return 1
     }
@@ -113,9 +113,9 @@ verify_release_binary_version() (
         GIT_CONFIG_GLOBAL=/dev/null \
         GIT_CONFIG_SYSTEM=/dev/null \
         GIT_TERMINAL_PROMPT=0 \
-        BD_DISABLE_METRICS=1 \
-        BD_DISABLE_EVENT_FLUSH=1 \
-        BD_NON_INTERACTIVE=1 \
+        ISSUEGRAPH_DISABLE_METRICS=1 \
+        ISSUEGRAPH_DISABLE_EVENT_FLUSH=1 \
+        ISSUEGRAPH_NON_INTERACTIVE=1 \
         "$timeout_bin" --kill-after=5s "$probe_timeout" "$binary" version 2>&1); then
         echo "ERROR: verified $version binary does not run" >&2
         return 1
@@ -136,12 +136,12 @@ download_verified_release_binary() {
     expected=$(strict_release_sha256 "$version" "$OS" "$ARCH") || return 1
     release_dir="$CACHE_DIR/verified/${version}-${OS}-${ARCH}-${expected}"
     archive="$release_dir/$asset"
-    binary="$release_dir/bd"
+    binary="$release_dir/issuegraph"
     mkdir -p "$release_dir"
 
     if [ ! -f "$archive" ]; then
         local url tmp
-        url="https://github.com/gastownhall/beads/releases/download/${version}/${asset}"
+        url="https://github.com/borg0ai/dx-issuegraph/releases/download/${version}/${asset}"
         tmp="$archive.tmp.$$"
         echo -e "  ${YELLOW:-}downloading verified ${version}...${NC:-}" >&2
         if ! curl -fsSL --max-time "$DOWNLOAD_TIMEOUT" --retry 3 --retry-all-errors --retry-delay 2 "$url" -o "$tmp"; then
@@ -164,10 +164,10 @@ download_verified_release_binary() {
         echo "ERROR: could not extract pinned release asset for $version" >&2
         return 1
     fi
-    extracted=$(find "$extract_dir" -name bd -type f | head -1)
+    extracted=$(find "$extract_dir" -name issuegraph -type f | head -1)
     if [ -z "$extracted" ]; then
         rm -rf "$extract_dir"
-        echo "ERROR: pinned release asset for $version contains no bd binary" >&2
+        echo "ERROR: pinned release asset for $version contains no issuegraph binary" >&2
         return 1
     fi
     cp -f "$extracted" "$binary"
@@ -226,7 +226,7 @@ build_verified_v091_source_binary() (
         return 1
     }
     build_dir="$CACHE_DIR/verified-source/${SOURCE_TAG_SQLITE_VERSION}-${SOURCE_TAG_SQLITE_COMMIT}-${SOURCE_TAG_SQLITE_GO_TOOLCHAIN}-${OS}-${ARCH}-cgo1"
-    binary="$build_dir/bd"
+    binary="$build_dir/issuegraph"
     mkdir -p "$build_dir"
     cp -f "$source_dir/go.mod" "$scratch/source.mod" &&
         cp -f "$source_dir/go.sum" "$scratch/source.sum" &&
@@ -235,7 +235,7 @@ build_verified_v091_source_binary() (
     if ! (cd "$source_dir" && env GOFLAGS=-modcacherw GOWORK=off GOTOOLCHAIN=local \
         GOMODCACHE="$scratch/mod" GOSUMDB=sum.golang.org GONOSUMDB= GOPRIVATE= \
         GOOS="$OS" GOARCH="$ARCH" CGO_ENABLED=1 \
-        "$toolchain_go" build -trimpath -modfile="$scratch/source.mod" -o "$temporary" github.com/steveyegge/beads/modules/cli); then
+        "$toolchain_go" build -trimpath -modfile="$scratch/source.mod" -o "$temporary" github.com/borg0ai/dx-issuegraph/apps/cli); then
         echo "ERROR: could not build verified v0.9.1 source for $OS/$ARCH with CGO" >&2
         return 1
     fi
@@ -250,8 +250,8 @@ build_candidate() {
         return
     fi
 
-    local candidate="$CACHE_DIR/bd-candidate-$$"
+    local candidate="$CACHE_DIR/issuegraph-candidate-$$"
     echo -e "${YELLOW:-}Building candidate binary...${NC:-}" >&2
-    (cd "$PROJECT_ROOT" && go build -tags gms_pure_go -o "$candidate" github.com/steveyegge/beads/modules/cli) >&2
+    (cd "$PROJECT_ROOT" && go build -tags gms_pure_go -o "$candidate" github.com/borg0ai/dx-issuegraph/apps/cli) >&2
     echo "$candidate"
 }

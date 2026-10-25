@@ -124,7 +124,7 @@ func TestClassifyUseDatabaseError(t *testing.T) {
 			classifyUseDatabaseError(denied, "team_b", teamServerUseDatabaseRemedy),
 			classifyUseDatabaseError(missing, "team_b", teamServerUseDatabaseRemedy),
 		} {
-			for _, banned := range []string{"beads-team-server", "bts "} {
+			for _, banned := range []string{"issuegraph-team-server", "bts "} {
 				if strings.Contains(err.Error(), banned) {
 					t.Fatalf("message must not name a product (%q): %v", banned, err)
 				}

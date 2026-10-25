@@ -2,7 +2,7 @@
 
 This directory contains startup hook scripts that help AI agents automatically detect and adapt to changes in their environment.
 
-## bd-version-check.sh
+## issuegraph-version-check.sh
 
 **Purpose:** Automatically detect issuegraph (IssueGraph) upgrades and show what changed
 
@@ -10,17 +10,17 @@ This directory contains startup hook scripts that help AI agents automatically d
 - ✅ Detects when issuegraph version changes between sessions
 - ✅ Shows `issuegraph info --whats-new` output automatically
 - ✅ Auto-updates outdated git hooks
-- ✅ Persists version tracking in `.beads/metadata.json`
+- ✅ Persists version tracking in `.issuegraph/metadata.json`
 - ✅ Works today - no issuegraph code changes required!
 
 **Usage:**
 
 ```bash
 # Source the script at session start (recommended)
-source examples/startup-hooks/bd-version-check.sh
+source examples/startup-hooks/issuegraph-version-check.sh
 
 # Or execute it directly
-bash examples/startup-hooks/bd-version-check.sh
+bash examples/startup-hooks/issuegraph-version-check.sh
 ```
 
 ### Integration Examples
@@ -30,7 +30,7 @@ bash examples/startup-hooks/bd-version-check.sh
 If Claude Code supports startup hooks:
 ```bash
 # Add to .claude/hooks/session-start
-source examples/startup-hooks/bd-version-check.sh
+source examples/startup-hooks/issuegraph-version-check.sh
 ```
 
 Alternatively, manually run at the start of each coding session.
@@ -41,8 +41,8 @@ Add to your shell initialization file:
 ```bash
 # ~/.bashrc or ~/.zshrc
 # Run issuegraph version check when entering an issuegraph project
-if [ -d ".beads" ]; then
-  source /path/to/beads/examples/startup-hooks/bd-version-check.sh
+if [ -d ".issuegraph" ]; then
+  source /path/to/issuegraph/examples/startup-hooks/issuegraph-version-check.sh
 fi
 ```
 
@@ -58,11 +58,11 @@ Any AI coding environment that allows custom startup scripts can source this fil
 
 - **issuegraph (IssueGraph)**: Must be installed and in PATH
 - **jq**: Required for JSON manipulation (`brew install jq` on macOS, `apt-get install jq` on Ubuntu)
-- **.beads directory**: Must exist in current project
+- **.issuegraph directory**: Must exist in current project
 
 ### How It Works
 
-1. **Version Detection**: Reads current issuegraph version and compares to `.beads/metadata.json`
+1. **Version Detection**: Reads current issuegraph version and compares to `.issuegraph/metadata.json`
 2. **Change Notification**: If version changed, displays upgrade banner with what's new
 3. **Hook Updates**: Checks for outdated git hooks and auto-updates them
 4. **Persistence**: Updates `metadata.json` with current version for next session
@@ -103,7 +103,7 @@ Any AI coding environment that allows custom startup scripts can source this fil
 ### Troubleshooting
 
 **Q: Script doesn't detect version change**
-A: Check that `.beads/metadata.json` exists and contains `last_bd_version` field
+A: Check that `.issuegraph/metadata.json` exists and contains `last_issuegraph_version` field
 
 **Q: "jq not found" warning**
 A: Install jq: `brew install jq` (macOS) or `apt-get install jq` (Ubuntu)
@@ -114,5 +114,5 @@ A: Ensure you have write permissions to `.git/hooks/` directory
 ### Related
 
 - **GitHub Discussion #239**: "Upgrading issuegraph: how to let the Agent know"
-- **Parent Epic**: bd-nxgk - Agent upgrade awareness system
+- **Parent Epic**: issuegraph-nxgk - Agent upgrade awareness system
 - **AGENTS.md**: See "After Upgrading issuegraph" section for manual workflow

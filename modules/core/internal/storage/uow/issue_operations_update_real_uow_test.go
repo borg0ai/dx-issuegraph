@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Lifecycle over a REAL unit of work, for the promises the IssueOperations
@@ -112,7 +112,7 @@ func newRealIssueOperationsWithProvider(t *testing.T, ctx context.Context) (issu
 	t.Helper()
 	provider := newTestUOWProvider(t)
 	if err := RunTx(ctx, provider, func(ctx context.Context, uw UnitOfWork) (string, error) {
-		if err := uw.ConfigUseCase().SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+		if err := uw.ConfigUseCase().SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 			return "", err
 		}
 		return "initialize issue operations", nil

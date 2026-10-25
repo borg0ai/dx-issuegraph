@@ -11,7 +11,7 @@ import (
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // expectCursorProbe mocks the information_schema existence probe that
@@ -67,7 +67,7 @@ func TestCheckTeamServerSchema_FreshDB_RefusesWithBtsInit(t *testing.T) {
 	defer closeDB()
 	expectVersionQuery(mock, 0)
 
-	err := checkTeamServerSchema(context.Background(), db, "beads_team")
+	err := checkTeamServerSchema(context.Background(), db, "issuegraph_team")
 	if err == nil {
 		t.Fatal("checkTeamServerSchema = nil, want refusal for empty (v0) database")
 	}
@@ -86,7 +86,7 @@ func TestCheckTeamServerSchema_MissingTable_RefusesWithBtsInit(t *testing.T) {
 	// the probe returning 0 rather than by the cursor read erroring out.
 	expectCursorProbe(mock, "schema_migrations", false)
 
-	err := checkTeamServerSchema(context.Background(), db, "beads_team")
+	err := checkTeamServerSchema(context.Background(), db, "issuegraph_team")
 	if err == nil {
 		t.Fatal("checkTeamServerSchema = nil, want refusal when schema_migrations is absent")
 	}
@@ -101,14 +101,14 @@ func TestCheckTeamServerSchema_Behind_RefusesWithBtsMigrate(t *testing.T) {
 	behind := schema.LatestVersion() - 1
 	expectVersionQuery(mock, behind)
 
-	err := checkTeamServerSchema(context.Background(), db, "beads_team")
+	err := checkTeamServerSchema(context.Background(), db, "issuegraph_team")
 	if err == nil {
 		t.Fatal("checkTeamServerSchema = nil, want refusal for behind database")
 	}
 	if !strings.Contains(err.Error(), "bts migrate") {
 		t.Errorf("error %q should point at 'bts migrate'", err)
 	}
-	if strings.Contains(err.Error(), "run any bd write command") {
+	if strings.Contains(err.Error(), "run any issuegraph write command") {
 		t.Errorf("error %q must not suggest bd-driven migration on a bts-owned schema", err)
 	}
 }
@@ -118,7 +118,7 @@ func TestCheckTeamServerSchema_Equal_OK(t *testing.T) {
 	defer closeDB()
 	expectVersionQuery(mock, schema.LatestVersion())
 
-	if err := checkTeamServerSchema(context.Background(), db, "beads_team"); err != nil {
+	if err := checkTeamServerSchema(context.Background(), db, "issuegraph_team"); err != nil {
 		t.Fatalf("checkTeamServerSchema = %v, want nil at matching version", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -134,25 +134,25 @@ func TestCheckTeamServerSchema_Ahead_ReturnsSchemaSkewError(t *testing.T) {
 	expectVersionQuery(mock, ahead)
 	expectVersionQuery(mock, ahead)
 
-	err := checkTeamServerSchema(context.Background(), db, "beads_team")
+	err := checkTeamServerSchema(context.Background(), db, "issuegraph_team")
 	if !schema.IsSchemaSkewError(err) {
 		t.Fatalf("checkTeamServerSchema = %v (%T), want *schema.SchemaSkewError", err, err)
 	}
 }
 
 func TestCheckTeamServerSchema_Behind_EscapeHatchDoesNotBypass(t *testing.T) {
-	t.Setenv("BD_IGNORE_SCHEMA_SKEW", "1")
+	t.Setenv("ISSUEGRAPH_IGNORE_SCHEMA_SKEW", "1")
 	mock, db, closeDB := newVersionMockDB(t)
 	defer closeDB()
 	expectVersionQuery(mock, schema.LatestVersion()-1)
 
-	if err := checkTeamServerSchema(context.Background(), db, "beads_team"); err == nil {
-		t.Fatal("checkTeamServerSchema = nil; BD_IGNORE_SCHEMA_SKEW must not allow writing against an older bts schema")
+	if err := checkTeamServerSchema(context.Background(), db, "issuegraph_team"); err == nil {
+		t.Fatal("checkTeamServerSchema = nil; ISSUEGRAPH_IGNORE_SCHEMA_SKEW must not allow writing against an older bts schema")
 	}
 }
 
 func TestCheckTeamServerSchema_Ahead_EscapeHatchWarnsInsteadOfRefusing(t *testing.T) {
-	t.Setenv("BD_IGNORE_SCHEMA_SKEW", "1")
+	t.Setenv("ISSUEGRAPH_IGNORE_SCHEMA_SKEW", "1")
 	mock, db, closeDB := newVersionMockDB(t)
 	defer closeDB()
 	ahead := schema.LatestVersion() + 1
@@ -161,10 +161,10 @@ func TestCheckTeamServerSchema_Ahead_EscapeHatchWarnsInsteadOfRefusing(t *testin
 
 	var err error
 	stderr := captureStderr(t, func() {
-		err = checkTeamServerSchema(context.Background(), db, "beads_team")
+		err = checkTeamServerSchema(context.Background(), db, "issuegraph_team")
 	})
 	if err != nil {
-		t.Fatalf("checkTeamServerSchema = %v, want nil with BD_IGNORE_SCHEMA_SKEW=1", err)
+		t.Fatalf("checkTeamServerSchema = %v, want nil with ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1", err)
 	}
 	if !strings.Contains(stderr, "schema skew ignored") {
 		t.Errorf("stderr = %q, want a schema-skew warning", stderr)
@@ -185,16 +185,16 @@ func TestCheckTeamServerIdentity_ForeignProjectID_Refuses(t *testing.T) {
 	defer closeDB()
 	expectProjectIDQuery(mock, "project-BBBB")
 
-	err := checkTeamServerIdentity(context.Background(), db, "beads_team", "project-AAAA")
+	err := checkTeamServerIdentity(context.Background(), db, "issuegraph_team", "project-AAAA")
 	if err == nil {
 		t.Fatal("checkTeamServerIdentity = nil, want refusal when the database serves a different project")
 	}
-	for _, want := range []string{"PROJECT IDENTITY MISMATCH", "project-AAAA", "project-BBBB", "beads_team"} {
+	for _, want := range []string{"PROJECT IDENTITY MISMATCH", "project-AAAA", "project-BBBB", "issuegraph_team"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("error %q should contain %q", err, want)
 		}
 	}
-	if !strings.Contains(err.Error(), "bd init --team-server") {
+	if !strings.Contains(err.Error(), "issuegraph init --team-server") {
 		t.Errorf("error %q should tell the user re-running init is safe", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -207,7 +207,7 @@ func TestCheckTeamServerIdentity_MatchingProjectID_OK(t *testing.T) {
 	defer closeDB()
 	expectProjectIDQuery(mock, "project-AAAA")
 
-	if err := checkTeamServerIdentity(context.Background(), db, "beads_team", "project-AAAA"); err != nil {
+	if err := checkTeamServerIdentity(context.Background(), db, "issuegraph_team", "project-AAAA"); err != nil {
 		t.Fatalf("checkTeamServerIdentity = %v, want nil when identities match", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -215,14 +215,14 @@ func TestCheckTeamServerIdentity_MatchingProjectID_OK(t *testing.T) {
 	}
 }
 
-// `bd init --team-server` adopts the provisioned identity, so it passes an
+// `issuegraph init --team-server` adopts the provisioned identity, so it passes an
 // empty expectation. The check must then not query at all — asserting the
 // locally-minted placeholder would reject every correct init.
 func TestCheckTeamServerIdentity_AdoptionPath_SkipsWithoutQuerying(t *testing.T) {
 	mock, db, closeDB := newVersionMockDB(t)
 	defer closeDB()
 
-	if err := checkTeamServerIdentity(context.Background(), db, "beads_team", ""); err != nil {
+	if err := checkTeamServerIdentity(context.Background(), db, "issuegraph_team", ""); err != nil {
 		t.Fatalf("checkTeamServerIdentity = %v, want nil on the adoption path", err)
 	}
 	// No ExpectQuery was registered; any query would be an unexpected call.
@@ -242,7 +242,7 @@ func TestCheckTeamServerIdentity_DatabaseWithoutIdentity_Refuses(t *testing.T) {
 		WithArgs("_project_id").
 		WillReturnRows(sqlmock.NewRows([]string{"value"}))
 
-	err := checkTeamServerIdentity(context.Background(), db, "beads_team", "project-AAAA")
+	err := checkTeamServerIdentity(context.Background(), db, "issuegraph_team", "project-AAAA")
 	if err == nil {
 		t.Fatal("checkTeamServerIdentity = nil, want refusal for a database with no _project_id")
 	}
@@ -256,7 +256,7 @@ func TestCheckTeamServerIdentity_EmptyStoredIdentity_Refuses(t *testing.T) {
 	defer closeDB()
 	expectProjectIDQuery(mock, "")
 
-	if err := checkTeamServerIdentity(context.Background(), db, "beads_team", "project-AAAA"); err == nil {
+	if err := checkTeamServerIdentity(context.Background(), db, "issuegraph_team", "project-AAAA"); err == nil {
 		t.Fatal("checkTeamServerIdentity = nil, want refusal for an empty stored identity")
 	}
 }
@@ -271,11 +271,11 @@ func TestCheckTeamServerIdentity_ReadError_Surfaces(t *testing.T) {
 		WithArgs("_project_id").
 		WillReturnError(errors.New("Error 1105 (HY000): connection reset"))
 
-	err := checkTeamServerIdentity(context.Background(), db, "beads_team", "project-AAAA")
+	err := checkTeamServerIdentity(context.Background(), db, "issuegraph_team", "project-AAAA")
 	if err == nil {
 		t.Fatal("checkTeamServerIdentity = nil, want the read error surfaced")
 	}
-	if !strings.Contains(err.Error(), "beads_team") {
+	if !strings.Contains(err.Error(), "issuegraph_team") {
 		t.Errorf("error %q should name the database", err)
 	}
 }

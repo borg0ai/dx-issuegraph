@@ -3,7 +3,7 @@ package issueops
 import (
 	"fmt"
 
-	publicops "github.com/steveyegge/beads/issueops"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // MissingDependencySource builds the refusal for an edge whose SOURCE names no
@@ -47,7 +47,7 @@ func MissingDependencyTarget(issueID, dependsOnID string) error {
 // practice; the true row count in the underlying data may be larger.
 //
 // Source attributes which knob set MaxRows. Expected values: "--max-rows",
-// "BEADS_MAX_ROWS", or "" (library users with no source attribution).
+// "ISSUEGRAPH_MAX_ROWS", or "" (library users with no source attribution).
 type ErrTooManyRows struct {
 	Found  int
 	Cap    int

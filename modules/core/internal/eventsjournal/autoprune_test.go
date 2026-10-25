@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // fakeRunner is one plumbing's worth of maintenance transactions, backed by
@@ -162,11 +162,11 @@ func TestAutoPruneStampsTheWatermarkBeforeDeleting(t *testing.T) {
 	mock.ExpectExec(regexp.QuoteMeta("REPLACE INTO local_metadata")).
 		WithArgs(AutoPruneSlotKey, watermarkAt(t, now, 1000)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM bd_events_seq")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM issuegraph_events_seq")).
 		WillReturnRows(sqlmock.NewRows([]string{"next_seq"}).AddRow(1000))
 	mock.ExpectQuery(regexp.QuoteMeta(issueops.EventsPruneRowsCeilQuery())).
 		WithArgs(100).WillReturnRows(sqlmock.NewRows([]string{"seq"}).AddRow(900))
-	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM bd_events_journal")).
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM issuegraph_events_journal")).
 		WithArgs(int64(901)).WillReturnError(errors.New("table is locked"))
 
 	deleted, err := AutoPrune(context.Background(), runner, AutoPruneOptions{
@@ -202,7 +202,7 @@ func TestAutoPruneKeepsTheWatermarkWhenTheBoundReadFails(t *testing.T) {
 	mock.ExpectExec(regexp.QuoteMeta("REPLACE INTO local_metadata")).
 		WithArgs(AutoPruneSlotKey, stamp).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM bd_events_seq")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM issuegraph_events_seq")).
 		WillReturnError(errors.New("deadlock found when trying to get lock"))
 
 	opts := AutoPruneOptions{RetainRows: 100, Now: now, Interval: time.Hour, VolumeRows: 5000}
@@ -245,14 +245,14 @@ func TestAutoPruneCapsTheBatchesItRunsPerPass(t *testing.T) {
 
 	expectThrottleRead(mock, nil, int64(10_000_000))
 	mock.ExpectExec(regexp.QuoteMeta("REPLACE INTO local_metadata")).WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM bd_events_seq")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM issuegraph_events_seq")).
 		WillReturnRows(sqlmock.NewRows([]string{"next_seq"}).AddRow(10_000_000))
 	mock.ExpectQuery(regexp.QuoteMeta(issueops.EventsPruneRowsCeilQuery())).
 		WithArgs(100).WillReturnRows(sqlmock.NewRows([]string{"seq"}).AddRow(9_000_000))
 	// Every batch comes back full, so the loop would keep going forever if the
 	// cap were not enforced. Exactly EventsAutoPruneMaxBatches are allowed.
 	for range issueops.EventsAutoPruneMaxBatches {
-		mock.ExpectExec(regexp.QuoteMeta("DELETE FROM bd_events_journal")).
+		mock.ExpectExec(regexp.QuoteMeta("DELETE FROM issuegraph_events_journal")).
 			WithArgs(int64(9_000_001)).WillReturnResult(sqlmock.NewResult(0, full))
 	}
 
@@ -277,12 +277,12 @@ func TestAutoPruneCapsTheBatchesItRunsPerPass(t *testing.T) {
 	// single command pays for all of it.
 	expectThrottleRead(mock, watermarkAt(t, now, 10_000_000), int64(10_000_000))
 	mock.ExpectExec(regexp.QuoteMeta("REPLACE INTO local_metadata")).WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM bd_events_seq")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM issuegraph_events_seq")).
 		WillReturnRows(sqlmock.NewRows([]string{"next_seq"}).AddRow(10_000_000))
 	mock.ExpectQuery(regexp.QuoteMeta(issueops.EventsPruneRowsCeilQuery())).
 		WithArgs(100).WillReturnRows(sqlmock.NewRows([]string{"seq"}).AddRow(9_000_000))
 	for range issueops.EventsAutoPruneMaxBatches {
-		mock.ExpectExec(regexp.QuoteMeta("DELETE FROM bd_events_journal")).
+		mock.ExpectExec(regexp.QuoteMeta("DELETE FROM issuegraph_events_journal")).
 			WithArgs(int64(9_000_001)).WillReturnResult(sqlmock.NewResult(0, full))
 	}
 
@@ -309,11 +309,11 @@ func TestAutoPruneStopsEarlyWhenABatchComesBackShort(t *testing.T) {
 
 	expectThrottleRead(mock, nil, int64(1000))
 	mock.ExpectExec(regexp.QuoteMeta("REPLACE INTO local_metadata")).WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM bd_events_seq")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT next_seq FROM issuegraph_events_seq")).
 		WillReturnRows(sqlmock.NewRows([]string{"next_seq"}).AddRow(1000))
 	mock.ExpectQuery(regexp.QuoteMeta(issueops.EventsPruneRowsCeilQuery())).
 		WithArgs(100).WillReturnRows(sqlmock.NewRows([]string{"seq"}).AddRow(900))
-	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM bd_events_journal")).
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM issuegraph_events_journal")).
 		WithArgs(int64(901)).WillReturnResult(sqlmock.NewResult(0, 900))
 
 	deleted, err := AutoPrune(context.Background(), runner, AutoPruneOptions{
@@ -350,7 +350,7 @@ func TestAutoPruneReportsAFailingPlumbing(t *testing.T) {
 	}
 }
 
-// TestTickAutoPruneRunsAPassPerTickAndStopsWithTheContext drives the loop bd
+// TestTickAutoPruneRunsAPassPerTickAndStopsWithTheContext drives the loop issuegraph
 // serve runs, on a hand-fed clock. The server has no command boundary to hang
 // maintenance off, so this loop is the trigger — and it must end when the
 // process is shutting down rather than outlive the plumbing it prunes through.
@@ -453,7 +453,7 @@ func TestAutoPruneEnabledForAcceptsYamlNo(t *testing.T) {
 	}
 	for _, spelling := range []string{"no", "No", "NO", "off", "Off", "FALSE"} {
 		if AutoPruneEnabledFor(writeWorkspace(t, AutoPruneConfigKey+": "+spelling+"\n")) {
-			t.Errorf("%q did not read as an opt-out; bd would keep deleting records", spelling)
+			t.Errorf("%q did not read as an opt-out; issuegraph would keep deleting records", spelling)
 		}
 	}
 	for _, spelling := range []string{"yes", "Yes", "on", "ON", "TRUE"} {

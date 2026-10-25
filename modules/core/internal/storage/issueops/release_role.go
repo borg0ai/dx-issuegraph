@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ReleaseIssueInTx is the store-backed body behind issueops.Releaser: the whole
-// of `bd unclaim` from the classifying read to the post-state snapshot, inside
+// of `issuegraph unclaim` from the classifying read to the post-state snapshot, inside
 // ONE transaction.
 //
 // It lives here rather than in an importable internal/workapi/store<role>

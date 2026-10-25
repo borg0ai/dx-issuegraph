@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // beginCapturingMockTx is beginMockTx with a query matcher that also records
@@ -97,7 +97,7 @@ func TestSearchIssueIDsInTx_GoSideSortScansUnboundedThenOrdersAndTrims(t *testin
 }
 
 // TestSearchIssuesWithCountsInTx_GoSideSortDropsTheLegBound is the counts-seam
-// copy of the leg-shape assertion — the seam bd query '<expr>' --sort id
+// copy of the leg-shape assertion — the seam issuegraph query '<expr>' --sort id
 // actually reaches on the store-shaped backends (storequerier →
 // SearchIssuesWithCounts), where BuildQueryPlan always pushes a bound. Under a
 // Go-side sort, neither the issues nor the wisps counts query may carry a

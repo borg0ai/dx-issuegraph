@@ -2,7 +2,7 @@ package issueops
 
 import "context"
 
-// ImportBatchRequest is one whole `bd import` invocation's write: every issue
+// ImportBatchRequest is one whole `issuegraph import` invocation's write: every issue
 // row that survived the caller's pre-filters, every memory record, and the
 // optional issue_prefix reconciliation, landed in ONE transaction and ONE
 // history entry. The request is the transaction: there is no handle to hold
@@ -27,7 +27,7 @@ type ImportBatchRequest struct {
 	AllowStale bool
 	// SkipPrefixValidation admits rows whose ID prefix differs from the
 	// workspace's configured issue prefix, which is what an explicit
-	// `bd import` has always done.
+	// `issuegraph import` has always done.
 	SkipPrefixValidation bool
 	// SyncIssuePrefix, when non-empty, is the caller's authoritative issue
 	// prefix (config.yaml); if it differs from the stored issue_prefix the
@@ -40,7 +40,7 @@ type ImportBatchRequest struct {
 	Source string
 }
 
-// ImportMemory is one memory record ('bd remember') carried by an import.
+// ImportMemory is one memory record ('issuegraph remember') carried by an import.
 type ImportMemory struct {
 	Key   string
 	Value string

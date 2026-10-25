@@ -22,7 +22,7 @@ func noDeferredChildren() *sqlmock.Rows { return sqlmock.NewRows([]string{"issue
 // TestDeferredParentEdgesBrokenDurablePlaneIsAnError is the domain/db twin of
 // the issueops guard on the same join. `descendantsOfFutureDeferredParents`
 // walks four (dependency table, issue table) pairs, and three of the four name
-// a table every beads database must have. Its gate classified the error class
+// a table every issuegraph database must have. Its gate classified the error class
 // alone with no plane guard at all, and it continues rather than aborting, so
 // the edges naming a missing `dependencies` or `issues` were swallowed one by
 // one while the remaining two answered: a nil error over an incomplete set of

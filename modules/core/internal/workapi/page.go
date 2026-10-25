@@ -3,7 +3,7 @@ package workapi
 import (
 	"slices"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // PageRow is the two row shapes a work page can carry: the bare issue the text
@@ -78,7 +78,7 @@ func SortIssuesWithCounts(items []*types.IssueWithCounts, sortBy string, reverse
 // that verdict.
 //
 // ONE FUNCTION, FOUR CALLERS, and that is the point. The two issueops.Reader
-// implementations and both of `bd list`'s routes reach this; before it existed
+// implementations and both of `issuegraph list`'s routes reach this; before it existed
 // each of them had written the tail of the same query out longhand, and they
 // had already drifted twice — a --ready page under a sort the database cannot
 // express came back untrimmed from one implementation, and the proxied CLI

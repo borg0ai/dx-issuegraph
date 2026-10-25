@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/externaldeps"
-	"github.com/steveyegge/beads/issueops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/externaldeps"
+	"github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // roleAccessorNames is the capability surface every storage decorator has to
@@ -334,7 +334,7 @@ func (*memoryRoleSentinel) List(context.Context, memoryops.ListRequest) (memoryo
 // the reader's), and a row that compared against the wrong one would be a row
 // that cannot fail.
 func TestInstrumentedStorageInstrumentsEveryRoleAccessor(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	sentinel := &roleAccessorSentinel{}
 	memorySentinel := &memoryRoleSentinel{}
 	inner := &roleAccessorStore{surface: sentinel, memories: memorySentinel}
@@ -389,20 +389,20 @@ func TestInstrumentedStorageInstrumentsEveryRoleAccessor(t *testing.T) {
 }
 
 // TestExternalDepsReadyCounterSurvivesThisLayer pins the span across the one
-// decorator above this one that CANNOT recurse. modules/cli wires
+// decorator above this one that CANNOT recurse. apps/cli wires
 // hooks -> externaldeps -> telemetry -> store, and externaldeps has to build
 // its own ready counter over itself so the total honors its external-dependency
 // exclusions — recursing into the inner counter the way the accessors above do
 // would count externally blocked issues as ready. That leaves handing the
 // finished counter to WrapReadyCounter as the only way this layer keeps its
 // turn, so an externaldeps override that skips it silently drops the
-// storage.ReadyCounter.CountReady span for every text-mode `bd ready`.
+// storage.ReadyCounter.CountReady span for every text-mode `issuegraph ready`.
 //
 // This is the only test that wires a real decorator above the instrumented
 // store, which is why WrapReadyCounter's sole caller outside this package is
 // the thing being pinned here.
 func TestExternalDepsReadyCounterSurvivesThisLayer(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	inner := &roleAccessorStore{surface: &roleAccessorSentinel{}}
 	instrumented, ok := WrapStorage(inner).(*InstrumentedStorage)
 	if !ok {
@@ -414,7 +414,7 @@ func TestExternalDepsReadyCounterSurvivesThisLayer(t *testing.T) {
 		t.Fatalf("externaldeps ReadyCounter() error = %v", err)
 	}
 	if _, ok := counter.(*instrumentedReadyCounter); !ok {
-		t.Fatalf("externaldeps ReadyCounter() = %T, want it wrapped by this layer; the storage.ReadyCounter.CountReady span stops being emitted for text-mode bd ready", counter)
+		t.Fatalf("externaldeps ReadyCounter() = %T, want it wrapped by this layer; the storage.ReadyCounter.CountReady span stops being emitted for text-mode issuegraph ready", counter)
 	}
 }
 
@@ -422,7 +422,7 @@ func TestExternalDepsReadyCounterSurvivesThisLayer(t *testing.T) {
 // of the recursion: an accessor that recurses must not swallow the inner
 // store's refusal, nor hand back a wrapper around nothing.
 func TestInstrumentedStorageRoleAccessorsPropagateInnerErrors(t *testing.T) {
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	want := errors.New("inner refused")
 	wrapped, ok := WrapStorage(&roleAccessorStore{err: want}).(*InstrumentedStorage)
 	if !ok {

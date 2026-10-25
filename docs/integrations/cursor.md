@@ -11,7 +11,7 @@ issuegraph setup cursor
 issuegraph setup cursor --check
 ```
 
-`issuegraph setup cursor` installs **`.cursor/rules/beads.mdc`** — an always-applied
+`issuegraph setup cursor` installs **`.cursor/rules/issuegraph.mdc`** — an always-applied
 rule with the canonical IssueGraph workflow guidance (the same content every other
 editor integration uses), so it stays in sync as the workflow evolves. Because
 it is always applied, Cursor re-includes it every turn, including after a
@@ -27,7 +27,7 @@ issuegraph setup cursor --check
 
 In a session, the agent should know your issuegraph workflow without being told — ask
 it what work is ready and it should run `issuegraph ready`. If it doesn't, confirm
-`.cursor/rules/beads.mdc` exists and restart Cursor.
+`.cursor/rules/issuegraph.mdc` exists and restart Cursor.
 
 After a context compaction, have the agent run `issuegraph prime` to restore the
 workflow context, ready work, and project memories.

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // TestIssueOperationsCreateAggregatesEveryRelationItWasGiven is the residue of
@@ -155,7 +155,7 @@ func TestIssueOperationsUpdateRefusesIncoherentClaimRequests(t *testing.T) {
 // The ephemeral leg is not, and cannot be until the leaf says so: SPEC-GAP
 // bd-yby99.31 records that neither Close nor Reopen states which PLANE an id
 // resolves against, and the contract declines to assert a promise the doc does
-// not make. Both `bd close` and `bd reopen` depend on it, so it is pinned here.
+// not make. Both `issuegraph close` and `issuegraph reopen` depend on it, so it is pinned here.
 func TestIssueOperationsCloseAndReopenAWisp(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()

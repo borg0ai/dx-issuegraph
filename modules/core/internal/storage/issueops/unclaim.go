@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // UnclaimIssueInTx atomically releases a claimed issue: it clears the assignee,
@@ -22,7 +22,7 @@ import (
 // under actorMatches (ga-5ksp5), so two spellings of the same Gas Town
 // identity (e.g. a dotted alias vs its session-name form) both count as the
 // owner — see canonicalActor. Pass force=true to bypass the ownership check
-// (admin/reaper use, threaded from `bd unclaim --force`).
+// (admin/reaper use, threaded from `issuegraph unclaim --force`).
 //
 // Only works on issues that have an assignee and status is "open" or
 // "in_progress". Returns error if:

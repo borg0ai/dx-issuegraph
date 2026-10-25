@@ -24,12 +24,12 @@ type ProxiedServerClientInfo struct {
 	External    *ExternalDoltConfig `json:"external,omitempty"`
 }
 
-func ProxiedServerClientInfoPath(beadsDir string) string {
-	return filepath.Join(beadsDir, ProxiedServerClientInfoFileName)
+func ProxiedServerClientInfoPath(issuegraphDir string) string {
+	return filepath.Join(issuegraphDir, ProxiedServerClientInfoFileName)
 }
 
-func LoadProxiedServerClientInfo(beadsDir string) (*ProxiedServerClientInfo, error) {
-	path := ProxiedServerClientInfoPath(beadsDir)
+func LoadProxiedServerClientInfo(issuegraphDir string) (*ProxiedServerClientInfo, error) {
+	path := ProxiedServerClientInfoPath(issuegraphDir)
 	data, err := os.ReadFile(path) // #nosec G304 - controlled path
 	if os.IsNotExist(err) {
 		return nil, nil
@@ -44,12 +44,12 @@ func LoadProxiedServerClientInfo(beadsDir string) (*ProxiedServerClientInfo, err
 	return &info, nil
 }
 
-func SaveProxiedServerClientInfo(beadsDir string, info *ProxiedServerClientInfo) error {
+func SaveProxiedServerClientInfo(issuegraphDir string, info *ProxiedServerClientInfo) error {
 	if info == nil {
 		info = &ProxiedServerClientInfo{}
 	}
 	// Zero is the internal "use the default" sentinel. Persist the effective
-	// value so sidecar consumers do not need bd's source code to interpret an
+	// value so sidecar consumers do not need issuegraph's source code to interpret an
 	// absent key. Update the caller's plan too: migration resume compares the
 	// in-memory plan with the sidecar after this write.
 	if info.IdleTimeout == 0 {
@@ -59,8 +59,8 @@ func SaveProxiedServerClientInfo(beadsDir string, info *ProxiedServerClientInfo)
 	if err != nil {
 		return fmt.Errorf("marshaling %s: %w", ProxiedServerClientInfoFileName, err)
 	}
-	path := ProxiedServerClientInfoPath(beadsDir)
-	tmp, err := os.CreateTemp(beadsDir, ".proxied-server-client-info-*.tmp")
+	path := ProxiedServerClientInfoPath(issuegraphDir)
+	tmp, err := os.CreateTemp(issuegraphDir, ".proxied-server-client-info-*.tmp")
 	if err != nil {
 		return fmt.Errorf("writing %s: %w", ProxiedServerClientInfoFileName, err)
 	}
@@ -81,7 +81,7 @@ func SaveProxiedServerClientInfo(beadsDir string, info *ProxiedServerClientInfo)
 	if err = os.Rename(tmpPath, path); err != nil {
 		return fmt.Errorf("writing %s: %w", ProxiedServerClientInfoFileName, err)
 	}
-	d, err := os.Open(beadsDir) // #nosec G304 -- beadsDir is the discovered workspace directory
+	d, err := os.Open(issuegraphDir) // #nosec G304 -- issuegraphDir is the discovered workspace directory
 	if err != nil {
 		return fmt.Errorf("syncing %s directory: %w", ProxiedServerClientInfoFileName, err)
 	}
@@ -95,33 +95,33 @@ func SaveProxiedServerClientInfo(beadsDir string, info *ProxiedServerClientInfo)
 	return nil
 }
 
-func resolveSidecarPath(beadsDir, p string) string {
+func resolveSidecarPath(issuegraphDir, p string) string {
 	if p == "" {
 		return ""
 	}
 	if filepath.IsAbs(p) {
 		return p
 	}
-	return filepath.Join(beadsDir, p)
+	return filepath.Join(issuegraphDir, p)
 }
 
-func (i *ProxiedServerClientInfo) ResolvedRootPath(beadsDir string) string {
+func (i *ProxiedServerClientInfo) ResolvedRootPath(issuegraphDir string) string {
 	if i == nil {
 		return ""
 	}
-	return resolveSidecarPath(beadsDir, i.RootPath)
+	return resolveSidecarPath(issuegraphDir, i.RootPath)
 }
 
-func (i *ProxiedServerClientInfo) ResolvedConfigPath(beadsDir string) string {
+func (i *ProxiedServerClientInfo) ResolvedConfigPath(issuegraphDir string) string {
 	if i == nil {
 		return ""
 	}
-	return resolveSidecarPath(beadsDir, i.ConfigPath)
+	return resolveSidecarPath(issuegraphDir, i.ConfigPath)
 }
 
-func (i *ProxiedServerClientInfo) ResolvedLogPath(beadsDir string) string {
+func (i *ProxiedServerClientInfo) ResolvedLogPath(issuegraphDir string) string {
 	if i == nil {
 		return ""
 	}
-	return resolveSidecarPath(beadsDir, i.LogPath)
+	return resolveSidecarPath(issuegraphDir, i.LogPath)
 }

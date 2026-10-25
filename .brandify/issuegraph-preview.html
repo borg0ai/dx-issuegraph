@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IssueGraph 品牌草稿 · Issue 卡片</title>
+<style>
+  :root { color-scheme: light; font: 16px/1.5 ui-sans-serif, system-ui, sans-serif; background: #f4f0e8; color: #17212b; }
+  body { max-width: 960px; margin: 48px auto; padding: 0 24px; }
+  h1 { font-size: clamp(2rem, 5vw, 3.5rem); margin: 0; letter-spacing: -.05em; }
+  p { color: #52616c; }
+  .hero { display: flex; align-items: center; gap: 32px; padding: 36px; border-radius: 28px; background: white; }
+  .hero img { width: 144px; height: 144px; }
+  .sizes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 24px 0; }
+  figure { display: grid; justify-items: center; gap: 12px; margin: 0; padding: 24px 12px; border: 1px solid #d9d5ce; border-radius: 20px; background: white; }
+  figure img { width: var(--size); height: var(--size); }
+  figcaption { font-size: 13px; color: #52616c; }
+  .note { padding: 20px 24px; border-left: 4px solid #f08c68; background: #fff; border-radius: 8px; }
+  @media (max-width: 600px) { body { margin: 24px auto; } .hero { align-items: start; flex-direction: column; } .sizes { grid-template-columns: repeat(2, 1fr); } }
+</style>
+<body>
+  <h1>IssueGraph</h1>
+  <p>品牌草稿 · 方向 2：Issue 卡片</p>
+  <section class="hero">
+    <img src="../docs/images/issuegraph-mark.svg" alt="深色底上的 Issue 卡片图谱标志">
+    <div><strong>Issue 卡片</strong><p>任务卡片通过依赖线连接。暖白卡面、珊瑚色与青绿色状态点，置于深石墨底色。</p><p>面向依赖关系追踪，不使用字母缩写或通用 AI 图形。</p></div>
+  </section>
+  <section class="sizes" aria-label="图标尺寸检查">
+    <figure style="--size:128px"><img src="../docs/images/issuegraph-mark.svg" alt=""><figcaption>512 px 源图</figcaption></figure>
+    <figure style="--size:64px"><img src="../docs/images/issuegraph-mark.svg" alt=""><figcaption>64 px</figcaption></figure>
+    <figure style="--size:32px"><img src="../docs/images/issuegraph-mark.svg" alt=""><figcaption>32 px</figcaption></figure>
+    <figure style="--size:16px"><img src="../docs/images/favicon.svg" alt=""><figcaption>16 px favicon</figcaption></figure>
+  </section>
+  <p class="note">这仍是草稿；未替换现有 logo/favicon，也未改包名、命令名、文档或发布配置。</p>
+</body>
+</html>

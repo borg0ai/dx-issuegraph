@@ -1,15 +1,15 @@
 ---
-title: "bd config"
-description: "Manage configuration settings for external integrations and preferences."
+title: "issuegraph config"
+description: "Manage configuration settings"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc config`.
+Generated from `issuegraph help --doc config`.
 
 Manage configuration settings for external integrations and preferences.
 
-Configuration is stored per-project in the beads database and is version-control-friendly.
+Configuration is stored per-project in the issuegraph database and is version-control-friendly.
 
 Common namespaces:
   - export.*          Auto-export settings (stored in config.yaml)
@@ -17,69 +17,88 @@ Common namespaces:
   - jira.*            Jira integration settings
   - linear.*          Linear integration settings
   - github.*          GitHub integration settings
+  - gitlab.*          GitLab integration settings
+  - ado.*             Azure DevOps integration settings
+  - notion.*          Notion integration settings
   - custom.*          Custom integration settings
   - status.*          Issue status configuration
-  - doctor.suppress.* Suppress specific bd doctor warnings (GH#1095)
+  - claim.*           Claim arbitration settings (pool-aware claiming)
+  - doctor.suppress.* Suppress specific issuegraph doctor warnings (GH#1095)
+  - lint.*            Additional per-type lint sections (stored in config.yaml)
 
 Auto-Export (config.yaml):
-  Optional JSONL export to .beads/issues.jsonl after write commands (throttled).
+  Optional JSONL export to .issuegraph/issues.jsonl after write commands (throttled).
   Useful for viewers (bv), interchange, and issue-level migration; not a backup.
-  It is not cross-machine sync; use bd dolt push/pull with a Dolt remote.
+  It is not cross-machine sync; use issuegraph dolt push/pull with a Dolt remote.
   Disabled by default. Enable only for integrations that need fresh JSONL.
   Auto-staging is separate and disabled by default.
 
   Keys:
     export.auto       Enable/disable auto-export (default: false)
-    export.path       Output filename relative to .beads/ (default: issues.jsonl)
+    export.path       Output filename relative to .issuegraph/ (default: issues.jsonl)
     export.interval   Minimum time between exports (default: 60s)
     export.git-add    Auto-stage the export file (default: false)
 
 Auto-Import (config.yaml):
-  Reads .beads/issues.jsonl by default when a JSONL import path is implied.
-  Use a relative filename/path so the import stays within the project .beads/
+  Reads .issuegraph/issues.jsonl by default when a JSONL import path is implied.
+  Use a relative filename/path so the import stays within the project .issuegraph/
   directory and remains portable across machines.
 
   Keys:
-    import.path       Input filename relative to .beads/ (default: issues.jsonl)
+    import.path       Input filename relative to .issuegraph/ (default: issues.jsonl)
 
 Custom Status States:
   You can define custom status states for multi-step pipelines using the
   status.custom config key. Statuses should be comma-separated.
 
   Example:
-    bd config set status.custom "awaiting_review,awaiting_testing,awaiting_docs"
+    issuegraph config set status.custom "awaiting_review,awaiting_testing,awaiting_docs"
 
   This enables issues to use statuses like 'awaiting_review' in addition to
   the built-in statuses (open, in_progress, blocked, deferred, closed).
 
+Claim Pools:
+  A dispatcher can pre-assign issues to a pool pseudo-assignee (e.g.
+  "fable-crew") and let any actor take them with --claim. List the pool
+  aliases in the claim.pools config key, comma-separated:
+
+    issuegraph config set claim.pools "fable-crew,night-crew"
+
+  Issues assigned to a real actor (or to an alias not in the list) keep
+  their anti-steal protection. Pool takes carry the normal lease; note
+  that if a taker's lease expires, issuegraph reclaim returns the issue to the
+  unassigned pool, not to the pool alias it was dispatched to.
+
 Suppressing Doctor Warnings:
-  Suppress specific bd doctor warnings by check name slug:
-    bd config set doctor.suppress.pending-migrations true
-    bd config set doctor.suppress.git-hooks true
+  Suppress specific issuegraph doctor warnings by check name slug:
+    issuegraph config set doctor.suppress.pending-migrations true
+    issuegraph config set doctor.suppress.git-hooks true
   Check names are converted to slugs: "Git Hooks" → "git-hooks".
   Only warnings are suppressed (errors and passing checks always show).
-  To unsuppress: bd config unset doctor.suppress.&lt;slug&gt;
+  To unsuppress: issuegraph config unset doctor.suppress.&lt;slug&gt;
 
 Examples:
-  bd config set export.auto true                       # Enable auto-export for viewer integrations
-  bd config set export.path "beads.jsonl"              # Custom export filename
-  bd config set import.path "beads.jsonl"              # Custom import filename
-  bd config set export.git-add true                    # Also stage the export file
-  bd config set jira.url "https://company.atlassian.net"
-  bd config set jira.project "PROJ"
-  bd config set status.custom "awaiting_review,awaiting_testing"
-  bd config set doctor.suppress.pending-migrations true
-  bd config set dolt.debug true                        # Enable Dolt sql-server debug mode (loglevel=debug, --prof cpu)
-  bd config set dolt.local-only true                   # Skip wiring a Dolt sync remote during bd init
-  bd config get export.auto
-  bd config list
-  bd config unset jira.url
+  issuegraph config set export.auto true                       # Enable auto-export for viewer integrations
+  issuegraph config set export.path "issuegraph.jsonl"              # Custom export filename
+  issuegraph config set import.path "issuegraph.jsonl"              # Custom import filename
+  issuegraph config set export.git-add true                    # Also stage the export file
+  issuegraph config set jira.url "https://company.atlassian.net"
+  issuegraph config set jira.project "PROJ"
+  issuegraph config set status.custom "awaiting_review,awaiting_testing"
+  issuegraph config set claim.pools "fable-crew,night-crew"    # Pool aliases claimable by any actor
+  issuegraph config set doctor.suppress.pending-migrations true
+  issuegraph config set dolt.debug true                        # Enable Dolt sql-server debug mode (loglevel=debug, --prof cpu)
+  issuegraph config set dolt.local-only true                   # Skip wiring a Dolt sync remote during issuegraph init
+  issuegraph config set lint.sections.epic "Standards scorecard, Cost"   # Extra sections issuegraph lint requires for epics
+  issuegraph config get export.auto
+  issuegraph config list
+  issuegraph config unset jira.url
 
 ```
-bd config [flags]
+issuegraph config [command]
 ```
 
-## bd config apply
+## issuegraph config apply
 
 Reconcile actual system state to match declared configuration.
 
@@ -93,12 +112,12 @@ This command is idempotent — safe to run multiple times. Use --dry-run
 to preview what would change without making modifications.
 
 Examples:
-  bd config apply
-  bd config apply --dry-run
-  bd config apply --json
+  issuegraph config apply
+  issuegraph config apply --dry-run
+  issuegraph config apply --json
 
 ```
-bd config apply [flags]
+issuegraph config apply [flags]
 ```
 
 **Flags:**
@@ -107,7 +126,7 @@ bd config apply [flags]
       --dry-run   Show what would change without making modifications
 ```
 
-## bd config drift
+## issuegraph config drift
 
 Detect drift between declared configuration and actual system state.
 
@@ -124,35 +143,35 @@ Exit codes:
   1  Drift detected (at least one check has status "drift")
 
 Examples:
-  bd config drift
-  bd config drift --json
+  issuegraph config drift
+  issuegraph config drift --json
 
 ```
-bd config drift [flags]
+issuegraph config drift [flags]
 ```
 
-## bd config get
+## issuegraph config get
 
 Get a configuration value
 
 ```
-bd config get <key> [flags]
+issuegraph config get <key> [flags]
 ```
 
-## bd config list
+## issuegraph config list
 
 List all configuration
 
 ```
-bd config list [flags]
+issuegraph config list [flags]
 ```
 
-## bd config set
+## issuegraph config set
 
 Set a configuration value
 
 ```
-bd config set <key> <value> [flags]
+issuegraph config set <key> <value> [flags]
 ```
 
 **Flags:**
@@ -161,20 +180,20 @@ bd config set <key> <value> [flags]
       --force-git-tracked   Allow writing secret keys to git-tracked config files (use with caution)
 ```
 
-## bd config set-many
+## issuegraph config set-many
 
 Set multiple configuration values at once with a single auto-commit and auto-push.
 
 Each argument must be in key=value format. All values are validated before
-any writes occur. This is faster and less noisy than separate 'bd config set'
+any writes occur. This is faster and less noisy than separate 'issuegraph config set'
 calls, especially in CI.
 
 Examples:
-  bd config set-many ado.state_map.open=New ado.state_map.closed=Closed
-  bd config set-many jira.url=https://example.atlassian.net jira.project=PROJ
+  issuegraph config set-many ado.state_map.open=New ado.state_map.closed=Closed
+  issuegraph config set-many jira.url=https://example.atlassian.net jira.project=PROJ
 
 ```
-bd config set-many <key=value>... [flags]
+issuegraph config set-many <key=value>... [flags]
 ```
 
 **Flags:**
@@ -183,28 +202,28 @@ bd config set-many <key=value>... [flags]
       --force-git-tracked   Allow writing secret keys to git-tracked config files (use with caution)
 ```
 
-## bd config show
+## issuegraph config show
 
 Display a unified view of all effective configuration across all sources
 with annotations showing where each value comes from.
 
 Sources (by precedence for Viper-managed keys):
-  - env          Environment variable (BD_* or BEADS_*)
-  - config.yaml  Project config file (.beads/config.yaml)
+  - env          Environment variable (ISSUEGRAPH_* or ISSUEGRAPH_*)
+  - config.yaml  Project config file (.issuegraph/config.yaml)
   - default      Built-in default value
 
 Additional sources:
-  - metadata     Connection settings from .beads/metadata.json
+  - metadata     Connection settings from .issuegraph/metadata.json
   - database     Integration config stored in the Dolt database
-  - git          Git config (e.g., beads.role)
+  - git          Git config (e.g., issuegraph.role)
 
 Examples:
-  bd config show
-  bd config show --json
-  bd config show --source config.yaml
+  issuegraph config show
+  issuegraph config show --json
+  issuegraph config show --source config.yaml
 
 ```
-bd config show [flags]
+issuegraph config show [flags]
 ```
 
 **Flags:**
@@ -213,15 +232,15 @@ bd config show [flags]
       --source string   Filter by source (e.g., config.yaml, env, default, metadata, database, git)
 ```
 
-## bd config unset
+## issuegraph config unset
 
 Delete a configuration value
 
 ```
-bd config unset <key> [flags]
+issuegraph config unset <key> [flags]
 ```
 
-## bd config validate
+## issuegraph config validate
 
 Validate sync-related configuration settings.
 
@@ -232,9 +251,9 @@ Checks:
   - routing.mode is valid (auto, maintainer, contributor, explicit)
 
 	Examples:
-	  bd config validate
-	  bd config validate --json
+	  issuegraph config validate
+	  issuegraph config validate --json
 
 ```
-bd config validate [flags]
+issuegraph config validate [flags]
 ```

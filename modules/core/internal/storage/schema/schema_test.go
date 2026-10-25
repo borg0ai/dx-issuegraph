@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 func TestPendingMigrationDirtyTablesDetectsMigration0043Dependencies(t *testing.T) {
@@ -49,7 +49,7 @@ func TestPendingMigrationDirtyTablesDetectsMigration0043Dependencies(t *testing.
 }
 
 // TestMigrateUpReturnsDirtyTablesErrorForPreExistingDirtyTable exercises the
-// full MigrateUp pre-flight guard (gastownhall/beads#4566): a pre-existing
+// full MigrateUp pre-flight guard (borg0ai/dx-issuegraph#4566): a pre-existing
 // dirty `dependencies` table collides with pending migration 0043, which
 // alters it (confirmed against the real migration content by
 // TestPendingMigrationDirtyTablesDetectsMigration0043Dependencies above).
@@ -245,7 +245,7 @@ func TestCheckNoDuplicateVersionsPanicsWithBothFilenames(t *testing.T) {
 // TestEmbeddedMigrationSourcesHaveNoDuplicateVersions runs discovery over the
 // real embedded migration tree for both sources. list() panics on duplicate
 // numeric prefixes — at runtime that panic fires at store open, before any
-// command's RunE, so a duplicate bricks every bd command. Tests that read a
+// command's RunE, so a duplicate bricks every issuegraph command. Tests that read a
 // migration's SQL file directly bypass list() and cannot catch this; this
 // discovery-level check makes the whole failure class fail in CI instead.
 func TestEmbeddedMigrationSourcesHaveNoDuplicateVersions(t *testing.T) {
@@ -338,12 +338,12 @@ func TestEnsureIssuesRigColumnsAddsOnlyMissing(t *testing.T) {
 
 	// #4502: issues tables bootstrapped before the rig/agent columns landed
 	// in 0001 reach v52 without them; the 0053 pre-repair must add exactly
-	// the missing ones. Simulate hook_bead present, the other five absent.
+	// the missing ones. Simulate hook_issue present, the other five absent.
 	countQuery := `SELECT COUNT\(\*\) FROM INFORMATION_SCHEMA\.COLUMNS`
-	mock.ExpectQuery(countQuery).WithArgs("issues", "hook_bead").
+	mock.ExpectQuery(countQuery).WithArgs("issues", "hook_issue").
 		WillReturnRows(sqlmock.NewRows([]string{"c"}).AddRow(1))
 	for _, col := range []struct{ name, ddl string }{
-		{"role_bead", "ALTER TABLE issues ADD COLUMN role_bead VARCHAR\\(255\\) DEFAULT ''"},
+		{"role_issue", "ALTER TABLE issues ADD COLUMN role_issue VARCHAR\\(255\\) DEFAULT ''"},
 		{"agent_state", "ALTER TABLE issues ADD COLUMN agent_state VARCHAR\\(32\\) DEFAULT ''"},
 		{"last_activity", "ALTER TABLE issues ADD COLUMN last_activity DATETIME"},
 		{"role_type", "ALTER TABLE issues ADD COLUMN role_type VARCHAR\\(32\\) DEFAULT ''"},
@@ -490,7 +490,7 @@ func TestRunMigrationsSnapshotsDirtyTablesBeforeRepairSoRepairMutationsCommitAto
 	// 2. preMigrationRepair(53): ensureIssuesRigColumns (all present, no
 	// exec), ensureWispDependenciesSplitTargets (table absent, no-op), then
 	// ensureDependenciesIDColumn actually mutating `dependencies`.
-	for _, col := range []string{"hook_bead", "role_bead", "agent_state", "last_activity", "role_type", "rig"} {
+	for _, col := range []string{"hook_issue", "role_issue", "agent_state", "last_activity", "role_type", "rig"} {
 		mock.ExpectQuery(columnQuery).WithArgs("issues", col).
 			WillReturnRows(sqlmock.NewRows([]string{"c"}).AddRow(1))
 	}
@@ -1523,7 +1523,7 @@ func TestMigration0057IsIdempotentOnAlreadyLongtextEventsThroughDoltCLI(t *testi
 	// the no-op branch for BOTH columns independently rather than re-issuing
 	// MODIFY on either one, which is exactly the drift 0048 itself lacks a
 	// guard against (#4353). This does not, and cannot, reproduce a raw
-	// re-execution of 0048's own frozen SQL by tooling outside bd's
+	// re-execution of 0048's own frozen SQL by tooling outside issuegraph's
 	// cursor-gated migrate chain; see 0057's header comment for that
 	// boundary.
 	runDoltSQL(t, dir, string(migrationSQL))
@@ -1958,7 +1958,7 @@ func TestAllMigrationsSQLUsesDirectDDLForKnownCLIIncompatibilities(t *testing.T)
 		"ALTER TABLE wisps ADD COLUMN storage_class VARCHAR(16);",
 		"ALTER TABLE wisp_comments MODIFY COLUMN text LONGTEXT NOT NULL;",
 		// 0066: same prepared-ALTER shape as 0060, same CLI no-op on 2.2.x.
-		"ALTER TABLE bd_events_journal ADD COLUMN actor VARCHAR(255) NOT NULL DEFAULT '';",
+		"ALTER TABLE issuegraph_events_journal ADD COLUMN actor VARCHAR(255) NOT NULL DEFAULT '';",
 		// 0067: two-plane prepared ADD COLUMN, same shape as 0060.
 		"ALTER TABLE issues ADD COLUMN current_revision BIGINT NOT NULL DEFAULT 1;",
 		"ALTER TABLE wisps ADD COLUMN current_revision BIGINT NOT NULL DEFAULT 1;",
@@ -2027,7 +2027,7 @@ WHERE table_schema = DATABASE()
   AND column_name = 'applied_at'`, "schema_migrations.applied_at")
 	requireDoltFKRules(t, dir, "fk_comments_issue", "CASCADE", "CASCADE")
 	requireDoltColumnShape(t, dir, "comments", "text", "longtext", "NO")
-	requireDoltColumnShape(t, dir, "bd_events_journal", "actor", "varchar(255)", "NO")
+	requireDoltColumnShape(t, dir, "issuegraph_events_journal", "actor", "varchar(255)", "NO")
 	requireDoltColumnShape(t, dir, "issues", "description", "longtext", "NO")
 	requireDoltColumnShape(t, dir, "wisps", "description", "longtext", "NO")
 	requireDoltColumnShape(t, dir, "wisps", "no_history", "tinyint(1)", "YES")
@@ -2275,7 +2275,7 @@ func TestHasContentHashColumnUsesShowColumns(t *testing.T) {
 		db, mock, _ := sqlmock.New()
 		defer db.Close()
 		mock.ExpectQuery(`SHOW COLUMNS FROM schema_migrations`).
-			WillReturnError(errors.New("Error 1146: Table 'beads.schema_migrations' doesn't exist"))
+			WillReturnError(errors.New("Error 1146: Table 'issuegraph.schema_migrations' doesn't exist"))
 
 		has, err := mainSource.hasContentHashColumn(context.Background(), db)
 		if err != nil {

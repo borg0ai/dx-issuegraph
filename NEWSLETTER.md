@@ -21,11 +21,11 @@ The biggest internal change in v0.62 is the systematic removal of Gas Town-speci
 - **GUPP references** removed from all code and docs
 - **Polecat/crew/overseer terminology** replaced with generic types
 - **HOP schema fields** removed from the database schema
-- **Agent-as-bead subsystem** removed entirely
+- **Agent-as-issue subsystem** removed entirely
 - **Patrol molecule references** removed from commands
 - **Role templates** (deacon, witness, refinery) removed
 - **Hardcoded `~/gt/` paths** replaced with config-driven paths
-- **`BEADS_ACTOR`** is now the primary env var (`BD_ACTOR` remains as deprecated fallback)
+- **`ISSUEGRAPH_ACTOR`** is now the primary env var (`ISSUEGRAPH_ACTOR` remains as deprecated fallback)
 
 IssueGraph integrates with Gas Town through clean interfaces, not internal coupling. This separation is prerequisite for a credible 1.0 — issuegraph should work identically whether you're running a full Gas Town, using it with another orchestrator, or just tracking issues solo.
 
@@ -56,14 +56,14 @@ The fifth tracker plugin: `issuegraph ado sync`, `issuegraph ado status`, `issue
 
 ## Audit Logging
 
-Status, assignee, and priority changes are now logged to `.beads/interactions.jsonl`. Close reasons are captured in the audit trail. This log survives Dolt GC flatten — even if you aggressively compact your database history, the audit trail persists as a flat file.
+Status, assignee, and priority changes are now logged to `.issuegraph/interactions.jsonl`. Close reasons are captured in the audit trail. This log survives Dolt GC flatten — even if you aggressively compact your database history, the audit trail persists as a flat file.
 
 ## Dolt Reliability
 
 - **ServerMode enum** consolidates Dolt server ownership inference into four clean modes (Auto, External, Shared, Embedded), replacing ad-hoc string checks
 - **Windows lifecycle** — stale PID/port files cleaned up; false "failed to stop" warnings eliminated
 - **Hook preservation** — `issuegraph init` preserves ALL pre-existing git hooks, not just issuegraph-managed ones
-- **Shim timeout** increased from 30s to 300s (configurable via `BEADS_HOOK_TIMEOUT`) for chained hooks
+- **Shim timeout** increased from 30s to 300s (configurable via `ISSUEGRAPH_HOOK_TIMEOUT`) for chained hooks
 - **Concurrent schema init** serialized with `GET_LOCK` to prevent journal corruption in multi-agent environments
 - **External server safety** — `KillStaleServers` respects server ownership, won't kill externally-managed servers
 - **Doctor infinite loop** — no longer triggers infinite Dolt server restart cycles
@@ -81,11 +81,9 @@ Contributors: coffeegoddd (Dustin Brown / DoltHub), matt wilkie (maphew), harry-
 ## Upgrade
 
 ```bash
-brew upgrade beads
-# or
-curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 ```
 
-**Breaking change**: `BD_ACTOR` is deprecated in favor of `BEADS_ACTOR`. The old variable still works as a fallback but will be removed in a future release.
+**Breaking change**: `ISSUEGRAPH_ACTOR` is deprecated in favor of `ISSUEGRAPH_ACTOR`. The old variable still works as a fallback but will be removed in a future release.
 
-Full changelog: [CHANGELOG.md](CHANGELOG.md) | GitHub release: [v0.62.0](https://github.com/gastownhall/beads/releases/tag/v0.62.0)
+Full changelog: [CHANGELOG.md](CHANGELOG.md) | GitHub release: [v0.62.0](https://github.com/borg0ai/dx-issuegraph/releases/tag/v0.62.0)

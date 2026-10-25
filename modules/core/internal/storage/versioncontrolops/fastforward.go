@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // This file holds additive driver primitives for a fast-forward "smart
@@ -22,10 +22,10 @@ import (
 // It is the raw fact behind LocalIsStrictAncestorOf, exposed separately
 // because the two callers need different slices of it: a fast-forward adopt
 // needs "ahead == 0 && behind >= 1", while the data-behind migrate stop
-// (gastownhall/beads#6575) needs "behind >= 1" whatever ahead is — a clone
+// (borg0ai/dx-issuegraph#6575) needs "behind >= 1" whatever ahead is — a clone
 // with local commits of its own AND unpulled remote commits reaches the same
 // wedge, and telling the operator which shape they are in changes whether
-// their `bd dolt pull` fast-forwards or merges.
+// their `issuegraph dolt pull` fast-forwards or merges.
 //
 // ref must already be present locally (e.g. a cached remote-tracking ref
 // such as "origin/main" after a fetch); this performs no fetch of its own.

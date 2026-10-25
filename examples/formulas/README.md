@@ -8,10 +8,10 @@ Copy formulas to your project or user-level directory:
 
 ```bash
 # Project-level (available in this project only)
-cp *.formula.toml /path/to/project/.beads/formulas/
+cp *.formula.toml /path/to/project/.issuegraph/formulas/
 
 # User-level (available in all projects)
-cp *.formula.toml ~/.beads/formulas/
+cp *.formula.toml ~/.issuegraph/formulas/
 ```
 
 Then list and use them:
@@ -37,4 +37,4 @@ commands to match your project before first use.
 
 ## Creating Your Own
 
-See the [Formulas documentation](https://beads.gascity.com/workflows/formulas) for the full reference.
+See the [Formulas documentation](https://github.com/borg0ai/dx-issuegraph/tree/main/docs/workflows/formulas) for the full reference.

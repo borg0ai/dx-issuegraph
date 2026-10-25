@@ -1,5 +1,5 @@
-// Package recipes provides recipe-based configuration for bd setup.
-// Recipes define where beads workflow instructions are written for different AI tools.
+// Package recipes provides recipe-based configuration for issuegraph setup.
+// Recipes define where issuegraph workflow instructions are written for different AI tools.
 package recipes
 
 import (
@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/steveyegge/beads/internal/generated/issuegraphassets"
+	"github.com/borg0ai/dx-issuegraph/internal/generated/issuegraphassets"
 )
 
 // RecipeType indicates how the recipe is installed.
@@ -45,31 +45,31 @@ type Recipe struct {
 var BuiltinRecipes = map[string]Recipe{
 	"cursor": {
 		Name:        "Cursor IDE",
-		Path:        ".cursor/rules/beads.mdc",
+		Path:        ".cursor/rules/issuegraph.mdc",
 		Type:        TypeFile,
 		Description: "Cursor IDE rules file + agent hooks (prime on session start, restore after compaction)",
 	},
 	"windsurf": {
 		Name:        "Windsurf",
-		Path:        ".windsurf/rules/beads.md",
+		Path:        ".windsurf/rules/issuegraph.md",
 		Type:        TypeFile,
 		Description: "Windsurf editor rules file",
 	},
 	"cody": {
 		Name:        "Sourcegraph Cody",
-		Path:        ".cody/rules/beads.md",
+		Path:        ".cody/rules/issuegraph.md",
 		Type:        TypeFile,
 		Description: "Cody AI rules file",
 	},
 	"kilocode": {
 		Name:        "Kilo Code",
-		Path:        ".kilocode/rules/beads.md",
+		Path:        ".kilocode/rules/issuegraph.md",
 		Type:        TypeFile,
 		Description: "Kilo Code rules file",
 	},
 	"kiro": {
 		Name:        "Kiro CLI",
-		Path:        ".kiro/steering/beads.md",
+		Path:        ".kiro/steering/issuegraph.md",
 		Type:        TypeFile,
 		Description: "Kiro steering file",
 	},
@@ -128,7 +128,7 @@ var BuiltinRecipes = map[string]Recipe{
 		Name:        "Aider",
 		Type:        TypeMultiFile,
 		Description: "Aider config and instruction files",
-		Paths:       []string{".aider.conf.yml", ".aider/BEADS.md", ".aider/README.md"},
+		Paths:       []string{".aider.conf.yml", ".aider/ISSUEGRAPH.md", ".aider/README.md"},
 	},
 	"junie": {
 		Name:        "Junie",
@@ -143,10 +143,10 @@ type UserRecipes struct {
 	Recipes map[string]Recipe `toml:"recipes"`
 }
 
-// LoadUserRecipes loads recipes from .beads/recipes.toml if it exists.
-func LoadUserRecipes(beadsDir string) (map[string]Recipe, error) {
-	path := filepath.Join(beadsDir, "recipes.toml")
-	data, err := os.ReadFile(path) // #nosec G304 -- path is constructed from validated beadsDir
+// LoadUserRecipes loads recipes from .issuegraph/recipes.toml if it exists.
+func LoadUserRecipes(issuegraphDir string) (map[string]Recipe, error) {
+	path := filepath.Join(issuegraphDir, "recipes.toml")
+	data, err := os.ReadFile(path) // #nosec G304 -- path is constructed from validated issuegraphDir
 	if os.IsNotExist(err) {
 		return nil, nil // No user recipes, that's fine
 	}
@@ -175,7 +175,7 @@ func LoadUserRecipes(beadsDir string) (map[string]Recipe, error) {
 
 // GetAllRecipes returns merged built-in and user recipes.
 // User recipes override built-in recipes with the same name.
-func GetAllRecipes(beadsDir string) (map[string]Recipe, error) {
+func GetAllRecipes(issuegraphDir string) (map[string]Recipe, error) {
 	result := make(map[string]Recipe)
 
 	// Start with built-in recipes
@@ -184,7 +184,7 @@ func GetAllRecipes(beadsDir string) (map[string]Recipe, error) {
 	}
 
 	// Load and merge user recipes
-	userRecipes, err := LoadUserRecipes(beadsDir)
+	userRecipes, err := LoadUserRecipes(issuegraphDir)
 	if err != nil {
 		return nil, err
 	}
@@ -196,11 +196,11 @@ func GetAllRecipes(beadsDir string) (map[string]Recipe, error) {
 }
 
 // GetRecipe looks up a recipe by name, checking user recipes first.
-func GetRecipe(name string, beadsDir string) (*Recipe, error) {
+func GetRecipe(name string, issuegraphDir string) (*Recipe, error) {
 	// Normalize name (lowercase, strip leading/trailing hyphens)
 	name = strings.ToLower(strings.Trim(name, "-"))
 
-	recipes, err := GetAllRecipes(beadsDir)
+	recipes, err := GetAllRecipes(issuegraphDir)
 	if err != nil {
 		return nil, err
 	}
@@ -213,13 +213,13 @@ func GetRecipe(name string, beadsDir string) (*Recipe, error) {
 	return &recipe, nil
 }
 
-// SaveUserRecipe adds or updates a recipe in .beads/recipes.toml.
-func SaveUserRecipe(beadsDir, name, path string) error {
-	recipesPath := filepath.Join(beadsDir, "recipes.toml")
+// SaveUserRecipe adds or updates a recipe in .issuegraph/recipes.toml.
+func SaveUserRecipe(issuegraphDir, name, path string) error {
+	recipesPath := filepath.Join(issuegraphDir, "recipes.toml")
 
 	// Load existing user recipes
 	var userRecipes UserRecipes
-	data, err := os.ReadFile(recipesPath) // #nosec G304 -- path is constructed from validated beadsDir
+	data, err := os.ReadFile(recipesPath) // #nosec G304 -- path is constructed from validated issuegraphDir
 	if err == nil {
 		if err := toml.Unmarshal(data, &userRecipes); err != nil {
 			return fmt.Errorf("parse recipes.toml: %w", err)
@@ -240,12 +240,12 @@ func SaveUserRecipe(beadsDir, name, path string) error {
 	}
 
 	// Ensure directory exists
-	if err := os.MkdirAll(beadsDir, 0o700); err != nil {
-		return fmt.Errorf("create beads dir: %w", err)
+	if err := os.MkdirAll(issuegraphDir, 0o700); err != nil {
+		return fmt.Errorf("create issuegraph dir: %w", err)
 	}
 
 	// Write back
-	f, err := os.Create(recipesPath) // #nosec G304 -- path is constructed from validated beadsDir
+	f, err := os.Create(recipesPath) // #nosec G304 -- path is constructed from validated issuegraphDir
 	if err != nil {
 		return fmt.Errorf("create recipes.toml: %w", err)
 	}
@@ -260,8 +260,8 @@ func SaveUserRecipe(beadsDir, name, path string) error {
 }
 
 // ListRecipeNames returns sorted list of all recipe names.
-func ListRecipeNames(beadsDir string) ([]string, error) {
-	recipes, err := GetAllRecipes(beadsDir)
+func ListRecipeNames(issuegraphDir string) ([]string, error) {
+	recipes, err := GetAllRecipes(issuegraphDir)
 	if err != nil {
 		return nil, err
 	}

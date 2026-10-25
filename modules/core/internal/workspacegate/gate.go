@@ -1,8 +1,8 @@
-// Package workspacegate provides a two-level cross-process fence for beads
+// Package workspacegate provides a two-level cross-process fence for issuegraph
 // workspaces: normal commands hold a SHARED gate for the lifetime of their
 // store/provider, and maintenance operations (mode migration, restore,
 // destructive repair) hold it EXCLUSIVELY so they can detect cooperating
-// bd activity on the workspace and on the physical database root, and
+// issuegraph activity on the workspace and on the physical database root, and
 // refuse to run over it — the gate cannot ask a holder to leave, only
 // make it visible and exclude new work.
 //
@@ -14,10 +14,10 @@
 // processes lock a fresh inode while the old holder still holds the stale
 // one. Consequently:
 //
-//   - the workspace gate for <dir>/.beads lives at <dir>/.beads.gate.lock
-//     (never inside .beads), and
-//   - the physical-root gate for a server root like .beads/dolt lives at
-//     .beads/dolt.gate.lock (beside, never inside, the root).
+//   - the workspace gate for <dir>/.issuegraph lives at <dir>/.issuegraph.gate.lock
+//     (never inside .issuegraph), and
+//   - the physical-root gate for a server root like .issuegraph/dolt lives at
+//     .issuegraph/dolt.gate.lock (beside, never inside, the root).
 //
 // Invariants for callers:
 //
@@ -29,7 +29,7 @@
 //     protects callers that go through one AcquireAll.
 //
 // The gate is cooperative. Processes that predate it, or library
-// consumers using the ungated beads.Open, acquire nothing; operations
+// consumers using the ungated issuegraph.Open, acquire nothing; operations
 // that need a hard quiescence guarantee must refuse when they cannot
 // assume sole cooperative ownership, rather than pretend this lock fences
 // strangers. Filesystems without advisory-lock support (some network
@@ -50,7 +50,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/steveyegge/beads/internal/lockfile"
+	"github.com/borg0ai/dx-issuegraph/internal/lockfile"
 )
 
 // Mode selects shared (normal command) or exclusive (maintenance
@@ -64,7 +64,7 @@ const (
 	// Shared is held by normal commands for the lifetime of their open
 	// store or UOW provider. Any number of shared holders coexist.
 	//
-	// Starvation note: a rolling sequence of shared holders (e.g. one bd
+	// Starvation note: a rolling sequence of shared holders (e.g. one issuegraph
 	// command after another against a busy workspace) can starve an
 	// Exclusive acquirer indefinitely — acquisition is LOCK_NB polling
 	// with no intent signal, so a new shared holder has no way to know an
@@ -91,7 +91,7 @@ func (m Mode) String() string {
 // ErrBusy is returned when the gate cannot be acquired within the
 // configured wait budget. Use errors.Is; the wrapped error carries holder
 // diagnostics when available. The public alias for external consumers is
-// beads.ErrGateBusy.
+// issuegraph.ErrGateBusy.
 var ErrBusy = errors.New("workspace gate busy")
 
 // Options tunes acquisition. The zero value means a single non-blocking
@@ -146,7 +146,7 @@ func gateKey(path string) string {
 }
 
 // gateFileName maps a guarded directory base name to its sibling gate
-// file name: ".beads" -> ".beads.gate.lock", "dolt" -> "dolt.gate.lock".
+// file name: ".issuegraph" -> ".issuegraph.gate.lock", "dolt" -> "dolt.gate.lock".
 // The base is kept verbatim (no dot-stripping) so distinct sibling names
 // can never collide on one gate file.
 func gateFileName(base string) string {
@@ -155,7 +155,7 @@ func gateFileName(base string) string {
 
 // forDir builds the gate for a guarded directory: the gate file sits in
 // the directory's parent. The parent must exist; the guarded directory
-// itself may not exist yet (bd init gates the workspace it is creating).
+// itself may not exist yet (issuegraph init gates the workspace it is creating).
 // The parent is canonicalized (symlinks resolved) so that every process
 // that reaches the same physical parent agrees on one gate file, no
 // matter which path spelling it used.
@@ -191,28 +191,28 @@ func forDir(dir string) (Gate, error) {
 	return Gate{path: filepath.Join(canonParent, gateFileName(base))}, nil
 }
 
-// ForWorkspace returns the gate guarding a workspace's .beads directory
-// (pass the .beads directory itself). The gate file is a sibling of
-// .beads; bd's project gitignore management covers "*.gate.lock*".
-func ForWorkspace(beadsDir string) (Gate, error) { return forDir(beadsDir) }
+// ForWorkspace returns the gate guarding a workspace's .issuegraph directory
+// (pass the .issuegraph directory itself). The gate file is a sibling of
+// .issuegraph; issuegraph's project gitignore management covers "*.gate.lock*".
+func ForWorkspace(issuegraphDir string) (Gate, error) { return forDir(issuegraphDir) }
 
 // ForPhysicalRoot returns the gate guarding a physical database root (a
-// dolt server root such as .beads/dolt or ~/.beads/shared-server/dolt).
+// dolt server root such as .issuegraph/dolt or ~/.issuegraph/shared-server/dolt).
 // Distinct workspaces that point at the same physical root resolve to the
 // same gate file, which is the point: a workspace-level gate alone cannot
 // stop workspace B from restarting the server workspace A is draining.
 //
 // Cross-user shared roots are unsupported: the gate file is created 0o600
 // (see Acquire), so a second OS user attempting to gate a shared root such
-// as ~/.beads/shared-server/dolt hits EACCES on the sibling gate file, not
+// as ~/.issuegraph/shared-server/dolt hits EACCES on the sibling gate file, not
 // a graceful degradation. Do not widen the mode to 0o666 to work around
 // this without an explicit owner decision — that would let any local user
 // release or corrupt another user's gate.
 //
-// Derived invariant for an in-.beads physical root (e.g.
-// .beads/embeddeddolt): the gate file for that root lives beside it,
-// INSIDE .beads (see forDir), so callers must not replace or recreate
-// .beads itself while such a root is gated — doing so replaces the gate
+// Derived invariant for an in-.issuegraph physical root (e.g.
+// .issuegraph/embeddeddolt): the gate file for that root lives beside it,
+// INSIDE .issuegraph (see forDir), so callers must not replace or recreate
+// .issuegraph itself while such a root is gated — doing so replaces the gate
 // file's parent along with everything else in it, which is exactly the
 // split-inode hazard the package comment warns against for the guarded
 // root's own parent.
@@ -258,9 +258,9 @@ func (g Gate) busyDetail(mode Mode) string {
 	info := g.readInfo()
 	if info == nil {
 		if mode == Exclusive {
-			return "other bd processes (shared holders record no info)"
+			return "other issuegraph processes (shared holders record no info)"
 		}
-		return "another bd process (no holder info recorded)"
+		return "another issuegraph process (no holder info recorded)"
 	}
 	desc := fmt.Sprintf("pid %d", info.PID)
 	if info.Hostname != "" {
@@ -283,12 +283,12 @@ func (g Gate) busyDetail(mode Mode) string {
 		// a dead recorded PID must still be reported as stale rather than
 		// presented as fact.
 		if stale() {
-			return fmt.Sprintf("other bd processes (a stale exclusive-holder record from dead pid %d was ignored)", info.PID)
+			return fmt.Sprintf("other issuegraph processes (a stale exclusive-holder record from dead pid %d was ignored)", info.PID)
 		}
 		return desc
 	}
 	if stale() {
-		return fmt.Sprintf("other bd processes (a stale exclusive-holder record from dead pid %d was ignored)", info.PID)
+		return fmt.Sprintf("other issuegraph processes (a stale exclusive-holder record from dead pid %d was ignored)", info.PID)
 	}
 	return "possibly " + desc + ", or shared holders"
 }
@@ -365,7 +365,7 @@ func (h *Handle) Release() error {
 // Acquire takes the gate in the given mode, polling until Options.Wait is
 // exhausted or ctx is done. The returned handle's file descriptor is not
 // inherited by spawned children (Go opens files close-on-exec on Unix and
-// non-inheritable on Windows), so a dolt child outliving its bd parent
+// non-inheritable on Windows), so a dolt child outliving its issuegraph parent
 // does not keep the gate held.
 func (g Gate) Acquire(ctx context.Context, mode Mode, opts Options) (*Handle, error) {
 	if g.path == "" {
@@ -507,7 +507,7 @@ func (m *MultiHandle) Release() error {
 // failure, gates already acquired are released in reverse order.
 //
 // Options.Wait is a TOTAL budget across the whole set, not per gate, and
-// Options.OnWait fires at most once. Gates rank before every other beads
+// Options.OnWait fires at most once. Gates rank before every other issuegraph
 // lock: callers must call AcquireAll before touching migrate.lock, the
 // init lock, proxy locks, the dolt-server start lock, or schema GET_LOCK,
 // and release it after those.

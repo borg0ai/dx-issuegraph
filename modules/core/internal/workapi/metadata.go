@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // ValidateMetadataFilters refuses a metadata key the query layer cannot spell.
@@ -13,7 +13,7 @@ import (
 // true of every Reader implementation rather than of the CLI only. Before it
 // existed the sole check lived in the SQL builder, whose error surfaced wrapped
 // in the storage method's name — a shape nothing above storage can classify —
-// so a typo'd key reached `bd list` as a usage error and the HTTP surface as a
+// so a typo'd key reached `issuegraph list` as a usage error and the HTTP surface as a
 // 500, on a parameter the frozen document promises a 400 for.
 //
 // The CLI still validates the same input at flag-parse time and still reports

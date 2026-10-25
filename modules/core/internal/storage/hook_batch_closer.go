@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // BatchCloser returns the inner store's batch-close surface with this
@@ -39,7 +39,7 @@ type hookBatchCloser struct {
 // BOTH WRITE PLUMBINGS ANSWER THIS WAY. The proxied-server path composes the
 // same close through a unit of work, and its batch compositions
 // (uow.closeBatchItem, uowApplyRun.applyClose) rewind the recorded notification
-// for an item that persisted nothing — so `bd serve` and the direct store agree
+// for an item that persisted nothing — so `issuegraph serve` and the direct store agree
 // about what a replayed teardown announces.
 //
 // THE SINGLE-CLOSE PATHS DELIBERATELY DIFFER: HookFiringStore.CloseIssueChecked

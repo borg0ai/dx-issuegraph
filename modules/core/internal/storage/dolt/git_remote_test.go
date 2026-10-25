@@ -19,13 +19,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Git Remote Integration Tests
@@ -68,7 +68,7 @@ type gitRemoteSetup struct {
 // and TestCredentialCLIRoutingE2E use the same arrangement.
 //
 // The server is spawned with doltserver.ServerSpawnEnv(), the same environment
-// bd gives the sql-server it starts. That is load-bearing, not cosmetic: a
+// issuegraph gives the sql-server it starts. That is load-bearing, not cosmetic: a
 // `dolt` CLI command run against a directory a sql-server is already serving
 // is proxied to that server, so the git subprocess is spawned by the server,
 // not by the CLI — env guards applied to the CLI process (git tracing,
@@ -139,7 +139,7 @@ func setupGitRemote(t *testing.T) *gitRemoteSetup {
 	runCmd(t, sourceDir, "dolt", "init")
 	runCmd(t, sourceDir, "dolt", "remote", "add", "origin", remoteURL)
 
-	// Initialize beads schema via CLI (mirrors what New() does).
+	// Initialize issuegraph schema via CLI (mirrors what New() does).
 	// dolt sql in the repo dir already defaults to the repo's database.
 	initSchemaSQL := schema.AllMigrationsSQL() + "\nCALL DOLT_ADD('.');\nCALL DOLT_COMMIT('-Am', 'Genesis: schema and config');"
 	runDoltSQL(t, sourceDir, initSchemaSQL)
@@ -258,7 +258,7 @@ const doltGitRemoteReadCacheTTL = 1 * time.Second
 // a loaded developer machine.
 //
 // This sleep removes an unintended dependency on an upstream cache; it does
-// not weaken any assertion below it. If bd's push/pull were actually broken,
+// not weaken any assertion below it. If issuegraph's push/pull were actually broken,
 // every assertion still fails exactly as before.
 func waitOutGitRemoteReadCache() {
 	time.Sleep(doltGitRemoteReadCacheTTL + 500*time.Millisecond)
@@ -897,7 +897,7 @@ func TestGitRemoteEmbeddedHasRemote(t *testing.T) {
 
 // TestGitRemotePushSkipsUserPrePushHook is a regression test for GH#3724.
 //
-// `bd dolt push` shells out to `dolt push`, which in turn runs
+// `issuegraph dolt push` shells out to `dolt push`, which in turn runs
 // `git push refs/dolt/data` against the embedded Dolt cache-mirror at
 // `<doltDir>/<db>/.dolt/git-remote-cache/<hash>/repo.git/`. If the user has
 // `init.templateDir` set globally with pre-commit-framework hooks, those
@@ -988,11 +988,11 @@ func TestGitRemotePushSkipsUserPrePushHook(t *testing.T) {
 	}
 
 	if err := store.Push(ctx); err != nil {
-		t.Fatalf("GH#3724 regression: second Push failed — bd's internal `dolt push` is running the user's pre-push hook against the cache-mirror. doltCLIPush must pass GIT_CONFIG_PARAMETERS='core.hooksPath=/dev/null' to suppress client-side hooks: %v", err)
+		t.Fatalf("GH#3724 regression: second Push failed — issuegraph's internal `dolt push` is running the user's pre-push hook against the cache-mirror. doltCLIPush must pass GIT_CONFIG_PARAMETERS='core.hooksPath=/dev/null' to suppress client-side hooks: %v", err)
 	}
 
 	if _, err := os.Stat(sentinel); err == nil {
-		t.Fatalf("GH#3724 regression: pre-push hook executed (sentinel %s exists). bd's internal git push must skip user hooks", sentinel)
+		t.Fatalf("GH#3724 regression: pre-push hook executed (sentinel %s exists). issuegraph's internal git push must skip user hooks", sentinel)
 	} else if !os.IsNotExist(err) {
 		t.Fatalf("unexpected stat error for sentinel: %v", err)
 	}
@@ -1354,7 +1354,7 @@ func TestGitRemoteExternalServerRouting(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	for _, env := range []string{"BEADS_DOLT_SERVER_PORT", "BEADS_DOLT_PORT", "BEADS_TEST_MODE"} {
+	for _, env := range []string{"ISSUEGRAPH_DOLT_SERVER_PORT", "ISSUEGRAPH_DOLT_PORT", "ISSUEGRAPH_TEST_MODE"} {
 		if prev, ok := os.LookupEnv(env); ok {
 			t.Cleanup(func() { os.Setenv(env, prev) })
 		} else {
@@ -1462,7 +1462,7 @@ func TestSQLRemotePersistsAcrossExternalServerRestart(t *testing.T) {
 	}
 	runCmd(t, clientTestdbDir, "dolt", "init", "--name", "test", "--email", "test@test.com")
 
-	for _, env := range []string{"BEADS_DOLT_SERVER_PORT", "BEADS_DOLT_PORT", "BEADS_TEST_MODE"} {
+	for _, env := range []string{"ISSUEGRAPH_DOLT_SERVER_PORT", "ISSUEGRAPH_DOLT_PORT", "ISSUEGRAPH_TEST_MODE"} {
 		if prev, ok := os.LookupEnv(env); ok {
 			t.Cleanup(func() { os.Setenv(env, prev) })
 		} else {
@@ -1595,7 +1595,7 @@ func TestCredentialCLIRoutingE2E(t *testing.T) {
 	}
 
 	// 4. Client CLI directory: separate dolt init WITHOUT the file:// remote.
-	// The bd setup path below writes the remote through SQL/store only; the
+	// The issuegraph setup path below writes the remote through SQL/store only; the
 	// push routing guard must materialize the local CLI remote from that SQL
 	// source of truth.
 	clientDataDir := filepath.Join(baseDir, "client-data")
@@ -1606,7 +1606,7 @@ func TestCredentialCLIRoutingE2E(t *testing.T) {
 	runCmd(t, clientTestdbDir, "dolt", "init", "--name", "test", "--email", "test@test.com")
 
 	// 5. Clean env to prevent interference from test harness
-	for _, env := range []string{"BEADS_DOLT_SERVER_PORT", "BEADS_DOLT_PORT", "BEADS_TEST_MODE"} {
+	for _, env := range []string{"ISSUEGRAPH_DOLT_SERVER_PORT", "ISSUEGRAPH_DOLT_PORT", "ISSUEGRAPH_TEST_MODE"} {
 		if prev, ok := os.LookupEnv(env); ok {
 			t.Cleanup(func() { os.Setenv(env, prev) })
 		} else {
@@ -1638,9 +1638,9 @@ func TestCredentialCLIRoutingE2E(t *testing.T) {
 	}
 	t.Cleanup(func() { store.Close() })
 	if err := store.AddRemote(ctx, "origin", remoteURL); err != nil {
-		t.Fatalf("AddRemote through bd setup path: %v", err)
+		t.Fatalf("AddRemote through issuegraph setup path: %v", err)
 	}
-	require.Equal(t, "", doltutil.FindCLIRemote(clientTestdbDir, store.remote), "precondition: bd setup path should not manually seed CLI remote")
+	require.Equal(t, "", doltutil.FindCLIRemote(clientTestdbDir, store.remote), "precondition: issuegraph setup path should not manually seed CLI remote")
 
 	// Verify preconditions: not a git-protocol remote, but credentials trigger CLI routing
 	require.False(t, store.isGitProtocolRemote(ctx, store.remote), "file:// is not git-protocol")
@@ -1659,7 +1659,7 @@ func TestCredentialCLIRoutingE2E(t *testing.T) {
 	// 7. Push should succeed via CLI credential routing
 	// If the guard works: doltCLIPush uses CLI dir's file:// remote → success
 	// If guard fails: withEnvCredentials + SQL CALL DOLT_PUSH('--user',...) → fails
-	// (external server can't see env vars set on bd client process)
+	// (external server can't see env vars set on issuegraph client process)
 	err = store.Push(ctx)
 	require.NoError(t, err, "Push should succeed via CLI credential routing (SC-001)")
 }
@@ -1671,7 +1671,7 @@ func TestCredentialCLIRoutingE2E(t *testing.T) {
 // different outcomes into the single value nil — "I merged the peer's commits",
 // "there was nothing to merge", and "I reported success but the branch you read
 // did not receive anything" — and no caller can tell them apart. The third is
-// silent divergence: bd sync reports success while the local database quietly
+// silent divergence: issuegraph sync reports success while the local database quietly
 // falls behind the remote.
 //
 // THE DIVERGENCE IS CONSTRUCTED, NOT WAITED FOR. The CI symptom is intermittent
@@ -1922,7 +1922,7 @@ func TestPullVerifyUsesBranchQualifiedPreHead(t *testing.T) {
 	}
 	// The divergence is genuine — sibling histories whose common ancestor is
 	// neither tip — so it must stay a HARD error, not the fast-forwardable
-	// retryable class bd sync would loop on.
+	// retryable class issuegraph sync would loop on.
 	if errors.Is(got, versioncontrolops.ErrPullBehindFastForwardable) {
 		t.Fatalf("a genuine divergence must not be classified fast-forwardable-retryable: %v", got)
 	}

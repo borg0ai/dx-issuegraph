@@ -1,6 +1,6 @@
 # IssueGraph Skill for Claude Code
 
-A comprehensive skill for using [IssueGraph](https://github.com/gastownhall/beads) (formerly beads) issue tracking with Claude Code.
+A comprehensive skill for using [IssueGraph](https://github.com/borg0ai/dx-issuegraph) (formerly issuegraph) issue tracking with Claude Code.
 
 ## What This Skill Does
 
@@ -38,7 +38,7 @@ issuegraph/
 ├── CLAUDE.md                # Maintenance guide for updating the skill
 ├── README.md                # This file (for humans)
 ├── adr/                     # Architectural Decision Records
-│   └── 0001-bd-prime-as-source-of-truth.md
+│   └── 0001-issuegraph-prime-as-source-of-truth.md
 └── resources/               # Detailed documentation (loaded on demand)
     ├── BOUNDARIES.md        # When to use issuegraph vs TodoWrite
     ├── CLI_REFERENCE.md     # Live CLI reference pointers
@@ -51,7 +51,7 @@ issuegraph/
     ├── STATIC_DATA.md       # Using issuegraph for reference databases
     ├── TROUBLESHOOTING.md   # Common issues and fixes
     ├── WORKFLOWS.md         # Step-by-step workflow guides
-    ├── AGENTS.md            # Agent bead tracking (v0.40+)
+    ├── AGENTS.md            # Agent issue tracking (v0.40+)
     ├── ASYNC_GATES.md       # Human-in-the-loop gates
     ├── CHEMISTRY_PATTERNS.md # Mol vs Wisp decision tree
     └── WORKTREES.md         # Parallel development patterns
@@ -91,7 +91,7 @@ NEXT: Implement rate limiting"
 
 ## Requirements
 
-- [issuegraph CLI](https://github.com/gastownhall/beads) installed (`brew install beads`)
+- [issuegraph CLI](https://github.com/borg0ai/dx-issuegraph) installed (`brew install issuegraph`)
 - A git repository (issuegraph requires git for sync)
 - Initialized database (`issuegraph init` in project root)
 
@@ -101,17 +101,17 @@ NEXT: Implement rate limiting"
 |---------|----------|
 | v0.60.0+ | CLI credential pass-through for Dolt server push/pull |
 | v0.58.0+ | `issuegraph prime --claim`, `issuegraph show --long`, `--stdin` flag |
-| v0.54.0+ | `issuegraph doctor` detects committed runtime/sensitive files, `BD_BACKUP_ENABLED=false` |
+| v0.54.0+ | `issuegraph doctor` detects committed runtime/sensitive files, `ISSUEGRAPH_BACKUP_ENABLED=false` |
 | v0.52.0+ | the JSONL-era `issuegraph sync` deprecated (superseded by `issuegraph dolt push`; a new federation-loop `issuegraph sync` was added later — see `commands/sync.md`), `--claim` for atomic start-work |
 | v0.47.0+ | Pull-first sync, resolve-conflicts, dry-run create, gate auto-discovery |
 | v0.43.0+ | Full support: agents, gates, worktrees, chemistry patterns |
-| v0.40.0+ | Agent beads, async gates, worktree management |
+| v0.40.0+ | Agent issuegraph, async gates, worktree management |
 | v0.34.0+ | Molecules, wisps, cross-project dependencies |
 | v0.15.0+ | Core: dependencies, notes, status tracking |
 
 ## Contributing
 
-This skill is maintained at [github.com/gastownhall/beads](https://github.com/gastownhall/beads) in the `plugins/beads/skills/beads/` directory.
+This skill is maintained at [github.com/borg0ai/dx-issuegraph](https://github.com/borg0ai/dx-issuegraph) in the `issuegraph/skills/issuegraph/` directory.
 
 Issues and PRs welcome for:
 - Documentation improvements

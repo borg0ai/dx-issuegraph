@@ -3,8 +3,8 @@ package dolt
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file is the persistence tier of the Commenter role: what the shared
@@ -26,7 +26,7 @@ import (
 
 // TestDoltStoreCommenterNamesTheIssueInHistoryAndCommitsTheTable pins the two
 // persistence halves of a durable comment: the history entry is named
-// "bd: comment <id>", and the comments table is committed rather than left
+// "issuegraph: comment <id>", and the comments table is committed rather than left
 // dirty in the working set.
 func TestDoltStoreCommenterNamesTheIssueInHistoryAndCommitsTheTable(t *testing.T) {
 	store, cleanup := setupTestStore(t)
@@ -47,7 +47,7 @@ func TestDoltStoreCommenterNamesTheIssueInHistoryAndCommitsTheTable(t *testing.T
 		t.Fatalf("AddComment: %v", err)
 	}
 
-	if !doltHasCommitMessage(ctx, t, store, "bd: comment test-comment-role") {
+	if !doltHasCommitMessage(ctx, t, store, "issuegraph: comment test-comment-role") {
 		t.Error("the comment did not name its issue in history")
 	}
 	requireCleanTables(ctx, t, store, "comments")

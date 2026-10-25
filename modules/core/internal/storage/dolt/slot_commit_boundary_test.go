@@ -261,7 +261,7 @@ func TestMetadataSlotWritesDoltCommitResponseLossIsIndeterminateAndNotReplayed(t
 func TestWispMetadataSlotWritesSQLCommitResponseLossIsIndeterminateAndNotReplayed(t *testing.T) {
 	for _, tc := range metadataSlotWriteCases() {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("BEADS_TEST_MODE", "")
+			t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 			breaker := newTestCircuitBreaker(t)
 			driver := &slotCommitBoundaryDriver{
 				metadata:     tc.metadata,

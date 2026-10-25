@@ -1,13 +1,13 @@
 // Package depid derives the deterministic primary-key id of a dependency edge.
 //
-// Background (gastownhall/beads#4259): the dependencies (and wisp_dependencies)
+// Background (borg0ai/dx-issuegraph#4259): the dependencies (and wisp_dependencies)
 // tables carry a surrogate primary key `id CHAR(36)`. It was originally filled
 // by a DB-side DEFAULT (UUID()), which mints a *different* random value on every
-// clone. Because beads syncs by merging independent Dolt clones, two clones that
+// clone. Because issuegraph syncs by merging independent Dolt clones, two clones that
 // create the same logical edge — or that migrate independently — end up with the
 // same row under two different primary keys. Dolt then either fails the merge
 // ("different primary keys in its common ancestor") or pulls in both rows and
-// trips the uk_dep_* unique key. Either way `bd dolt pull` breaks unrecoverably.
+// trips the uk_dep_* unique key. Either way `issuegraph dolt pull` breaks unrecoverably.
 //
 // The fix is to derive `id` deterministically from the edge's natural identity,
 // so the same edge gets the same id on every clone and merges cleanly. The
@@ -23,9 +23,9 @@ package depid
 
 import "github.com/google/uuid"
 
-// Namespace is the fixed UUIDv5 namespace for beads dependency ids. It was
+// Namespace is the fixed UUIDv5 namespace for issuegraph dependency ids. It was
 // generated once as uuid.NewSHA1(uuid.NameSpaceURL,
-// "https://github.com/gastownhall/beads#dependency-id") and is hardcoded here
+// "https://github.com/borg0ai/dx-issuegraph#dependency-id") and is hardcoded here
 // forever: changing it would re-key every existing edge and re-introduce the
 // cross-clone divergence this package exists to prevent.
 var Namespace = uuid.MustParse("bdd74eb9-a20a-554a-985b-54b8f3e64d8b")

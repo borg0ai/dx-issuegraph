@@ -26,9 +26,9 @@ func setupTestRepo(t *testing.T) (repoPath string, cleanup func()) {
 	cmd = exec.Command("git", "config", "user.name", "Test User")
 	cmd.Dir = repoPath
 	_ = cmd.Run()
-	beadsDir := filepath.Join(repoPath, ".beads")
-	_ = os.MkdirAll(beadsDir, 0750)
-	_ = os.WriteFile(filepath.Join(beadsDir, "test.jsonl"), []byte("test data\n"), 0644)
+	issuegraphDir := filepath.Join(repoPath, ".issuegraph")
+	_ = os.MkdirAll(issuegraphDir, 0750)
+	_ = os.WriteFile(filepath.Join(issuegraphDir, "test.jsonl"), []byte("test data\n"), 0644)
 	_ = os.WriteFile(filepath.Join(repoPath, "other.txt"), []byte("other data\n"), 0644)
 	cmd = exec.Command("git", "add", ".")
 	cmd.Dir = repoPath
@@ -69,8 +69,8 @@ func TestGetGitHooksDirTildeExpansion(t *testing.T) {
 		},
 		{
 			name:      "relative path without tilde",
-			hooksPath: ".beads/hooks",
-			wantDir:   "REPO_RELATIVE:.beads/hooks",
+			hooksPath: ".issuegraph/hooks",
+			wantDir:   "REPO_RELATIVE:.issuegraph/hooks",
 		},
 	}
 

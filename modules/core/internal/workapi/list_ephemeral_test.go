@@ -3,8 +3,8 @@ package workapi
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // TestIncludeEphemeralIsThePlaneBitAndNothingElse pins the half of

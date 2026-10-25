@@ -1,25 +1,25 @@
 ---
-title: "bd edit"
-description: "Edit an issue field using your configured $EDITOR."
+title: "issuegraph edit"
+description: "Edit an issue field in $EDITOR"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc edit`.
+Generated from `issuegraph help --doc edit`.
 
 Edit an issue field using your configured $EDITOR.
 
 By default, edits the description. Use flags to edit other fields.
 
 Examples:
-  bd edit bd-42                    # Edit description
-  bd edit bd-42 --title            # Edit title
-  bd edit bd-42 --design           # Edit design notes
-  bd edit bd-42 --notes            # Edit notes
-  bd edit bd-42 --acceptance       # Edit acceptance criteria
+  issuegraph edit bd-42                    # Edit description
+  issuegraph edit bd-42 --title            # Edit title
+  issuegraph edit bd-42 --design           # Edit design notes
+  issuegraph edit bd-42 --notes            # Edit notes
+  issuegraph edit bd-42 --acceptance       # Edit acceptance criteria
 
 ```
-bd edit [id] [flags]
+issuegraph edit [id] [flags]
 ```
 
 **Flags:**

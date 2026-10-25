@@ -12,10 +12,10 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 var permanentIssueAuxTables = []string{"issues", "labels", "dependencies", "events", "comments", "provenance_events"}
@@ -46,21 +46,21 @@ func (s *DoltStore) IsInfraTypeCtx(ctx context.Context, t types.IssueType) bool 
 //
 // For IDs matching the -wisp- pattern, does a full row scan (fast path for
 // auto-generated wisp IDs). For other IDs, uses a lightweight existence check
-// to support ephemeral beads created with explicit IDs (GH#2053).
+// to support ephemeral issuegraph created with explicit IDs (GH#2053).
 func (s *DoltStore) isActiveWisp(ctx context.Context, id string) bool {
 	if IsEphemeralID(id) {
 		wisp, _ := s.getWisp(ctx, id)
 		return wisp != nil
 	}
-	// Fallback: check wisps table for ephemeral beads with explicit IDs.
-	// Ephemeral beads created with --id=<custom> don't contain "-wisp-" in
+	// Fallback: check wisps table for ephemeral issuegraph with explicit IDs.
+	// Ephemeral issuegraph created with --id=<custom> don't contain "-wisp-" in
 	// their ID, but are still stored in the wisps table. Use a lightweight
 	// existence check to avoid full row scan on every non-wisp lookup.
 	return s.wispExists(ctx, id)
 }
 
 // wispExists checks if an ID exists in the wisps table using a lightweight query.
-// Used as a fallback for ephemeral beads with explicit (non-wisp) IDs (GH#2053).
+// Used as a fallback for ephemeral issuegraph with explicit (non-wisp) IDs (GH#2053).
 func (s *DoltStore) wispExists(ctx context.Context, id string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -202,7 +202,7 @@ func (s *DoltStore) PartitionWispIDs(ctx context.Context, ids []string) (wispIDs
 }
 
 // PromoteFromEphemeral copies an issue from the wisps table to the issues table,
-// clearing the Ephemeral flag. Used by bd promote and mol squash to crystallize wisps.
+// clearing the Ephemeral flag. Used by issuegraph promote and mol squash to crystallize wisps.
 //
 // Uses direct SQL inserts to bypass IsEphemeralID routing, which would otherwise
 // redirect label/dependency/event writes back to wisp tables.
@@ -211,7 +211,7 @@ func (s *DoltStore) PromoteFromEphemeral(ctx context.Context, id string, actor s
 		if err := issueops.PromoteFromEphemeralInTx(ctx, tx, id, actor); err != nil {
 			return err
 		}
-		return s.doltAddAndCommitInTx(ctx, tx, permanentIssueAuxTables, fmt.Sprintf("bd: promote %s", id))
+		return s.doltAddAndCommitInTx(ctx, tx, permanentIssueAuxTables, fmt.Sprintf("issuegraph: promote %s", id))
 	}); err != nil {
 		return err
 	}
@@ -322,7 +322,7 @@ func (s *DoltStore) demoteToWispInTx(ctx context.Context, tx *sql.Tx, id string,
 		return fmt.Errorf("recompute is_blocked after demote for %s: %w", id, err)
 	}
 
-	// The bead keeps its id across demotion; only its plane changes. Journal one
+	// The issue keeps its id across demotion; only its plane changes. Journal one
 	// update carrying the demoted snapshot, after the derived blocked-state
 	// maintenance has settled. UpdateIssueWithoutEventInTx above suppressed only
 	// the human audit event — its own journal row already recorded the field
@@ -331,7 +331,7 @@ func (s *DoltStore) demoteToWispInTx(ctx context.Context, tx *sql.Tx, id string,
 		return err
 	}
 
-	return s.doltAddAndCommitInTx(ctx, tx, permanentIssueAuxTables, fmt.Sprintf("bd: demote %s to wisp", id))
+	return s.doltAddAndCommitInTx(ctx, tx, permanentIssueAuxTables, fmt.Sprintf("issuegraph: demote %s to wisp", id))
 }
 
 // doltAddAndCommitInTx stages and Dolt-commits INSIDE a still-open SQL
@@ -353,13 +353,13 @@ func (s *DoltStore) demoteToWispInTx(ctx context.Context, tx *sql.Tx, id string,
 // slots.go (UpdateIssue, UpdateIssueChecked, ClaimIssue, ClaimReadyIssue,
 // UnclaimIssue, UnclaimIssueIfAssignee, ReclaimExpiredLeases, CloseIssue*,
 // DeleteIssue*, MergeMetadata, SlotClear) — several reachable from live CLI
-// paths (bd edit/note/priority/defer/unclaim, linear sync) and from the
+// paths (issuegraph edit/note/priority/defer/unclaim, linear sync) and from the
 // uow/domain claim surfaces. Every one of these should migrate to the
 // post-tx ordering; until then any of them racing a concurrent writer can
 // still silently revert that writer's committed rows.
 func (s *DoltStore) doltAddAndCommitInTx(ctx context.Context, tx *sql.Tx, tables []string, commitMsg string) error {
 	// Batch/off auto-commit (bd-4wamg): leave the writes in the working set
-	// for a later explicit commit point (bd dolt commit / CommitPending)
+	// for a later explicit commit point (issuegraph dolt commit / CommitPending)
 	// instead of minting one Dolt version commit per write.
 	if issueops.VersionCommitDeferred(ctx) {
 		return nil
@@ -444,7 +444,7 @@ const (
 // publication through the breaker several times and could trip it for
 // unrelated operations — for a trailing commit whose data is already
 // durable. Those failures go straight back to the caller, which swallows and
-// counts them once (bd.db.post_tx_commit_dropped).
+// counts them once (issuegraph.db.post_tx_commit_dropped).
 func (s *DoltStore) doltAddAndCommitPostTx(ctx context.Context, tables []string, commitMsg string) error {
 	// Detach from the caller's cancellation: the data transaction has already
 	// committed, so a request deadline or shutdown landing in this window

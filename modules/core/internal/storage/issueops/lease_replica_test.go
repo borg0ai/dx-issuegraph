@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestReclaimReplicaSQL pins the granting-replica predicate: when it is armed,
@@ -181,7 +181,7 @@ func TestNodeIDContextOverride(t *testing.T) {
 	// assertion is tautological: with both sides "" it passes even if NodeID
 	// ignored the context entirely. Give the fallback a value so "" can only
 	// come from the override actually winning.
-	t.Setenv("BEADS_NODE_ID", "fallback-node")
+	t.Setenv("ISSUEGRAPH_NODE_ID", "fallback-node")
 	if err := config.Initialize(); err != nil {
 		t.Fatalf("re-initialize config: %v", err)
 	}

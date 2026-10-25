@@ -83,7 +83,7 @@ type CreateItem struct {
 	//
 	// IT IS THE ONE PLACE A KEY MAY REACH FORWARD, or name this item's own Key.
 	// A plan whose first step records the id of the last one it will spawn is
-	// the measured shape (a retry that re-mints a bead and stamps the original's
+	// the measured shape (a retry that re-mints a issue and stamps the original's
 	// id onto it), and the backward-only rule exists to make a TARGET row
 	// exist before an item touches it — which a metadata VALUE does not need.
 	// Every id is minted before any splice is applied, so the direction cannot
@@ -141,7 +141,7 @@ type UpdateItem struct {
 	// express with one. "Only if this issue is not closed" is a NEGATIVE
 	// predicate and none of these can spell it; the nearest thing is
 	// ExpectedStatus with the one status the row could otherwise hold, which is
-	// only equivalent where the row is PROVABLY binary — a bead whose status is
+	// only equivalent where the row is PROVABLY binary — a issue whose status is
 	// open or closed and nothing else. Where a row can carry a third status
 	// that guard silently means something narrower than it reads, so check the
 	// claim before leaning on it rather than generalizing from the case that
@@ -168,7 +168,7 @@ type CloseItem struct {
 	// CLOSE POLICY EVALUATES AT THIS ITEM, against the row as this request has
 	// already changed it — the same as-modified rule the update guards take. A
 	// LATER item that gives a closed parent an open child is NOT refused,
-	// because beads has no global invariant that a closed issue has no open
+	// because issuegraph has no global invariant that a closed issue has no open
 	// children; the policy is a gate on the closing act, not a constraint the
 	// store maintains.
 	Force bool
@@ -473,12 +473,12 @@ const MaxApplyBatchItems = 100
 // landed — an all-wisp batch writes only to the dolt-ignored wisp tables, so an
 // entry naming one would be the sync artifact ignoring them exists to prevent.
 //
-// THERE IS NO `bd` COMMAND BEHIND THIS ROLE, and that is a decision rather than
+// THERE IS NO `issuegraph` COMMAND BEHIND THIS ROLE, and that is a decision rather than
 // an unfinished half. A plan is composed by a program — the thing that knows
 // which step spawned which — and the shell spelling of one would be a file
 // format: a second request grammar to version, to validate and to keep in step
 // with the wire's. The measured callers already speak HTTP or hold the role
-// directly. `bd create --file` and `bd dep add --file` remain the file-shaped
+// directly. `issuegraph create --file` and `issuegraph dep add --file` remain the file-shaped
 // front doors for the two homogeneous cases they already serve.
 //
 // Implementations never mutate caller-owned request values, snapshot the

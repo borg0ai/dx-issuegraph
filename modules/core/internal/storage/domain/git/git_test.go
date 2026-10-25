@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
 )
 
 func (s *testSuite) TestIsGitRepo_FalseOutsideRepo() {
@@ -43,7 +43,7 @@ func (s *testSuite) TestInit_CreatesRepo() {
 
 func (s *testSuite) TestConfig_GetMissing() {
 	s.gitInit()
-	value, found, err := s.repo.GetConfig(s.Ctx(), "beads.role")
+	value, found, err := s.repo.GetConfig(s.Ctx(), "issuegraph.role")
 	s.Require().NoError(err)
 	s.False(found)
 	s.Empty(value)
@@ -51,9 +51,9 @@ func (s *testSuite) TestConfig_GetMissing() {
 
 func (s *testSuite) TestConfig_RoundTrip() {
 	s.gitInit()
-	s.Require().NoError(s.repo.SetConfig(s.Ctx(), "beads.role", "maintainer"))
+	s.Require().NoError(s.repo.SetConfig(s.Ctx(), "issuegraph.role", "maintainer"))
 
-	value, found, err := s.repo.GetConfig(s.Ctx(), "beads.role")
+	value, found, err := s.repo.GetConfig(s.Ctx(), "issuegraph.role")
 	s.Require().NoError(err)
 	s.True(found)
 	s.Equal("maintainer", value)

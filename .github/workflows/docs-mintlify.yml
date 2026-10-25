@@ -17,7 +17,6 @@ on:
       - 'AGENT_INSTRUCTIONS.md'
       - 'CONTRIBUTING.md'
       - 'CLAUDE.md'
-      - 'RELEASING.md'
       - 'PR_MAINTAINER_GUIDELINES.md'
       - '.github/scripts/docs-render-check.sh'
       - '.github/workflows/docs-mintlify.yml'
@@ -40,7 +39,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
 
       - name: Run docsync guard
         run: go test -tags=gms_pure_go ./test/docsync

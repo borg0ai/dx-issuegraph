@@ -23,7 +23,7 @@ func TestCanonicalizeLinearExternalRef(t *testing.T) {
 	}{
 		{
 			name:        "slugged url",
-			externalRef: "https://linear.app/crown-dev/issue/BEA-93/updated-title-for-beads",
+			externalRef: "https://linear.app/crown-dev/issue/BEA-93/updated-title-for-issuegraph",
 			want:        "https://linear.app/crown-dev/issue/BEA-93",
 			ok:          true,
 		},
@@ -894,5 +894,5 @@ func TestExecute_RetryAfterCapApplied(t *testing.T) {
 	}
 }
 
-// Note: BuildStateCache and FindStateForBeadsStatus require API calls
+// Note: BuildStateCache and FindStateForIssueGraphStatus require API calls
 // and would need mocking to test. Skipping unit tests for those.

@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/atomicfile"
+	"github.com/borg0ai/dx-issuegraph/internal/atomicfile"
 )
 
 // SecretFileName is the per-workspace secret used to authenticate control

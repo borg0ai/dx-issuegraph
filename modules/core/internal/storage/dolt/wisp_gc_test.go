@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestFindWispDependentsRecursive verifies that FindWispDependentsRecursive
@@ -345,7 +345,7 @@ func TestRunInTransaction_DoesNotCorruptConfig(t *testing.T) {
 // table, preventing stale issue_prefix changes from being swept into commits.
 // This is the core fix for GH#2455: Commit() now stages all dirty tables
 // EXCEPT config. Config is only committed by CommitWithConfig (used by
-// CommitPending for explicit 'bd dolt commit').
+// CommitPending for explicit 'issuegraph dolt commit').
 func TestCommit_ExcludesConfig(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
@@ -396,7 +396,7 @@ func TestCommit_ExcludesConfig(t *testing.T) {
 }
 
 // TestCommitWithConfig_IncludesConfig verifies that CommitWithConfig DOES
-// commit config changes. This is used by CommitPending (bd dolt commit)
+// commit config changes. This is used by CommitPending (issuegraph dolt commit)
 // when the user intentionally modified config.
 func TestCommitWithConfig_IncludesConfig(t *testing.T) {
 	store, cleanup := setupTestStore(t)
@@ -425,27 +425,27 @@ func TestCommitWithConfig_IncludesConfig(t *testing.T) {
 	}
 }
 
-// TestWispGC_SkipsNoHistoryBeads verifies that wisp GC does NOT collect beads
-// with NoHistory=true. NoHistory beads are stored in the wisps table but have
+// TestWispGC_SkipsNoHistoryIssueGraph verifies that wisp GC does NOT collect issuegraph
+// with NoHistory=true. NoHistory issuegraph are stored in the wisps table but have
 // ephemeral=0, so the GC filter (Ephemeral=true → "ephemeral = 1") must
 // exclude them. This is the explicit regression test for gh-2619.
-func TestWispGC_SkipsNoHistoryBeads(t *testing.T) {
+func TestWispGC_SkipsNoHistoryIssueGraph(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
 
 	ctx, cancel := testContext(t)
 	defer cancel()
 
-	// Create a NoHistory bead: stored in wisps table, but NOT GC-eligible.
-	noHistoryBead := &types.Issue{
-		Title:     "no-history bead (must survive GC)",
+	// Create a NoHistory issue: stored in wisps table, but NOT GC-eligible.
+	noHistoryIssue := &types.Issue{
+		Title:     "no-history issue (must survive GC)",
 		Status:    types.StatusOpen,
 		Priority:  2,
 		IssueType: types.TypeTask,
 		NoHistory: true,
 	}
-	if err := store.CreateIssue(ctx, noHistoryBead, "test"); err != nil {
-		t.Fatalf("create no-history bead: %v", err)
+	if err := store.CreateIssue(ctx, noHistoryIssue, "test"); err != nil {
+		t.Fatalf("create no-history issue: %v", err)
 	}
 
 	// Create a normal ephemeral wisp: should be visible to GC.
@@ -477,9 +477,9 @@ func TestWispGC_SkipsNoHistoryBeads(t *testing.T) {
 		found[iss.ID] = true
 	}
 
-	// NoHistory bead must NOT appear in GC query results.
-	if found[noHistoryBead.ID] {
-		t.Errorf("GC safety violation: NoHistory bead %s was returned by Ephemeral=true filter", noHistoryBead.ID)
+	// NoHistory issue must NOT appear in GC query results.
+	if found[noHistoryIssue.ID] {
+		t.Errorf("GC safety violation: NoHistory issue %s was returned by Ephemeral=true filter", noHistoryIssue.ID)
 	}
 
 	// Normal ephemeral wisp MUST appear (sanity-check that the query works).

@@ -5,16 +5,16 @@ import (
 	"maps"
 	"testing"
 
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // TestDeriveKeyGoldenTable is the pin that matters most in this package.
 //
-// DeriveKey has minted every auto-generated memory key since `bd remember`
+// DeriveKey has minted every auto-generated memory key since `issuegraph remember`
 // shipped, and the keys it minted are STORED: a change here does not fail, it
-// re-keys. `bd remember "always run tests with -race flag"` would start writing
+// re-keys. `issuegraph remember "always run tests with -race flag"` would start writing
 // a second row beside the memory the user has been updating for months, both
-// rows would show up in `bd memories`, and nothing would report a problem.
+// rows would show up in `issuegraph memories`, and nothing would report a problem.
 //
 // So this table is GOLDEN. Every row was produced by the shipped slugify, not
 // by reading the code, and a row that changes is a decision about existing
@@ -117,7 +117,7 @@ func TestValidateContentRefusesNothingToRemember(t *testing.T) {
 
 // TestValidateKeyReturnsTheKeyUntouched pins that this validator does not
 // normalize. A key with surrounding space is a key someone can hold, and
-// trimming it here would read a different row from the one `bd remember --key`
+// trimming it here would read a different row from the one `issuegraph remember --key`
 // wrote.
 func TestValidateKeyReturnsTheKeyUntouched(t *testing.T) {
 	for _, blank := range []string{"", "   "} {
@@ -236,7 +236,7 @@ func TestFilterMemoriesDoesNotAliasItsArgument(t *testing.T) {
 // both run it. ResolveKey used to accept any non-empty string, so
 // `--key "   "` minted a row that no memory operation could name again:
 // enumerable by List forever, unrecallable, unforgettable, reachable only
-// through `bd config unset` on the raw storage key. Four separate review lenses
+// through `issuegraph config unset` on the raw storage key. Four separate review lenses
 // found it independently.
 //
 // The keys that SURVIVE matter as much as the ones refused: surrounding space

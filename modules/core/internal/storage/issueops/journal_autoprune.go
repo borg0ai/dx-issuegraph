@@ -53,7 +53,7 @@ const (
 // With no floor to narrow it, ComputeEventsPruneWhere returns that bound
 // unchanged — which is why the both-floors-disabled case is refused HERE rather
 // than delegated: to the resolver, "delete everything" is a legitimate answer to
-// an explicit `bd events prune --before <head+1>`, and only the caller knows
+// an explicit `issuegraph events prune --before <head+1>`, and only the caller knows
 // this request came from maintenance nobody asked for.
 func ComputeEventsAutoPruneBoundInTx(ctx context.Context, tx DBTX, retainDays, retainRows int, now time.Time) (bound int64, skip bool, err error) {
 	if retainDays <= 0 && retainRows <= 0 {
@@ -103,7 +103,7 @@ func PruneEventsBatchInTx(ctx context.Context, tx DBTX, bound int64, limit int) 
 		return 0, fmt.Errorf("journal: auto-prune batch limit must be positive, got %d", limit)
 	}
 	where, args := BuildEventsPruneWhere(bound)
-	q := "DELETE FROM bd_events_journal WHERE " + where + " ORDER BY seq ASC LIMIT " + strconv.Itoa(limit)
+	q := "DELETE FROM issuegraph_events_journal WHERE " + where + " ORDER BY seq ASC LIMIT " + strconv.Itoa(limit)
 	res, err := tx.ExecContext(ctx, q, args...)
 	if err != nil {
 		return 0, fmt.Errorf("journal: auto-prune batch below %d: %w", bound, err)
@@ -127,7 +127,7 @@ func PruneEventsBatchInTx(ctx context.Context, tx DBTX, bound int64, limit int) 
 // journaled, so there is nothing to prune either way.
 func ReadEventsAutoPruneStateInTx(ctx context.Context, tx DBTX, slotKey string) (watermark string, head int64, err error) {
 	const q = "SELECT (SELECT value FROM local_metadata WHERE `key` = ?), " +
-		"(SELECT next_seq FROM bd_events_seq WHERE id = 0)"
+		"(SELECT next_seq FROM issuegraph_events_seq WHERE id = 0)"
 	var (
 		slot     sql.NullString
 		headNull sql.NullInt64

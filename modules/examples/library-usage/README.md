@@ -17,7 +17,7 @@ Instead of spawning `issuegraph` CLI processes:
 In your Go project:
 
 ```bash
-go get github.com/steveyegge/beads@latest
+go get github.com/borg0ai/dx-issuegraph@latest
 ```
 
 ## Basic Usage
@@ -29,23 +29,23 @@ import (
     "context"
     "log"
 
-    "github.com/steveyegge/beads"
+    "github.com/borg0ai/dx-issuegraph"
 )
 
 func main() {
     ctx := context.Background()
 
     // Find the workspace and open its configured Dolt implementation
-    beadsDir := beads.FindBeadsDir()
-    store, err := beads.OpenBestAvailable(ctx, beadsDir)
+    issuegraphDir := issuegraph.FindIssueGraphDir()
+    store, err := issuegraph.OpenBestAvailable(ctx, issuegraphDir)
     if err != nil {
         log.Fatal(err)
     }
     defer store.Close()
 
     // Get ready work
-    ready, err := store.GetReadyWork(ctx, beads.WorkFilter{
-        Status: beads.StatusOpen,
+    ready, err := store.GetReadyWork(ctx, issuegraph.WorkFilter{
+        Status: issuegraph.StatusOpen,
         Limit: 10,
     })
     if err != nil {
@@ -70,8 +70,8 @@ are empty, the default of `('open', 'in_progress')` applies.
 
 ```go
     // One query for open OR blocked ready work
-    ready, err := store.GetReadyWork(ctx, beads.WorkFilter{
-        Statuses: []beads.Status{beads.StatusOpen, beads.StatusBlocked},
+    ready, err := store.GetReadyWork(ctx, issuegraph.WorkFilter{
+        Statuses: []issuegraph.Status{issuegraph.StatusOpen, issuegraph.StatusBlocked},
         Limit:    10,
     })
 ```
@@ -91,7 +91,7 @@ go run main.go
 
 ## Available Operations
 
-The `beads.Storage` interface provides:
+The `issuegraph.Storage` interface provides:
 
 ### Issues
 - `CreateIssue(ctx, issue, actor)` - Create a new issue
@@ -134,7 +134,7 @@ The `beads.Storage` interface provides:
 - `UpdateIssueChecked(ctx, id, updates, actor, opts)` - Like `UpdateIssue`, but
   when `opts.ExpectedVersion` is set the update proceeds only if the issue's
   current `RowVersion` still matches, else it refuses with
-  `beads.ErrVersionMismatch`. The version read and the write share one
+  `issuegraph.ErrVersionMismatch`. The version read and the write share one
   transaction (a true compare-and-swap). `RowVersion` is surfaced read-only on
   `Issue` reads.
 - `MergeMetadata(ctx, issueID, key, value, actor)` - Atomically merge a single
@@ -142,9 +142,9 @@ The `beads.Storage` interface provides:
   both survive rather than clobbering each other.
 
 > **Implementer note (interface change):** `UpdateIssueChecked` and
-> `MergeMetadata` are now **required** methods on the `beads.Storage` interface.
-> Code that only *consumes* `beads.Storage` needs no change, but any external
-> type that *implements* `beads.Storage` (a custom store, mock, or proxy) must
+> `MergeMetadata` are now **required** methods on the `issuegraph.Storage` interface.
+> Code that only *consumes* `issuegraph.Storage` needs no change, but any external
+> type that *implements* `issuegraph.Storage` (a custom store, mock, or proxy) must
 > add these two methods to compile. If you only need the base behavior,
 > `UpdateIssueChecked` with a nil `opts.ExpectedVersion` is identical to
 > `UpdateIssue`, and `MergeMetadata` can be layered over a read-modify-write of
@@ -152,30 +152,30 @@ The `beads.Storage` interface provides:
 
 ## Types
 
-All types are exported via the `beads` package:
+All types are exported via the `issuegraph` package:
 
 ```go
 // Core types
-beads.Issue
-beads.Status (Open, InProgress, Closed, Blocked)
-beads.IssueType (Bug, Feature, Task, Epic, Chore)
-beads.Priority (0-4)
+issuegraph.Issue
+issuegraph.Status (Open, InProgress, Closed, Blocked)
+issuegraph.IssueType (Bug, Feature, Task, Epic, Chore)
+issuegraph.Priority (0-4)
 
 // Relationships
-beads.Dependency
-beads.DependencyType (Blocks, Related, ParentChild, DiscoveredFrom)
+issuegraph.Dependency
+issuegraph.DependencyType (Blocks, Related, ParentChild, DiscoveredFrom)
 
 // Metadata
-beads.Label
-beads.Comment
-beads.Event
+issuegraph.Label
+issuegraph.Comment
+issuegraph.Event
 
 // Queries
-beads.IssueFilter
-beads.WorkFilter
-beads.BlockedIssue
-beads.EpicStatus
-beads.Statistics
+issuegraph.IssueFilter
+issuegraph.WorkFilter
+issuegraph.BlockedIssue
+issuegraph.EpicStatus
+issuegraph.Statistics
 ```
 
 ## VC Integration Example
@@ -185,22 +185,22 @@ For VC (VibeCoder), the integration would look like:
 ```go
 // In VC's storage layer
 type VCStorage struct {
-    beads beads.Storage
+    issuegraph issuegraph.Storage
 }
 
-func NewVCStorage(ctx context.Context, beadsDir string) (*VCStorage, error) {
-    store, err := beads.OpenBestAvailable(ctx, beadsDir)
+func NewVCStorage(ctx context.Context, issuegraphDir string) (*VCStorage, error) {
+    store, err := issuegraph.OpenBestAvailable(ctx, issuegraphDir)
     if err != nil {
         return nil, err
     }
 
-    return &VCStorage{beads: store}, nil
+    return &VCStorage{issuegraph: store}, nil
 }
 
 // Claim ready work for executor
-func (s *VCStorage) ClaimWork(ctx context.Context, executorID string) (*beads.Issue, error) {
-    ready, err := s.beads.GetReadyWork(ctx, beads.WorkFilter{
-        Status: beads.StatusOpen,
+func (s *VCStorage) ClaimWork(ctx context.Context, executorID string) (*issuegraph.Issue, error) {
+    ready, err := s.issuegraph.GetReadyWork(ctx, issuegraph.WorkFilter{
+        Status: issuegraph.StatusOpen,
         Limit: 1,
     })
     if err != nil {
@@ -215,11 +215,11 @@ func (s *VCStorage) ClaimWork(ctx context.Context, executorID string) (*beads.Is
 
     // Claim it
     updates := map[string]interface{}{
-        "status": beads.StatusInProgress,
+        "status": issuegraph.StatusInProgress,
         "assignee": executorID,
     }
 
-    if err := s.beads.UpdateIssue(ctx, issue.ID, updates, executorID); err != nil {
+    if err := s.issuegraph.UpdateIssue(ctx, issue.ID, updates, executorID); err != nil {
         return nil, err
     }
 
@@ -237,6 +237,6 @@ func (s *VCStorage) ClaimWork(ctx context.Context, executorID string) (*beads.Is
 
 ## See Also
 
-- [bd-example-extension-go](../bd-example-extension-go/README.md) - Legacy SQLite extension example
-- [beads.go](../../beads.go) - Public API source
+- [issuegraph-example-extension-go](../issuegraph-example-extension-go/README.md) - Legacy SQLite extension example
+- [issuegraph.go](../../issuegraph.go) - Public API source
 - [internal/storage/storage.go](../../internal/storage/storage.go) - Storage interface

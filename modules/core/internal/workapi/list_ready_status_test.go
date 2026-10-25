@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// TestReadyStatusAndReadyIntersect pins GH#5832: `bd list --status X --ready`
+// TestReadyStatusAndReadyIntersect pins GH#5832: `issuegraph list --status X --ready`
 // is the intersection, not the unfiltered ready set. These are builder and
 // projection tests so they stay in the CGO_ENABLED=0 lane.
 func TestReadyStatusAndReadyIntersect(t *testing.T) {

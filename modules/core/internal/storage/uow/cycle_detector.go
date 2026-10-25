@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	publicops "github.com/steveyegge/beads/issueops"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // CycleDetectorSource is the capability accessor a unit-of-work provider offers

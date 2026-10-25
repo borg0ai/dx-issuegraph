@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-// machineIDCacheName is the file under ~/.beads that persists the telemetry
+// machineIDCacheName is the file under ~/.issuegraph that persists the telemetry
 // distinct ID. eventkit.MachineID shells out to the platform machine-id probe
 // (`ioreg` on macOS, DMI/registry reads elsewhere) via denisbrodbeck/machineid
-// on every call — measured at 20.2±1.2ms per bd invocation — so the computed
+// on every call — measured at 20.2±1.2ms per issuegraph invocation — so the computed
 // ID is cached here once and reused by every subsequent invocation, including
 // the detached send-metrics child. The ID is already an app-scoped HMAC of the
 // platform machine ID (machineid.ProtectedID), not the raw machine ID, so the
@@ -94,7 +94,7 @@ func writeMachineIDCache(path, id string) {
 }
 
 // cachedMachineID returns the stable distinct ID for this machine, reading the
-// ~/.beads/machine-id cache first and falling back to the (slow) platform
+// ~/.issuegraph/machine-id cache first and falling back to the (slow) platform
 // probe, whose result it caches for every later invocation. Only called when
 // metrics are enabled — a disabled invocation never pays for an ID at all.
 //

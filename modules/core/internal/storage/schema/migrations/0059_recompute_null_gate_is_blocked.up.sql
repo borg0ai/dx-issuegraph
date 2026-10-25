@@ -2,7 +2,7 @@
 --
 -- Migration 0047 (and runtime recompute before this release) evaluated
 -- JSON_EXTRACT(d.metadata, '$.gate') = 'any-children' directly. Waits-for
--- dependencies created without gate metadata (e.g. 'bd dep add --type
+-- dependencies created without gate metadata (e.g. 'issuegraph dep add --type
 -- waits-for' stores no metadata) yield NULL there, and NULL poisons the
 -- enclosing NOT(... AND ...) so the waiter was computed unblocked as soon
 -- as any child closed. COALESCE to the all-children default (matching
@@ -44,14 +44,14 @@
 -- runtime recompute repairing wisp-linked state once the clone-local chain
 -- catches up. It must never wedge the pass or zero without restoring.
 
-DROP TABLE IF EXISTS __bd_0059_recompute_wisps;
-CREATE TABLE __bd_0059_recompute_wisps (
+DROP TABLE IF EXISTS __issuegraph_0059_recompute_wisps;
+CREATE TABLE __issuegraph_0059_recompute_wisps (
     id VARCHAR(255) NOT NULL,
     status VARCHAR(32),
     PRIMARY KEY (id)
 );
-DROP TABLE IF EXISTS __bd_0059_recompute_wisp_deps;
-CREATE TABLE __bd_0059_recompute_wisp_deps (
+DROP TABLE IF EXISTS __issuegraph_0059_recompute_wisp_deps;
+CREATE TABLE __issuegraph_0059_recompute_wisp_deps (
     issue_id VARCHAR(255),
     depends_on_issue_id VARCHAR(255),
     depends_on_wisp_id VARCHAR(255),
@@ -70,12 +70,12 @@ SET @has_split_wisp_deps = (
 );
 
 SET @sql = IF(@has_wisps > 1 AND @has_split_wisp_deps > 1,
-    'INSERT INTO __bd_0059_recompute_wisps (id, status) SELECT id, status FROM wisps',
+    'INSERT INTO __issuegraph_0059_recompute_wisps (id, status) SELECT id, status FROM wisps',
     'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql = IF(@has_wisps > 1 AND @has_split_wisp_deps > 1,
-    'INSERT INTO __bd_0059_recompute_wisp_deps (issue_id, depends_on_issue_id, depends_on_wisp_id, type, metadata) SELECT issue_id, depends_on_issue_id, depends_on_wisp_id, type, metadata FROM wisp_dependencies',
+    'INSERT INTO __issuegraph_0059_recompute_wisp_deps (issue_id, depends_on_issue_id, depends_on_wisp_id, type, metadata) SELECT issue_id, depends_on_issue_id, depends_on_wisp_id, type, metadata FROM wisp_dependencies',
     'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
@@ -101,7 +101,7 @@ WITH RECURSIVE
         OR EXISTS (
           SELECT 1
           FROM dependencies d
-          JOIN __bd_0059_recompute_wisps t ON t.id = d.depends_on_wisp_id
+          JOIN __issuegraph_0059_recompute_wisps t ON t.id = d.depends_on_wisp_id
           WHERE d.issue_id = i.id
             AND d.type IN ('blocks', 'conditional-blocks')
             AND t.status NOT IN ('closed', 'pinned')
@@ -125,8 +125,8 @@ WITH RECURSIVE
               )
               OR EXISTS (
                 SELECT 1
-                FROM __bd_0059_recompute_wisp_deps cd
-                JOIN __bd_0059_recompute_wisps child ON child.id = cd.issue_id
+                FROM __issuegraph_0059_recompute_wisp_deps cd
+                JOIN __issuegraph_0059_recompute_wisps child ON child.id = cd.issue_id
                 WHERE cd.type = 'parent-child'
                   AND (
                     (d.depends_on_issue_id IS NOT NULL AND cd.depends_on_issue_id = d.depends_on_issue_id)
@@ -151,8 +151,8 @@ WITH RECURSIVE
                 )
                 OR EXISTS (
                   SELECT 1
-                  FROM __bd_0059_recompute_wisp_deps cd
-                  JOIN __bd_0059_recompute_wisps child ON child.id = cd.issue_id
+                  FROM __issuegraph_0059_recompute_wisp_deps cd
+                  JOIN __issuegraph_0059_recompute_wisps child ON child.id = cd.issue_id
                   WHERE cd.type = 'parent-child'
                     AND (
                       (d.depends_on_issue_id IS NOT NULL AND cd.depends_on_issue_id = d.depends_on_issue_id)
@@ -166,12 +166,12 @@ WITH RECURSIVE
       )
     UNION
     SELECT DISTINCT 'wisp', w.id
-    FROM __bd_0059_recompute_wisps w
+    FROM __issuegraph_0059_recompute_wisps w
     WHERE w.status NOT IN ('closed', 'pinned')
       AND (
         EXISTS (
           SELECT 1
-          FROM __bd_0059_recompute_wisp_deps d
+          FROM __issuegraph_0059_recompute_wisp_deps d
           JOIN issues t ON t.id = d.depends_on_issue_id
           WHERE d.issue_id = w.id
             AND d.type IN ('blocks', 'conditional-blocks')
@@ -179,15 +179,15 @@ WITH RECURSIVE
         )
         OR EXISTS (
           SELECT 1
-          FROM __bd_0059_recompute_wisp_deps d
-          JOIN __bd_0059_recompute_wisps t ON t.id = d.depends_on_wisp_id
+          FROM __issuegraph_0059_recompute_wisp_deps d
+          JOIN __issuegraph_0059_recompute_wisps t ON t.id = d.depends_on_wisp_id
           WHERE d.issue_id = w.id
             AND d.type IN ('blocks', 'conditional-blocks')
             AND t.status NOT IN ('closed', 'pinned')
         )
         OR EXISTS (
           SELECT 1
-          FROM __bd_0059_recompute_wisp_deps d
+          FROM __issuegraph_0059_recompute_wisp_deps d
           WHERE d.issue_id = w.id
             AND d.type = 'waits-for'
             AND (
@@ -204,8 +204,8 @@ WITH RECURSIVE
               )
               OR EXISTS (
                 SELECT 1
-                FROM __bd_0059_recompute_wisp_deps cd
-                JOIN __bd_0059_recompute_wisps child ON child.id = cd.issue_id
+                FROM __issuegraph_0059_recompute_wisp_deps cd
+                JOIN __issuegraph_0059_recompute_wisps child ON child.id = cd.issue_id
                 WHERE cd.type = 'parent-child'
                   AND (
                     (d.depends_on_issue_id IS NOT NULL AND cd.depends_on_issue_id = d.depends_on_issue_id)
@@ -230,8 +230,8 @@ WITH RECURSIVE
                 )
                 OR EXISTS (
                   SELECT 1
-                  FROM __bd_0059_recompute_wisp_deps cd
-                  JOIN __bd_0059_recompute_wisps child ON child.id = cd.issue_id
+                  FROM __issuegraph_0059_recompute_wisp_deps cd
+                  JOIN __issuegraph_0059_recompute_wisps child ON child.id = cd.issue_id
                   WHERE cd.type = 'parent-child'
                     AND (
                       (d.depends_on_issue_id IS NOT NULL AND cd.depends_on_issue_id = d.depends_on_issue_id)
@@ -260,13 +260,13 @@ WITH RECURSIVE
     UNION
     SELECT 'wisp', d.issue_id
     FROM reachable r
-    JOIN __bd_0059_recompute_wisp_deps d
+    JOIN __issuegraph_0059_recompute_wisp_deps d
       ON d.type = 'parent-child'
      AND (
        (r.kind = 'issue' AND d.depends_on_issue_id = r.id)
        OR (r.kind = 'wisp' AND d.depends_on_wisp_id = r.id)
      )
-    JOIN __bd_0059_recompute_wisps child ON child.id = d.issue_id
+    JOIN __issuegraph_0059_recompute_wisps child ON child.id = d.issue_id
     WHERE child.status NOT IN ('closed', 'pinned')
   )
 UPDATE issues
@@ -274,5 +274,5 @@ SET is_blocked = 1, updated_at = updated_at
 WHERE id IN (SELECT id FROM reachable WHERE kind = 'issue')
   AND status NOT IN ('closed', 'pinned');
 
-DROP TABLE __bd_0059_recompute_wisps;
-DROP TABLE __bd_0059_recompute_wisp_deps;
+DROP TABLE __issuegraph_0059_recompute_wisps;
+DROP TABLE __issuegraph_0059_recompute_wisp_deps;

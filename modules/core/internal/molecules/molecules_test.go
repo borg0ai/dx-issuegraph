@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // newTestMoleculeStore creates a dolt store on the shared database with branch isolation.
@@ -93,13 +93,13 @@ func TestLoader_LoadAll(t *testing.T) {
 
 	// Create temporary directories
 	tempDir := t.TempDir()
-	beadsDir := filepath.Join(tempDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0750); err != nil {
-		t.Fatalf("Failed to create beads dir: %v", err)
+	issuegraphDir := filepath.Join(tempDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0750); err != nil {
+		t.Fatalf("Failed to create issuegraph dir: %v", err)
 	}
 
 	// Create a project-level molecules.jsonl
-	moleculesPath := filepath.Join(beadsDir, "molecules.jsonl")
+	moleculesPath := filepath.Join(issuegraphDir, "molecules.jsonl")
 	content := `{"id":"mol-feature","title":"Feature Template","issue_type":"molecule","status":"open","description":"Standard feature workflow"}
 {"id":"mol-bugfix","title":"Bugfix Template","issue_type":"molecule","status":"open","description":"Bug fix workflow"}`
 	if err := os.WriteFile(moleculesPath, []byte(content), 0600); err != nil {
@@ -108,7 +108,7 @@ func TestLoader_LoadAll(t *testing.T) {
 
 	// Load molecules
 	loader := NewLoader(store)
-	result, err := loader.LoadAll(ctx, beadsDir)
+	result, err := loader.LoadAll(ctx, issuegraphDir)
 	if err != nil {
 		t.Fatalf("LoadAll failed: %v", err)
 	}
@@ -150,9 +150,9 @@ func TestLoader_SkipExistingMolecules(t *testing.T) {
 
 	// Create temporary directories
 	tempDir := t.TempDir()
-	beadsDir := filepath.Join(tempDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0750); err != nil {
-		t.Fatalf("Failed to create beads dir: %v", err)
+	issuegraphDir := filepath.Join(tempDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0750); err != nil {
+		t.Fatalf("Failed to create issuegraph dir: %v", err)
 	}
 
 	// Pre-create a molecule in the database (skip prefix validation for mol-* IDs)
@@ -169,7 +169,7 @@ func TestLoader_SkipExistingMolecules(t *testing.T) {
 	}
 
 	// Create a molecules.jsonl with the same ID
-	moleculesPath := filepath.Join(beadsDir, "molecules.jsonl")
+	moleculesPath := filepath.Join(issuegraphDir, "molecules.jsonl")
 	content := `{"id":"mol-existing","title":"Updated Molecule","issue_type":"molecule","status":"open"}
 {"id":"mol-new","title":"New Molecule","issue_type":"molecule","status":"open"}`
 	if err := os.WriteFile(moleculesPath, []byte(content), 0600); err != nil {
@@ -178,7 +178,7 @@ func TestLoader_SkipExistingMolecules(t *testing.T) {
 
 	// Load molecules
 	loader := NewLoader(store)
-	result, err := loader.LoadAll(ctx, beadsDir)
+	result, err := loader.LoadAll(ctx, issuegraphDir)
 	if err != nil {
 		t.Fatalf("LoadAll failed: %v", err)
 	}

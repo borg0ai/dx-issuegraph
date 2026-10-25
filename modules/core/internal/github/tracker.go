@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func init() {
@@ -133,7 +134,7 @@ func (t *Tracker) FetchIssue(ctx context.Context, identifier string) (*tracker.T
 }
 
 func (t *Tracker) CreateIssue(ctx context.Context, issue *types.Issue) (*tracker.TrackerIssue, error) {
-	fields := BeadsIssueToGitHubFields(issue, t.config)
+	fields := IssueGraphIssueToGitHubFields(issue, t.config)
 	labels, _ := fields["labels"].([]string)
 
 	created, err := t.client.CreateIssue(ctx, issue.Title, issue.Description, labels)
@@ -151,7 +152,7 @@ func (t *Tracker) UpdateIssue(ctx context.Context, externalID string, issue *typ
 		return nil, fmt.Errorf("invalid GitHub issue number %q: %w", externalID, err)
 	}
 
-	updates := BeadsIssueToGitHubFields(issue, t.config)
+	updates := IssueGraphIssueToGitHubFields(issue, t.config)
 	updated, err := t.client.UpdateIssue(ctx, number, updates)
 	if err != nil {
 		return nil, err
@@ -236,8 +237,16 @@ func (t *Tracker) BuildExternalRef(issue *tracker.TrackerIssue) string {
 
 // getConfig reads a config value from storage, falling back to env var.
 // For yaml-only keys (e.g. github.token), reads from config.yaml first
-// to match the behavior of modules/cli/github.go:getGitHubConfigValue().
+// to match the behavior of apps/cli/github.go:getGitHubConfigValue().
 func (t *Tracker) getConfig(ctx context.Context, key, envVar string) string {
+	if key == "github.token" {
+		if output, err := exec.CommandContext(ctx, "gh", "auth", "token").Output(); err == nil {
+			if token := strings.TrimSpace(string(output)); token != "" {
+				return token
+			}
+		}
+		return os.Getenv(envVar)
+	}
 	// Secret keys are stored in config.yaml, not the Dolt database,
 	// to avoid leaking secrets when pushing to remotes.
 	if config.IsYamlOnlyKey(key) {

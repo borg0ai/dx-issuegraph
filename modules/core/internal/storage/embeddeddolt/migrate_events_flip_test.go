@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // These tests pin the bd-red8u events-table plane flip (main migration 0062 +
@@ -20,7 +20,7 @@ import (
 // exact frozen migration bytes through a real embedded (cgo) engine — 0062's
 // conditional DOLT_ADD is PREPARE-driven and its DOLT_COMMIT is a real
 // stored-procedure call, neither of which the dolt CLI batch executor
-// exercises faithfully. Both require BEADS_TEST_EMBEDDED_DOLT=1
+// exercises faithfully. Both require ISSUEGRAPH_TEST_EMBEDDED_DOLT=1
 // (requireEmbedded, migrate_selfheal_test.go).
 
 // TestEmbeddedMigration0062FlipsEventsToIgnoredPlane drives the full

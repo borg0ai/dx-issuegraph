@@ -5,7 +5,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-MCP_DIR="$REPO_ROOT/integrations/beads-mcp"
+MCP_DIR="$REPO_ROOT/integrations/issuegraph-mcp"
 
 # shellcheck source=../../.buildflags
 source "$REPO_ROOT/modules/core/.buildflags"
@@ -20,19 +20,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
-prepare_bd_binary() {
+prepare_issuegraph_binary() {
     tmpdir="$(mktemp -d)"
-    local target="$tmpdir/bd"
+    local target="$tmpdir/issuegraph"
 
-    if [[ -n "${BEADS_TEST_BD_BINARY:-}" ]]; then
-        cp "$BEADS_TEST_BD_BINARY" "$target"
+    if [[ -n "${ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY:-}" ]]; then
+        cp "$ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY" "$target"
     else
-        go build -o "$target" github.com/steveyegge/beads/modules/cli
+        go build -o "$target" github.com/borg0ai/dx-issuegraph/apps/cli
     fi
 
     chmod +x "$target"
     export PATH="$tmpdir:$PATH"
-    bd version
+    issuegraph version
 }
 
 mcp_uv_sync() {
@@ -42,12 +42,12 @@ mcp_uv_sync() {
 
 mcp_ruff() {
     cd "$MCP_DIR"
-    uv run ruff check src/beads_mcp tests
+    uv run ruff check src/issuegraph_mcp tests
 }
 
 mcp_mypy() {
     cd "$MCP_DIR"
-    uv run mypy src/beads_mcp
+    uv run mypy src/issuegraph_mcp
 }
 
 mcp_pytest() {
@@ -63,7 +63,7 @@ mcp_build() {
 
 cd "$REPO_ROOT"
 
-ci_time "prepare bd for MCP package" -- prepare_bd_binary
+ci_time "prepare issuegraph for MCP package" -- prepare_issuegraph_binary
 ci_time "mcp uv sync" -- mcp_uv_sync
 ci_time "mcp ruff check" -- mcp_ruff
 ci_time "mcp mypy" -- mcp_mypy

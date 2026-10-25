@@ -1,10 +1,10 @@
-//! Curated CLI scenarios, each exercising a specific `bd` contract behavior.
-//! Run against the reference `bd` they become the golden ground truth; run
-//! against the candidate `bd` they are the differential parity test.
+//! Curated CLI scenarios, each exercising a specific `issuegraph` contract behavior.
+//! Run against the reference `issuegraph` they become the golden ground truth; run
+//! against the candidate `issuegraph` they are the differential parity test.
 //!
 //! `all()` are the curated, maintained scenarios that always run. `catalog()`
 //! loads the much larger enumerated set (`scenarios/enumerated.json`, ~500
-//! deterministic scenarios covering the wider bd CLI surface as data) — the
+//! deterministic scenarios covering the wider issuegraph CLI surface as data) — the
 //! opt-in deep tier, pulled in only when `ORACLE_CATALOG` is set.
 
 use crate::differential::Scenario;
@@ -49,8 +49,8 @@ pub fn catalog() -> Vec<Scenario> {
         .collect()
 }
 
-/// All scenarios. Flags here encode our current understanding of bd's CLI; a
-/// wrong flag simply captures bd's "unknown flag" response in the golden, which
+/// All scenarios. Flags here encode our current understanding of issuegraph's CLI; a
+/// wrong flag simply captures issuegraph's "unknown flag" response in the golden, which
 /// is itself the correction.
 pub fn all() -> Vec<Scenario> {
     vec![
@@ -110,7 +110,7 @@ pub fn all() -> Vec<Scenario> {
                 &["dep", "add", "c-a", "c-a", "--type", "blocks", "--json"],
             ],
         ),
-        // CRITICAL: dependency retype. bd REJECTS it (exact error + exit code pinned).
+        // CRITICAL: dependency retype. issuegraph REJECTS it (exact error + exit code pinned).
         Scenario::new(
             "dep_retype",
             "r",
@@ -199,7 +199,7 @@ pub fn all() -> Vec<Scenario> {
             ],
         ),
         // Field coverage: a BLOCKED issue's show omits is_blocked/from/ref/needs
-        // (bd never emits these fields).
+        // (issuegraph never emits these fields).
         Scenario::new(
             "blocked_show_fields",
             "bf",
@@ -210,7 +210,7 @@ pub fn all() -> Vec<Scenario> {
                 &["show", "bf-a", "--json"],
             ],
         ),
-        // Error class: bd sql is unsupported in embedded mode.
+        // Error class: issuegraph sql is unsupported in embedded mode.
         Scenario::new(
             "sql_unsupported_embedded",
             "sq",
@@ -266,7 +266,7 @@ pub fn all() -> Vec<Scenario> {
                 &["query", "--json", "parent=qp-1"],
             ],
         ),
-        // A blocks add whose only reverse path is parent-child is NOT a cycle in bd
+        // A blocks add whose only reverse path is parent-child is NOT a cycle in issuegraph
         // (cycle traversal walks blocks + conditional-blocks only).
         Scenario::new(
             "cycle_nonblocking_reverse_allowed",
@@ -279,7 +279,7 @@ pub fn all() -> Vec<Scenario> {
                 &["ready", "--json"],
             ],
         ),
-        // Claiming an OPEN bead already assigned to the claiming actor transitions it
+        // Claiming an OPEN issue already assigned to the claiming actor transitions it
         // to in_progress (+started_at), not a no-op.
         Scenario::new(
             "claim_preassigned_open",
@@ -290,7 +290,7 @@ pub fn all() -> Vec<Scenario> {
                 &["show", "cp-1", "--json"],
             ],
         ),
-        // Re-close with a new reason is a NO-OP on close_reason: bd keeps the
+        // Re-close with a new reason is a NO-OP on close_reason: issuegraph keeps the
         // FIRST reason (close is reason-idempotent). The scenario name is historical.
         Scenario::new(
             "close_reclose_overwrites_reason",
@@ -302,8 +302,8 @@ pub fn all() -> Vec<Scenario> {
                 &["show", "ci-1", "--json"],
             ],
         ),
-        // bd's ready excludes a FUTURE-deferred issue even when its status is `open`
-        // (reachable via update --status open on a deferred bead). Callers trust ready
+        // issuegraph's ready excludes a FUTURE-deferred issue even when its status is `open`
+        // (reachable via update --status open on a deferred issue). Callers trust ready
         // as the claimable set and never re-check defer.
         Scenario::new(
             "ready_excludes_future_deferred_open",
@@ -315,7 +315,7 @@ pub fn all() -> Vec<Scenario> {
                 &["ready", "--json"],
             ],
         ),
-        // THE CONFIRMED BUG, pinned: bd's ready hides the infra/coordination types
+        // THE CONFIRMED BUG, pinned: issuegraph's ready hides the infra/coordination types
         // (ReadyWorkExcludeTypes: merge-request, gate, molecule, rig, agent, role,
         // message). A task + gate + molecule + message yields ONLY the task as ready
         // claimable work — gate/molecule/message must never surface as claimable.
@@ -330,7 +330,7 @@ pub fn all() -> Vec<Scenario> {
                 &["ready", "--json"],
             ],
         ),
-        // Companion to the ready exclusion: bd's default `list` hides gate (no
+        // Companion to the ready exclusion: issuegraph's default `list` hides gate (no
         // --include-gates) and infra types (message; no --include-infra), so the
         // same task+gate+molecule+message set lists as [task, molecule] — molecule
         // is a durable, non-gate, non-infra type that DOES list, while gate and the
@@ -350,7 +350,7 @@ pub fn all() -> Vec<Scenario> {
             ],
         ),
         // RT-HIGH #1: a waits-for waiter whose spawner has NO open parent-child child
-        // is NOT blocked (bd's default waits-for gate). The old impl lumped waits-for
+        // is NOT blocked (issuegraph's default waits-for gate). The old impl lumped waits-for
         // with `blocks` and wrongly withheld the waiter from `ready`. In-scope: uses
         // only `dep add --type waits-for` + `ready --json` (no out-of-scope `blocked`).
         Scenario::new(
@@ -382,8 +382,8 @@ pub fn all() -> Vec<Scenario> {
             ],
         ),
         // DIVERGENCE PIN: `ready --claim` must force Unassigned (never steal an open
-        // bead assigned to another agent). rcp-1 (assignee bob, P0) outranks rcp-2
-        // (unassigned, P1); bd skips rcp-1 and claims rcp-2. Without the Unassigned
+        // issue assigned to another agent). rcp-1 (assignee bob, P0) outranks rcp-2
+        // (unassigned, P1); issuegraph skips rcp-1 and claims rcp-2. Without the Unassigned
         // force, a claimer takes the higher-priority rcp-1 — cross-agent corruption.
         Scenario::new(
             "ready_claim_skips_preassigned",
@@ -396,7 +396,7 @@ pub fn all() -> Vec<Scenario> {
                 &["show", "rcp-2", "--json"],
             ],
         ),
-        // DIVERGENCE PIN: `parent` omitempty boundary. bd marshals create/update/close/
+        // DIVERGENCE PIN: `parent` omitempty boundary. issuegraph marshals create/update/close/
         // reopen from raw *types.Issue (NO parent tag) but show/list/ready from the
         // IssueWithCounts/IssueDetails wrappers (parent present). So a parent-child child
         // shows `parent` ONLY under show — not update/close/reopen.
@@ -428,7 +428,7 @@ pub fn all() -> Vec<Scenario> {
                 &["show", "sdp-1", "--json"],
             ],
         ),
-        // DIVERGENCE PIN: --set-metadata key validation. bd ValidateMetadataKey rejects
+        // DIVERGENCE PIN: --set-metadata key validation. issuegraph ValidateMetadataKey rejects
         // keys with hyphens/spaces/leading-digits (^[a-zA-Z_][a-zA-Z0-9_.]*$).
         Scenario::new(
             "update_set_metadata_key_validation",
@@ -581,7 +581,7 @@ pub fn all() -> Vec<Scenario> {
                 &["ready", "--json"],
             ],
         ),
-        // COVERAGE: comment add (bd comment <id> <text>) then list (bd comments <id>).
+        // COVERAGE: comment add (issuegraph comment <id> <text>) then list (issuegraph comments <id>).
         // Comment id (UUID) and created_at (TS) are normalized, so the trace is stable.
         // The rig had ZERO comment steps before this.
         Scenario::new(
@@ -625,7 +625,7 @@ pub fn all() -> Vec<Scenario> {
         // DIVERGENCE PIN (review gap): `--force` close of a PINNED issue must
         // actually close it. The close-guard treats pinned as "not active" for blockers,
         // but the TARGET being pinned is a different axis — force must still transition
-        // the pinned bead itself to closed. The corpus pinned pinned-as-blocker
+        // the pinned issue itself to closed. The corpus pinned pinned-as-blocker
         // (close_pinned_blocker_closes) but never force-closing a pinned target.
         Scenario::new(
             "close_pinned_force",
@@ -637,9 +637,9 @@ pub fn all() -> Vec<Scenario> {
                 &["show", "cpf-1", "--json"],
             ],
         ),
-        // OUT-OF-SCOPE for the gate (bd `note` is not in scoreboard IN_SCOPE_CMDS) but
+        // OUT-OF-SCOPE for the gate (issuegraph `note` is not in scoreboard IN_SCOPE_CMDS) but
         // captured informationally (review gap): two `note` appends then `show`
-        // pins the stored notes bytes + the separator bd inserts between appended notes.
+        // pins the stored notes bytes + the separator issuegraph inserts between appended notes.
         // The corpus pinned `comment`/`comments` but never the distinct `note` append path.
         Scenario::new(
             "note_append_two",

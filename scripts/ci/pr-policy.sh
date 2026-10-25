@@ -21,45 +21,45 @@ cleanup() {
 }
 trap cleanup EXIT
 
-check_no_beads_jsonl_changes() {
+check_no_issuegraph_jsonl_changes() {
     local base_ref=""
 
-    if [[ "${CI_SKIP_BEADS_CHANGE_CHECK:-0}" == "1" ]]; then
-        printf 'Skipping .beads/issues.jsonl guard because CI_SKIP_BEADS_CHANGE_CHECK=1\n'
+    if [[ "${CI_SKIP_ISSUEGRAPH_CHANGE_CHECK:-0}" == "1" ]]; then
+        printf 'Skipping .issuegraph/issues.jsonl guard because CI_SKIP_ISSUEGRAPH_CHANGE_CHECK=1\n'
         return 0
     fi
 
-    if [[ -n "${CI_BEADS_DIFF_BASE:-}" ]]; then
-        base_ref="$CI_BEADS_DIFF_BASE"
+    if [[ -n "${CI_ISSUEGRAPH_DIFF_BASE:-}" ]]; then
+        base_ref="$CI_ISSUEGRAPH_DIFF_BASE"
     elif [[ -n "${GITHUB_BASE_REF:-}" ]]; then
         base_ref="origin/${GITHUB_BASE_REF}"
     elif git rev-parse --verify --quiet origin/main >/dev/null; then
         base_ref="origin/main"
-        printf 'No PR base ref found; checking .beads/issues.jsonl against origin/main.\n'
+        printf 'No PR base ref found; checking .issuegraph/issues.jsonl against origin/main.\n'
     else
-        printf 'No diff base available; skipping .beads/issues.jsonl guard.\n'
+        printf 'No diff base available; skipping .issuegraph/issues.jsonl guard.\n'
         return 0
     fi
 
     if ! git rev-parse --verify --quiet "$base_ref" >/dev/null; then
-        printf 'Diff base %s is unavailable; skipping .beads/issues.jsonl guard.\n' "$base_ref"
+        printf 'Diff base %s is unavailable; skipping .issuegraph/issues.jsonl guard.\n' "$base_ref"
         return 0
     fi
 
-    if git diff --name-only "$base_ref"...HEAD | grep -q '^\.beads/issues\.jsonl$'; then
+    if git diff --name-only "$base_ref"...HEAD | grep -q '^\.issuegraph/issues\.jsonl$'; then
         cat >&2 <<'EOF'
-This change includes .beads/issues.jsonl.
+This change includes .issuegraph/issues.jsonl.
 
 That file is the project's issue database and should not be modified in PRs.
 
 To fix:
-  git checkout origin/main -- .beads/issues.jsonl
+  git checkout origin/main -- .issuegraph/issues.jsonl
   git commit --amend
 EOF
         return 1
     fi
 
-    printf 'No .beads/issues.jsonl changes detected.\n'
+    printf 'No .issuegraph/issues.jsonl changes detected.\n'
 }
 
 check_workapi_frontend_boundary() {
@@ -98,19 +98,18 @@ build_docs_binary() {
 
     env CGO_ENABLED=0 go build \
         -ldflags="-X main.Build=${build}" \
-        -o "$tmpdir/bd" \
-        github.com/steveyegge/beads/modules/cli
+        -o "$tmpdir/issuegraph" \
+        github.com/borg0ai/dx-issuegraph/apps/cli
 }
 
 ci_time "check build-tag policy" -- ./scripts/check-build-tags.sh
-ci_time "check go install guidance" -- ./scripts/check-go-install-guidance.sh
 ci_time "check version consistency" -- ./scripts/check-versions.sh
-ci_time "build bd for docs checks" -- build_docs_binary
-ci_time "check doc flags" -- ./scripts/check-doc-flags.sh "$tmpdir/bd"
+ci_time "build issuegraph for docs checks" -- build_docs_binary
+ci_time "check doc flags" -- ./scripts/check-doc-flags.sh "$tmpdir/issuegraph"
 ci_time "check doc freshness" -- ./scripts/check-doc-freshness.sh
 ci_time "check testing.Short boundaries" -- ./scripts/check-testing-short.sh
 ci_time "check workapi frontend boundary" -- check_workapi_frontend_boundary
-ci_time "check no .beads/issues.jsonl changes" -- check_no_beads_jsonl_changes
+ci_time "check no .issuegraph/issues.jsonl changes" -- check_no_issuegraph_jsonl_changes
 # The OpenAPI drift gate belongs to a REQUIRED PR job. The Main workflow is
 # perpetually concurrency-cancelled, so a gate that only ran there would be
 # unenforced in practice.

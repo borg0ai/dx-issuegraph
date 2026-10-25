@@ -1,11 +1,11 @@
 ---
-title: "bd duplicates"
-description: "Find issues with identical content (title, description, design, acceptance criteria)."
+title: "issuegraph duplicates"
+description: "Find and optionally merge duplicate issues"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc duplicates`.
+Generated from `issuegraph help --doc duplicates`.
 
 Find issues with identical content (title, description, design, acceptance criteria).
 Groups issues by content hash and reports duplicates with suggested merge targets.
@@ -14,12 +14,12 @@ The merge target is chosen by:
 2. Lexicographically smallest ID if reference counts are equal
 Only groups issues with matching status (open with open, closed with closed).
 Example:
-  bd duplicates                    # Show all duplicate groups
-  bd duplicates --auto-merge       # Automatically merge all duplicates
-  bd duplicates --dry-run          # Show what would be merged
+  issuegraph duplicates                    # Show all duplicate groups
+  issuegraph duplicates --auto-merge       # Automatically merge all duplicates
+  issuegraph duplicates --dry-run          # Show what would be merged
 
 ```
-bd duplicates [flags]
+issuegraph duplicates [flags]
 ```
 
 **Flags:**

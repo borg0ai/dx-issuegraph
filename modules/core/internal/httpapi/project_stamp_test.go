@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // These are pure, like the rest of the package's edge tests: the whole request
@@ -99,7 +99,7 @@ func TestProjectStampMismatchRefusesEveryEnforcedRoute(t *testing.T) {
 	for _, tc := range []struct {
 		name, method, path, body string
 	}{
-		{"GET read", http.MethodGet, "/v0/beads/ready", ""},
+		{"GET read", http.MethodGet, "/v0/issuegraph/ready", ""},
 		{"custom-method write", http.MethodPost, claimPath, `{"actor":"alice"}`},
 		{"PATCH", http.MethodPatch, updatePath, `{"actor":"alice","patch":{"title":"x"}}`},
 		{"createIssue write", http.MethodPost, createPath, `{"actor":"alice","title":"one"}`},
@@ -174,7 +174,7 @@ func TestProjectStampMatchingServes(t *testing.T) {
 func TestHealthAndContextAnswerDespiteAWrongStamp(t *testing.T) {
 	ts := newTestServer(t, Config{Workspace: domain.ContextInfo{ProjectID: serverProjectID}})
 
-	for _, path := range []string{"/healthz", "/v0/beads/context"} {
+	for _, path := range []string{"/healthz", "/v0/issuegraph/context"} {
 		resp := ts.stamped(t, http.MethodGet, path, "other-proj", "")
 		if resp.StatusCode != http.StatusOK {
 			t.Errorf("GET %s with a wrong stamp = %d, want 200 (this route is exempt)", path, resp.StatusCode)
@@ -183,7 +183,7 @@ func TestHealthAndContextAnswerDespiteAWrongStamp(t *testing.T) {
 
 	// The handshake even hands back the very id a client would need to stamp
 	// correctly next time.
-	body := decodeBody(t, ts.stamped(t, http.MethodGet, "/v0/beads/context", "other-proj", ""))
+	body := decodeBody(t, ts.stamped(t, http.MethodGet, "/v0/issuegraph/context", "other-proj", ""))
 	if body["project_id"] != serverProjectID {
 		t.Errorf("context project_id = %v, want %q", body["project_id"], serverProjectID)
 	}
@@ -207,7 +207,7 @@ func TestHealthAndContextAnswerDespiteAWrongStamp(t *testing.T) {
 func TestProjectStampRefusalDoesNotLeakThroughTheHostGate(t *testing.T) {
 	ts := newTestServer(t, Config{Workspace: domain.ContextInfo{ProjectID: serverProjectID}})
 
-	req, err := http.NewRequest(http.MethodGet, ts.base+"/v0/beads/ready", nil)
+	req, err := http.NewRequest(http.MethodGet, ts.base+"/v0/issuegraph/ready", nil)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
@@ -241,7 +241,7 @@ func TestProjectStampRefusalDoesNotLeakThroughTheHostGate(t *testing.T) {
 func TestCapabilitiesAdvertiseProjectEnforce(t *testing.T) {
 	ts := newTestServer(t, Config{})
 
-	caps, _ := decodeBody(t, ts.get(t, "/v0/beads/context"))["capabilities"].([]any)
+	caps, _ := decodeBody(t, ts.get(t, "/v0/issuegraph/context"))["capabilities"].([]any)
 	var got []string
 	for _, c := range caps {
 		got = append(got, c.(string))

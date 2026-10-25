@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
 )
 
 // mockUnitOfWork implements UnitOfWork for testing
@@ -301,7 +301,7 @@ func TestRunTxResult_RetriesOnSerializationError(t *testing.T) {
 // caller branches on when every attempt loses Dolt's commit-time merge: the
 // explicit budget bounds the loop, and the error handed back is the last
 // serialization failure itself — not a context error, not a wrapper. Callers
-// (bd update on the proxied-server path, and the HTTP claim endpoint after it)
+// (issuegraph update on the proxied-server path, and the HTTP claim endpoint after it)
 // use IsSerializationError on this error to report an exhausted write conflict
 // loudly instead of exiting 0 on a write that never landed.
 func TestRunTxResultWithin_ExhaustedBudgetReturnsSerializationError(t *testing.T) {

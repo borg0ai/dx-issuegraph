@@ -3,7 +3,7 @@ package dolt
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/journalscan"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/journalscan"
 )
 
 // scopeCalls are the ways a function binds journal activation to the concrete
@@ -21,7 +21,7 @@ var scopeCalls = map[string]bool{
 var rawTxScopeExemptions = map[string]string{
 	// Derived, reconstructible state. These transactions run the is_blocked
 	// maintenance passes (admin repair and the post-merge recompute), which
-	// recompute a projection from the dependency graph rather than mutate bead
+	// recompute a projection from the dependency graph rather than mutate issue
 	// state. A consumer that replays the journal recomputes the same value from
 	// the same edges, so recording the repair would add rows carrying no
 	// information a replay does not already have. This is the same reasoning

@@ -35,7 +35,7 @@ issuegraph init --contributor
 
 The wizard will:
 1. ✅ Detect that you're in a fork (checks for 'upstream' remote)
-2. ✅ Prompt you to create a planning repo (`~/.beads-planning` by default)
+2. ✅ Prompt you to create a planning repo (`~/.issuegraph-planning` by default)
 3. ✅ Configure auto-routing so your planning stays separate
 4. ✅ Initialize the planning repo with git
 
@@ -45,7 +45,7 @@ The wizard will:
 # Create a planning issue
 issuegraph create "Plan how to fix bug X" -p 2
 
-# This issue goes to ~/.beads-planning automatically!
+# This issue goes to ~/.issuegraph-planning automatically!
 ```
 
 ## How It Works
@@ -58,7 +58,7 @@ When you create issues as a contributor:
 issuegraph create "Fix authentication bug" -p 1
 ```
 
-IssueGraph automatically routes this to your planning repo (`~/.beads-planning/.beads/`), not the current repo.
+IssueGraph automatically routes this to your planning repo (`~/.issuegraph-planning/.issuegraph/`), not the current repo.
 
 ### Viewing Issues
 
@@ -70,7 +70,7 @@ issuegraph list
 issuegraph list --source-repo .
 
 # See only planning issues
-issuegraph list --source-repo ~/.beads-planning
+issuegraph list --source-repo ~/.issuegraph-planning
 ```
 
 ### Discovered Work
@@ -79,7 +79,7 @@ When you discover work while implementing:
 
 ```bash
 # The new issue inherits source_repo from parent
-issuegraph create "Found edge case in auth" -p 1 --deps discovered-from:bd-42
+issuegraph create "Found edge case in auth" -p 1 --deps discovered-from:issuegraph-42
 ```
 
 ### Committing Code (Not Planning)
@@ -93,7 +93,7 @@ git commit -m "Fix: authentication bug"
 git push origin my-feature-branch
 ```
 
-Your planning issues in `~/.beads-planning` **never appear in PRs**.
+Your planning issues in `~/.issuegraph-planning` **never appear in PRs**.
 
 ## Example Workflow
 
@@ -106,7 +106,7 @@ git remote add upstream https://github.com/upstream/upstream-project.git
 # 2. Run contributor setup
 issuegraph init --contributor
 # Wizard detects fork ✓
-# Creates ~/.beads-planning ✓
+# Creates ~/.issuegraph-planning ✓
 # Configures auto-routing ✓
 
 # 3. Plan your work (routes to planning repo)
@@ -120,24 +120,24 @@ git checkout -b fix-auth-bug
 git add . && git commit -m "Fix: auth bug"
 
 # 5. Track discovered work (stays in planning repo)
-issuegraph create "Found related issue in logout" -p 2 --deps discovered-from:bd-abc
+issuegraph create "Found related issue in logout" -p 2 --deps discovered-from:issuegraph-abc
 
 # 6. Push code (planning never included)
 git push origin fix-auth-bug
 # Create PR on GitHub - zero planning pollution!
 
 # 7. Clean up after PR merges
-issuegraph close bd-abc --reason "PR merged"
+issuegraph close issuegraph-abc --reason "PR merged"
 ```
 
 ## Configuration
 
-The wizard configures these settings in `.beads/beads.db`:
+The wizard configures these settings in `.issuegraph/issuegraph.db`:
 
 ```yaml
 routing:
   mode: auto
-  contributor: ~/.beads-planning
+  contributor: ~/.issuegraph-planning
   maintainer: .
 ```
 
@@ -151,7 +151,7 @@ issuegraph init
 
 # Configure routing
 issuegraph config set routing.mode auto
-issuegraph config set routing.contributor ~/.beads-planning
+issuegraph config set routing.contributor ~/.issuegraph-planning
 issuegraph config set routing.maintainer .
 ```
 
@@ -161,12 +161,12 @@ Older versions used `contributor.*` keys. These still work for backward compatib
 
 ```bash
 # Old keys (deprecated but functional)
-issuegraph config set contributor.planning_repo ~/.beads-planning
+issuegraph config set contributor.planning_repo ~/.issuegraph-planning
 issuegraph config set contributor.auto_route true
 
 # New keys (preferred)
 issuegraph config set routing.mode auto
-issuegraph config set routing.contributor ~/.beads-planning
+issuegraph config set routing.contributor ~/.issuegraph-planning
 ```
 
 ## Multi-Repository View
@@ -179,7 +179,7 @@ issuegraph list
 
 # Filter by source repository
 issuegraph list --source-repo .                    # Current repo only
-issuegraph list --source-repo ~/.beads-planning    # Planning repo only
+issuegraph list --source-repo ~/.issuegraph-planning    # Planning repo only
 ```
 
 ## Benefits

@@ -1,7 +1,7 @@
 package dolt
 
 import (
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // issueSelectColumns re-exports the canonical column list from issueops

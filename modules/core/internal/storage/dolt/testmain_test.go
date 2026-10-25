@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // testServerPort is the port of the shared test Dolt server (0 = not running).
-// Set by TestMain before tests run, used implicitly via BEADS_DOLT_PORT env var
+// Set by TestMain before tests run, used implicitly via ISSUEGRAPH_DOLT_PORT env var
 // which applyConfigDefaults reads when ServerPort is 0.
 var testServerPort int
 
@@ -28,8 +28,8 @@ var testSharedConn *sql.DB
 // TestHelper* entry points — TestHelperSubprocessSentinelsAreComplete fails the
 // build if a new one is added without listing it here.
 var helperSubprocessSentinels = []string{
-	"BEADS_SCHEMA_INIT_HELPER",
-	"BEADS_MULTISTORE_HELPER",
+	"ISSUEGRAPH_SCHEMA_INIT_HELPER",
+	"ISSUEGRAPH_MULTISTORE_HELPER",
 }
 
 // isHelperSubprocess reports whether this process was re-exec'd as a helper
@@ -48,19 +48,19 @@ func TestMain(m *testing.M) {
 }
 
 func testMainInner(m *testing.M) int {
-	os.Setenv("BEADS_TEST_MODE", "1")
-	// BEADS_TEST_PDEATHSIG=1 protects TestMultiProcessSchemaInit_DoltVerify
+	os.Setenv("ISSUEGRAPH_TEST_MODE", "1")
+	// ISSUEGRAPH_TEST_PDEATHSIG=1 protects TestMultiProcessSchemaInit_DoltVerify
 	// (initschema_multiprocess_test.go), which calls doltserver.Start
 	// directly (in-process, no exec boundary) and this TestMain's own
 	// process stays alive for the server's whole lifetime. See
 	// internal/doltserver/procattr_linux.go for why this is a narrower,
-	// separate flag from BEADS_TEST_MODE.
-	os.Setenv("BEADS_TEST_PDEATHSIG", "1")
+	// separate flag from ISSUEGRAPH_TEST_MODE.
+	os.Setenv("ISSUEGRAPH_TEST_PDEATHSIG", "1")
 
 	// AD-01 (be-c5p): the test/bench harness opens a process-local dolt
 	// sql-server (testcontainer or external port). The new database-name
 	// firewall in dolt.New refuses test-named DBs unless this opt-in is set.
-	os.Setenv("BEADS_TEST_SERVER", "1")
+	os.Setenv("ISSUEGRAPH_TEST_SERVER", "1")
 	if isHelperSubprocess() {
 		// A helper subprocess is handed its server's port by the parent test
 		// and never looks at this suite's own server. Starting one anyway
@@ -80,13 +80,13 @@ func testMainInner(m *testing.M) int {
 		//
 		// It DOES still need its own circuit-breaker directory. That state is
 		// one file keyed host:port:db, read-modify-written, and the parent's
-		// BEADS_TEST_CIRCUIT_DIR reaches every helper through the BEADS_
+		// ISSUEGRAPH_TEST_CIRCUIT_DIR reaches every helper through the ISSUEGRAPH_
 		// allowlist in integration.FilterEnv — so inheriting it would put all
 		// eight of TestMultiProcessSchemaInit's helpers on ONE file at once,
 		// against the same host:port:db. Each helper used to get a fresh
 		// directory under a suite root of its own; this keeps that isolation
 		// without the root, the sweep, or the marker.
-		circuitDir, circuitErr := os.MkdirTemp("", "beads-dolt-helper-circuit-*")
+		circuitDir, circuitErr := os.MkdirTemp("", "issuegraph-dolt-helper-circuit-*")
 		if circuitErr != nil {
 			fmt.Fprintf(os.Stderr, "FATAL: failed to isolate helper circuit state: %v\n", circuitErr)
 			return 1
@@ -139,11 +139,11 @@ func testMainInner(m *testing.M) int {
 
 		// Guard against the ambient-Dolt-port bug (be-33se): confirm
 		// applyConfigDefaults actually resolves to this suite's own
-		// container rather than a stray ambient BEADS_DOLT_SERVER_PORT.
+		// container rather than a stray ambient ISSUEGRAPH_DOLT_SERVER_PORT.
 		resolveCfg := &Config{ServerPort: 0}
 		applyConfigDefaults(resolveCfg)
 		if resolveCfg.ServerPort != testServerPort {
-			fmt.Fprintf(os.Stderr, "FATAL: applyConfigDefaults resolved port %d, want this suite's container port %d (ambient BEADS_DOLT_SERVER_PORT redirect?)\n", resolveCfg.ServerPort, testServerPort)
+			fmt.Fprintf(os.Stderr, "FATAL: applyConfigDefaults resolved port %d, want this suite's container port %d (ambient ISSUEGRAPH_DOLT_SERVER_PORT redirect?)\n", resolveCfg.ServerPort, testServerPort)
 			return 1
 		}
 
@@ -170,20 +170,20 @@ func testMainInner(m *testing.M) int {
 	// Best-effort reap of any dolt sql-server left running under this
 	// suite's own temp root (e.g. a SIGKILLed run of the multiprocess
 	// schema init tests, which call doltserver.Start directly) — see
-	// gastownhall/beads mybd-q6cz.
+	// borg0ai/dx-issuegraph mybd-q6cz.
 	swept := doltserver.SweepSuiteTestServers(suiteTempRoot)
 	code = doltserver.ApplyLeakPolicy("internal/storage/dolt", code, swept)
 
 	testServerPort = 0
-	os.Unsetenv("BEADS_DOLT_PORT")
-	os.Unsetenv("BEADS_TEST_MODE")
-	os.Unsetenv("BEADS_TEST_PDEATHSIG")
+	os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
+	os.Unsetenv("ISSUEGRAPH_TEST_MODE")
+	os.Unsetenv("ISSUEGRAPH_TEST_PDEATHSIG")
 	return code
 }
 
 // suiteRootPrefix is testMainInner's PinSuiteTempRoot pattern without its random
 // tail. It is what SweepDeadSuiteRoots globs for, so the two must not drift.
-const suiteRootPrefix = "beads-storage-dolt-tests-"
+const suiteRootPrefix = "issuegraph-storage-dolt-tests-"
 
 // initSharedSchema creates a store on the shared DB, sets config, and commits
 // so that branches inherit the full schema.

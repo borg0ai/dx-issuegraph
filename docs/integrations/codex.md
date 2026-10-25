@@ -32,7 +32,7 @@ Codex 0.129.0+ supports `/hooks`, compact lifecycle hooks, and hook-provided dev
 
 Refresh markers are stored in a user cache/temp directory keyed by Codex `session_id` and workspace path. They are not written to tracked files or to the IssueGraph database.
 
-The IssueGraph Codex plugin stores hooks at `plugins/beads/.codex-plugin/hooks/hooks.json` and declares them in `plugins/beads/.codex-plugin/plugin.json` as `"hooks": "./.codex-plugin/hooks/hooks.json"`. Without the plugin, `issuegraph setup codex` installs the same hook config in `.codex/hooks.json` and enables `[features].hooks = true`.
+The IssueGraph Codex plugin stores hooks at `issuegraph/.codex-plugin/hooks/hooks.json` and declares them in `issuegraph/.codex-plugin/plugin.json` as `"hooks": "./.codex-plugin/hooks/hooks.json"`. Without the plugin, `issuegraph setup codex` installs the same hook config in `.codex/hooks.json` and enables `[features].hooks = true`.
 
 ## Manual Fallback
 

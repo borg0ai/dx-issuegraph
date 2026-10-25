@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // Domain-aware auto-merge (federation ask #1, the flagship).
 //
-// Dolt merges disjoint writes cleanly, but beads stamps `issues.updated_at` on
+// Dolt merges disjoint writes cleanly, but issuegraph stamps `issues.updated_at` on
 // EVERY mutation, so any two edits to the same issue on two replicas between
 // syncs collide on that cell — even when the semantic fields are disjoint
 // (machine A adds a comment, machine B adds a label, and the issues row
@@ -24,7 +24,7 @@ import (
 // field-level edits.
 //
 // This file replaces that with a FIELD-level three-way merge, which encodes
-// beads' actual write semantics:
+// issuegraph' actual write semantics:
 //
 //   - a column only one side changed relative to the merge base keeps that
 //     side's value — no edit is dropped, whatever the timestamps say;
@@ -35,7 +35,7 @@ import (
 //     whichever side is newer either wins the cell outright (both moved) or is
 //     the only side that moved it.
 //
-// Two carve-outs keep per-cell independence from inventing states bd's own
+// Two carve-outs keep per-cell independence from inventing states issuegraph's own
 // write paths cannot produce (see issuesCloseGroup and issuesNonScalarColumns
 // below): the close columns move atomically, and a contested `notes` or
 // `metadata` declines rather than letting LWW delete an append or a JSON key.
@@ -141,7 +141,7 @@ func loadConflictRows(ctx context.Context, db DBConn, table string) ([]rawConfli
 // Keys are compared by their rendered bytes, which is stricter than the
 // collation the DELETE itself matches under: a case-insensitive collation could
 // still let two rows the guard reads as distinct be deleted together. Dolt's
-// default is a binary collation and the beads schema pins no other, so the two
+// default is a binary collation and the issuegraph schema pins no other, so the two
 // agree today.
 func duplicateConflictKey(keyCols []string, rows []rawConflictRow) (string, bool) {
 	if len(keyCols) == 0 {
@@ -266,9 +266,9 @@ func parseConflictTimestamp(v any) (time.Time, bool) {
 	return time.Time{}, false
 }
 
-// issuesCloseGroup are the columns beads always writes together: `bd close`
+// issuesCloseGroup are the columns issuegraph always writes together: `issuegraph close`
 // sets status/closed_at/close_reason/closed_by_session in one statement and
-// `bd reopen` clears them in one statement (issueops/close.go, reopen.go), and
+// `issuegraph reopen` clears them in one statement (issueops/close.go, reopen.go), and
 // types.Issue.Validate enforces the biconditional "closed iff closed_at". Cell
 // independence is wrong for them: our close and their status change would
 // otherwise merge into `status='in_progress' AND closed_at=<t>`, a row no
@@ -277,8 +277,8 @@ func parseConflictTimestamp(v any) (time.Time, bool) {
 var issuesCloseGroup = []string{"status", "closed_at", "close_reason", "closed_by_session"}
 
 // issuesNonScalarColumns are columns whose contents are structurally merged by
-// bd's own write paths, so per-cell LWW would silently destroy one side's
-// work: `notes` is append-only (`bd note` = --append-notes) and `metadata` is
+// issuegraph's own write paths, so per-cell LWW would silently destroy one side's
+// work: `notes` is append-only (`issuegraph note` = --append-notes) and `metadata` is
 // a JSON object mutated key-wise. Comments and events get append-only union
 // treatment for exactly this reason; these two live inside the issues row
 // where cell-level merge cannot express a union, so a genuinely contested one
@@ -381,7 +381,7 @@ func mergeIssuesConflictRow(row rawConflictRow) (issuesRowMerge, bool) {
 		theirVals[col] = theirVal
 	}
 
-	// A contested column bd merges structurally has no cell-level answer.
+	// A contested column issuegraph merges structurally has no cell-level answer.
 	for col, v := range verdicts {
 		if v == cellContested && issuesNonScalarColumns[col] {
 			return issuesRowMerge{}, false
@@ -470,7 +470,7 @@ func mergeIssuesConflictRow(row rawConflictRow) (issuesRowMerge, bool) {
 		// it differ from ours; our surviving cells make it differ from theirs),
 		// so it must carry a row_lock distinct from both parents' tokens — an
 		// ExpectedVersion CAS read against either pre-merge row must lose
-		// against the merged row (gastownhall/beads#4682's hazard: an
+		// against the merged row (borg0ai/dx-issuegraph#4682's hazard: an
 		// LWW-settled merge that keeps one side's old token lets a stale CAS
 		// win). When nothing is written the settled row IS our row, byte for
 		// byte, so our token still vouches for exactly the content a CAS

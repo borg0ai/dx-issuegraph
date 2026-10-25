@@ -3,7 +3,7 @@
 // # Stability
 //
 // EXPERIMENTAL. This package is not yet covered by the project's compatibility
-// promise and may change in a minor release. Pin an exact beads version.
+// promise and may change in a minor release. Pin an exact issuegraph version.
 package issueops
 
 import (
@@ -11,10 +11,10 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// Issue is the canonical Beads issue model.
+// Issue is the canonical IssueGraph issue model.
 type Issue = types.Issue
 
 // Status is an issue lifecycle status.
@@ -221,7 +221,7 @@ type CreateRequest struct {
 	// — a shared server's database knows only its own prefix. Resolving that
 	// is the front door's job, the same way DeleteRequest.IDs are exact
 	// because resolution belongs to the front door; the role enforces what it
-	// is handed. Without it the two `bd create` routes disagree about which
+	// is handed. Without it the two `issuegraph create` routes disagree about which
 	// ids a workspace may mint.
 	IDPrefix string
 }
@@ -378,7 +378,7 @@ type ReopenRequest struct {
 	// Provenance labels the version-control history entry this reopen records,
 	// naming the surface it came from. Empty selects the implementation's
 	// default label, and the implementations do not agree on what that is — the
-	// store-backed ones write "bd: reopen issue" and the unit-of-work one
+	// store-backed ones write "issuegraph: reopen issue" and the unit-of-work one
 	// "reopen issue", neither naming the issue. A caller that wants one entry
 	// no matter which backend served it spells one, exactly as
 	// UpdateRequest.Provenance describes.

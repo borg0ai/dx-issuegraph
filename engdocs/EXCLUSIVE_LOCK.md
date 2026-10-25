@@ -12,7 +12,7 @@ The exclusive lock protocol allows external tools to claim exclusive management 
 
 ### Lock File Format
 
-The lock file is located at `.beads/.exclusive-lock` and contains JSON:
+The lock file is located at `.issuegraph/.exclusive-lock` and contains JSON:
 
 ```json
 {
@@ -61,10 +61,10 @@ import (
     "encoding/json"
     "os"
     "path/filepath"
-    "github.com/steveyegge/beads/internal/types"
+    "github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-func acquireLock(beadsDir, holder, version string) error {
+func acquireLock(issuegraphDir, holder, version string) error {
     lock, err := types.NewExclusiveLock(holder, version)
     if err != nil {
         return err
@@ -75,7 +75,7 @@ func acquireLock(beadsDir, holder, version string) error {
         return err
     }
 
-    lockPath := filepath.Join(beadsDir, ".exclusive-lock")
+    lockPath := filepath.Join(issuegraphDir, ".exclusive-lock")
     return os.WriteFile(lockPath, data, 0644)
 }
 ```
@@ -83,8 +83,8 @@ func acquireLock(beadsDir, holder, version string) error {
 ### Releasing a Lock (Go)
 
 ```go
-func releaseLock(beadsDir string) error {
-    lockPath := filepath.Join(beadsDir, ".exclusive-lock")
+func releaseLock(issuegraphDir string) error {
+    lockPath := filepath.Join(issuegraphDir, ".exclusive-lock")
     return os.Remove(lockPath)
 }
 ```
@@ -93,8 +93,8 @@ func releaseLock(beadsDir string) error {
 
 ```bash
 #!/bin/bash
-BEADS_DIR=".beads"
-LOCK_FILE="$BEADS_DIR/.exclusive-lock"
+ISSUEGRAPH_DIR=".issuegraph"
+LOCK_FILE="$ISSUEGRAPH_DIR/.exclusive-lock"
 
 # Create lock
 cat > "$LOCK_FILE" <<EOF
@@ -121,16 +121,16 @@ Always use cleanup handlers to ensure locks are released:
 
 ```go
 func main() {
-    beadsDir := ".beads"
+    issuegraphDir := ".issuegraph"
     
     // Acquire lock
-    if err := acquireLock(beadsDir, "my-tool", "1.0.0"); err != nil {
+    if err := acquireLock(issuegraphDir, "my-tool", "1.0.0"); err != nil {
         log.Fatal(err)
     }
     
     // Ensure lock is released on exit
     defer func() {
-        if err := releaseLock(beadsDir); err != nil {
+        if err := releaseLock(issuegraphDir); err != nil {
             log.Printf("Warning: failed to release lock: %v", err)
         }
     }()
@@ -174,16 +174,16 @@ Removed stale lock (vc-executor), proceeding with sync
 Skipping database (lock check failed: malformed lock file: unexpected EOF)
 ```
 
-Check server logs (`.beads/dolt/sql-server.log`) to troubleshoot lock issues.
+Check server logs (`.issuegraph/dolt/sql-server.log`) to troubleshoot lock issues.
 
 **Note:** The server checks for locks at the start of each sync cycle. If a lock is created during a sync cycle, that cycle will complete, but subsequent cycles will skip the database.
 
 ## Testing Your Integration
 
 1. **Start the Dolt server**: `issuegraph dolt start`
-2. **Create a lock**: Use your tool to create `.beads/.exclusive-lock`
+2. **Create a lock**: Use your tool to create `.issuegraph/.exclusive-lock`
 3. **Verify server skips**: Check server logs for "Skipping database" message
-4. **Release lock**: Remove `.beads/.exclusive-lock`
+4. **Release lock**: Remove `.issuegraph/.exclusive-lock`
 5. **Verify server resumes**: Check server logs for normal sync cycle
 
 ## Security Considerations
@@ -213,7 +213,7 @@ func NewExclusiveLock(holder, version string) (*ExclusiveLock, error)
 func (e *ExclusiveLock) Validate() error
 
 // ShouldSkipDatabase checks if database should be skipped due to lock
-func ShouldSkipDatabase(beadsDir string) (skip bool, holder string, err error)
+func ShouldSkipDatabase(issuegraphDir string) (skip bool, holder string, err error)
 
 // IsProcessAlive checks if a process is running
 func IsProcessAlive(pid int, hostname string) bool
@@ -226,4 +226,4 @@ For integration help, see:
 - **README.md** - Server configuration
 - **examples/** - Sample integrations
 
-File issues at: https://github.com/gastownhall/beads/issues
+File issues at: https://github.com/borg0ai/dx-issuegraph/issues

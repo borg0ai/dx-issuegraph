@@ -3,7 +3,7 @@ package issueops
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Comment is one comment on an issue.
@@ -45,7 +45,7 @@ type AddCommentResult struct {
 	Comment *Comment
 }
 
-// Commenter describes adding a comment to an issue: the write side of `bd
+// Commenter describes adding a comment to an issue: the write side of `issuegraph
 // comment`, and — like Lifecycle, Reader, ReadyClaimer, BatchCloser and
 // DependencyEditor — a role with its own accessor. A new capability gets a new
 // role interface and its own accessor; never append a method here.

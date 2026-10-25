@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // ---------------------------------------------------------------------------
@@ -541,7 +541,7 @@ func TestBuildIssueDetailsCommentsOmitted(t *testing.T) {
 
 // TestBuildIssueDetailsShallowDependents is the regression guard for
 // be-4d36f2: the dependent rows must not carry the heavy free-form fields.
-// On hub beads with thousands of dependents that cost 5-13 GB.
+// On hub issuegraph with thousands of dependents that cost 5-13 GB.
 func TestBuildIssueDetailsShallowDependents(t *testing.T) {
 	ctx := context.Background()
 	fx := newDetailFixture()

@@ -6,7 +6,7 @@ Path: @/scripts
 
 The `scripts` directory contains build and release automation utilities for the issuegraph project. These scripts handle version management, installation with embedded build info, and release orchestration across multiple distribution channels.
 
-Key scripts include version bumping, installation helpers that inject git information at build time, and release coordination across GitHub, Homebrew, PyPI, and npm.
+Key scripts include version bumping, installation helpers that inject git information at build time, and release coordination across GitHub, Luban Homebrew, and PyPI.
 
 ## generate-cli-docs.sh
 
@@ -23,8 +23,8 @@ pages and splices the CLI Reference pages array in `docs/docs.json`.
 ./scripts/generate-cli-docs.sh
 
 # Regenerate/check against an existing binary
-./scripts/generate-cli-docs.sh ./bd
-./scripts/generate-cli-docs.sh --check ./bd
+./scripts/generate-cli-docs.sh ./issuegraph
+./scripts/generate-cli-docs.sh --check ./issuegraph
 ```
 
 ### Outputs
@@ -63,44 +63,15 @@ the real process boundary on Linux, macOS, and Git Bash on Windows.
 
 ### How it fits into the larger codebase
 
-- **Build Integration**: The `install.sh` script is referenced in documentation and release processes as the primary user-facing installation mechanism. It integrates directly with the Go build system to ensure full version information is embedded.
+- **Version Pipeline**: Works alongside the version infrastructure in `@/apps/cli/version.go` by extracting and passing git information at build time via ldflags.
 
-- **Version Pipeline**: Works alongside the version infrastructure in `@/modules/cli/version.go` by extracting and passing git information at build time via ldflags.
+- **Release Automation**: The `update-versions.sh` script and the `shipify` skill orchestrate the release process, ensuring version consistency across CLI, plugin, and MCP server.
 
-- **Release Automation**: The `release.sh` and `bump-version.sh` scripts orchestrate the release process documented in `@/RELEASING.md`, ensuring version consistency across all components (CLI, plugin, MCP server, npm package).
+- **CI/CD Integration**: The release workflow uses the same ldflag patterns established by these scripts, ensuring consistency across all installation methods.
 
-- **CI/CD Integration**: Goreleaser (configured in `@/.goreleaser.yml`) uses the same ldflag patterns established by these scripts, ensuring consistency across all installation methods.
-
-- **Multi-Channel Distribution**: These scripts ensure that whether a user installs via Homebrew, npm, GitHub releases, or direct `go install`, they get consistent version reporting with full git information.
+- **Multi-Channel Distribution**: These scripts ensure consistent version reporting through GitHub releases and the three package channels.
 
 ### Core Implementation
-
-**install.sh** (GitHub issue #503 fix):
-
-The script simplifies local installation from source while ensuring full version information is available in the resulting binary:
-
-1. **Usage** (lines 1-6):
-   - Can be invoked from source checkout with optional custom install directory
-   - `./scripts/install.sh` installs to `$(go env GOPATH)/bin`
-   - `./scripts/install.sh /usr/local/bin` installs to custom location
-
-2. **Git Information Extraction** (lines 12-14):
-   - Extracts full commit hash via `git rev-parse HEAD`
-   - Extracts branch name via `git rev-parse --abbrev-ref HEAD`
-   - Gracefully handles missing git info (returns empty strings in non-git environments)
-
-3. **Build Information Display** (lines 16-18):
-   - Shows user where installation will occur
-   - Displays the 12-character short commit hash
-   - Displays the branch name for context
-
-4. **Installation with Ldflags** (line 20):
-   - Calls `go install` with explicit `-ldflags` to set `main.Commit` and `main.Branch`
-   - These ldflags inject values that are then picked up by `resolveCommitHash()` and `resolveBranch()` in `@/modules/cli/version.go`
-
-5. **Post-Install Verification** (lines 22-24):
-   - Immediately runs `issuegraph version` to show the user that installation succeeded
-   - User sees commit and branch info in the output, confirming full version info is present
 
 **Makefile Integration** (`@/Makefile`, lines 37-41):
 
@@ -109,45 +80,25 @@ The Makefile's `install` target uses identical logic:
 - Passes to `go install` via ldflags
 - Ensures that standard `make install` produces binaries with full version info, not just `make build`
 
-**Goreleaser Configuration** (`@/.goreleaser.yml`):
+**Version Bumping** (`update-versions.sh`):
 
-All 5 platform builds (linux-amd64, linux-arm64, darwin-amd64, darwin-arm64, windows-amd64) use goreleaser's built-in git variables:
-- `-X main.Commit={{.Commit}}` uses goreleaser's detected commit
-- `-X main.Branch={{.Branch}}` uses goreleaser's detected branch
-- Ensures released binaries have full version info without requiring manual extraction
-
-**Version Bumping** (`bump-version.sh` and `release.sh`):
-
-- Coordinates version updates across multiple files (CLI version, plugin metadata, MCP server, npm package)
+- Coordinates version updates across CLI, plugin metadata, and MCP server files
 - Ensures all distribution channels report consistent version numbers
-- Integrates with release process documented in `@/RELEASING.md`
 
 ### Things to Know
 
 **Why Explicit Ldflags Are Necessary**:
 - `go install` does not automatically embed VCS information like `go build` does (even though Go supports it)
 - Without explicit ldflags, binaries lack commit and branch information regardless of installation method
-- The Makefile and goreleaser configurations compensate for this limitation
-
-**Installation Path Resolution**:
-- The script uses `$(go env GOPATH)/bin` as the default installation target
-- This respects the user's Go configuration and matches standard Go tooling behavior
-- Allows overriding for system-wide installations (e.g., `/usr/local/bin`)
-
-**Git Information Fallbacks**:
-- The script silently handles missing git info (returns empty strings)
-- This allows installation in non-git environments or git-less distributions
-- The version command in `@/modules/cli/version.go` has its own fallback chain
+- The Makefile and the release builder compensate for this limitation
 
 **Testing the Version Pipeline**:
-- After running `./scripts/install.sh`, users should immediately see full version info via `issuegraph version`
-- The text output shows format like: `bd version 0.29.0 (dev: main@7e70940)`
+- After installing, users should immediately see full version info via `issuegraph version`
+- The text output shows format like: `issuegraph version 0.29.0 (dev: main@7e70940)`
 - JSON output includes both `commit` and `branch` fields
 
 **Release Coordination**:
-- The `install.sh` script is independent of release automation
-- Users can run it locally to build from any source branch
-- Release scripts (`release.sh`, `update-homebrew.sh`) handle orchestration across channels and are documented separately in `@/RELEASING.md`
+- Release orchestration across channels is done by the `shipify` skill
 
 **Platform Compatibility**:
 - All scripts use POSIX shell constructs (bash on all platforms)

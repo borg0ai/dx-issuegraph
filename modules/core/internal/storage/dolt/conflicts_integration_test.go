@@ -5,13 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
-// Dolt-backed coverage for the `bd conflicts` surface (wy-36ilm F9). Every
+// Dolt-backed coverage for the `issuegraph conflicts` surface (wy-36ilm F9). Every
 // test the feature shipped with was a pure unit test over synthetic column
 // maps — which is exactly why its review BLOCKER (the store decorator never
-// satisfied ConflictInspector, so `bd conflicts show` printed "No merge
+// satisfied ConflictInspector, so `issuegraph conflicts show` printed "No merge
 // conflicts" over a wedged merge) was invisible to the suite. These drive a
 // REAL two-branch conflict through GetConflictRows / ResolveConflictRows /
 // GetMergeBlockers / CommitMergeResolution, plus the decorator chain the CLI
@@ -22,7 +22,7 @@ import (
 const conflictTS = "2026-07-10 11:00:00"
 
 // wedgeIssueConflict leaves a real, UNRESOLVED issues conflict in the working
-// set — the state a halted CLI-level pull hands `bd conflicts`. It merges
+// set — the state a halted CLI-level pull hands `issuegraph conflicts`. It merges
 // without the auto-resolver on purpose: the operator surface exists for what
 // the auto path declined.
 func wedgeIssueConflict(t *testing.T, issueID string) (*DoltStore, context.Context) {
@@ -70,14 +70,14 @@ func issueTitle(t *testing.T, ctx context.Context, store *DoltStore, issueID str
 	return title
 }
 
-// TestConflictsListAndShowSeeALiveMergeConflict is the `bd conflicts
+// TestConflictsListAndShowSeeALiveMergeConflict is the `issuegraph conflicts
 // list`/`show` path end to end: the tables dolt reports, and the per-field
 // base/ours/theirs presentation of the conflicted row.
 func TestConflictsListAndShowSeeALiveMergeConflict(t *testing.T) {
 	const issueID = "conflict-list-1"
 	store, ctx := wedgeIssueConflict(t, issueID)
 
-	// `bd conflicts list` counts through GetConflicts.
+	// `issuegraph conflicts list` counts through GetConflicts.
 	tables, err := store.GetConflicts(ctx)
 	if err != nil {
 		t.Fatalf("GetConflicts: %v", err)
@@ -95,7 +95,7 @@ func TestConflictsListAndShowSeeALiveMergeConflict(t *testing.T) {
 		t.Fatalf("GetConflicts did not report the issues table: %+v", tables)
 	}
 
-	// `bd conflicts show` reads the rows per field.
+	// `issuegraph conflicts show` reads the rows per field.
 	rows, err := store.GetConflictRows(ctx, "issues")
 	if err != nil {
 		t.Fatalf("GetConflictRows: %v", err)
@@ -136,7 +136,7 @@ func TestConflictsListAndShowSeeALiveMergeConflict(t *testing.T) {
 	}
 }
 
-// TestConflictsResolveOursCommitsTheMerge drives `bd conflicts resolve <id>
+// TestConflictsResolveOursCommitsTheMerge drives `issuegraph conflicts resolve <id>
 // --ours` against a real conflict: our value survives, the conflict clears,
 // and the merge concludes through CommitMergeResolution.
 func TestConflictsResolveOursCommitsTheMerge(t *testing.T) {
@@ -264,13 +264,13 @@ func TestConflictInspectorSurvivesTheStoreDecoratorChain(t *testing.T) {
 	const issueID = "conflict-decorator-1"
 	store, ctx := wedgeIssueConflict(t, issueID)
 
-	// Two decorators deep, exactly as modules/cli's chain can be.
+	// Two decorators deep, exactly as apps/cli's chain can be.
 	var decorated storage.DoltStorage = storage.NewHookFiringStore(store, nil)
 	decorated = storage.NewHookFiringStore(decorated, nil)
 
 	inspector, ok := storage.UnwrapStore(decorated).(storage.ConflictInspector)
 	if !ok {
-		t.Fatal("UnwrapStore(decorated) does not satisfy ConflictInspector: bd conflicts would report 'No merge conflicts' over a wedged merge (the wy-jpd3.5 review blocker)")
+		t.Fatal("UnwrapStore(decorated) does not satisfy ConflictInspector: issuegraph conflicts would report 'No merge conflicts' over a wedged merge (the wy-jpd3.5 review blocker)")
 	}
 	rows, err := inspector.GetConflictRows(ctx, "issues")
 	if err != nil {
@@ -282,7 +282,7 @@ func TestConflictInspectorSurvivesTheStoreDecoratorChain(t *testing.T) {
 
 	blockers, ok := storage.UnwrapStore(decorated).(storage.MergeBlockerInspector)
 	if !ok {
-		t.Fatal("UnwrapStore(decorated) does not satisfy MergeBlockerInspector: schema conflicts and constraint violations would be invisible to bd conflicts")
+		t.Fatal("UnwrapStore(decorated) does not satisfy MergeBlockerInspector: schema conflicts and constraint violations would be invisible to issuegraph conflicts")
 	}
 	b, err := blockers.GetMergeBlockers(ctx)
 	if err != nil {
@@ -311,13 +311,13 @@ func TestConflictInspectorSurvivesTheStoreDecoratorChain(t *testing.T) {
 // > 0`, or a Blocked() inversion would have landed green. These reproduce
 // both blocker classes for real and assert the storage half of the gate:
 // blockers are visible and Blocked() is true. The command-level commit hold
-// and remedies are covered in modules/cli/conflicts_conclude*_test.go.
+// and remedies are covered in apps/cli/conflicts_conclude*_test.go.
 
 // wedgeConstraintViolation leaves a real FK constraint violation in the
 // working set: our branch deleted an issue, the peer added a child row
 // referencing it, and the merge ran WITHOUT the settle pass that repairs the
 // cascade (mergesettle.go) — exactly the state a halted CLI-level pull hands
-// `bd conflicts`.
+// `issuegraph conflicts`.
 func wedgeConstraintViolation(t *testing.T, tc fkCascadeCase) (*DoltStore, context.Context) {
 	t.Helper()
 	store, cleanup := setupTestStore(t)
@@ -395,7 +395,7 @@ func TestGetMergeBlockersSeesAConstraintViolation(t *testing.T) {
 // TestGetMergeBlockersSeesASchemaConflict is the other class: two branches
 // that added the SAME column with different types. Dolt keeps schema
 // conflicts out of dolt_conflicts entirely, so this is the state
-// `bd conflicts list` used to render as "No merge conflicts."
+// `issuegraph conflicts list` used to render as "No merge conflicts."
 func TestGetMergeBlockersSeesASchemaConflict(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()

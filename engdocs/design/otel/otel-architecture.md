@@ -29,9 +29,9 @@ IssueGraph uses OpenTelemetry (OTel) for structured observability of all databas
 | Feature | Status | Notes |
 |---------|--------|-------|
 | SQL query tracing | ✅ Implemented | All Dolt queries wrapped with spans |
-| Dolt lock wait timing | ✅ Defined | `bd.db.lock_wait_ms` histogram registered; `.Record()` not yet called |
-| Dolt retry counting | ✅ Implemented | `bd.db.retry_count` counter |
-| Dolt circuit breaker | ✅ Implemented | `bd.db.circuit_trips`, `bd.db.circuit_rejected` counters |
+| Dolt lock wait timing | ✅ Defined | `issuegraph.db.lock_wait_ms` histogram registered; `.Record()` not yet called |
+| Dolt retry counting | ✅ Implemented | `issuegraph.db.retry_count` counter |
+| Dolt circuit breaker | ✅ Implemented | `issuegraph.db.circuit_trips`, `issuegraph.db.circuit_rejected` counters |
 | Auto-commit tracking | ✅ Implemented | Per-command auto-commit events |
 | Working set flush tracking | ✅ Implemented | Flush on shutdown/signal |
 
@@ -52,10 +52,10 @@ Current coverage: ~40% of the codebase. Below is a prioritized plan based on ope
 External API calls are currently a black box. No visibility into latency, rate-limiting, or sync volume.
 
 New metrics:
-- `bd_tracker_api_calls_total` (Counter) — by `tracker`, `method`, `status`
-- `bd_tracker_api_latency_ms` (Histogram) — by `tracker`, `method`
-- `bd_tracker_errors_total` (Counter) — by `tracker`, `error_type`
-- `bd_tracker_issues_synced_total` (Counter) — by `tracker`, `direction`
+- `issuegraph_tracker_api_calls_total` (Counter) — by `tracker`, `method`, `status`
+- `issuegraph_tracker_api_latency_ms` (Histogram) — by `tracker`, `method`
+- `issuegraph_tracker_errors_total` (Counter) — by `tracker`, `error_type`
+- `issuegraph_tracker_issues_synced_total` (Counter) — by `tracker`, `direction`
 
 New spans: `tracker.<name>.pull_issues`, `tracker.<name>.push_issue`, `tracker.<name>.resolve_state`
 
@@ -64,8 +64,8 @@ New spans: `tracker.<name>.pull_issues`, `tracker.<name>.push_issue`, `tracker.<
 Git push/pull can dominate wall-clock time but is currently invisible.
 
 New metrics:
-- `bd_git_operation_duration_ms` (Histogram) — by `operation`, `status`
-- `bd_git_errors_total` (Counter) — by `operation`, `error_type`
+- `issuegraph_git_operation_duration_ms` (Histogram) — by `operation`, `status`
+- `issuegraph_git_errors_total` (Counter) — by `operation`, `error_type`
 
 New spans: `git.clone`, `git.pull`, `git.push`, `git.commit`, `git.merge`
 
@@ -74,10 +74,10 @@ New spans: `git.clone`, `git.pull`, `git.push`, `git.commit`, `git.merge`
 Server crashes and restarts are silent. No alerting possible.
 
 New metrics:
-- `bd_doltserver_status` (Gauge, 1=running/0=stopped)
-- `bd_doltserver_startup_ms` (Histogram)
-- `bd_doltserver_restarts_total` (Counter)
-- `bd_doltserver_errors_total` (Counter) — by `error_type`
+- `issuegraph_doltserver_status` (Gauge, 1=running/0=stopped)
+- `issuegraph_doltserver_startup_ms` (Histogram)
+- `issuegraph_doltserver_restarts_total` (Counter)
+- `issuegraph_doltserver_errors_total` (Counter) — by `error_type`
 
 New spans: `doltserver.start`, `doltserver.stop`
 
@@ -90,14 +90,14 @@ New spans: `doltserver.start`, `doltserver.stop`
 Distinguishes whether slowness is client-side (parsing/compilation) or DB-side.
 
 New spans: `query.parse`, `query.compile`
-New metrics: `bd_query_duration_ms` (Histogram), `bd_query_parse_errors_total` (Counter)
+New metrics: `issuegraph_query_duration_ms` (Histogram), `issuegraph_query_parse_errors_total` (Counter)
 
 #### Validation engine (`internal/validation/`)
 
 Data integrity errors are currently silent until they surface as user-visible failures.
 
 New spans: `validation.check_dependencies`, `validation.check_schema`
-New metrics: `bd_validation_errors_total` (Counter) — by `error_type`
+New metrics: `issuegraph_validation_errors_total` (Counter) — by `error_type`
 
 #### Dolt version control (`internal/storage/dolt/versioned.go`)
 
@@ -115,10 +115,10 @@ Periodic SQL queries against Dolt system tables to surface metrics unavailable v
 
 | Metric | Source | Frequency |
 |--------|--------|-----------|
-| `bd_dolt_commits_per_hour` | `dolt_log` GROUP BY hour | 5 min |
-| `bd_dolt_working_set_size` | `dolt_status` COUNT(*) | 1 min |
-| `bd_dolt_branch_count` | `dolt_branches` COUNT(*) | 5 min |
-| `bd_dolt_conflict_count` | `dolt_conflicts` COUNT(*) | 5 min |
+| `issuegraph_dolt_commits_per_hour` | `dolt_log` GROUP BY hour | 5 min |
+| `issuegraph_dolt_working_set_size` | `dolt_status` COUNT(*) | 1 min |
+| `issuegraph_dolt_branch_count` | `dolt_branches` COUNT(*) | 5 min |
+| `issuegraph_dolt_conflict_count` | `dolt_conflicts` COUNT(*) | 5 min |
 
 ---
 
@@ -128,7 +128,7 @@ Periodic SQL queries against Dolt system tables to surface metrics unavailable v
 - **Molecules & recipes**: `molecule.create`, `recipe.execute` spans
 - **Hook duration metrics**: Currently only spans (`hook.exec`), no histogram for aggregation
 - **OTel test suite**: Integration tests that verify telemetry output (currently none)
-- **Lock wait recording**: `bd.db.lock_wait_ms` histogram is registered but `.Record()` is not yet called
+- **Lock wait recording**: `issuegraph.db.lock_wait_ms` histogram is registered but `.Record()` is not yet called
 
 ---
 
@@ -139,7 +139,7 @@ Periodic SQL queries against Dolt system tables to surface metrics unavailable v
 The `telemetry.Init()` function sets up OTel providers on process startup and returns only an `error`:
 
 ```go
-if err := telemetry.Init(ctx, "bd", version); err != nil {
+if err := telemetry.Init(ctx, "issuegraph", version); err != nil {
     // Log and continue — telemetry is best-effort
 }
 defer telemetry.Shutdown(ctx)
@@ -149,9 +149,9 @@ defer telemetry.Shutdown(ctx)
 - **Metrics**: Any OTLP-compatible metrics backend via `otlpmetrichttp` exporter
 - **Traces**: Stdout only (local debug). No remote trace backend in default stack.
 
-**Default endpoints** (when `BD_OTEL_METRICS_URL` is not set):
+**Default endpoints** (when `ISSUEGRAPH_OTEL_METRICS_URL` is not set):
 - Metrics: `http://localhost:8428/opentelemetry/api/v1/push`
-- Traces: stdout (via `BD_OTEL_STDOUT=true`)
+- Traces: stdout (via `ISSUEGRAPH_OTEL_STDOUT=true`)
 
 > **Note**: These defaults target VictoriaMetrics for local development convenience. IssueGraph uses standard OTLP — you can override endpoints to use any OTLP v1.x+ compatible backend (Prometheus, Grafana Mimir, Datadog, New Relic, Grafana Cloud, Loki, OpenTelemetry Collector, etc.).
 
@@ -161,15 +161,15 @@ defer telemetry.Shutdown(ctx)
 - Compatible with any backend that supports OTLP v1.x+
 
 **Resource attributes** (set at init time):
-- `service.name`: "bd"
-- `service.version`: bd binary version
+- `service.name`: "issuegraph"
+- `service.version`: issuegraph binary version
 - `host`: system hostname
 - `os`: system OS info
 
-**Custom resource attributes** (via `OTEL_RESOURCE_ATTRIBUTES` env var or `BEADS_ACTOR`):
-- `bd.actor`: Actor identity (from git config or env) — set after actor resolution
-- `bd.command`: Current command name
-- `bd.args`: Full arguments passed to command
+**Custom resource attributes** (via `OTEL_RESOURCE_ATTRIBUTES` env var or `ISSUEGRAPH_ACTOR`):
+- `issuegraph.actor`: Actor identity (from git config or env) — set after actor resolution
+- `issuegraph.command`: Current command name
+- `issuegraph.args`: Full arguments passed to command
 
 ---
 
@@ -192,10 +192,10 @@ func WrapStorage(s storage.Storage) storage.Storage {
 ```
 
 **Metric names in code** (OTel SDK notation with dots):
-- `bd.storage.operations` → exported as `bd_storage_operations_total` by Prometheus/VM
-- `bd.storage.operation.duration` → `bd_storage_operation_duration_ms`
-- `bd.storage.errors` → `bd_storage_errors_total`
-- `bd.issue.count` → `bd_issue_count`
+- `issuegraph.storage.operations` → exported as `issuegraph_storage_operations_total` by Prometheus/VM
+- `issuegraph.storage.operation.duration` → `issuegraph_storage_operation_duration_ms`
+- `issuegraph.storage.errors` → `issuegraph_storage_errors_total`
+- `issuegraph.issue.count` → `issuegraph_issue_count`
 
 **Instrumented Storage Operations:**
 - Issue CRUD: `CreateIssue`, `GetIssue`, `UpdateIssue`, `CloseIssue`, `DeleteIssue`
@@ -210,10 +210,10 @@ func WrapStorage(s storage.Storage) storage.Storage {
 ### 3. Dolt Backend Telemetry (`internal/storage/dolt/store.go`)
 
 Dolt storage layer emits metrics for:
-- `bd.db.retry_count`: SQL retries in server mode (recorded in `withRetry` when `attempts > 1`)
-- `bd.db.lock_wait_ms`: Histogram registered but `.Record()` not yet called (stub)
-- `bd.db.circuit_trips`: Circuit breaker trips to open state (recorded in `withRetry`)
-- `bd.db.circuit_rejected`: Requests rejected by open circuit breaker (fail-fast path)
+- `issuegraph.db.retry_count`: SQL retries in server mode (recorded in `withRetry` when `attempts > 1`)
+- `issuegraph.db.lock_wait_ms`: Histogram registered but `.Record()` not yet called (stub)
+- `issuegraph.db.circuit_trips`: Circuit breaker trips to open state (recorded in `withRetry`)
+- `issuegraph.db.circuit_rejected`: Requests rejected by open circuit breaker (fail-fast path)
 - SQL query spans via `queryContext()`, `execContext()`, `queryRowContext()` wrappers using `doltTracer`
 - Dolt version control spans: `dolt.commit`, `dolt.push`, `dolt.pull`, `dolt.merge`, `dolt.branch`, `dolt.checkout`
 
@@ -265,17 +265,17 @@ OTel SDK uses dot-notation internally. Prometheus-compatible backends (VictoriaM
 
 | Code name | Exported name |
 |-----------|---------------|
-| `bd.storage.operations` | `bd_storage_operations_total` |
-| `bd.storage.operation.duration` | `bd_storage_operation_duration_ms` |
-| `bd.storage.errors` | `bd_storage_errors_total` |
-| `bd.issue.count` | `bd_issue_count` |
-| `bd.db.retry_count` | `bd_db_retry_count_total` |
-| `bd.db.lock_wait_ms` | `bd_db_lock_wait_ms` |
-| `bd.db.circuit_trips` | `bd_db_circuit_trips_total` |
-| `bd.db.circuit_rejected` | `bd_db_circuit_rejected_total` |
-| `bd.ai.input_tokens` | `bd_ai_input_tokens_total` |
-| `bd.ai.output_tokens` | `bd_ai_output_tokens_total` |
-| `bd.ai.request.duration` | `bd_ai_request_duration_ms` |
+| `issuegraph.storage.operations` | `issuegraph_storage_operations_total` |
+| `issuegraph.storage.operation.duration` | `issuegraph_storage_operation_duration_ms` |
+| `issuegraph.storage.errors` | `issuegraph_storage_errors_total` |
+| `issuegraph.issue.count` | `issuegraph_issue_count` |
+| `issuegraph.db.retry_count` | `issuegraph_db_retry_count_total` |
+| `issuegraph.db.lock_wait_ms` | `issuegraph_db_lock_wait_ms` |
+| `issuegraph.db.circuit_trips` | `issuegraph_db_circuit_trips_total` |
+| `issuegraph.db.circuit_rejected` | `issuegraph_db_circuit_rejected_total` |
+| `issuegraph.ai.input_tokens` | `issuegraph_ai_input_tokens_total` |
+| `issuegraph.ai.output_tokens` | `issuegraph_ai_output_tokens_total` |
+| `issuegraph.ai.request.duration` | `issuegraph_ai_request_duration_ms` |
 
 ---
 
@@ -285,28 +285,28 @@ OTel SDK uses dot-notation internally. Prometheus-compatible backends (VictoriaM
 
 | Variable | Set by | Description |
 |-----------|----------|-------------|
-| `BD_OTEL_METRICS_URL` | Operator | OTLP metrics endpoint (default: localhost:8428) |
-| `BD_OTEL_LOGS_URL` | Operator | OTLP logs endpoint (reserved for future log export) |
-| `BD_OTEL_STDOUT` | Operator | **Opt-in**: Write spans and metrics to stderr (dev/debug). Also activates telemetry. |
+| `ISSUEGRAPH_OTEL_METRICS_URL` | Operator | OTLP metrics endpoint (default: localhost:8428) |
+| `ISSUEGRAPH_OTEL_LOGS_URL` | Operator | OTLP logs endpoint (reserved for future log export) |
+| `ISSUEGRAPH_OTEL_STDOUT` | Operator | **Opt-in**: Write spans and metrics to stderr (dev/debug). Also activates telemetry. |
 
 ### Context Variables
 
 | Variable | Source | Used By |
 |-----------|--------|----------|
-| `BEADS_ACTOR` | Git config / env var | Actor identity for audit trails (BD_ACTOR still works as deprecated alias) |
-| `BD_NAME` | Environment | Binary name override (for multi-instance setups) |
+| `ISSUEGRAPH_ACTOR` | Git config / env var | Actor identity for audit trails (ISSUEGRAPH_ACTOR still works as deprecated alias) |
+| `ISSUEGRAPH_NAME` | Environment | Binary name override (for multi-instance setups) |
 | `OTEL_RESOURCE_ATTRIBUTES` | Operator | Custom resource attributes for all spans |
 
 ### Dolt-Specific Variables (See DOLT.md)
 
 | Variable | Purpose |
 |-----------|----------|
-| `BEADS_DOLT_PASSWORD` | Server mode password |
-| `BEADS_DOLT_SERVER_MODE` | Enable server mode |
-| `BEADS_DOLT_SERVER_HOST` | Server host (default: 127.0.0.1) |
-| `BEADS_DOLT_SERVER_PORT` | Server port (default: 3307, 3308 in shared mode, or derived) |
-| `BEADS_DOLT_SERVER_TLS` | Enable TLS for server connections |
-| `BEADS_DOLT_SERVER_USER` | MySQL connection user |
+| `ISSUEGRAPH_DOLT_PASSWORD` | Server mode password |
+| `ISSUEGRAPH_DOLT_SERVER_MODE` | Enable server mode |
+| `ISSUEGRAPH_DOLT_SERVER_HOST` | Server host (default: 127.0.0.1) |
+| `ISSUEGRAPH_DOLT_SERVER_PORT` | Server port (default: 3307, 3308 in shared mode, or derived) |
+| `ISSUEGRAPH_DOLT_SERVER_TLS` | Enable TLS for server connections |
+| `ISSUEGRAPH_DOLT_SERVER_USER` | MySQL connection user |
 | `DOLT_REMOTE_USER` | Push/pull auth user |
 | `DOLT_REMOTE_PASSWORD` | Push/pull auth password |
 
@@ -320,18 +320,18 @@ OTel SDK uses dot-notation internally. Prometheus-compatible backends (VictoriaM
 
 | Event | Trigger | Key Attributes |
 |-------|---------|----------------|
-| `bd.command.<name>` | Each `issuegraph` subcommand execution | `bd.command`, `bd.version`, `bd.args`, `bd.actor` |
+| `issuegraph.command.<name>` | Each `issuegraph` subcommand execution | `issuegraph.command`, `issuegraph.version`, `issuegraph.args`, `issuegraph.actor` |
 
 ### Storage Events
 
 | Event | Trigger | Key Attributes |
 |-------|---------|----------------|
-| `storage.CreateIssue` | Issue creation | `bd.issue.id`, `bd.issue.type`, `bd.actor` |
-| `storage.UpdateIssue` | Issue update | `bd.issue.id`, `bd.update.count`, `bd.actor` |
-| `storage.GetIssue` | Issue lookup | `bd.issue.id` |
-| `storage.SearchIssues` | Issue search | `bd.query`, `bd.result.count` |
-| `storage.GetReadyWork` | Ready work query | `bd.result.count` |
-| `storage.GetBlockedIssues` | Blocked issues query | `bd.result.count` |
+| `storage.CreateIssue` | Issue creation | `issuegraph.issue.id`, `issuegraph.issue.type`, `issuegraph.actor` |
+| `storage.UpdateIssue` | Issue update | `issuegraph.issue.id`, `issuegraph.update.count`, `issuegraph.actor` |
+| `storage.GetIssue` | Issue lookup | `issuegraph.issue.id` |
+| `storage.SearchIssues` | Issue search | `issuegraph.query`, `issuegraph.result.count` |
+| `storage.GetReadyWork` | Ready work query | `issuegraph.result.count` |
+| `storage.GetBlockedIssues` | Blocked issues query | `issuegraph.result.count` |
 | `storage.RunInTransaction` | Transaction execution | `db.commit_msg` |
 
 ### Dolt Events
@@ -352,7 +352,7 @@ OTel SDK uses dot-notation internally. Prometheus-compatible backends (VictoriaM
 
 | Event | Trigger | Key Attributes |
 |-------|---------|----------------|
-| `hook.exec` | Hook execution (span only — no metric counters) | `hook.event`, `hook.path`, `bd.issue_id` |
+| `hook.exec` | Hook execution (span only — no metric counters) | `hook.event`, `hook.path`, `issuegraph.issue_id` |
 
 ---
 
@@ -367,13 +367,13 @@ OTel SDK uses dot-notation internally. Prometheus-compatible backends (VictoriaM
 | Dolt SQL queries | Full (all queries via queryContext/execContext wrappers) |
 | Dolt retry counting | Full (retry counter incremented in withRetry) |
 | Dolt version control | Full (commit, push, pull, merge, branch, checkout) |
-| AI compaction | Full (bd.ai.* metrics in compact/haiku.go) |
+| AI compaction | Full (issuegraph.ai.* metrics in compact/haiku.go) |
 
 ### Not Currently Monitored ❌
 
 | Area | Notes | Operational Impact |
 |-------|-------|-------------------|
-| **Dolt lock wait time** | `bd.db.lock_wait_ms` registered but `.Record()` not called | Lock contention invisible |
+| **Dolt lock wait time** | `issuegraph.db.lock_wait_ms` registered but `.Record()` not called | Lock contention invisible |
 | **Dolt server lifecycle** | `internal/doltserver/` has no OTel imports | Server crashes are silent |
 | **Hook execution time** | `hook.exec` span exists but no duration histogram | Cannot detect hook regressions |
 | **versioned.go operations** | `versioned.go` has no OTel imports | History/AsOf/Diff invisible |
@@ -393,23 +393,23 @@ OTel SDK uses dot-notation internally. Prometheus-compatible backends (VictoriaM
 
 **Total counts by operation:**
 ```promql
-sum(rate(bd_storage_operations_total[5m])) by (db.operation)
-sum(rate(bd_db_retry_count_total[5m]))
+sum(rate(issuegraph_storage_operations_total[5m])) by (db.operation)
+sum(rate(issuegraph_db_retry_count_total[5m]))
 ```
 
 **Latency distributions:**
 ```promql
-histogram_quantile(0.50, bd_storage_operation_duration_ms) by (db.operation)
-histogram_quantile(0.95, bd_storage_operation_duration_ms) by (db.operation)
-histogram_quantile(0.99, bd_storage_operation_duration_ms) by (db.operation)
+histogram_quantile(0.50, issuegraph_storage_operation_duration_ms) by (db.operation)
+histogram_quantile(0.95, issuegraph_storage_operation_duration_ms) by (db.operation)
+histogram_quantile(0.99, issuegraph_storage_operation_duration_ms) by (db.operation)
 ```
 
 **Issue counts by status:**
 ```promql
-bd_issue_count{status="open"}
-bd_issue_count{status="in_progress"}
-bd_issue_count{status="closed"}
-bd_issue_count{status="deferred"}
+issuegraph_issue_count{status="open"}
+issuegraph_issue_count{status="in_progress"}
+issuegraph_issue_count{status="closed"}
+issuegraph_issue_count{status="deferred"}
 ```
 
 ---
@@ -425,7 +425,7 @@ Dolt exposes internal metrics only via:
 - System tables (`dolt_log`, `dolt_status`, `dolt_diff`, `dolt_branches`, `dolt_conflicts`)
 
 **IssueGraph implementation**:
-IssueGraph currently queries Dolt metrics via direct SQL (see `modules/cli/doctor/perf_dolt.go`) rather than via OTLP. This is intentional — Dolt lacks native OTel support.
+IssueGraph currently queries Dolt metrics via direct SQL (see `apps/cli/doctor/perf_dolt.go`) rather than via OTLP. This is intentional — Dolt lacks native OTel support.
 
 ### Dolt System Tables for Telemetry
 
@@ -488,8 +488,8 @@ FROM dolt_conflicts;
 
 | Backend | Notes |
 |---------|-------|
-| **VictoriaMetrics** | Default for metrics (localhost:8428) — open source. Override with `BD_OTEL_METRICS_URL` |
-| **VictoriaLogs** | Reserved for future log export. Override with `BD_OTEL_LOGS_URL` |
+| **VictoriaMetrics** | Default for metrics (localhost:8428) — open source. Override with `ISSUEGRAPH_OTEL_METRICS_URL` |
+| **VictoriaLogs** | Reserved for future log export. Override with `ISSUEGRAPH_OTEL_LOGS_URL` |
 | **Prometheus** | Supports OTLP via remote_write receiver — open source |
 | **Grafana Mimir** | Supports OTLP via write endpoint — open source |
 | **Loki** | Requires OTLP bridge (Loki uses different format) — open source |
@@ -509,20 +509,20 @@ Audited against **`main` @ `371df32b`**. All line numbers below refer to that co
 
 Every factual claim in this document is backed by a specific source location. This table exists to prevent documentation drift and to make it easy to re-verify after code changes.
 
-### Initialization (`internal/telemetry/telemetry.go`, `modules/cli/main.go`)
+### Initialization (`internal/telemetry/telemetry.go`, `apps/cli/main.go`)
 
 | Claim | Source |
 |-------|--------|
 | `Init` signature — returns only `error` | `telemetry.go:64` |
-| `Enabled()` — true when `BD_OTEL_METRICS_URL` set or `BD_OTEL_STDOUT=true` | `telemetry.go:53-55` |
-| Traces: stdout only when `BD_OTEL_STDOUT=true` | `telemetry.go:84-93` |
-| Metrics: HTTP OTLP when `BD_OTEL_METRICS_URL` set | `telemetry.go:131-139` |
+| `Enabled()` — true when `ISSUEGRAPH_OTEL_METRICS_URL` set or `ISSUEGRAPH_OTEL_STDOUT=true` | `telemetry.go:53-55` |
+| Traces: stdout only when `ISSUEGRAPH_OTEL_STDOUT=true` | `telemetry.go:84-93` |
+| Metrics: HTTP OTLP when `ISSUEGRAPH_OTEL_METRICS_URL` set | `telemetry.go:131-139` |
 | Resource: `service.name`, `service.version` | `telemetry.go:73-75` |
 | Resource: `WithHost()`, `WithProcess()` | `telemetry.go:76-77` |
 | `Shutdown(ctx)` signature | `telemetry.go:162` |
 | `Init` called in `PersistentPreRun` | `main.go:256` |
-| Command span started with `bd.command`, `bd.version`, `bd.args` | `main.go:262-266` |
-| `bd.actor` set on span after actor resolution | `main.go:474` |
+| Command span started with `issuegraph.command`, `issuegraph.version`, `issuegraph.args` | `main.go:262-266` |
+| `issuegraph.actor` set on span after actor resolution | `main.go:474` |
 | `Shutdown` called in `PersistentPostRun` | `main.go:681` |
 
 ### Storage Instrumentation (`internal/telemetry/storage.go`)
@@ -530,16 +530,16 @@ Every factual claim in this document is backed by a specific source location. Th
 | Claim | Source |
 |-------|--------|
 | `WrapStorage` returns original store when telemetry disabled | `storage.go:33-36` |
-| Metric `bd.storage.operations` (Counter) | `storage.go:38-40` |
-| Metric `bd.storage.operation.duration` (Histogram, ms) | `storage.go:41-44` |
-| Metric `bd.storage.errors` (Counter) | `storage.go:45-47` |
-| Gauge `bd.issue.count` | `storage.go:48-50` |
-| `CreateIssue` — attrs: `bd.actor`, `bd.issue.type` | `storage.go:86` |
-| `UpdateIssue` — attrs: `bd.issue.id`, `bd.update.count`, `bd.actor` | `storage.go:131` |
-| `GetIssue` — attr: `bd.issue.id` | `storage.go:108` |
-| `SearchIssues` — attrs: `bd.query`, `bd.result.count` | `storage.go:162` |
-| `GetReadyWork` — attr: `bd.result.count` | `storage.go:283` |
-| `GetBlockedIssues` — attr: `bd.result.count` | `storage.go:293` |
+| Metric `issuegraph.storage.operations` (Counter) | `storage.go:38-40` |
+| Metric `issuegraph.storage.operation.duration` (Histogram, ms) | `storage.go:41-44` |
+| Metric `issuegraph.storage.errors` (Counter) | `storage.go:45-47` |
+| Gauge `issuegraph.issue.count` | `storage.go:48-50` |
+| `CreateIssue` — attrs: `issuegraph.actor`, `issuegraph.issue.type` | `storage.go:86` |
+| `UpdateIssue` — attrs: `issuegraph.issue.id`, `issuegraph.update.count`, `issuegraph.actor` | `storage.go:131` |
+| `GetIssue` — attr: `issuegraph.issue.id` | `storage.go:108` |
+| `SearchIssues` — attrs: `issuegraph.query`, `issuegraph.result.count` | `storage.go:162` |
+| `GetReadyWork` — attr: `issuegraph.result.count` | `storage.go:283` |
+| `GetBlockedIssues` — attr: `issuegraph.result.count` | `storage.go:293` |
 | `RunInTransaction` — attr: `db.commit_msg` | `storage.go:393` |
 | `GetStatistics` emits gauge broken down by status | `storage.go:349` |
 | `AddDependency`, `RemoveDependency`, `GetDependencies` instrumented | `storage.go:175, 187, 198` |
@@ -550,13 +550,13 @@ Every factual claim in this document is backed by a specific source location. Th
 | Claim | Source |
 |-------|--------|
 | `doltTracer` package-level var | `store.go:288` |
-| Metric `bd.db.retry_count` (Counter) registered | `store.go:302` |
+| Metric `issuegraph.db.retry_count` (Counter) registered | `store.go:302` |
 | `retryCount.Add()` called when `attempts > 1` | `store.go:281` |
-| Metric `bd.db.lock_wait_ms` (Histogram) registered | `store.go:306` |
+| Metric `issuegraph.db.lock_wait_ms` (Histogram) registered | `store.go:306` |
 | `lockWaitMs.Record()` never called anywhere | grep `store.go` for `lockWaitMs\.Record` → zero matches |
-| Metric `bd.db.circuit_trips` (Counter) registered | `store.go:310` |
+| Metric `issuegraph.db.circuit_trips` (Counter) registered | `store.go:310` |
 | `circuitTrips.Add()` called on circuit open | `store.go:265` |
-| Metric `bd.db.circuit_rejected` (Counter) registered | `store.go:314` |
+| Metric `issuegraph.db.circuit_rejected` (Counter) registered | `store.go:314` |
 | `circuitRejected.Add()` called on fail-fast | `store.go:250, 554` |
 | `withRetry()` function | `store.go:247` |
 | `execContext()` uses `doltTracer.Start()` + `withRetry()` | `store.go:359` |
@@ -586,22 +586,22 @@ Every factual claim in this document is backed by a specific source location. Th
 | Claim | Source |
 |-------|--------|
 | Span `hook.exec` created in `runHook` | `hooks_unix.go:31` |
-| Span attrs: `hook.event`, `hook.path`, `bd.issue_id` | `hooks_unix.go:33-35` |
+| Span attrs: `hook.event`, `hook.path`, `issuegraph.issue_id` | `hooks_unix.go:33-35` |
 | Stdout/stderr added as span events via `addHookOutputEvents` | `hooks_otel.go:14, 20` |
 | `hook.stdout` / `hook.stderr` events carry `output`, `bytes` attrs | `hooks_otel.go:15-16, 21-22` |
 | No metric counters or histograms for hooks | grep `internal/hooks/` for `Counter\|Histogram` → zero matches |
 
-### AI (`internal/compact/haiku.go`, `modules/cli/find_duplicates.go`)
+### AI (`internal/compact/haiku.go`, `apps/cli/find_duplicates.go`)
 
 | Claim | Source |
 |-------|--------|
-| Metric `bd.ai.input_tokens` (Counter) | `haiku.go:110` |
-| Metric `bd.ai.output_tokens` (Counter) | `haiku.go:114` |
-| Metric `bd.ai.request.duration` (Histogram, ms) | `haiku.go:118` |
+| Metric `issuegraph.ai.input_tokens` (Counter) | `haiku.go:110` |
+| Metric `issuegraph.ai.output_tokens` (Counter) | `haiku.go:114` |
+| Metric `issuegraph.ai.request.duration` (Histogram, ms) | `haiku.go:118` |
 | Metrics initialized lazily via `aiMetricsOnce` | `haiku.go:62, 106` |
 | Span `anthropic.messages.new` | `haiku.go:126` |
-| Span attrs: `bd.ai.model`, `bd.ai.operation` | `haiku.go:129-130` |
-| Span attrs: `bd.ai.input_tokens`, `bd.ai.output_tokens`, `bd.ai.attempts` | `haiku.go:165-167` |
+| Span attrs: `issuegraph.ai.model`, `issuegraph.ai.operation` | `haiku.go:129-130` |
+| Span attrs: `issuegraph.ai.input_tokens`, `issuegraph.ai.output_tokens`, `issuegraph.ai.attempts` | `haiku.go:165-167` |
 | Retry on HTTP 429 and 5xx | `haiku.go:217` |
 | `find_duplicates.go` — span attrs only, no `aiMetrics.*` calls | `find_duplicates.go:429-454` |
-| `find_duplicates.go` — `bd.ai.batch_size` attr | `find_duplicates.go:433` |
+| `find_duplicates.go` — `issuegraph.ai.batch_size` attr | `find_duplicates.go:433` |

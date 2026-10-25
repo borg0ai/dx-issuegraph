@@ -1,7 +1,7 @@
 -- Create the durable events journal tables (bd-opisf).
 --
--- bd_events_journal is an append-only, seq-ordered record of every committed
--- bead mutation, written in the SAME transaction as the mutation itself at the
+-- issuegraph_events_journal is an append-only, seq-ordered record of every committed
+-- issue mutation, written in the SAME transaction as the mutation itself at the
 -- shared issueops seam (see issueops.RecordEventInTx). External tooling reads
 -- it to replay the exact mutation history of the workspace.
 --
@@ -17,7 +17,7 @@
 -- so under concurrent transactions (the shared SQL server) a lower seq can
 -- commit AFTER a higher seq becomes visible, and a consumer tailing
 -- WHERE seq > cursor permanently skips it. Instead seq is drawn from the
--- single-row counter table bd_events_seq inside the mutation's own transaction
+-- single-row counter table issuegraph_events_seq inside the mutation's own transaction
 -- (issueops.nextEventSeq): the shared counter row makes concurrent allocators
 -- conflict, so exactly one commit order survives and the surviving seqs are
 -- gapless and commit-ordered (a rolled-back allocator burns no seq). The
@@ -39,8 +39,8 @@
 -- mutation into an error. issue_json is LONGTEXT for the same reason (it
 -- embeds those same widened issue columns).
 --
--- idx_bd_events_journal_ts serves the retain-days floor, which resolves to
--- `SELECT MIN(seq) FROM bd_events_journal WHERE ts >= ?`
+-- idx_issuegraph_events_journal_ts serves the retain-days floor, which resolves to
+-- `SELECT MIN(seq) FROM issuegraph_events_journal WHERE ts >= ?`
 -- (issueops.EventsPruneDaysFloorQuery). Without an index on ts that is a full
 -- table scan of the journal, and retention now runs it unattended on a
 -- schedule — every automatic prune pass, on a table sized precisely to be
@@ -54,8 +54,8 @@
 --      was a per-row `ts < cutoff` predicate rather than a MIN(seq) resolution).
 --   2. The LONGTEXT payload columns described above, where the reference shape
 --      types both as TEXT and carries that defect latently.
-DROP TABLE IF EXISTS __temp__bd_events_journal;
-CREATE TABLE __temp__bd_events_journal (
+DROP TABLE IF EXISTS __temp__issuegraph_events_journal;
+CREATE TABLE __temp__issuegraph_events_journal (
     seq BIGINT NOT NULL PRIMARY KEY,
     ts DATETIME NOT NULL,
     op VARCHAR(32) NOT NULL,
@@ -63,27 +63,27 @@ CREATE TABLE __temp__bd_events_journal (
     issue_json LONGTEXT,
     dep_json LONGTEXT,
     comment_json LONGTEXT,
-    INDEX idx_bd_events_journal_issue (issue_id),
-    INDEX idx_bd_events_journal_ts (ts)
+    INDEX idx_issuegraph_events_journal_issue (issue_id),
+    INDEX idx_issuegraph_events_journal_ts (ts)
 );
-SET @exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bd_events_journal');
-SET @sql = IF(@exists = 0, 'RENAME TABLE __temp__bd_events_journal TO bd_events_journal', 'DROP TABLE __temp__bd_events_journal');
+SET @exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'issuegraph_events_journal');
+SET @sql = IF(@exists = 0, 'RENAME TABLE __temp__issuegraph_events_journal TO issuegraph_events_journal', 'DROP TABLE __temp__issuegraph_events_journal');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-DROP TABLE IF EXISTS __temp__bd_events_seq;
-CREATE TABLE __temp__bd_events_seq (
+DROP TABLE IF EXISTS __temp__issuegraph_events_seq;
+CREATE TABLE __temp__issuegraph_events_seq (
     id INT NOT NULL PRIMARY KEY,
     next_seq BIGINT NOT NULL
 );
-SET @seq_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bd_events_seq');
-SET @seq_sql = IF(@seq_exists = 0, 'RENAME TABLE __temp__bd_events_seq TO bd_events_seq', 'DROP TABLE __temp__bd_events_seq');
+SET @seq_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'issuegraph_events_seq');
+SET @seq_sql = IF(@seq_exists = 0, 'RENAME TABLE __temp__issuegraph_events_seq TO issuegraph_events_seq', 'DROP TABLE __temp__issuegraph_events_seq');
 PREPARE stmt FROM @seq_sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- Seed the counter row (idempotent), then raise it to the journal's current
 -- high-water mark so seq never resets or collides (0 on a fresh table). Done as
 -- VALUES + a GREATEST update rather than INSERT ... SELECT MAX(): in Dolt a
 -- SELECT that mixes a literal with an aggregate over an EMPTY table yields zero
 -- rows, so an INSERT ... SELECT would seed nothing on a fresh workspace.
-INSERT IGNORE INTO bd_events_seq (id, next_seq) VALUES (0, 0);
-UPDATE bd_events_seq
-    SET next_seq = GREATEST(next_seq, COALESCE((SELECT MAX(seq) FROM bd_events_journal), 0))
+INSERT IGNORE INTO issuegraph_events_seq (id, next_seq) VALUES (0, 0);
+UPDATE issuegraph_events_seq
+    SET next_seq = GREATEST(next_seq, COALESCE((SELECT MAX(seq) FROM issuegraph_events_journal), 0))
     WHERE id = 0;

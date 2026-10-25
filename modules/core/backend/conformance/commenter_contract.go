@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the contract every implementation of publicops.Commenter
@@ -27,7 +27,7 @@ import (
 // three.
 //
 // What is deliberately NOT here, and where it lives instead:
-//   - the commit-message spelling ("bd: comment <id>"), which is a persistence
+//   - the commit-message spelling ("issuegraph: comment <id>"), which is a persistence
 //     detail single-sourced in storageissueops.AddCommentCommitMessage and
 //     pinned once, at dolt, in dolt/commenter_persistence_test.go;
 //   - the dolt_status pending-row sweep, which needs a planted dirty working
@@ -513,7 +513,7 @@ func RunCommenterDoesNotResolvePrefixes(t *testing.T, ctx context.Context, fixtu
 // this assertion nor the wording it ratified asked any backend to change.
 //
 // What the strictness buys a caller: a comment row no entry carries is a row
-// `bd dolt push` does not ship. The thread then reads back locally and exists
+// `issuegraph dolt push` does not ship. The thread then reads back locally and exists
 // nowhere else, and the author who published under their name cannot tell the
 // difference.
 //

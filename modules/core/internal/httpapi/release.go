@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 const (
@@ -28,7 +28,7 @@ const (
 var releaseRequestMembers = []string{claimActorMember, releaseExpectedAssigneeMember, releaseForceMember}
 
 // handleRelease gives back the claim on one issue: the claim's inverse, and the
-// verb `bd unclaim` spells.
+// verb `issuegraph unclaim` spells.
 //
 // It carries the claim's posture verbatim. The actor is caller-ASSERTED
 // provenance and not authenticated identity; hooks do not fire and the
@@ -234,7 +234,7 @@ func (s *Server) failRelease(w http.ResponseWriter, r *http.Request, request iss
 	// direction that stays open.
 	//
 	// The detail names both conditions rather than guessing between them, so a
-	// human reading a `bd unclaim` failure is not told a closed issue is
+	// human reading a `issuegraph unclaim` failure is not told a closed issue is
 	// unclaimed or the reverse.
 	case errors.Is(err, issueops.ErrNotClaimed), errors.Is(err, issueops.ErrNotReleasable):
 		refused()

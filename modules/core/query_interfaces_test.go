@@ -1,24 +1,24 @@
-package beads_test
+package issuegraph_test
 
 import (
 	"context"
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 )
 
 // Compile-time proof that the concrete Dolt store satisfies each narrow public
 // interface (the embedded Dolt store is asserted in query_interfaces_cgo_test.go).
 // These pin the interfaces to a real implementation, complementing the
-// engine-interface guards in beads.go.
+// engine-interface guards in issuegraph.go.
 var (
-	_ beads.IssueClaimer     = (*dolt.DoltStore)(nil)
-	_ beads.EventQuerier     = (*dolt.DoltStore)(nil)
-	_ beads.DependentQuerier = (*dolt.DoltStore)(nil)
-	_ beads.BlockedQuerier   = (*dolt.DoltStore)(nil)
+	_ issuegraph.IssueClaimer     = (*dolt.DoltStore)(nil)
+	_ issuegraph.EventQuerier     = (*dolt.DoltStore)(nil)
+	_ issuegraph.DependentQuerier = (*dolt.DoltStore)(nil)
+	_ issuegraph.BlockedQuerier   = (*dolt.DoltStore)(nil)
 )
 
 // TestQueryInterfacesAgainstRealDolt exercises AsEventQuerier / AsDependentQuerier
@@ -28,7 +28,7 @@ func TestQueryInterfacesAgainstRealDolt(t *testing.T) {
 	skipIfNoDoltServer(t)
 
 	ctx := context.Background()
-	store, err := beads.Open(ctx, filepath.Join(t.TempDir(), "qi-dolt"))
+	store, err := issuegraph.Open(ctx, filepath.Join(t.TempDir(), "qi-dolt"))
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
@@ -38,18 +38,18 @@ func TestQueryInterfacesAgainstRealDolt(t *testing.T) {
 	}
 
 	mk := func(id string) {
-		iss := &beads.Issue{ID: id, Title: id, Status: beads.StatusOpen, Priority: 2, IssueType: beads.TypeTask}
+		iss := &issuegraph.Issue{ID: id, Title: id, Status: issuegraph.StatusOpen, Priority: 2, IssueType: issuegraph.TypeTask}
 		if err := store.CreateIssue(ctx, iss, "tester"); err != nil {
 			t.Fatalf("CreateIssue %s: %v", id, err)
 		}
 	}
 	mk("qi-target")
 	mk("qi-src")
-	if err := store.AddDependency(ctx, &beads.Dependency{IssueID: "qi-src", DependsOnID: "qi-target", Type: beads.DepBlocks}, "tester"); err != nil {
+	if err := store.AddDependency(ctx, &issuegraph.Dependency{IssueID: "qi-src", DependsOnID: "qi-target", Type: issuegraph.DepBlocks}, "tester"); err != nil {
 		t.Fatalf("AddDependency: %v", err)
 	}
 
-	dq, ok := beads.AsDependentQuerier(store)
+	dq, ok := issuegraph.AsDependentQuerier(store)
 	if !ok {
 		t.Fatalf("AsDependentQuerier returned ok=false for a live Dolt Storage")
 	}
@@ -73,11 +73,11 @@ func TestQueryInterfacesAgainstRealDolt(t *testing.T) {
 		t.Fatalf("GetDependentRecordsForIssues[qi-target] = %v, want one row {src=qi-src, target=qi-target}", got)
 	}
 
-	eq, ok := beads.AsEventQuerier(store)
+	eq, ok := issuegraph.AsEventQuerier(store)
 	if !ok {
 		t.Fatalf("AsEventQuerier returned ok=false for a live Dolt Storage")
 	}
-	evs, err := eq.EventsSince(ctx, beads.EventCursor{}, "", 100)
+	evs, err := eq.EventsSince(ctx, issuegraph.EventCursor{}, "", 100)
 	if err != nil {
 		t.Fatalf("EventsSince: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestQueryInterfacesAgainstRealDolt(t *testing.T) {
 		t.Fatalf("EventsSince returned no durable events after creates")
 	}
 
-	bq, ok := beads.AsBlockedQuerier(store)
+	bq, ok := issuegraph.AsBlockedQuerier(store)
 	if !ok {
 		t.Fatalf("AsBlockedQuerier returned ok=false for a live Dolt Storage")
 	}
@@ -120,7 +120,7 @@ func TestAsAccessorsResolveThroughHookDecorator(t *testing.T) {
 	skipIfNoDoltServer(t)
 
 	ctx := context.Background()
-	store, err := beads.Open(ctx, filepath.Join(t.TempDir(), "deco-dolt"))
+	store, err := issuegraph.Open(ctx, filepath.Join(t.TempDir(), "deco-dolt"))
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
@@ -134,16 +134,16 @@ func TestAsAccessorsResolveThroughHookDecorator(t *testing.T) {
 	// the embedded engine interface, not overridden.
 	decorated := storage.NewHookFiringStore(ds, nil)
 
-	if _, ok := beads.AsIssueClaimer(decorated); !ok {
+	if _, ok := issuegraph.AsIssueClaimer(decorated); !ok {
 		t.Errorf("AsIssueClaimer returned ok=false through a HookFiringStore decorator")
 	}
-	if _, ok := beads.AsEventQuerier(decorated); !ok {
+	if _, ok := issuegraph.AsEventQuerier(decorated); !ok {
 		t.Errorf("AsEventQuerier returned ok=false through a HookFiringStore decorator")
 	}
-	if _, ok := beads.AsDependentQuerier(decorated); !ok {
+	if _, ok := issuegraph.AsDependentQuerier(decorated); !ok {
 		t.Errorf("AsDependentQuerier returned ok=false through a HookFiringStore decorator")
 	}
-	if _, ok := beads.AsBlockedQuerier(decorated); !ok {
+	if _, ok := issuegraph.AsBlockedQuerier(decorated); !ok {
 		t.Errorf("AsBlockedQuerier returned ok=false through a HookFiringStore decorator")
 	}
 }

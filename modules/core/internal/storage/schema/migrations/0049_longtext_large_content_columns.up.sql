@@ -3,9 +3,9 @@
 -- issues/wisps: description, design, acceptance_criteria, notes, close_reason
 -- comments: text
 --
--- TEXT is capped at 65535 bytes. Bead descriptions with embedded base64
+-- TEXT is capped at 65535 bytes. Issue descriptions with embedded base64
 -- images or large agent outputs exceed that limit, causing MySQL Error 1105
--- on bd import. LONGTEXT removes the practical size ceiling. Each MODIFY is
+-- on issuegraph import. LONGTEXT removes the practical size ceiling. Each MODIFY is
 -- guarded by an INFORMATION_SCHEMA check so the migration is idempotent.
 --
 -- MODIFY COLUMN replaces the entire column definition, so each restated

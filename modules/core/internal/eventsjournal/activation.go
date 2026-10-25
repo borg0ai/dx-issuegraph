@@ -1,18 +1,18 @@
 // Package eventsjournal resolves and applies durable events-journal activation
 // to one storage instance.
 //
-// It is a package rather than a helper inside modules/cli because two binaries'
-// worth of code opens stores that mutate beads: the command surface itself, and
-// bd doctor's repair handlers, which live in their own package and cannot
+// It is a package rather than a helper inside apps/cli because two binaries'
+// worth of code opens stores that mutate issuegraph: the command surface itself, and
+// issuegraph doctor's repair handlers, which live in their own package and cannot
 // import package main. Journal coverage has to hold for both — a repair that
-// deletes stale issues or imports a JSONL backlog is an ordinary bead mutation,
-// and a consumer whose mirror silently diverges because `bd doctor --fix` ran
+// deletes stale issues or imports a JSONL backlog is an ordinary issue mutation,
+// and a consumer whose mirror silently diverges because `issuegraph doctor --fix` ran
 // is the failure this feature exists to prevent.
 //
 // Activation is applied by the FACTORIES that construct a store or provider,
 // never by the commands that use one. See
-// modules/cli/events_journal_construction_test.go for the structural guard that
-// keeps it that way, and the note at the top of modules/cli/events_journal.go for
+// apps/cli/events_journal_construction_test.go for the structural guard that
+// keeps it that way, and the note at the top of apps/cli/events_journal.go for
 // the three ways it was got wrong before.
 package eventsjournal
 
@@ -22,36 +22,36 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // ConfigKey is the workspace setting that turns the journal on.
 const ConfigKey = "events-journal"
 
-// EnvVar is the environment override for ConfigKey, matching viper's BD_ prefix
+// EnvVar is the environment override for ConfigKey, matching viper's ISSUEGRAPH_ prefix
 // and hyphen-to-underscore mapping.
-const EnvVar = "BD_EVENTS_JOURNAL"
+const EnvVar = "ISSUEGRAPH_EVENTS_JOURNAL"
 
-// EnabledFor reports activation for the workspace rooted at beadsDir.
+// EnabledFor reports activation for the workspace rooted at issuegraphDir.
 //
 // Precedence, highest first:
 //
-//  1. An explicitly set BD_EVENTS_JOURNAL. Environment beats file, as it does
-//     everywhere else in bd's configuration, and it is the documented way to
+//  1. An explicitly set ISSUEGRAPH_EVENTS_JOURNAL. Environment beats file, as it does
+//     everywhere else in issuegraph's configuration, and it is the documented way to
 //     turn the journal on for a process without editing a workspace — including
 //     a process that writes into several workspaces.
 //  2. The TARGET workspace's own config.yaml. The journal records THAT
 //     workspace's mutations, so that workspace decides whether they are
-//     recorded: a routed `bd create --repo ../other` must neither journal into
+//     recorded: a routed `issuegraph create --repo ../other` must neither journal into
 //     a project that never asked for it nor skip journaling one that did. The
 //     launching workspace's file is deliberately never consulted for a target.
 //  3. The default, off.
 //
-// beadsDir is empty only where no workspace has been resolved yet; there is no
+// issuegraphDir is empty only where no workspace has been resolved yet; there is no
 // target to consult, so the process-merged value is the only answer available.
-func EnabledFor(beadsDir string) bool {
-	return resolveEnabledFor(EnvVar, ConfigKey, beadsDir, false)
+func EnabledFor(issuegraphDir string) bool {
+	return resolveEnabledFor(EnvVar, ConfigKey, issuegraphDir, false)
 }
 
 // resolveEnabledFor is the precedence above, for one env/config key pair and
@@ -59,11 +59,11 @@ func EnabledFor(beadsDir string) bool {
 // default, and the two must not drift: they answer for the same workspace in
 // the same command, and an operator who sets one in a target's config.yaml
 // expects the other to be read from the same place.
-func resolveEnabledFor(envVar, configKey, beadsDir string, byDefault bool) bool {
+func resolveEnabledFor(envVar, configKey, issuegraphDir string, byDefault bool) bool {
 	if enabled, ok := parseBool(os.LookupEnv(envVar)); ok {
 		return enabled
 	}
-	if beadsDir == "" {
+	if issuegraphDir == "" {
 		// The process-merged value, resolved the same way as the workspace file
 		// below rather than through GetBool. GetBool casts an unparseable value
 		// to false, which for a key that DEFAULTS TO TRUE turns a typo into a
@@ -75,7 +75,7 @@ func resolveEnabledFor(envVar, configKey, beadsDir string, byDefault bool) bool 
 		}
 		return byDefault
 	}
-	if enabled, ok := parseBool(config.WorkspaceYamlValue(beadsDir, configKey)); ok {
+	if enabled, ok := parseBool(config.WorkspaceYamlValue(issuegraphDir, configKey)); ok {
 		return enabled
 	}
 	return byDefault
@@ -109,12 +109,12 @@ func parseBool(raw string, present bool) (bool, bool) {
 	return false, false
 }
 
-// ActivateStore applies beadsDir's configured activation to a freshly opened
+// ActivateStore applies issuegraphDir's configured activation to a freshly opened
 // store. It is written to be used as a deferred rewrite of a factory's named
 // results:
 //
 //	func newX(...) (s storage.DoltStorage, err error) {
-//	    defer func() { s, err = eventsjournal.ActivateStore(beadsDir, s, err) }()
+//	    defer func() { s, err = eventsjournal.ActivateStore(issuegraphDir, s, err) }()
 //	    ... open and return ...
 //	}
 //
@@ -124,12 +124,12 @@ func parseBool(raw string, present bool) (bool, bool) {
 // structurally instead of chasing a call graph. A failed open passes through
 // untouched; a failed activation closes the store rather than returning one
 // that would mutate unrecorded.
-func ActivateStore(beadsDir string, s storage.DoltStorage, err error) (storage.DoltStorage, error) {
+func ActivateStore(issuegraphDir string, s storage.DoltStorage, err error) (storage.DoltStorage, error) {
 	if err != nil || s == nil {
 		return s, err
 	}
 	configurer, _ := storage.UnwrapStore(s).(storage.EventsJournalConfigurer)
-	if cfgErr := Apply(configurer, EnabledFor(beadsDir)); cfgErr != nil {
+	if cfgErr := Apply(configurer, EnabledFor(issuegraphDir)); cfgErr != nil {
 		_ = s.Close()
 		return nil, cfgErr
 	}

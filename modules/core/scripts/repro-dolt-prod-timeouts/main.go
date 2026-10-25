@@ -1,12 +1,12 @@
-// repro-dolt-prod-timeouts runs production-shaped bd CLI timeout scenarios.
+// repro-dolt-prod-timeouts runs production-shaped issuegraph CLI timeout scenarios.
 //
-// It initializes a real server-mode beads workspace, bulk-loads a graph that
+// It initializes a real server-mode issuegraph workspace, bulk-loads a graph that
 // mirrors a large production deployment's skew (large mostly-closed issue table, large
-// dependency table, small active frontier), then forks actual bd commands.
+// dependency table, small active frontier), then forks actual issuegraph commands.
 //
 // Usage:
 //
-//	go run ./scripts/repro-dolt-prod-timeouts --bd ./bd --scenario all
+//	go run ./scripts/repro-dolt-prod-timeouts --issuegraph ./issuegraph --scenario all
 package main
 
 import (
@@ -28,31 +28,31 @@ import (
 	"sync"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
 )
 
 type config struct {
-	BDPath        string
-	Workspace     string
-	SeedMode      string
-	Scenario      string
-	IssueCount    int
-	DepCount      int
-	Concurrency   int
-	Ops           int
-	Timeout       time.Duration
-	ChainDepth    int
-	KeepWorkdir   bool
-	ManagedServer bool
+	IssueGraphPath string
+	Workspace      string
+	SeedMode       string
+	Scenario       string
+	IssueCount     int
+	DepCount       int
+	Concurrency    int
+	Ops            int
+	Timeout        time.Duration
+	ChainDepth     int
+	KeepWorkdir    bool
+	ManagedServer  bool
 }
 
 type workspace struct {
-	Dir      string
-	BeadsDir string
-	Port     int
-	Database string
+	Dir           string
+	IssueGraphDir string
+	Port          int
+	Database      string
 }
 
 type opResult struct {
@@ -72,11 +72,11 @@ type job struct {
 }
 
 var subprocessEnvDenylist = []string{
-	"BEADS_DIR",
-	"BEADS_DOLT_SERVER_PORT",
-	"BEADS_DOLT_PORT",
-	"BEADS_DOLT_SERVER_HOST",
-	"BEADS_DOLT_SERVER_SOCKET",
+	"ISSUEGRAPH_DIR",
+	"ISSUEGRAPH_DOLT_SERVER_PORT",
+	"ISSUEGRAPH_DOLT_PORT",
+	"ISSUEGRAPH_DOLT_SERVER_HOST",
+	"ISSUEGRAPH_DOLT_SERVER_SOCKET",
 }
 
 const dependencyTargetExpr = "COALESCE(depends_on_issue_id, depends_on_wisp_id, depends_on_external)"
@@ -97,11 +97,11 @@ func runWithArgs(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	bdPath, err := resolveExecutablePath(cfg.BDPath)
+	issuegraphPath, err := resolveExecutablePath(cfg.IssueGraphPath)
 	if err != nil {
 		return err
 	}
-	cfg.BDPath = bdPath
+	cfg.IssueGraphPath = issuegraphPath
 
 	ws, err := openOrCreateWorkspace(ctx, cfg)
 	if err != nil {
@@ -138,13 +138,13 @@ func runWithArgs(ctx context.Context, args []string) error {
 func parseFlags(args []string) (config, error) {
 	var cfg config
 	fs := flag.NewFlagSet("repro-dolt-prod-timeouts", flag.ContinueOnError)
-	fs.StringVar(&cfg.BDPath, "bd", "bd", "bd binary to execute")
+	fs.StringVar(&cfg.IssueGraphPath, "issuegraph", "issuegraph", "issuegraph binary to execute")
 	fs.StringVar(&cfg.Workspace, "workspace", "", "existing workspace to test instead of creating a synthetic one")
 	fs.StringVar(&cfg.SeedMode, "seed-mode", "full", "fixture seed mode: full, dep-only, none")
 	fs.StringVar(&cfg.Scenario, "scenario", "all", "scenario: ready, dep, control, mixed, outage, cycle-current, cycle-deps-only, cycle-wisps-only, cycle-bfs, all")
 	fs.IntVar(&cfg.IssueCount, "issues", 100000, "issue rows to seed")
 	fs.IntVar(&cfg.DepCount, "deps", 85000, "dependency rows to seed")
-	fs.IntVar(&cfg.Concurrency, "concurrency", 20, "concurrent bd processes")
+	fs.IntVar(&cfg.Concurrency, "concurrency", 20, "concurrent issuegraph processes")
 	fs.IntVar(&cfg.Ops, "ops", 80, "total operations per scenario")
 	fs.DurationVar(&cfg.Timeout, "timeout", 30*time.Second, "per-command timeout")
 	fs.IntVar(&cfg.ChainDepth, "chain-depth", 0, "existing blocking chain depth behind each dep-add target")
@@ -169,13 +169,13 @@ func flagPassed(fs *flag.FlagSet, name string) bool {
 }
 
 func resolveExecutablePath(path string) (string, error) {
-	bdPath, err := exec.LookPath(path)
+	issuegraphPath, err := exec.LookPath(path)
 	if err != nil {
-		return "", fmt.Errorf("find bd binary %q: %w", path, err)
+		return "", fmt.Errorf("find issuegraph binary %q: %w", path, err)
 	}
-	absPath, err := filepath.Abs(bdPath)
+	absPath, err := filepath.Abs(issuegraphPath)
 	if err != nil {
-		return "", fmt.Errorf("resolve bd binary %q: %w", bdPath, err)
+		return "", fmt.Errorf("resolve issuegraph binary %q: %w", issuegraphPath, err)
 	}
 	return absPath, nil
 }
@@ -241,11 +241,11 @@ func openWorkspace(ctx context.Context, cfg config, dir string) (*workspace, err
 	if err != nil {
 		return nil, err
 	}
-	beadsDir := filepath.Join(absDir, ".beads")
-	if _, err := os.Stat(beadsDir); err != nil {
-		return nil, fmt.Errorf("open .beads in %s: %w", absDir, err)
+	issuegraphDir := filepath.Join(absDir, ".issuegraph")
+	if _, err := os.Stat(issuegraphDir); err != nil {
+		return nil, fmt.Errorf("open .issuegraph in %s: %w", absDir, err)
 	}
-	port, err := readInt(filepath.Join(beadsDir, "dolt-server.port"))
+	port, err := readInt(filepath.Join(issuegraphDir, "dolt-server.port"))
 	if err != nil {
 		return nil, fmt.Errorf("read dolt-server.port: %w", err)
 	}
@@ -253,16 +253,16 @@ func openWorkspace(ctx context.Context, cfg config, dir string) (*workspace, err
 		if err := startWorkspaceDolt(ctx, cfg, absDir); err != nil {
 			return nil, err
 		}
-		port, err = readInt(filepath.Join(beadsDir, "dolt-server.port"))
+		port, err = readInt(filepath.Join(issuegraphDir, "dolt-server.port"))
 		if err != nil {
 			return nil, fmt.Errorf("read dolt-server.port: %w", err)
 		}
 	}
-	database, err := readDoltDatabase(filepath.Join(beadsDir, "metadata.json"))
+	database, err := readDoltDatabase(filepath.Join(issuegraphDir, "metadata.json"))
 	if err != nil {
 		return nil, err
 	}
-	return &workspace{Dir: absDir, BeadsDir: beadsDir, Port: port, Database: database}, nil
+	return &workspace{Dir: absDir, IssueGraphDir: issuegraphDir, Port: port, Database: database}, nil
 }
 
 func isPortOpen(port int) bool {
@@ -275,7 +275,7 @@ func isPortOpen(port int) bool {
 }
 
 func createWorkspace(ctx context.Context, cfg config) (*workspace, error) {
-	dir, err := os.MkdirTemp("", "bd-prod-timeout-*")
+	dir, err := os.MkdirTemp("", "issuegraph-prod-timeout-*")
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +288,7 @@ func createWorkspace(ctx context.Context, cfg config) (*workspace, error) {
 	defer cancel()
 
 	fmt.Printf("initializing server workspace timeout=%s\n", initTimeout)
-	cmd := exec.CommandContext(initCtx, cfg.BDPath, // #nosec G702 -- fixed subcommand args; cfg.BDPath is an operator-supplied local binary path, not attacker input
+	cmd := exec.CommandContext(initCtx, cfg.IssueGraphPath, // #nosec G702 -- fixed subcommand args; cfg.IssueGraphPath is an operator-supplied local binary path, not attacker input
 		"init",
 		"--server",
 		"--prefix=perf",
@@ -298,24 +298,24 @@ func createWorkspace(ctx context.Context, cfg config) (*workspace, error) {
 		"--skip-agents",
 	)
 	cmd.Dir = dir
-	cmd.Env = subprocessEnv("BD_NON_INTERACTIVE=1")
+	cmd.Env = subprocessEnv("ISSUEGRAPH_NON_INTERACTIVE=1")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		_ = os.RemoveAll(dir)
-		return nil, fmt.Errorf("bd init after %s: %w\n%s", initTimeout, err, string(out))
+		return nil, fmt.Errorf("issuegraph init after %s: %w\n%s", initTimeout, err, string(out))
 	}
 
-	beadsDir := filepath.Join(dir, ".beads")
-	port, err := readInt(filepath.Join(beadsDir, "dolt-server.port"))
+	issuegraphDir := filepath.Join(dir, ".issuegraph")
+	port, err := readInt(filepath.Join(issuegraphDir, "dolt-server.port"))
 	if err != nil {
 		_ = os.RemoveAll(dir)
 		return nil, fmt.Errorf("read dolt-server.port: %w", err)
 	}
-	database, err := readDoltDatabase(filepath.Join(beadsDir, "metadata.json"))
+	database, err := readDoltDatabase(filepath.Join(issuegraphDir, "metadata.json"))
 	if err != nil {
 		_ = os.RemoveAll(dir)
 		return nil, err
 	}
-	return &workspace{Dir: dir, BeadsDir: beadsDir, Port: port, Database: database}, nil
+	return &workspace{Dir: dir, IssueGraphDir: issuegraphDir, Port: port, Database: database}, nil
 }
 
 func startWorkspaceDolt(ctx context.Context, cfg config, dir string) error {
@@ -326,11 +326,11 @@ func startWorkspaceDolt(ctx context.Context, cfg config, dir string) error {
 	startCtx, cancel := context.WithTimeout(ctx, startTimeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(startCtx, cfg.BDPath, "dolt", "start") // #nosec G702 -- fixed subcommand args; cfg.BDPath is an operator-supplied local binary path, not attacker input
+	cmd := exec.CommandContext(startCtx, cfg.IssueGraphPath, "dolt", "start") // #nosec G702 -- fixed subcommand args; cfg.IssueGraphPath is an operator-supplied local binary path, not attacker input
 	cmd.Dir = dir
-	cmd.Env = subprocessEnv("BD_NON_INTERACTIVE=1")
+	cmd.Env = subprocessEnv("ISSUEGRAPH_NON_INTERACTIVE=1")
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("bd dolt start after %s: %w\n%s", startTimeout, err, string(out))
+		return fmt.Errorf("issuegraph dolt start after %s: %w\n%s", startTimeout, err, string(out))
 	}
 	return nil
 }
@@ -354,9 +354,9 @@ func readDoltDatabase(path string) (string, error) {
 }
 
 func stopWorkspace(ctx context.Context, cfg config, ws *workspace) {
-	cmd := exec.CommandContext(ctx, cfg.BDPath, "dolt", "stop")
+	cmd := exec.CommandContext(ctx, cfg.IssueGraphPath, "dolt", "stop")
 	cmd.Dir = ws.Dir
-	cmd.Env = subprocessEnv("BD_NON_INTERACTIVE=1")
+	cmd.Env = subprocessEnv("ISSUEGRAPH_NON_INTERACTIVE=1")
 	_ = cmd.Run()
 }
 
@@ -929,7 +929,7 @@ func controlQueryJobs(count int) []job {
 			Kind: "control",
 			Sh:   script,
 			Env: []string{
-				"BD_EXPORT_AUTO=false",
+				"ISSUEGRAPH_EXPORT_AUTO=false",
 				"GC_CONTROL_TARGET=" + t.target,
 				"GC_CONTROL_SESSION_NAME=" + t.session,
 				"GC_CONTROL_LEGACY_TARGET=" + t.legacy,
@@ -943,7 +943,7 @@ func controlQueryJobs(count int) []job {
 }
 
 func controlQueryScript() string {
-	return `BD_EXPORT_AUTO=false
+	return `ISSUEGRAPH_EXPORT_AUTO=false
 tmp=$(mktemp)
 err=$(mktemp)
 trap "rm -f \"$tmp\" \"$err\"" EXIT
@@ -963,11 +963,11 @@ for id in "$GC_CONTROL_SESSION_NAME" "$GC_SESSION_NAME" "$GC_ALIAS" "$GC_CONTROL
   case "$id" in *control-dispatcher) legacy="${id%control-dispatcher}workflow-control";; esac
   for cand in "$id" "$legacy"; do
     [ -z "$cand" ] && continue
-    emit_ready "$BD_BIN" --readonly --sandbox ready --assignee="$cand" --json --limit=20 || exit $?
+    emit_ready "$ISSUEGRAPH_BIN" --readonly --sandbox ready --assignee="$cand" --json --limit=20 || exit $?
   done
 done
-emit_ready "$BD_BIN" --readonly --sandbox ready --metadata-field "route.routed_to=$GC_CONTROL_TARGET" --unassigned --json --limit=20 || exit $?
-emit_ready "$BD_BIN" --readonly --sandbox ready --metadata-field "route.routed_to=$GC_CONTROL_LEGACY_TARGET" --unassigned --json --limit=20 || exit $?
+emit_ready "$ISSUEGRAPH_BIN" --readonly --sandbox ready --metadata-field "route.routed_to=$GC_CONTROL_TARGET" --unassigned --json --limit=20 || exit $?
+emit_ready "$ISSUEGRAPH_BIN" --readonly --sandbox ready --metadata-field "route.routed_to=$GC_CONTROL_LEGACY_TARGET" --unassigned --json --limit=20 || exit $?
 [ -s "$tmp" ] && jq -s 'reduce add[] as $item ([]; if any(.[]; .id == $item.id) then . else . + [$item] end)' "$tmp" || printf "[]"
 `
 }
@@ -1015,7 +1015,7 @@ func runJob(ctx context.Context, cfg config, ws *workspace, j job) opResult {
 func runBD(ctx context.Context, cfg config, ws *workspace, j job) opResult {
 	opCtx, cancel := context.WithTimeout(ctx, cfg.Timeout)
 	defer cancel()
-	cmd := newBDCommand(opCtx, cfg, ws, j)
+	cmd := newIssueGraphCommand(opCtx, cfg, ws, j)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	start := time.Now()
@@ -1055,17 +1055,17 @@ func runShell(ctx context.Context, cfg config, ws *workspace, j job) opResult {
 	return res
 }
 
-func newBDCommand(ctx context.Context, cfg config, ws *workspace, j job) *exec.Cmd {
-	cmd := exec.CommandContext(ctx, cfg.BDPath, j.Argv...)
+func newIssueGraphCommand(ctx context.Context, cfg config, ws *workspace, j job) *exec.Cmd {
+	cmd := exec.CommandContext(ctx, cfg.IssueGraphPath, j.Argv...)
 	cmd.Dir = ws.Dir
-	cmd.Env = subprocessEnv(append([]string{"BD_NON_INTERACTIVE=1"}, j.Env...)...)
+	cmd.Env = subprocessEnv(append([]string{"ISSUEGRAPH_NON_INTERACTIVE=1"}, j.Env...)...)
 	return cmd
 }
 
 func newShellCommand(ctx context.Context, cfg config, ws *workspace, j job) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, "sh", "-c", j.Sh)
 	cmd.Dir = ws.Dir
-	cmd.Env = subprocessEnv(append([]string{"BD_NON_INTERACTIVE=1", "BD_BIN=" + cfg.BDPath}, j.Env...)...)
+	cmd.Env = subprocessEnv(append([]string{"ISSUEGRAPH_NON_INTERACTIVE=1", "ISSUEGRAPH_BIN=" + cfg.IssueGraphPath}, j.Env...)...)
 	return cmd
 }
 

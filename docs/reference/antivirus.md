@@ -1,13 +1,13 @@
 ---
 title: Antivirus False Positives
-description: Why antivirus tools flag the bd binary as a false positive, and how to verify checksums, add exclusions, and report it.
+description: Why antivirus tools flag the issuegraph binary as a false positive, and how to verify checksums, add exclusions, and report it.
 ---
 
 ## Overview
 
-Some antivirus software may flag issuegraph (`bd` or `bd.exe`) as malicious. This is a **false positive** - issuegraph is a legitimate, open-source command-line tool for issue tracking.
+Some antivirus software may flag issuegraph (`issuegraph` or `issuegraph.exe`) as malicious. This is a **false positive** - issuegraph is a legitimate, open-source command-line tool for issue tracking.
 
-IssueGraph release installers now verify downloaded archives against release `checksums.txt` before installation. For users who manually install binaries, checksum verification should be the first trust step before running `bd` or creating antivirus exclusions.
+IssueGraph release installers now verify downloaded archives against release `checksums.txt` before installation. For users who manually install binaries, checksum verification should be the first trust step before running `issuegraph` or creating antivirus exclusions.
 
 ## Why This Happens
 
@@ -24,7 +24,7 @@ This is a **known industry-wide problem** affecting many legitimate Go projects.
 ### Kaspersky Antivirus
 
 **Detection**: `PDM:Trojan.Win32.Generic`
-**Affected versions**: bd.exe v0.23.1 and potentially others
+**Affected versions**: issuegraph.exe v0.23.1 and potentially others
 **Component**: System Watcher (Proactive Defense Module)
 
 Kaspersky's PDM (Proactive Defense Module) uses behavioral analysis that commonly triggers false positives on Go executables.
@@ -35,18 +35,18 @@ Kaspersky's PDM (Proactive Defense Module) uses behavioral analysis that commonl
 
 Before running a downloaded binary or adding antivirus exclusions, verify the file is legitimate:
 
-1. Download issuegraph from the [official GitHub releases](https://github.com/gastownhall/beads/releases)
+1. Download issuegraph from the [official GitHub releases](https://github.com/borg0ai/dx-issuegraph/releases)
 2. Verify the SHA256 checksum matches the `checksums.txt` file in the release
 3. If a release includes code signing, verify that signature too
 
 **Verify checksum (Windows PowerShell):**
 ```powershell
-Get-FileHash bd.exe -Algorithm SHA256
+Get-FileHash issuegraph.exe -Algorithm SHA256
 ```
 
 **Verify checksum (macOS/Linux):**
 ```bash
-shasum -a 256 bd
+shasum -a 256 issuegraph
 ```
 
 Compare the output with the checksum in `checksums.txt` from the release page.
@@ -59,14 +59,14 @@ Add issuegraph to your antivirus exclusion list:
 1. Open Kaspersky and go to Settings
 2. Navigate to Threats and Exclusions → Manage Exclusions
 3. Click Add → Add path to exclusion
-4. Add the directory containing `bd.exe` (e.g., `C:\Users\YourName\AppData\Local\bd\`)
+4. Add the directory containing `issuegraph.exe` (e.g., `C:\Users\YourName\AppData\Local\issuegraph\`)
 5. Select which components the exclusion applies to (scan, monitoring, etc.)
 
 **Windows Defender:**
 1. Open Windows Security
 2. Go to Virus & threat protection → Manage settings
 3. Scroll to Exclusions → Add or remove exclusions
-4. Add the issuegraph installation directory or the specific `bd.exe` file
+4. Add the issuegraph installation directory or the specific `issuegraph.exe` file
 
 **Other antivirus software:**
 - Look for "Exclusions", "Whitelist", or "Trusted Applications" settings
@@ -78,9 +78,9 @@ Help improve detection accuracy by reporting the false positive:
 
 **Kaspersky:**
 1. Visit [Kaspersky Threat Intelligence Portal](https://opentip.kaspersky.com/)
-2. Upload the `bd.exe` file for analysis
+2. Upload the `issuegraph.exe` file for analysis
 3. Mark it as a false positive
-4. Reference: issuegraph is open-source CLI tool (https://github.com/gastownhall/beads)
+4. Reference: issuegraph is open-source CLI tool (https://github.com/borg0ai/dx-issuegraph)
 
 **Windows Defender:**
 1. Go to [Microsoft Security Intelligence](https://www.microsoft.com/en-us/wdsi/filesubmission)
@@ -104,12 +104,6 @@ ldflags:
   - -s -w  # Strip debug symbols and DWARF info
 ```
 
-**Windows PE version info**: Release builds embed legitimate PE resource metadata
-(company name, product name, file description, version, copyright, and an
-application manifest) into the Windows binary using `go-winres`. This is one of the
-most effective measures against AV false positives — legitimate software almost
-always has PE metadata, and AV heuristics use its absence as a suspicion signal.
-
 These optimizations are applied automatically in official release builds.
 
 ### Code Signing
@@ -122,7 +116,7 @@ Windows releases are signed with an Authenticode certificate when available. Cod
 **Verify a signed binary (Windows PowerShell):**
 ```powershell
 # Check if the binary is signed
-Get-AuthenticodeSignature .\bd.exe
+Get-AuthenticodeSignature .\issuegraph.exe
 
 # Expected output for signed binary:
 # SignerCertificate: [Certificate details]
@@ -135,7 +129,7 @@ Get-AuthenticodeSignature .\bd.exe
 # Ubuntu/Debian: apt-get install osslsigncode
 # macOS: brew install osslsigncode
 
-osslsigncode verify -in bd.exe
+osslsigncode verify -in issuegraph.exe
 ```
 
 **Note:** Code signing requires an EV (Extended Validation) certificate, which involves a verification process. If a release is not signed, it means the certificate was not available at build time. Follow the checksum verification steps above to verify authenticity.
@@ -144,7 +138,7 @@ osslsigncode verify -in bd.exe
 
 Some users report success with:
 ```bash
-go build -ldflags "-s -w" -o bd ./modules/cli
+go build -ldflags "-s -w" -o issuegraph ./apps/cli
 ```
 
 However, results vary by antivirus vendor and version.
@@ -154,7 +148,7 @@ However, results vary by antivirus vendor and version.
 ### Is issuegraph safe to use?
 
 Yes. IssueGraph is:
-- Open source (all code is auditable on [GitHub](https://github.com/gastownhall/beads))
+- Open source (all code is auditable on [GitHub](https://github.com/borg0ai/dx-issuegraph))
 - Releases include checksums for verification
 - Used by developers worldwide
 - A simple CLI tool for issue tracking
@@ -169,7 +163,6 @@ The issue isn't specific to issuegraph's code - it's a characteristic of Go bina
 ### Will this be fixed in future releases?
 
 We've implemented:
-- **Windows PE version info** embedded in binaries (company name, product name, version, manifest)
 - **Code signing infrastructure** for Windows releases (requires EV certificate)
 - **Build optimizations** to reduce heuristic triggers (`-s -w` ldflags)
 - **Documentation** for users to add exclusions and report false positives
@@ -191,7 +184,7 @@ False positives may still occur with new releases until the certificate builds r
 
 If you encounter a new antivirus false positive:
 
-1. Open an issue on [GitHub](https://github.com/gastownhall/beads/issues)
+1. Open an issue on [GitHub](https://github.com/borg0ai/dx-issuegraph/issues)
 2. Include:
    - Antivirus software name and version
    - Detection/threat name

@@ -1,8 +1,8 @@
-# GitHub Copilot Instructions for Beads
+# GitHub Copilot Instructions for IssueGraph
 
 ## Project Overview
 
-**beads** (command: `bd`) is a Dolt-powered issue tracker designed for AI-supervised coding workflows. Git integration is optional. We dogfood our own tool for all task tracking.
+**issuegraph** (command: `issuegraph`) is a Dolt-powered issue tracker designed for AI-supervised coding workflows. Git integration is optional. We dogfood our own tool for all task tracking.
 
 **Key Features:**
 - Dependency-aware issue tracking
@@ -18,7 +18,7 @@
 - **CLI Framework**: Cobra
 - **Testing**: Go standard testing + table-driven tests
 - **CI/CD**: GitHub Actions
-- **MCP Server**: Python (integrations/beads-mcp/)
+- **MCP Server**: Python (integrations/issuegraph-mcp/)
 
 ## Coding Guidelines
 
@@ -30,52 +30,52 @@
 
 ### Code Style
 - Run `make ci-pr-lint` before committing changes to Go or lint-controlled files
-- Follow existing patterns in `modules/cli/` for new commands
+- Follow existing patterns in `apps/cli/` for new commands
 - Add `--json` flag to all commands for programmatic use
 - Update docs when changing behavior
 
 ### Git Workflow
-- Install git hooks: `bd hooks install`
-- Use `bd dolt push` / `bd dolt pull` for remote sync
+- Install git hooks: `issuegraph hooks install`
+- Use `issuegraph dolt push` / `issuegraph dolt pull` for remote sync
 - Before implementing related work, opening a PR, or merging/closing a PR, run:
-  `scripts/pr-preflight.sh --search "<topic>" --repo gastownhall/beads` or
-  `scripts/pr-preflight.sh <pr-number> --repo gastownhall/beads`
+  `scripts/pr-preflight.sh --search "<topic>" --repo borg0ai/dx-issuegraph` or
+  `scripts/pr-preflight.sh <pr-number> --repo borg0ai/dx-issuegraph`
 - External contributor PRs have priority: build on them when possible, preserve
   tests and attribution, and never close or replace them silently.
 
-## Issue Tracking with bd
+## Issue Tracking with issuegraph
 
-**CRITICAL**: This project uses **bd** for ALL task tracking. Do NOT create markdown TODO lists.
+**CRITICAL**: This project uses **issuegraph** for ALL task tracking. Do NOT create markdown TODO lists.
 
 ### Essential Commands
 
 ```bash
 # Find work
-bd ready --json                    # Unblocked issues
-bd stale --days 30 --json          # Forgotten issues
+issuegraph ready --json                    # Unblocked issues
+issuegraph stale --days 30 --json          # Forgotten issues
 
 # Create and manage (ALWAYS include --description)
-bd create "Title" --description="Detailed context" -t bug|feature|task -p 0-4 --json
-bd update <id> --claim --json
-bd close <id> --reason "Done" --json
+issuegraph create "Title" --description="Detailed context" -t bug|feature|task -p 0-4 --json
+issuegraph update <id> --claim --json
+issuegraph close <id> --reason "Done" --json
 
 # Search
-bd list --status open --priority 1 --json
-bd show <id> --json
+issuegraph list --status open --priority 1 --json
+issuegraph show <id> --json
 
 # Sync (if remote configured)
-bd dolt push                   # Push to Dolt remote
-bd dolt pull                   # Pull from Dolt remote
+issuegraph dolt push                   # Push to Dolt remote
+issuegraph dolt pull                   # Pull from Dolt remote
 ```
 
 ### Workflow
 
-1. **Check ready work**: `bd ready --json`
-2. **Claim task**: `bd update <id> --claim`
+1. **Check ready work**: `issuegraph ready --json`
+2. **Claim task**: `issuegraph update <id> --claim`
 3. **Work on it**: Implement, test, document
-4. **Discover new work?** `bd create "Found bug" --description="What was found and why" -p 1 --deps discovered-from:<parent-id> --json`
-5. **Complete**: `bd close <id> --reason "Done" --json`
-6. **Sync**: `bd dolt push` (push to Dolt remote if configured)
+4. **Discover new work?** `issuegraph create "Found bug" --description="What was found and why" -p 1 --deps discovered-from:<parent-id> --json`
+5. **Complete**: `issuegraph close <id> --reason "Done" --json`
+6. **Sync**: `issuegraph dolt push` (push to Dolt remote if configured)
 
 **IMPORTANT**: Always include `--description` when creating issues. Issues without descriptions lack context for future work.
 
@@ -90,32 +90,31 @@ bd dolt pull                   # Pull from Dolt remote
 ## Project Structure
 
 ```
-beads/
-├── modules/cli/              # CLI commands (add new commands here)
+issuegraph/
+├── apps/cli/              # CLI commands (add new commands here)
 ├── internal/
 │   ├── types/           # Core data types
 │   └── storage/         # Storage layer
 │       └── dolt/        # Dolt implementation
 ├── integrations/
-│   └── beads-mcp/       # MCP server (Python)
+│   └── issuegraph-mcp/       # MCP server (Python)
 ├── examples/            # Integration examples
 ├── docs/                # Documentation
-└── .beads/
+└── .issuegraph/
     └── dolt/            # Dolt database (source of truth)
 ```
 
 ## Available Resources
 
 ### MCP Server (Recommended)
-Use the beads MCP server for native function calls instead of shell commands:
-- Install: `pip install beads-mcp`
-- Functions: `mcp__beads__ready()`, `mcp__beads__create()`, etc.
-- See `integrations/beads-mcp/README.md`
+Use the issuegraph MCP server for native function calls instead of shell commands:
+- Install: `pip install issuegraph-mcp`
+- Functions: `mcp__issuegraph__ready()`, `mcp__issuegraph__create()`, etc.
+- See `integrations/issuegraph-mcp/README.md`
 
 ### Scripts
-- `./scripts/bump-version.sh <version> --commit` - Update all version files atomically
-- `./scripts/release.sh <version>` - Complete release workflow
-- `./scripts/update-homebrew.sh <version>` - Update Homebrew formula
+- `./scripts/update-versions.sh <version>` - Update all version files (no git operations)
+- Releases run through the `shipify` skill
 
 ### Key Documentation
 - **AGENTS.md** - Comprehensive AI agent guide (detailed workflows, advanced features)
@@ -125,13 +124,13 @@ Use the beads MCP server for native function calls instead of shell commands:
 
 ## Important Rules
 
-- ✅ Use bd for ALL task tracking
+- ✅ Use issuegraph for ALL task tracking
 - ✅ Always use `--json` flag for programmatic use
-- ✅ Use `bd dolt push` / `bd dolt pull` for remote sync
+- ✅ Use `issuegraph dolt push` / `issuegraph dolt pull` for remote sync
 - ✅ Test with `t.TempDir() in Go tests`
 - ❌ Do NOT create markdown TODO lists
 - ❌ Do NOT create test issues in production DB
-- ❌ Do NOT manually modify `.beads/dolt/`
+- ❌ Do NOT manually modify `.issuegraph/dolt/`
 
 ---
 

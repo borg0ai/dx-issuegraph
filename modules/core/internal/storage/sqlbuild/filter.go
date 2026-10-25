@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // KeysetCreatedAtIDPredicate is the SARGABLE (created_at DESC, id ASC) keyset
@@ -393,7 +393,7 @@ func globToLikePattern(pattern string) string {
 	return b.String()
 }
 
-// LooksLikeIssueID returns true if the query string looks like a beads issue ID.
+// LooksLikeIssueID returns true if the query string looks like a issuegraph issue ID.
 func LooksLikeIssueID(query string) bool {
 	idx := strings.Index(query, "-")
 	if idx <= 0 || idx >= len(query)-1 {

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // countGroupColumns is the closed set issueops.CountByGroupRequest.GroupBy
@@ -33,7 +33,7 @@ func ValidateCountGroup(group issueops.CountGroup) (string, error) {
 }
 
 // BuildCountFilter turns a count request into the storage-level filter: the
-// single definition of what `bd count` means, which every implementation of
+// single definition of what `issuegraph count` means, which every implementation of
 // issueops.Counter builds through.
 //
 // It is a SEPARATE builder rather than a call into BuildListFilter with the
@@ -109,15 +109,15 @@ func BuildCountFilter(in issueops.CountRequest, cfg ListConfig) (types.IssueFilt
 }
 
 // applyCountIncludeInfra switches the count filter to the wisps-inclusive mode
-// of `bd list --include-infra` (GH#4387). It mirrors the BuildListFilter
+// of `issuegraph list --include-infra` (GH#4387). It mirrors the BuildListFilter
 // defaults that determine list's cardinality so that, for any filter set,
-// `bd count --include-infra <filters>` returns exactly the number of rows
-// `bd list --include-infra <filters> --all` materializes:
+// `issuegraph count --include-infra <filters>` returns exactly the number of rows
+// `issuegraph list --include-infra <filters> --all` materializes:
 //
 //   - the wisps table is merged in (SkipWisps=false), picking up no_history
-//     beads and ephemeral wisps, like list's merge path;
+//     issuegraph and ephemeral wisps, like list's merge path;
 //   - template molecules are excluded (list's default);
-//   - gate beads are excluded unless requested via --type gate;
+//   - gate issuegraph are excluded unless requested via --type gate;
 //   - counting an infra type (agent/role/message, or the store-configured set)
 //     routes to the ephemeral wisps tier, like list's infra-type listing.
 //

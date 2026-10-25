@@ -20,8 +20,8 @@ type EdgeDirection string
 
 const (
 	// EdgeDirectionOut counts the anchor's DEPENDENCIES: edges whose source is
-	// the anchor. This is the direction `bd dep list` reads and the number
-	// `bd show` prints as the dependency count.
+	// the anchor. This is the direction `issuegraph dep list` reads and the number
+	// `issuegraph show` prints as the dependency count.
 	EdgeDirectionOut EdgeDirection = "out"
 	// EdgeDirectionIn counts the anchor's DEPENDENTS: edges whose target is the
 	// anchor.
@@ -81,7 +81,7 @@ type EdgeCountRequest struct {
 	// bound belongs to the WIRE operation, where the request arrives from
 	// somewhere else and the cost of an unbounded one is a stranger's — the
 	// split ApplyBatchRequest.Items makes explicitly by bounding at 100. The
-	// graph-counts wire slice set it: GET /v0/beads/dependencies:count bounds
+	// graph-counts wire slice set it: GET /v0/issuegraph/dependencies:count bounds
 	// `issue_id` at minItems 1, maxItems 100.
 	IDs []string
 
@@ -216,13 +216,13 @@ type EdgeCountResult struct {
 // pinned order, for the outbound direction only; the rows are the answer there,
 // and the front door prints them. Here the number is the answer, both directions
 // are askable, and no row is materialized — which is the point, because the
-// surfaces that want these numbers (`bd show`'s header, a list view's
+// surfaces that want these numbers (`issuegraph show`'s header, a list view's
 // per-row decoration) want them for issues whose edges they will never print.
 //
 // WHAT IS DELIBERATELY NOT HERE, and why, since the never-append rule makes
 // each of these a decision rather than an omission:
 //
-//   - THE COMMENT COUNT. `bd show` prints one beside the two edge counts and
+//   - THE COMMENT COUNT. `issuegraph show` prints one beside the two edge counts and
 //     the raw seam publishes CountIssueComments, so it is genuinely consumed —
 //     but a comment is not an edge, it has no direction, no type and no far
 //     end, and every field of EdgeCountRequest below IDs would be meaningless
@@ -259,11 +259,11 @@ type EdgeCountResult struct {
 // asymmetry are stated and held to on three legs, before either surface has to
 // agree with the other.
 //
-// THE HTTP HALF HAS SINCE LANDED: GET /v0/beads/dependencies:count publishes
+// THE HTTP HALF HAS SINCE LANDED: GET /v0/issuegraph/dependencies:count publishes
 // this role's whole filter surface, and the anchor bound this request
 // deliberately leaves to the wire is set there. THE CLI HALF STILL HAS NOT, and
 // that is still a decision rather than a gap: the numbers this role answers are
-// already printed by `bd show`, which reads them through internal/workapi's
+// already printed by `issuegraph show`, which reads them through internal/workapi's
 // detail seam — a seam shared with an HTTP handler, so moving it is its own
 // change with its own parity argument.
 type GraphCounter interface {

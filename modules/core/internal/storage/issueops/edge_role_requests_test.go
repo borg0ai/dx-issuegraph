@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func edge(from, to string, depType types.DependencyType) publicops.DependencyEdge {
@@ -163,7 +163,7 @@ func TestAddDependenciesCommitMessageNamesTheRequest(t *testing.T) {
 		{
 			name:    "one edge names both endpoints",
 			request: publicops.AddDependenciesRequest{Edges: []publicops.DependencyEdge{edge("bd-1", "bd-2", publicops.DepBlocks)}},
-			want:    "bd: dep add bd-1 bd-2",
+			want:    "issuegraph: dep add bd-1 bd-2",
 		},
 		{
 			name: "several edges name their count",

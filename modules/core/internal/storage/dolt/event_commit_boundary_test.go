@@ -6,7 +6,7 @@ import (
 )
 
 func TestAddCommentSQLCommitResponseLossAccountsCircuitOnce(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	breaker := newTestCircuitBreaker(t)
 	driver := &claimCommitBoundaryDriver{sqlCommitErr: testConnectionLoss}
 	store := newClaimCommitBoundaryStore(driver)
@@ -36,7 +36,7 @@ func TestAddCommentSQLCommitResponseLossAccountsCircuitOnce(t *testing.T) {
 }
 
 func TestAddCommentRejectsWriteAfterCircuitOpens(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	breaker := newTestCircuitBreaker(t)
 	for range circuitFailureThreshold {
 		breaker.RecordFailure()
@@ -60,7 +60,7 @@ func TestAddCommentRejectsWriteAfterCircuitOpens(t *testing.T) {
 }
 
 func TestAddCommentTerminalSuccessResetsCircuitFailures(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	breaker := newTestCircuitBreaker(t)
 	for range circuitFailureThreshold - 1 {
 		breaker.RecordFailure()

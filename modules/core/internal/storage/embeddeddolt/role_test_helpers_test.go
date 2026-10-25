@@ -6,8 +6,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // This file holds the test helpers the issueops role tests share. They live
@@ -36,9 +36,9 @@ func seedIssues(t *testing.T, ctx context.Context, store *embeddeddolt.EmbeddedD
 // inside the shared Run function) keeps the case running and passing on the
 // backends that agree, so their behaviour is pinned the day the divergence is
 // found. The "KNOWN DIVERGENCE" prefix is literal so `grep -r "KNOWN DIVERGENCE"`
-// finds every parked case, and beadID names the child of bd-yby99 that records
+// finds every parked case, and issueID names the child of bd-yby99 that records
 // the three-way observed behaviour.
-func skipKnownDivergence(t *testing.T, beadID, reason string) {
+func skipKnownDivergence(t *testing.T, issueID, reason string) {
 	t.Helper()
-	t.Skipf("KNOWN DIVERGENCE %s: %s", beadID, reason)
+	t.Skipf("KNOWN DIVERGENCE %s: %s", issueID, reason)
 }

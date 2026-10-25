@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // teamStatesResp builds the JSON body for a TeamStates GraphQL response.
@@ -120,11 +120,11 @@ func TestBatchPush_SkipsUnchangedIssue(t *testing.T) {
 	defer server.Close()
 
 	cfg := DefaultMappingConfig()
-	// ExplicitStateMap is required by ResolveStateIDForBeadsStatus.
+	// ExplicitStateMap is required by ResolveStateIDForIssueGraphStatus.
 	cfg.ExplicitStateMap = map[string]string{"backlog": "open"}
 
 	extRef := "https://linear.app/team/issue/TEAM-1"
-	// Priority 4 (beads backlog) → PriorityToLinear = 0 (no priority) via default map.
+	// Priority 4 (issuegraph backlog) → PriorityToLinear = 0 (no priority) via default map.
 	// Status open + state backlog → PushFieldsEqual returns true.
 	local := &types.Issue{
 		ID:          "local-1",
@@ -787,11 +787,11 @@ func TestBuildExternalRef(t *testing.T) {
 func TestFieldMapperPriority(t *testing.T) {
 	m := &linearFieldMapper{config: DefaultMappingConfig()}
 
-	// Linear 1 (urgent) -> Beads 0 (critical)
-	if got := m.PriorityToBeads(1); got != 0 {
-		t.Errorf("PriorityToBeads(1) = %d, want 0", got)
+	// Linear 1 (urgent) -> IssueGraph 0 (critical)
+	if got := m.PriorityToIssueGraph(1); got != 0 {
+		t.Errorf("PriorityToIssueGraph(1) = %d, want 0", got)
 	}
-	// Beads 0 (critical) -> Linear 1 (urgent)
+	// IssueGraph 0 (critical) -> Linear 1 (urgent)
 	if got := m.PriorityToTracker(0); got != 1 {
 		t.Errorf("PriorityToTracker(0) = %v, want 1", got)
 	}
@@ -802,14 +802,14 @@ func TestFieldMapperStatus(t *testing.T) {
 
 	// Started -> in_progress
 	state := &State{Type: "started", Name: "In Progress"}
-	if got := m.StatusToBeads(state); got != types.StatusInProgress {
-		t.Errorf("StatusToBeads(started) = %q, want %q", got, types.StatusInProgress)
+	if got := m.StatusToIssueGraph(state); got != types.StatusInProgress {
+		t.Errorf("StatusToIssueGraph(started) = %q, want %q", got, types.StatusInProgress)
 	}
 
 	// Completed -> closed
 	state = &State{Type: "completed", Name: "Done"}
-	if got := m.StatusToBeads(state); got != types.StatusClosed {
-		t.Errorf("StatusToBeads(completed) = %q, want %q", got, types.StatusClosed)
+	if got := m.StatusToIssueGraph(state); got != types.StatusClosed {
+		t.Errorf("StatusToIssueGraph(completed) = %q, want %q", got, types.StatusClosed)
 	}
 }
 
@@ -1087,7 +1087,7 @@ func TestCreateIssueNoDoubleFormatDescription(t *testing.T) {
 	// formatted output of BuildLinearDescription (base + AC/Design/Notes merged in).
 	formattedDesc := "base description\n\n## Acceptance Criteria\ncriteria here\n\n## Design\ndesign here"
 	issue := &types.Issue{
-		ID:                 "bead-1",
+		ID:                 "issue-1",
 		Title:              "Test",
 		Description:        formattedDesc, // pre-formatted by sync engine
 		AcceptanceCriteria: "criteria here",

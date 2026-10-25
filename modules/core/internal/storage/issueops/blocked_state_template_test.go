@@ -14,7 +14,7 @@ import (
 // sign in the finished template (a future LIKE 'x%' or %d in a union leg would
 // shift the count or corrupt the statement). Today a break surfaces only in the
 // container-backed dolt suite; these tests pin it at the fast tier
-// (gastownhall/beads#6291).
+// (borg0ai/dx-issuegraph#6291).
 
 // batchTemplateOccurrences is the number of IN-lists a batched template
 // carries: the outer row filter, plus one per leg of the scoped

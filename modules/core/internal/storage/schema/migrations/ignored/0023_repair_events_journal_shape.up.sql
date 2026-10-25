@@ -11,12 +11,12 @@
 --   (a) idx_wisps_defer_until is permanently missing, so the ready-work
 --       deferred-parents probe full-scans wisps on every call (0017's whole
 --       reason for existing);
---   (b) ignored/0022's guarded create finds bd_events_journal already present
+--   (b) ignored/0022's guarded create finds issuegraph_events_journal already present
 --       and correctly leaves it alone -- so the fork's TEXT dep_json and
 --       comment_json survive (TEXT caps at 65535 bytes: an oversized comment
 --       fails the journal INSERT and therefore ROLLS BACK THE USER'S MUTATION,
 --       since the journal row commits in that mutation's own transaction), and
---       idx_bd_events_journal_ts is absent, so the retain-days floor's
+--       idx_issuegraph_events_journal_ts is absent, so the retain-days floor's
 --       `MIN(seq) WHERE ts >= ?` full-scans on every unattended prune pass.
 --
 -- Nothing already in the tree detects any of this. The cursor-reality
@@ -35,7 +35,7 @@
 -- requires.
 --
 -- Nothing is dropped or renamed (the ignored plane's no-DROP invariant), and
--- neither bd_events_seq nor a single journal row is read or written: the
+-- neither issuegraph_events_seq nor a single journal row is read or written: the
 -- counter value is the one piece of state a shape repair must never perturb.
 
 -- The two payload columns, probed separately. ignored/0021's LONGTEXT widening
@@ -51,11 +51,11 @@ SET @dep_json_is_text = (
     SELECT IF(DATA_TYPE = 'text', 1, 0)
     FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = 'bd_events_journal'
+      AND TABLE_NAME = 'issuegraph_events_journal'
       AND COLUMN_NAME = 'dep_json'
 );
 SET @sql = IF(@dep_json_is_text = 1,
-    'ALTER TABLE bd_events_journal MODIFY COLUMN dep_json LONGTEXT',
+    'ALTER TABLE issuegraph_events_journal MODIFY COLUMN dep_json LONGTEXT',
     'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
@@ -63,11 +63,11 @@ SET @comment_json_is_text = (
     SELECT IF(DATA_TYPE = 'text', 1, 0)
     FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = 'bd_events_journal'
+      AND TABLE_NAME = 'issuegraph_events_journal'
       AND COLUMN_NAME = 'comment_json'
 );
 SET @sql = IF(@comment_json_is_text = 1,
-    'ALTER TABLE bd_events_journal MODIFY COLUMN comment_json LONGTEXT',
+    'ALTER TABLE issuegraph_events_journal MODIFY COLUMN comment_json LONGTEXT',
     'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
@@ -75,16 +75,16 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- so only a journal table built elsewhere can be missing it.
 SET @needs_journal_ts_index = IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bd_events_journal') > 0
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'issuegraph_events_journal') > 0
     AND
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
         WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = 'bd_events_journal'
-          AND INDEX_NAME = 'idx_bd_events_journal_ts') = 0,
+          AND TABLE_NAME = 'issuegraph_events_journal'
+          AND INDEX_NAME = 'idx_issuegraph_events_journal_ts') = 0,
     1, 0
 );
 SET @sql = IF(@needs_journal_ts_index = 1,
-    'CREATE INDEX idx_bd_events_journal_ts ON bd_events_journal(ts)',
+    'CREATE INDEX idx_issuegraph_events_journal_ts ON issuegraph_events_journal(ts)',
     'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 

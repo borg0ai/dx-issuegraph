@@ -7,30 +7,30 @@ import (
 )
 
 const (
-	DefaultDatabaseTitle = "Beads Issues"
+	DefaultDatabaseTitle = "IssueGraph Issues"
 
-	PropertyTitle       = "Name"
-	PropertyBeadsID     = "Beads ID"
-	PropertyStatus      = "Status"
-	PropertyPriority    = "Priority"
-	PropertyType        = "Type"
-	PropertyDescription = "Description"
-	PropertyAssignee    = "Assignee"
-	PropertyLabels      = "Labels"
+	PropertyTitle        = "Name"
+	PropertyIssueGraphID = "IssueGraph ID"
+	PropertyStatus       = "Status"
+	PropertyPriority     = "Priority"
+	PropertyType         = "Type"
+	PropertyDescription  = "Description"
+	PropertyAssignee     = "Assignee"
+	PropertyLabels       = "Labels"
 )
 
 var requiredSchemaProperties = map[string]string{
-	PropertyTitle:       "title",
-	PropertyBeadsID:     "rich_text",
-	PropertyStatus:      "select",
-	PropertyPriority:    "select",
-	PropertyType:        "select",
-	PropertyDescription: "rich_text",
-	PropertyAssignee:    "rich_text",
-	PropertyLabels:      "multi_select",
+	PropertyTitle:        "title",
+	PropertyIssueGraphID: "rich_text",
+	PropertyStatus:       "select",
+	PropertyPriority:     "select",
+	PropertyType:         "select",
+	PropertyDescription:  "rich_text",
+	PropertyAssignee:     "rich_text",
+	PropertyLabels:       "multi_select",
 }
 
-// StatusResponse is the machine-readable output from `bd notion status --json`.
+// StatusResponse is the machine-readable output from `issuegraph notion status --json`.
 type StatusResponse struct {
 	Ready         bool               `json:"ready"`
 	DataSourceID  string             `json:"data_source_id,omitempty"`
@@ -272,14 +272,14 @@ func richTextRequest(content string) []map[string]interface{} {
 
 func BuildInitialDataSourceProperties() map[string]interface{} {
 	return map[string]interface{}{
-		PropertyTitle:       map[string]interface{}{"title": map[string]interface{}{}},
-		PropertyBeadsID:     map[string]interface{}{"rich_text": map[string]interface{}{}},
-		PropertyStatus:      map[string]interface{}{"select": map[string]interface{}{"options": selectOptions("Open", "In Progress", "Blocked", "Deferred", "Closed")}},
-		PropertyPriority:    map[string]interface{}{"select": map[string]interface{}{"options": selectOptions("Critical", "High", "Medium", "Low", "Backlog")}},
-		PropertyType:        map[string]interface{}{"select": map[string]interface{}{"options": selectOptions("Bug", "Feature", "Task", "Epic", "Chore")}},
-		PropertyDescription: map[string]interface{}{"rich_text": map[string]interface{}{}},
-		PropertyAssignee:    map[string]interface{}{"rich_text": map[string]interface{}{}},
-		PropertyLabels:      map[string]interface{}{"multi_select": map[string]interface{}{}},
+		PropertyTitle:        map[string]interface{}{"title": map[string]interface{}{}},
+		PropertyIssueGraphID: map[string]interface{}{"rich_text": map[string]interface{}{}},
+		PropertyStatus:       map[string]interface{}{"select": map[string]interface{}{"options": selectOptions("Open", "In Progress", "Blocked", "Deferred", "Closed")}},
+		PropertyPriority:     map[string]interface{}{"select": map[string]interface{}{"options": selectOptions("Critical", "High", "Medium", "Low", "Backlog")}},
+		PropertyType:         map[string]interface{}{"select": map[string]interface{}{"options": selectOptions("Bug", "Feature", "Task", "Epic", "Chore")}},
+		PropertyDescription:  map[string]interface{}{"rich_text": map[string]interface{}{}},
+		PropertyAssignee:     map[string]interface{}{"rich_text": map[string]interface{}{}},
+		PropertyLabels:       map[string]interface{}{"multi_select": map[string]interface{}{}},
 	}
 }
 

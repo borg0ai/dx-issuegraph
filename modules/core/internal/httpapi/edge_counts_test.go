@@ -9,16 +9,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The wire edge of GET /v0/beads/dependencies:count, on a fake role.
+// The wire edge of GET /v0/issuegraph/dependencies:count, on a fake role.
 //
 // The handler is a decoder, a bound and a projection — the plane span, the
 // missing-anchor rule, the status asymmetry and the de-duplication are
 // issueops.GraphCounter's, held to on three legs by its own contract and shown
-// against real Dolt in modules/cli. What only these cases can show is that the
+// against real Dolt in apps/cli. What only these cases can show is that the
 // request a caller SENDS becomes the request the role RECEIVES, that the
 // role's answer reaches the wire in the shape the document promises, and that
 // each of the role's four refusals arrives naming the right parameter.
@@ -93,7 +93,7 @@ func TestCountDependencyEdgesProjectsTheWholeRequest(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ts, counter := newEdgeCountServer(t, issueops.EdgeCountResult{})
 
-			resp := ts.get(t, "/v0/beads/dependencies:count"+tc.query)
+			resp := ts.get(t, "/v0/issuegraph/dependencies:count"+tc.query)
 			if resp.StatusCode != http.StatusOK {
 				t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -124,7 +124,7 @@ func TestCountDependencyEdgesAnswersPerAnchor(t *testing.T) {
 		{ID: "bd-gone", Count: 0, Missing: true},
 	}})
 
-	resp := ts.get(t, "/v0/beads/dependencies:count?issue_id=bd-1&issue_id=bd-empty&issue_id=bd-gone&direction=out")
+	resp := ts.get(t, "/v0/issuegraph/dependencies:count?issue_id=bd-1&issue_id=bd-empty&issue_id=bd-gone&direction=out")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -180,7 +180,7 @@ func TestCountDependencyEdgesAnswersPerAnchor(t *testing.T) {
 func TestCountDependencyEdgesAnswersAnEmptyArrayNotNull(t *testing.T) {
 	ts, _ := newEdgeCountServer(t, issueops.EdgeCountResult{})
 
-	resp := ts.get(t, "/v0/beads/dependencies:count?issue_id=bd-1&direction=out")
+	resp := ts.get(t, "/v0/issuegraph/dependencies:count?issue_id=bd-1&direction=out")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -235,7 +235,7 @@ func TestCountDependencyEdgesNamesTheRefusedParameter(t *testing.T) {
 			// arrangement the handler's doc comment describes.
 			counter.err = issueops.ErrValidation
 
-			resp := ts.get(t, "/v0/beads/dependencies:count"+tc.query)
+			resp := ts.get(t, "/v0/issuegraph/dependencies:count"+tc.query)
 			if resp.StatusCode != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -271,7 +271,7 @@ func TestCountDependencyEdgesBoundsTheQuestion(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ts, counter := newEdgeCountServer(t, issueops.EdgeCountResult{})
 
-			resp := ts.get(t, "/v0/beads/dependencies:count"+tc.query)
+			resp := ts.get(t, "/v0/issuegraph/dependencies:count"+tc.query)
 			if resp.StatusCode != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -289,7 +289,7 @@ func TestCountDependencyEdgesBoundsTheQuestion(t *testing.T) {
 	// this the two cases above would pass on an off-by-one that refused the
 	// hundredth anchor too.
 	ts, counter := newEdgeCountServer(t, issueops.EdgeCountResult{})
-	resp := ts.get(t, "/v0/beads/dependencies:count?direction=out"+strings.Repeat("&issue_id=bd-1", maxDependencyAnchors))
+	resp := ts.get(t, "/v0/issuegraph/dependencies:count?direction=out"+strings.Repeat("&issue_id=bd-1", maxDependencyAnchors))
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("at the cap: status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -321,7 +321,7 @@ func TestCountDependencyEdgesStaysStrictAboutParameters(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ts, counter := newEdgeCountServer(t, issueops.EdgeCountResult{})
 
-			resp := ts.get(t, "/v0/beads/dependencies:count"+tc.query)
+			resp := ts.get(t, "/v0/issuegraph/dependencies:count"+tc.query)
 			if resp.StatusCode != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -346,7 +346,7 @@ func TestCountDependencyEdgesReachesItsOwnRole(t *testing.T) {
 	reader := &roleEdgeReader{}
 	ts := newTestServer(t, rolesConfig(Config{GraphCounter: counter, EdgeReader: reader}))
 
-	resp := ts.get(t, "/v0/beads/dependencies:count?issue_id=bd-1&direction=out")
+	resp := ts.get(t, "/v0/issuegraph/dependencies:count?issue_id=bd-1&direction=out")
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -365,7 +365,7 @@ func TestCountDependencyEdgesKeepsANonValidationFailureAtFiveHundred(t *testing.
 	counter := &roleGraphCounter{err: errors.New("backend is unreachable")}
 	ts := newTestServer(t, rolesConfig(Config{GraphCounter: counter}))
 
-	resp := ts.get(t, "/v0/beads/dependencies:count?issue_id=bd-1&direction=out")
+	resp := ts.get(t, "/v0/issuegraph/dependencies:count?issue_id=bd-1&direction=out")
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want 500: %s", resp.StatusCode, readAll(t, resp))
 	}

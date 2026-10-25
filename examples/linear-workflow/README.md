@@ -302,9 +302,9 @@ Regular synchronization:
 issuegraph linear sync --pull
 
 # Do local work
-issuegraph update bd-123 --claim
+issuegraph update issuegraph-123 --claim
 # ... work ...
-issuegraph close bd-123 --reason "Fixed"
+issuegraph close issuegraph-123 --reason "Fixed"
 
 # Push changes to Linear
 issuegraph linear sync --push
@@ -325,7 +325,7 @@ issuegraph create "Fix authentication bug" -t bug -p 1
 issuegraph linear sync --push
 
 # Verify
-issuegraph show bd-abc  # Should have external_ref pointing to Linear
+issuegraph show issuegraph-abc  # Should have external_ref pointing to Linear
 ```
 
 ### Workflow 4: Migrate to issuegraph
@@ -352,7 +352,7 @@ Mirror Linear issues locally without pushing back:
 issuegraph linear sync --pull
 
 # Set up a cron job or alias
-alias bd-mirror="issuegraph linear sync --pull"
+alias issuegraph-mirror="issuegraph linear sync --pull"
 ```
 
 ## Status & Debugging
@@ -526,12 +526,12 @@ Types:  23 task, 15 bug, 7 feature, 2 epic
 
 # Create a local issue
 $ issuegraph create "New bug from testing" -t bug -p 1
-Created: bd-a1b2c3
+Created: issuegraph-a1b2c3
 
 # Push to Linear
 $ issuegraph linear sync --push
 → Pushing issues to Linear...
-  Created: bd-a1b2c3 -> TEAM-148
+  Created: issuegraph-a1b2c3 -> TEAM-148
 ✓ Pushed 1 issues (1 created, 0 updated)
 
 ✓ Linear sync complete

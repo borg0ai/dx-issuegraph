@@ -1,0 +1,3 @@
+# Test issuegraph version command
+issuegraph version
+stdout 'issuegraph version'

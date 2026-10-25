@@ -6,8 +6,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/rowid"
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/rowid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // auxRekeyMarkerVersion mirrors the unexported clone-local ignored-migration

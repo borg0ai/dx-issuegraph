@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/legacydir"
 	"github.com/spf13/viper"
-	"github.com/steveyegge/beads/internal/debug"
 	"gopkg.in/yaml.v3"
 )
 
@@ -20,13 +21,13 @@ var v *viper.Viper
 var overriddenKeys = map[string]bool{}
 
 // ignoredConfigKey normalizes a config path into the single form the
-// BEADS_TEST_IGNORE_REPO_CONFIG ignore set is keyed by, so that membership does
+// ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG ignore set is keyed by, so that membership does
 // not depend on which alias of a directory the caller happened to hold.
 //
 // The set is built from os.Getwd(), which honors $PWD and therefore reports the
 // path the process was given rather than the one the kernel resolved. The
-// BEADS_DIR that is tested against it is written by the CLI's own dispatch from
-// beads.FindBeadsDir, which runs utils.CanonicalizePath (filepath.EvalSymlinks).
+// ISSUEGRAPH_DIR that is tested against it is written by the CLI's own dispatch from
+// issuegraph.FindIssueGraphDir, which runs utils.CanonicalizePath (filepath.EvalSymlinks).
 // Comparing those two strings directly misses whenever the workspace is reached
 // through a symlink, the ignore is not applied, and the repo config is merged
 // after all — which is exactly what the flag exists to prevent.
@@ -64,13 +65,13 @@ func Initialize() error {
 	// subsequent file so higher-priority values overwrite lower-priority ones.
 	//
 	// Precedence (highest to lowest):
-	//   BEADS_DIR/config.yaml > project .beads/config.yaml > documented
-	//   <home>/.config/bd/config.yaml > native os.UserConfigDir()/bd/config.yaml
-	//   > legacy <home>/.beads/config.yaml
+	//   ISSUEGRAPH_DIR/config.yaml > project .issuegraph/config.yaml > documented
+	//   <home>/.config/issuegraph/config.yaml > native os.UserConfigDir()/issuegraph/config.yaml
+	//   > legacy <home>/.issuegraph/config.yaml
 	//
 	// Previously, only ONE config file was loaded (the highest-priority match),
 	// which meant user-level config was silently ignored when project-level
-	// config existed — e.g., the idle-monitor daemon with BEADS_DIR set (GH#2375).
+	// config existed — e.g., the idle-monitor daemon with ISSUEGRAPH_DIR set (GH#2375).
 	var configPaths []string     // ordered lowest priority first
 	var primaryConfigPath string // project-level config (for config.local.yaml and SaveConfigValue)
 
@@ -96,28 +97,28 @@ func Initialize() error {
 	appendExistingUserConfig(userConfigPaths.native)
 	appendExistingUserConfig(userConfigPaths.documented)
 
-	// 1. Project: walk up from CWD to find .beads/config.yaml
-	beadsDirEnv := strings.TrimSpace(os.Getenv("BEADS_DIR"))
-	beadsEnvConfigPath := ""
-	if beadsDirEnv != "" {
-		beadsEnvConfigPath = filepath.Clean(filepath.Join(beadsDirEnv, "config.yaml"))
+	// 1. Project: walk up from CWD to find .issuegraph/config.yaml
+	issuegraphDirEnv := strings.TrimSpace(legacydir.EnvIssueGraphDir())
+	issuegraphEnvConfigPath := ""
+	if issuegraphDirEnv != "" {
+		issuegraphEnvConfigPath = filepath.Clean(filepath.Join(issuegraphDirEnv, "config.yaml"))
 	}
-	// A beads checkout usually has its own `.beads/config.yaml` (untracked developer
-	// state) that sets non-default values. In `go test` — especially for `modules/cli` —
+	// A issuegraph checkout usually has its own `.issuegraph/config.yaml` (untracked developer
+	// state) that sets non-default values. In `go test` — especially for `apps/cli` —
 	// we want to avoid unintentionally picking up that repo-local config, while still
 	// allowing tests to load config.yaml from temp repos.
 	//
-	// If BEADS_TEST_IGNORE_REPO_CONFIG is set, we ignore the config at
-	// <module-root>/.beads/config.yaml (where module-root is the nearest parent
+	// If ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG is set, we ignore the config at
+	// <module-root>/.issuegraph/config.yaml (where module-root is the nearest parent
 	// containing go.mod) and at the worktree fallback location.
 	//
 	// The ignore set applies to every source that can name those paths, including
-	// BEADS_DIR below. BEADS_DIR used to bypass the flag, and because in-process CLI
-	// dispatch sets BEADS_DIR at the checkout's own .beads via a raw os.Setenv with no
+	// ISSUEGRAPH_DIR below. ISSUEGRAPH_DIR used to bypass the flag, and because in-process CLI
+	// dispatch sets ISSUEGRAPH_DIR at the checkout's own .issuegraph via a raw os.Setenv with no
 	// restore, that bypass re-imported the repo config into every later Initialize in
 	// the same test binary (ga-e6h6i). A test that genuinely wants the repo config
 	// unsets the flag.
-	ignoreRepoConfig := os.Getenv("BEADS_TEST_IGNORE_REPO_CONFIG") != ""
+	ignoreRepoConfig := os.Getenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG") != ""
 	ignoredRepoConfigPaths := map[string]bool{}
 
 	cwd, err := os.Getwd()
@@ -132,7 +133,7 @@ func Initialize() error {
 				}
 			}
 			if moduleRoot != "" {
-				ignoredRepoConfigPaths[ignoredConfigKey(filepath.Join(moduleRoot, ".beads", "config.yaml"))] = true
+				ignoredRepoConfigPaths[ignoredConfigKey(filepath.Join(moduleRoot, ".issuegraph", "config.yaml"))] = true
 			}
 			if fallbackPath := worktreeFallbackConfigPath(cwd); fallbackPath != "" {
 				ignoredRepoConfigPaths[ignoredConfigKey(fallbackPath)] = true
@@ -154,14 +155,14 @@ func Initialize() error {
 			return true
 		}
 
-		// Walk up parent directories to find .beads/config.yaml.
+		// Walk up parent directories to find .issuegraph/config.yaml.
 		for dir := cwd; dir != filepath.Dir(dir); dir = filepath.Dir(dir) {
-			p := filepath.Join(dir, ".beads", "config.yaml")
+			p := filepath.Join(legacydir.WorkspaceDir(dir), "config.yaml")
 			if _, err := os.Stat(p); err == nil {
-				// When BEADS_DIR points at a different runtime workspace, do not
+				// When ISSUEGRAPH_DIR points at a different runtime workspace, do not
 				// merge the caller repo's config underneath it. That leaks caller
 				// settings like readonly/json/actor into explicit-target commands.
-				if beadsEnvConfigPath != "" && filepath.Clean(p) != beadsEnvConfigPath {
+				if issuegraphEnvConfigPath != "" && filepath.Clean(p) != issuegraphEnvConfigPath {
 					break
 				}
 				if tryProjectConfig(p) {
@@ -171,31 +172,31 @@ func Initialize() error {
 			if ignoreRepoConfig && moduleRoot != "" && dir == moduleRoot {
 				// Don't walk above the test module root: anything further up is
 				// outside this repo entirely (e.g. an outer orchestration
-				// project's own unrelated .beads/config.yaml) and must never
-				// leak into a beads-under-test process (be-yjp4z).
+				// project's own unrelated .issuegraph/config.yaml) and must never
+				// leak into a issuegraph-under-test process (be-yjp4z).
 				break
 			}
 		}
 
 		// Worktree/shared fallback: the active workspace may live outside the
 		// worktree tree, so the parent walk above won't find it.
-		if primaryConfigPath == "" && beadsEnvConfigPath == "" {
+		if primaryConfigPath == "" && issuegraphEnvConfigPath == "" {
 			p := worktreeFallbackConfigPath(cwd)
 			_ = tryProjectConfig(p)
 		}
 	}
 
-	// 0. BEADS_DIR: highest priority
-	if beadsDir := os.Getenv("BEADS_DIR"); beadsDir != "" {
-		p := filepath.Join(beadsDir, "config.yaml")
+	// 0. ISSUEGRAPH_DIR: highest priority
+	if issuegraphDir := legacydir.EnvIssueGraphDir(); issuegraphDir != "" {
+		p := filepath.Join(issuegraphDir, "config.yaml")
 		// Honor the test ignore set here too, and skip primaryConfigPath along with
 		// the merge so ConfigFileUsed does not name the ignored repo config. This
 		// fences the read and merge path only: SaveConfigValue falls back to the
-		// caller-supplied beadsDir when ConfigFileUsed is empty, so where a write
+		// caller-supplied issuegraphDir when ConfigFileUsed is empty, so where a write
 		// lands is still the caller's choice, not this flag's.
 		ignored := ignoreRepoConfig && ignoredRepoConfigPaths[ignoredConfigKey(p)]
 		if _, err := os.Stat(p); err == nil && !ignored {
-			// Avoid duplicate if BEADS_DIR points to same config as CWD walk
+			// Avoid duplicate if ISSUEGRAPH_DIR points to same config as CWD walk
 			if primaryConfigPath == "" || filepath.Clean(p) != filepath.Clean(primaryConfigPath) {
 				configPaths = append(configPaths, p)
 			}
@@ -205,8 +206,8 @@ func Initialize() error {
 
 	// Automatic environment variable binding
 	// Environment variables take precedence over config file
-	// E.g., BD_JSON, BD_NO_DAEMON, BD_DB (BD_ACTOR deprecated in favor of BEADS_ACTOR)
-	v.SetEnvPrefix("BD")
+	// E.g., ISSUEGRAPH_JSON, ISSUEGRAPH_NO_DAEMON, ISSUEGRAPH_DB, ISSUEGRAPH_ACTOR.
+	v.SetEnvPrefix("ISSUEGRAPH")
 
 	// Replace hyphens and dots with underscores for env var mapping
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
@@ -215,32 +216,32 @@ func Initialize() error {
 	// Set defaults for all flags
 	v.SetDefault("json", false)
 	v.SetDefault("events-export", false)
-	// Durable events journal (bd_events_journal). OFF by default because it
+	// Durable events journal (issuegraph_events_journal). OFF by default because it
 	// costs a snapshot write on every mutation and exists only for a consumer
 	// that is actually tailing it. Enable per workspace with
-	// `bd config set events-journal true` or BD_EVENTS_JOURNAL=1; read it with
-	// `bd events tail/export`.
+	// `issuegraph config set events-journal true` or ISSUEGRAPH_EVENTS_JOURNAL=1; read it with
+	// `issuegraph events tail/export`.
 	v.SetDefault("events-journal", false)
 	// Retention floors. retain-days keeps rows younger than N days; retain-rows
 	// always keeps the newest N rows. They bound every prune, whether an
-	// operator asked for it (`bd events prune`) or maintenance applied it
+	// operator asked for it (`issuegraph events prune`) or maintenance applied it
 	// (events-journal-auto-prune). Both default ON: a journal is only ever
 	// enabled because something is consuming it, and with both floors at 0 a
-	// single `bd events prune --before <large>` deletes the whole journal,
+	// single `issuegraph events prune --before <large>` deletes the whole journal,
 	// stranding a consumer whose checkpoint is now below the floor with no way
 	// to recover the lost span. The defaults buy a consumer a week of downtime,
 	// or 100k mutations of backlog, whichever is larger. Setting either to 0
 	// explicitly disables that floor.
-	// Env: BD_EVENTS_JOURNAL_RETAIN_DAYS / BD_EVENTS_JOURNAL_RETAIN_ROWS.
+	// Env: ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_DAYS / ISSUEGRAPH_EVENTS_JOURNAL_RETAIN_ROWS.
 	v.SetDefault("events-journal-retain-days", 7)
 	v.SetDefault("events-journal-retain-rows", 100000)
 	// Automatic retention, ON by default: after a mutating command commits, and
-	// on a timer inside `bd serve`, bd deletes the journal prefix the floors
+	// on a timer inside `issuegraph serve`, issuegraph deletes the journal prefix the floors
 	// above do not protect. Enabling the journal therefore yields a BOUNDED
 	// feed, which is what makes it safe to turn on and forget. Turning both
 	// floors to 0 is the deliberate way to keep every record forever; this key
 	// is for a consumer that wants the floors respected on reads but wants to
-	// own deletion itself. Env: BD_EVENTS_JOURNAL_AUTO_PRUNE.
+	// own deletion itself. Env: ISSUEGRAPH_EVENTS_JOURNAL_AUTO_PRUNE.
 	v.SetDefault("events-journal-auto-prune", true)
 	v.SetDefault("audit.enabled", false)
 	v.SetDefault("no-db", false)
@@ -248,14 +249,14 @@ func Initialize() error {
 	v.SetDefault("db", "")
 	v.SetDefault("actor", "")
 	v.SetDefault("issue-prefix", "")
-	// Additional environment variables (not prefixed with BD_)
-	_ = v.BindEnv("identity", "BEADS_IDENTITY") // BindEnv only fails with zero args, which can't happen here
+	// Additional environment variables (not prefixed with ISSUEGRAPH_)
+	_ = v.BindEnv("identity", "ISSUEGRAPH_IDENTITY") // BindEnv only fails with zero args, which can't happen here
 	v.SetDefault("identity", "")
-	_ = v.BindEnv("node_id", "BEADS_NODE_ID", "BD_NODE_ID") // replica identity; see NodeID
+	_ = v.BindEnv("node_id", "ISSUEGRAPH_NODE_ID", "ISSUEGRAPH_NODE_ID") // replica identity; see NodeID
 	v.SetDefault("node_id", "")
 
 	// Dolt configuration defaults
-	// Controls whether beads should automatically create Dolt commits after write commands.
+	// Controls whether issuegraph should automatically create Dolt commits after write commands.
 	// Values: off | on
 	v.SetDefault("dolt.auto-commit", "on")
 
@@ -263,7 +264,7 @@ func Initialize() error {
 	v.SetDefault("routing.mode", "")
 	v.SetDefault("routing.default", ".")
 	v.SetDefault("routing.maintainer", ".")
-	v.SetDefault("routing.contributor", "~/.beads-planning")
+	v.SetDefault("routing.contributor", "~/.issuegraph-planning")
 
 	// Sync configuration defaults (bd-4u8)
 	v.SetDefault("sync.require_confirmation_on_mass_delete", false)
@@ -272,7 +273,7 @@ func Initialize() error {
 	v.SetDefault("metrics.endpoint", "https://gastownhall-eventsapi.com/mp/collect")
 
 	// Federation configuration (optional Dolt remote)
-	v.SetDefault("federation.remote", "")                          // e.g., dolthub://org/beads, gs://bucket/beads, s3://bucket/beads, az://account.blob.core.windows.net/container/beads
+	v.SetDefault("federation.remote", "")                          // e.g., dolthub://org/issuegraph, gs://bucket/issuegraph, s3://bucket/issuegraph, az://account.blob.core.windows.net/container/issuegraph
 	v.SetDefault("federation.sovereignty", "")                     // T1 | T2 | T3 | T4 (empty = no restriction)
 	v.SetDefault("federation.allowed-remote-patterns", []string{}) // glob patterns restricting allowed remote URLs (enterprise lockdown)
 	v.SetDefault("federation.exclude_types", []string{"wisp"})     // issue types excluded from federation push (privacy filter)
@@ -282,7 +283,7 @@ func Initialize() error {
 
 	// Agent profile configuration (gh#3423, follow-up to #4220)
 	// Explicit runtime knob for the policy profile (git/commit authority)
-	// documented in docs/getting-started/ide-setup.md. `bd prime` uses this to select its
+	// documented in docs/getting-started/ide-setup.md. `issuegraph prime` uses this to select its
 	// close-protocol wording. Values: conservative | minimal | team-maintainer.
 	// Invalid values fall back to "conservative" (see GetAgentProfile).
 	v.SetDefault("agent.profile", string(ProfileConservative))
@@ -311,14 +312,14 @@ func Initialize() error {
 	v.SetDefault("hierarchy.max-depth", 3)
 
 	// Git configuration defaults (GH#600)
-	v.SetDefault("git.author", "")         // Override commit author (e.g., "beads-bot <beads@example.com>")
-	v.SetDefault("git.no-gpg-sign", false) // Disable GPG signing for beads commits
+	v.SetDefault("git.author", "")         // Override commit author (e.g., "issuegraph-bot <issuegraph@example.com>")
+	v.SetDefault("git.no-gpg-sign", false) // Disable GPG signing for issuegraph commits
 
 	// Directory-aware label scoping (GH#541)
 	// Maps directory patterns to labels for automatic filtering in monorepos
 	v.SetDefault("directory.labels", map[string]string{})
 
-	// Backup configuration defaults (JSONL export to .beads/backup/)
+	// Backup configuration defaults (JSONL export to .issuegraph/backup/)
 	v.SetDefault("backup.enabled", false)
 	v.SetDefault("backup.interval", "15m")
 	v.SetDefault("backup.git-push", false)
@@ -327,16 +328,16 @@ func Initialize() error {
 	// Auto-export: optional JSONL export after mutations for viewers,
 	// interchange, and backup. It is not cross-machine sync; Dolt remotes are
 	// the source of truth for sync. Viewer integrations can opt in explicitly.
-	v.SetDefault("export.auto", false)
-	v.SetDefault("export.interval", "60s")
-	v.SetDefault("export.path", "issues.jsonl") // relative to .beads/; canonical name
+	v.SetDefault("export.auto", true)
+	v.SetDefault("export.interval", "0s")
+	v.SetDefault("export.path", "issues.jsonl") // relative to .issuegraph/; canonical name
 	v.SetDefault("export.git-add", false)
 
 	// Auto-import: legacy compatibility fallback for projects that have not
 	// configured a Dolt remote yet. Hook code skips this path when sync.remote
 	// is configured because JSONL import is upsert-only, not reconciliation.
 	v.SetDefault("import.auto", true)
-	v.SetDefault("import.path", "issues.jsonl") // relative to .beads/; canonical import name
+	v.SetDefault("import.path", "issues.jsonl") // relative to .issuegraph/; canonical import name
 
 	// AI configuration defaults
 	v.SetDefault("ai.model", "claude-haiku-4-5-20251001")
@@ -409,10 +410,10 @@ func worktreeFallbackConfigPath(repoPath string) string {
 	}
 
 	if filepath.Base(commonDir) == ".git" {
-		return filepath.Join(filepath.Dir(commonDir), ".beads", "config.yaml")
+		return filepath.Join(filepath.Dir(commonDir), ".issuegraph", "config.yaml")
 	}
 
-	return filepath.Join(commonDir, ".beads", "config.yaml")
+	return filepath.Join(commonDir, ".issuegraph", "config.yaml")
 }
 
 func gitDirsForRepo(repoPath string) (gitDir, commonDir string, ok bool) {
@@ -488,16 +489,16 @@ func GetValueSource(key string) ConfigSource {
 
 	// Check if value is set from environment variable.
 	// Use LookupEnv (not Getenv) so that explicitly-set-but-empty vars like
-	// BD_BACKUP_ENABLED= are recognized as "set by the user" rather than
+	// ISSUEGRAPH_BACKUP_ENABLED= are recognized as "set by the user" rather than
 	// falling through to the default/auto-detect path.
-	envKey := "BD_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
+	envKey := "ISSUEGRAPH_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
 	if _, ok := os.LookupEnv(envKey); ok {
 		return SourceEnvVar
 	}
 
-	// Check BEADS_ prefixed env vars for legacy compatibility
-	beadsEnvKey := "BEADS_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
-	if _, ok := os.LookupEnv(beadsEnvKey); ok {
+	// Check ISSUEGRAPH_ prefixed env vars for legacy compatibility
+	issuegraphEnvKey := "ISSUEGRAPH_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
+	if _, ok := os.LookupEnv(issuegraphEnvKey); ok {
 		return SourceEnvVar
 	}
 
@@ -515,16 +516,16 @@ func GetValueSource(key string) ConfigSource {
 }
 
 // EnvVarName returns the environment variable name that would override the given
-// config key, if one is set. Returns the BD_ or BEADS_ prefixed name, or empty
+// config key, if one is set. Returns the ISSUEGRAPH_ or ISSUEGRAPH_ prefixed name, or empty
 // string if no env var is set for this key.
 func EnvVarName(key string) string {
-	envKey := "BD_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
+	envKey := "ISSUEGRAPH_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
 	if _, ok := os.LookupEnv(envKey); ok {
 		return envKey
 	}
-	beadsEnvKey := "BEADS_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
-	if _, ok := os.LookupEnv(beadsEnvKey); ok {
-		return beadsEnvKey
+	issuegraphEnvKey := "ISSUEGRAPH_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
+	if _, ok := os.LookupEnv(issuegraphEnvKey); ok {
+		return issuegraphEnvKey
 	}
 	return ""
 }
@@ -576,9 +577,9 @@ func CheckOverrides(flagOverrides map[string]struct {
 				// Env var is overriding config file value.
 				// Use LookupEnv to detect presence — empty-string env vars
 				// are still intentional overrides.
-				envKey := "BD_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
+				envKey := "ISSUEGRAPH_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
 				if _, ok := os.LookupEnv(envKey); !ok {
-					envKey = "BEADS_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
+					envKey = "ISSUEGRAPH_" + strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(key, "-", "_"), ".", "_"))
 					if _, ok := os.LookupEnv(envKey); !ok {
 						continue
 					}
@@ -628,9 +629,9 @@ func LogOverride(override ConfigOverride) {
 }
 
 // SaveConfigValue sets a key-value pair and writes it to the config file.
-// If no config file is currently loaded, it creates config.yaml in the given beadsDir.
+// If no config file is currently loaded, it creates config.yaml in the given issuegraphDir.
 // Only the specified key is modified; other file contents are preserved.
-func SaveConfigValue(key string, value interface{}, beadsDir string) error {
+func SaveConfigValue(key string, value interface{}, issuegraphDir string) error {
 	if v == nil {
 		return fmt.Errorf("config not initialized")
 	}
@@ -638,7 +639,7 @@ func SaveConfigValue(key string, value interface{}, beadsDir string) error {
 
 	configPath := v.ConfigFileUsed()
 	if configPath == "" {
-		configPath = filepath.Join(beadsDir, "config.yaml")
+		configPath = filepath.Join(issuegraphDir, "config.yaml")
 		v.SetConfigFile(configPath)
 	}
 
@@ -683,15 +684,15 @@ func GetString(key string) string {
 }
 
 // GetStringFromDir reads a single string configuration value directly from
-// <beadsDir>/config.yaml without using or modifying global viper state.
+// <issuegraphDir>/config.yaml without using or modifying global viper state.
 // This is intended for library consumers that call NewFromConfigWithOptions
 // without first invoking config.Initialize().
 //
 // The key uses dotted notation (e.g. "dolt.auto-start"). YAML booleans and
 // numbers are coerced to their string representations ("true", "false", etc.).
 // Returns "" if the file is absent, the key is not found, or any error occurs.
-func GetStringFromDir(beadsDir, key string) string {
-	configPath := filepath.Join(beadsDir, "config.yaml")
+func GetStringFromDir(issuegraphDir, key string) string {
+	configPath := filepath.Join(issuegraphDir, "config.yaml")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return ""
@@ -779,7 +780,7 @@ func Set(key string, value interface{}) {
 // }
 
 // DefaultAIModel returns the configured AI model identifier.
-// Override via: bd config set ai.model "model-name" or BD_AI_MODEL=model-name
+// Override via: issuegraph config set ai.model "model-name" or ISSUEGRAPH_AI_MODEL=model-name
 func DefaultAIModel() string {
 	return GetString("ai.model")
 }
@@ -843,7 +844,7 @@ func ResolveAIAPIKey(explicit string) (string, AIAPIKeySource) {
 
 // DefaultAIBaseURL returns the configured base URL for Anthropic-compatible AI calls.
 //
-// Precedence: ai.base_url (or BD_AI_BASE_URL) > MINIMAX_BASE_URL > MiniMax default
+// Precedence: ai.base_url (or ISSUEGRAPH_AI_BASE_URL) > MINIMAX_BASE_URL > MiniMax default
 // when MINIMAX_API_KEY selected the key. Empty means use the SDK's Anthropic default.
 func DefaultAIBaseURL(keySource AIAPIKeySource) string {
 	if baseURL := GetString("ai.base_url"); baseURL != "" {
@@ -961,7 +962,7 @@ func GetMultiRepoConfig() *MultiRepoConfig {
 // Example config.yaml:
 //
 //	external_projects:
-//	  beads: ../beads
+//	  issuegraph: ../issuegraph
 //	  other-project: /absolute/path/to/other-project
 func GetExternalProjects() map[string]string {
 	return GetStringMapString("external_projects")
@@ -976,14 +977,14 @@ func ResolveExternalProjectPath(projectName string) string {
 		return ""
 	}
 
-	// Resolve relative paths from repo root (parent of .beads/), NOT CWD.
-	// This ensures paths like "../beads" in config resolve correctly
+	// Resolve relative paths from repo root (parent of .issuegraph/), NOT CWD.
+	// This ensures paths like "../issuegraph" in config resolve correctly
 	// when running from different directories.
 	if !filepath.IsAbs(path) {
-		// Config is at .beads/config.yaml, so go up twice to get repo root
+		// Config is at .issuegraph/config.yaml, so go up twice to get repo root
 		configFile := ConfigFileUsed()
 		if configFile != "" {
-			repoRoot := filepath.Dir(filepath.Dir(configFile)) // .beads/config.yaml -> repo/
+			repoRoot := filepath.Dir(filepath.Dir(configFile)) // .issuegraph/config.yaml -> repo/
 			path = filepath.Join(repoRoot, path)
 		} else {
 			// Fallback: resolve from CWD (legacy behavior)
@@ -1006,18 +1007,18 @@ func ResolveExternalProjectPath(projectName string) string {
 // GetIdentity resolves the user's identity for messaging.
 // Priority chain:
 //  1. flagValue (if non-empty, from --identity flag)
-//  2. BEADS_IDENTITY env var / config.yaml identity field (via viper)
+//  2. ISSUEGRAPH_IDENTITY env var / config.yaml identity field (via viper)
 //  3. git config user.name
 //  4. hostname
 //
-// This is used as the sender field in bd mail commands.
+// This is used as the sender field in issuegraph mail commands.
 func GetIdentity(flagValue string) string {
 	// 1. Command-line flag takes precedence
 	if flagValue != "" {
 		return flagValue
 	}
 
-	// 2. BEADS_IDENTITY env var or config.yaml identity (viper handles both)
+	// 2. ISSUEGRAPH_IDENTITY env var or config.yaml identity (viper handles both)
 	if identity := GetString("identity"); identity != "" {
 		return identity
 	}
@@ -1038,18 +1039,18 @@ func GetIdentity(flagValue string) string {
 	return "unknown"
 }
 
-// NodeID returns the identity of THIS replica: the beads STORE that grants
+// NodeID returns the identity of THIS replica: the issuegraph STORE that grants
 // and enforces leases here. A lease is enforceable exactly as far as that
 // store reaches, and the replica-aware reclaim guard
 // (issueops.ReclaimExpiredLeasesInTx) refuses to revert a lease some OTHER
 // node granted.
 //
-// It is read from BEADS_NODE_ID / BD_NODE_ID, or node_id in config.yaml, and
+// It is read from ISSUEGRAPH_NODE_ID / ISSUEGRAPH_NODE_ID, or node_id in config.yaml, and
 // from nowhere else. It deliberately does NOT fall back to os.Hostname(),
 // because the hostname answers the wrong question — it names the client
 // PROCESS's machine, not the store:
 //
-//   - With a shared or remote dolt sql-server (BEADS_DOLT_SERVER_HOST, or any
+//   - With a shared or remote dolt sql-server (ISSUEGRAPH_DOLT_SERVER_HOST, or any
 //     ServerModeExternal deployment — systemd, Docker, Hosted Dolt, a VPS),
 //     many hosts are clients of ONE store. There is no sync interval between
 //     them and no stale liveness view to defend against, but per-hostname
@@ -1074,7 +1075,7 @@ func NodeID() string {
 
 // FederationConfig holds the federation (Dolt remote) configuration.
 type FederationConfig struct {
-	Remote       string      // dolthub://org/beads, gs://bucket/beads, s3://bucket/beads
+	Remote       string      // dolthub://org/issuegraph, gs://bucket/issuegraph, s3://bucket/issuegraph
 	Sovereignty  Sovereignty // T1, T2, T3, T4
 	ExcludeTypes []string    // issue types excluded from federation push (e.g. ["wisp"])
 }
@@ -1090,7 +1091,7 @@ func GetFederationConfig() FederationConfig {
 
 // GetCustomTypesFromYAML retrieves custom issue types from config.yaml.
 // This is used as a fallback when the database doesn't have types.custom set yet
-// (e.g., during bd init auto-import before the database is fully configured).
+// (e.g., during issuegraph init auto-import before the database is fully configured).
 // Returns nil if no custom types are configured in config.yaml.
 func GetCustomTypesFromYAML() []string {
 	return getConfigList("types.custom")
@@ -1196,7 +1197,7 @@ func ValidateAgentsFile(filename string) error {
 // or the legacy comma-separated string form (e.g.
 // `types.custom = "step,wisp"`). Entries are trimmed; empty entries are
 // dropped. The dual-form support is required for project-extension
-// types/statuses declared in .beads/config.yaml — see gastownhall/beads#4024.
+// types/statuses declared in .issuegraph/config.yaml — see borg0ai/dx-issuegraph#4024.
 func getConfigList(key string) []string {
 	if v == nil {
 		debug.Logf("config: viper not initialized, returning nil for key %q", key)

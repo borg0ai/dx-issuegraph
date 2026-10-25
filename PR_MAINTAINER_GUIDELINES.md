@@ -34,7 +34,7 @@ and issues**:
 
 ```bash
 scripts/pr-preflight.sh --search "<topic keywords>"
-gh search prs --repo gastownhall/beads --state open "<bug keywords>"
+gh search prs --repo borg0ai/dx-issuegraph --state open "<bug keywords>"
 ```
 
 The rule at the top of this section always covered implementing, competing, and
@@ -91,7 +91,7 @@ Other outcomes are possible, including rerouting a PR to the right project or ba
 
 ## Merge Discipline and Review Requirements
 
-These rules apply to everyone who can merge — human maintainers and agents alike. They exist because a two-month audit of 440 merged PRs (epic bd-6dnrw) found the project's worst defects entered through merges that skipped review, hid their real contents, or overrode an outstanding objection. A merge is an irreversible act of trust; treat it as one.
+These rules apply to everyone who can merge — human maintainers and agents alike. They exist because a two-month audit of 440 merged PRs (epic issuegraph-6dnrw) found the project's worst defects entered through merges that skipped review, hid their real contents, or overrode an outstanding objection. A merge is an irreversible act of trust; treat it as one.
 
 ### Self-merge and outstanding objections
 
@@ -114,7 +114,7 @@ These rules apply to everyone who can merge — human maintainers and agents ali
 ### Schema, migration, and sync paths are protected
 
 - Any change touching `migrations/`, the schema, destructive data paths, or the Dolt sync/clone/merge paths requires a filled-out PR template and a real human review before merge — no exceptions, no self-merge, no bot-only approval.
-- These paths should be enforced by branch protection (review-required), not just convention. (Configuring branch protection and defining which agent identities may merge are owner actions tracked in bd-6dnrw.23.)
+- These paths should be enforced by branch protection (review-required), not just convention. (Configuring branch protection and defining which agent identities may merge are owner actions tracked in issuegraph-6dnrw.23.)
 
 ### Revert ping-pong
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
 )
 
 // TestMemoriesContract runs the Memories contract against the unit-of-work
@@ -14,7 +14,7 @@ import (
 //
 // It is also the wiring the atomicity upgrade was written for: this route used
 // to pre-read in a separate RunTxRead and then open a RunTx to write, so the
-// "Remembered" versus "Updated" verb and the value `bd forget` printed
+// "Remembered" versus "Updated" verb and the value `issuegraph forget` printed
 // described a moment that had already passed.
 //
 // One provider for the whole suite (each newUOWRoleFixtureProvider boots a real

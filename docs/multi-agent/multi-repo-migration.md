@@ -17,7 +17,7 @@ This guide helps you adopt issuegraph's multi-repo workflow for OSS contribution
 
 ## What is Multi-Repo Mode?
 
-By default, issuegraph stores issues in its Dolt database under `.beads/` in your current repository (`.beads/embeddeddolt/` in the default embedded mode). Multi-repo mode lets you:
+By default, issuegraph stores issues in its Dolt database under `.issuegraph/` in your current repository (`.issuegraph/embeddeddolt/` in the default embedded mode). Multi-repo mode lets you:
 
 - **Route issues to different repositories** based on your role (maintainer vs. contributor)
 - **Aggregate issues from multiple repos** into a unified view
@@ -44,12 +44,12 @@ By default, issuegraph stores issues in its Dolt database under `.beads/` in you
 Every issue has a `source_repo` field indicating which repository owns it:
 
 ```jsonl
-{"id":"bd-abc","source_repo":".","title":"Core issue"}
-{"id":"bd-xyz","source_repo":"~/.beads-planning","title":"Planning issue"}
+{"id":"issuegraph-abc","source_repo":".","title":"Core issue"}
+{"id":"issuegraph-xyz","source_repo":"~/.issuegraph-planning","title":"Planning issue"}
 ```
 
 - `.` = Current repository (default)
-- `~/.beads-planning` = Contributor planning repo
+- `~/.issuegraph-planning` = Contributor planning repo
 - `/path/to/repo` = Absolute path to another repo
 
 ### 2. Auto-Routing
@@ -63,7 +63,7 @@ issuegraph create "Fix bug" -p 1
 
 # Contributor (HTTPS or no push access)
 issuegraph create "Fix bug" -p 1  
-# → Creates in ~/.beads-planning (source_repo = "~/.beads-planning")
+# → Creates in ~/.issuegraph-planning (source_repo = "~/.issuegraph-planning")
 ```
 
 ### 3. Multi-Repo Hydration
@@ -74,7 +74,7 @@ IssueGraph can aggregate issues from multiple repositories into a unified databa
 issuegraph list --json
 # Shows issues from:
 # - Current repo (.)
-# - Planning repo (~/.beads-planning)
+# - Planning repo (~/.issuegraph-planning)
 # - Any configured additional repos
 ```
 
@@ -99,7 +99,7 @@ issuegraph init --contributor
 
 # The wizard will:
 # - Detect that you're in a fork (checks for 'upstream' remote)
-# - Prompt you to create a planning repo (~/.beads-planning by default)
+# - Prompt you to create a planning repo (~/.issuegraph-planning by default)
 # - Configure auto-routing (contributor → planning repo)
 # - Set up multi-repo hydration
 ```
@@ -110,18 +110,18 @@ If you prefer manual setup:
 
 ```bash
 # 1. Create planning repository
-mkdir -p ~/.beads-planning
-cd ~/.beads-planning
+mkdir -p ~/.issuegraph-planning
+cd ~/.issuegraph-planning
 git init
 issuegraph init --prefix plan
 
 # 2. Configure routing in your fork
 cd ~/projects/project
 issuegraph config set routing.mode auto
-issuegraph config set routing.contributor "~/.beads-planning"
+issuegraph config set routing.contributor "~/.issuegraph-planning"
 
 # 3. Add planning repo to hydration sources
-issuegraph config set repos.additional "~/.beads-planning"
+issuegraph config set repos.additional "~/.issuegraph-planning"
 ```
 
 ### Daily Workflow
@@ -130,7 +130,7 @@ issuegraph config set repos.additional "~/.beads-planning"
 # Work in your fork
 cd ~/projects/project
 
-# Create planning issues (auto-routed to ~/.beads-planning)
+# Create planning issues (auto-routed to ~/.issuegraph-planning)
 issuegraph create "Investigate auth implementation" -p 1
 issuegraph create "Draft RFC for new feature" -p 2
 
@@ -148,7 +148,7 @@ issuegraph close plan-42 --reason "Completed"
 git add .
 git commit -m "Fix authentication bug"
 git push origin my-feature-branch
-# ✅ PR only contains code changes, no .beads/ pollution
+# ✅ PR only contains code changes, no .issuegraph/ pollution
 ```
 
 ### Proposing Issues Upstream
@@ -160,7 +160,7 @@ If you want to share a planning issue with upstream:
 issuegraph show plan-42 --json > /tmp/issue.json
 # (Send to maintainers or create GitHub issue)
 
-# Option 2: Migrate issue (future feature, see bd-mlcz)
+# Option 2: Migrate issue (future feature, see issuegraph-mlcz)
 issuegraph migrate plan-42 --to . --dry-run
 issuegraph migrate plan-42 --to .
 ```
@@ -200,14 +200,14 @@ issuegraph create "Implement feature X" -p 1
 # → Creates in current repo (team-123)
 
 # 3. Optional: Create personal planning repo for experiments
-mkdir -p ~/.beads-planning-personal
-cd ~/.beads-planning-personal
+mkdir -p ~/.issuegraph-planning-personal
+cd ~/.issuegraph-planning-personal
 git init
 issuegraph init --prefix exp
 
 # 4. Configure multi-repo in team project
 cd ~/projects/project
-issuegraph config set repos.additional "~/.beads-planning-personal"
+issuegraph config set repos.additional "~/.issuegraph-planning-personal"
 ```
 
 ### Daily Workflow
@@ -218,7 +218,7 @@ issuegraph create "Implement auth" -p 1 --repo .
 # → team-42 (visible to entire team)
 
 # Personal experiments (not committed to team repo)
-issuegraph create "Try alternative approach" -p 2 --repo ~/.beads-planning-personal
+issuegraph create "Try alternative approach" -p 2 --repo ~/.issuegraph-planning-personal
 # → exp-99 (private planning)
 
 # View all work
@@ -338,7 +338,7 @@ issuegraph config set routing.default "."
 
 # Configure repos for each role
 issuegraph config set routing.maintainer "."
-issuegraph config set routing.contributor "~/.beads-planning"
+issuegraph config set routing.contributor "~/.issuegraph-planning"
 ```
 
 ### Multi-Repo Hydration
@@ -372,7 +372,7 @@ issuegraph config get routing.maintainer
 issuegraph config get routing.contributor
 
 # Check detected role
-issuegraph config get beads.role
+issuegraph config get issuegraph.role
 
 # Override with explicit flag
 issuegraph create "Issue" -p 1 --repo .
@@ -407,21 +407,21 @@ issuegraph list --json
 
 **Solution:** Discovered issues automatically inherit parent's `source_repo`. This is intentional. To override:
 ```bash
-issuegraph create "Issue" -p 1 --deps discovered-from:bd-42 --repo /different/repo
+issuegraph create "Issue" -p 1 --deps discovered-from:issuegraph-42 --repo /different/repo
 ```
 
 ### Planning repo polluting PRs
 
-**Problem:** Your `~/.beads-planning` changes appear in PRs to upstream.
+**Problem:** Your `~/.issuegraph-planning` changes appear in PRs to upstream.
 
 **Solution:** This shouldn't happen if configured correctly. Verify:
 ```bash
 # Check that planning repo is separate from fork
-ls -la ~/.beads-planning/.git  # Should exist
-ls -la ~/projects/fork/.beads/  # Should NOT contain planning issues
+ls -la ~/.issuegraph-planning/.git  # Should exist
+ls -la ~/projects/fork/.issuegraph/  # Should NOT contain planning issues
 
 # Verify routing
-issuegraph config get routing.contributor  # Should be ~/.beads-planning
+issuegraph config get routing.contributor  # Should be ~/.issuegraph-planning
 ```
 
 ## Backward Compatibility
@@ -456,8 +456,8 @@ issuegraph create "Issue" -p 1
 ## Best Practices
 
 ### OSS Contributors
-- ✅ Always use `~/.beads-planning` or similar for personal planning
-- ✅ Never commit `.beads/` changes to upstream PRs
+- ✅ Always use `~/.issuegraph-planning` or similar for personal planning
+- ✅ Never commit `.issuegraph/` changes to upstream PRs
 - ✅ Use descriptive prefixes (`plan-`, `exp-`) for clarity
 - ❌ Don't mix planning and implementation in the same repo
 
@@ -465,7 +465,7 @@ issuegraph create "Issue" -p 1
 - ✅ Use `issuegraph dolt push` to sync the shared Dolt database
 - ✅ Use protected branch workflow for main/master
 - ✅ Review issue changes in PRs like code changes
-- ❌ Don't delete `.beads/` - you lose all issue data
+- ❌ Don't delete `.issuegraph/` - you lose all issue data
 
 ### Multi-Phase Projects
 - ✅ Use clear phase naming (`planning`, `impl`, `maint`)
@@ -475,14 +475,14 @@ issuegraph create "Issue" -p 1
 
 ## Next Steps
 
-- **CLI Reference:** See [README.md](https://github.com/gastownhall/beads/blob/main/README.md) for command details
+- **CLI Reference:** See [README.md](https://github.com/borg0ai/dx-issuegraph/blob/main/README.md) for command details
 - **Configuration Guide:** See [Configuration](/reference/configuration) for all config options
 - **Troubleshooting:** See [Troubleshooting](/reference/troubleshooting)
 - **Multi-Repo Internals:** See [ROUTING.md#multi-repo-hydration](/multi-agent/routing#multi-repo-hydration)
 
 ## Related Issues
 
-- `bd-8rd` - Migration and onboarding epic
-- `bd-mlcz` - `issuegraph migrate` command (planned)
-- `bd-kla1` - `issuegraph init --contributor` wizard - implemented
-- `bd-twlr` - `issuegraph init --team` wizard - implemented
+- `issuegraph-8rd` - Migration and onboarding epic
+- `issuegraph-mlcz` - `issuegraph migrate` command (planned)
+- `issuegraph-kla1` - `issuegraph init --contributor` wizard - implemented
+- `issuegraph-twlr` - `issuegraph init --team` wizard - implemented

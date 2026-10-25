@@ -11,12 +11,12 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // TestFreshBootstrapHealSelfHealsAfterMidPassFailure is the server-mode
-// (internal/storage/dolt) regression test for gastownhall/beads#5012,
+// (internal/storage/dolt) regression test for borg0ai/dx-issuegraph#5012,
 // porting the proxied/uow path's
 // TestNewExternalDoltServerUOWProvider_FreshInitSelfHealsAfterMidPassFailure
 // (merged #5042) to initSchemaOnDBWithRetryAndGateOwnership.
@@ -52,7 +52,7 @@ func TestFreshBootstrapHealSelfHealsAfterMidPassFailure(t *testing.T) {
 			return nil
 		}
 		fired = true
-		if _, err := db.ExecContext(ctx, "ALTER TABLE issues ADD COLUMN bd_freshheal_debris INT"); err != nil {
+		if _, err := db.ExecContext(ctx, "ALTER TABLE issues ADD COLUMN issuegraph_freshheal_debris INT"); err != nil {
 			return fmt.Errorf("injecting mid-step debris: %w", err)
 		}
 		// Message text must land in isRetryableError's substring
@@ -89,7 +89,7 @@ func TestFreshBootstrapHealSelfHealsAfterMidPassFailure(t *testing.T) {
 
 	var debrisCols int
 	if err := store.db.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'issues' AND column_name = 'bd_freshheal_debris'",
+		"SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'issues' AND column_name = 'issuegraph_freshheal_debris'",
 	).Scan(&debrisCols); err != nil {
 		t.Fatalf("count debris column: %v", err)
 	}
@@ -162,7 +162,7 @@ func TestFreshBootstrapHealNotArmedWhenDatabasePreexists(t *testing.T) {
 			return nil
 		}
 		fired = true
-		if _, err := db.ExecContext(ctx, "ALTER TABLE issues ADD COLUMN bd_freshheal_negative_debris INT"); err != nil {
+		if _, err := db.ExecContext(ctx, "ALTER TABLE issues ADD COLUMN issuegraph_freshheal_negative_debris INT"); err != nil {
 			return fmt.Errorf("injecting mid-step debris: %w", err)
 		}
 		return fmt.Errorf("test-injected session death: lost connection to MySQL server during query")

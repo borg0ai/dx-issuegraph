@@ -18,12 +18,12 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/steveyegge/beads/internal/lockfile"
-	"github.com/steveyegge/beads/internal/procid"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/identity"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/util"
+	"github.com/borg0ai/dx-issuegraph/internal/lockfile"
+	"github.com/borg0ai/dx-issuegraph/internal/procid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/identity"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/util"
 )
 
 const IdleTimeoutNever time.Duration = -1
@@ -37,7 +37,7 @@ type ProxyOpts struct {
 	// proxy.lock before forking this proxy. ListenAndServe re-reads the
 	// epoch immediately before publishing proxy.pid and aborts if it has
 	// advanced, so a slow backend start cannot outlast a concurrent
-	// `bd dolt stop` and publish a running proxy after the stop returned.
+	// `issuegraph dolt stop` and publish a running proxy after the stop returned.
 	// Empty means "no stop had ever run", which readStopEpoch also reports
 	// for a missing epoch file, so the zero value stays correct for direct
 	// (non-forked) callers such as tests.
@@ -132,7 +132,7 @@ func (p *proxyServer) ListenAndServe(parentCtx context.Context) error {
 		return fmt.Errorf("clear proxy spawn marker: %w", err)
 	}
 
-	// Fast-abort: a concurrent `bd dolt stop` advances the stop epoch before
+	// Fast-abort: a concurrent `issuegraph dolt stop` advances the stop epoch before
 	// waiting (briefly) for proxy.lock, so an epoch that moved between the
 	// spawning parent's read and this child taking the lock dooms this start.
 	// Abort before opening any listener or booting the backend: the stopper
@@ -299,7 +299,7 @@ func (p *proxyServer) ListenAndServe(parentCtx context.Context) error {
 	identMu.Unlock()
 
 	// Last fence before publishing: the spawn marker was cleared when this
-	// process took proxy.lock, so a `bd dolt stop` that began during a slow
+	// process took proxy.lock, so a `issuegraph dolt stop` that began during a slow
 	// backend start has no record of this attempt. It did advance the stop
 	// epoch first, so re-check it here and abort instead of publishing a
 	// running proxy after that stop returned. The startup epoch watcher is

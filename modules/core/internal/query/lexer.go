@@ -1,4 +1,4 @@
-// Package query implements a simple query language for filtering beads.
+// Package query implements a simple query language for filtering issuegraph.
 //
 // The query language supports:
 //   - Field comparisons: status=open, priority>1, updated>7d

@@ -1,0 +1,11 @@
+# Test issuegraph show error cases
+
+issuegraph init --prefix test
+
+# Show nonexistent issue prints error to stderr (exits 0 - known issue)
+issuegraph show nonexistent-id
+stderr 'no issue found'
+
+# Show with no args and no last-touched should fail
+! issuegraph show
+stderr 'issue ID is required'

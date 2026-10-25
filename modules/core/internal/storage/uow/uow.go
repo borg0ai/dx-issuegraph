@@ -3,8 +3,8 @@ package uow
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/domain/db"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain/db"
 )
 
 type UnitOfWork interface {
@@ -123,7 +123,7 @@ func (u *baseUOW) RawSQLUseCase() domain.RawSQLUseCase {
 	return u.rawSQLUseCase
 }
 
-// EventsJournalUseCase serves `bd events` in proxied-server mode. The journal
+// EventsJournalUseCase serves `issuegraph events` in proxied-server mode. The journal
 // is clone-local operational state reached through the same pinned transaction
 // as every other repository, so a caller needs no raw SQL connection for it.
 func (u *baseUOW) EventsJournalUseCase() domain.EventsJournalUseCase {

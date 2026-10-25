@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/schema"
 )
 
 // TestConcurrentInitSchema verifies that concurrent initSchemaOnDB calls on a
@@ -45,7 +45,7 @@ func TestConcurrentInitSchema(t *testing.T) {
 	}
 
 	// Open N independent sql.DB pools pointing at the fresh database.
-	// Each simulates a separate bd process connecting simultaneously.
+	// Each simulates a separate issuegraph process connecting simultaneously.
 	const numConcurrent = 20
 	dsn := doltutil.ServerDSN{Host: "127.0.0.1", Port: testServerPort, User: "root", Database: dbName}.String()
 

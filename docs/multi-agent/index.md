@@ -16,7 +16,7 @@ Multi-agent features enable:
 
 ### Routing
 
-Routing decides which repository a new bead lands in, based on your role
+Routing decides which repository a new issue lands in, based on your role
 (contributor vs maintainer) and the `routing.*` config keys — an explicit
 `--repo` flag always wins. See [Multi-Repo Routing](/multi-agent/routing)
 for the decision flow and configuration reference.
@@ -26,8 +26,8 @@ for the decision flow and configuration reference.
 Assign or atomically claim work:
 
 ```bash
-issuegraph assign bd-42 agent-1        # shorthand for issuegraph update bd-42 --assignee agent-1
-issuegraph update bd-42 --claim        # atomically set assignee + in_progress
+issuegraph assign issuegraph-42 agent-1        # shorthand for issuegraph update issuegraph-42 --assignee agent-1
+issuegraph update issuegraph-42 --claim        # atomically set assignee + in_progress
 issuegraph ready --claim --json        # claim the first ready match
 ```
 
@@ -36,7 +36,7 @@ issuegraph ready --claim --json        # claim the first ready match
 Track dependencies across repositories:
 
 ```bash
-issuegraph dep add bd-42 external:other-repo:api-ready
+issuegraph dep add issuegraph-42 external:other-repo:api-ready
 ```
 
 ## Architecture
@@ -64,7 +64,7 @@ issuegraph dep add bd-42 external:other-repo:api-ready
 ## Pages in this section
 
 - [Routing](/multi-agent/routing) — automatic issue routing across
-  repositories and `BEADS_DIR` resolution.
+  repositories and `ISSUEGRAPH_DIR` resolution.
 - [Coordination](/multi-agent/coordination) — work assignment and handoff
   patterns between agents.
 - [Federation](/multi-agent/federation) — peer-to-peer sharing of issuegraph

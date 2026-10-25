@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// These tests cover #4992 for server-mode DoltStore: `bd vc merge --strategy`
+// These tests cover #4992 for server-mode DoltStore: `issuegraph vc merge --strategy`
 // was dead code because Merge ran as a bare CALL DOLT_MERGE under autocommit,
 // so Dolt rejected any real conflict (Error 1105, "@autocommit must be
 // disabled ...") before the strategy could ever be applied.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Agent PR preflight for beads.
+# Agent PR preflight for issuegraph.
 #
 # This script is read-only. It turns the contributor-protection policy into a
 # concrete checklist before an agent reviews, closes, merges, or supersedes a PR.
@@ -13,10 +13,10 @@ Usage:
   scripts/pr-preflight.sh --search "<topic keywords>" [--repo owner/name]
 
 Before changing or merging an existing PR:
-  scripts/pr-preflight.sh 123 --repo gastownhall/beads
+  scripts/pr-preflight.sh 123 --repo borg0ai/dx-issuegraph
 
 Before implementing a feature/fix or opening a replacement PR:
-  scripts/pr-preflight.sh --search "dependency cycle detection" --repo gastownhall/beads
+  scripts/pr-preflight.sh --search "dependency cycle detection" --repo borg0ai/dx-issuegraph
 
 What this checks:
   - whether an existing PR is external/cross-repository contributor work
@@ -25,7 +25,7 @@ What this checks:
     reasoning unsafe; set PR_PREFLIGHT_BLOCK_RED_BASE=1 to block instead of warn)
   - a supplemental, warn-only sample for a PR-gate workflow (e.g. pr.yml) that
     is red for every PR while the base branch itself looks green
-  - risky diff signals: .beads data, missing tests for code changes, large diffs
+  - risky diff signals: .issuegraph data, missing tests for code changes, large diffs
   - contributor-protection next steps and attribution reminders
 
 The script does not replace code review or local validation.
@@ -352,7 +352,7 @@ fi
 # cancelled mid-flight carries stale CANCELLED/FAILURE entries forever, next
 # to the fresh green re-runs of the same checks — GitHub's own mergeability
 # uses latest-per-name, so counting raw entries permanently blocks PRs that
-# GitHub reports CLEAN (observed on gastownhall/beads#5073–5076: 20 stale
+# GitHub reports CLEAN (observed on borg0ai/dx-issuegraph#5073–5076: 20 stale
 # CANCELLED runs + 1 stale gate FAILURE alongside 80 green checks). Collapse
 # to the most recent entry per check name/context before classifying.
 # Group key includes __typename and workflowName: a commit status and a
@@ -389,9 +389,9 @@ else
   pass "No failed or pending status checks reported."
 fi
 
-beads_files=$(jq '[.files[]?.path | select(startswith(".beads/"))] | length' <<<"$json")
-if [[ "$beads_files" -gt 0 ]]; then
-  block "PR changes .beads/ data; contributor PRs must not include planning database changes."
+issuegraph_files=$(jq '[.files[]?.path | select(startswith(".issuegraph/"))] | length' <<<"$json")
+if [[ "$issuegraph_files" -gt 0 ]]; then
+  block "PR changes .issuegraph/ data; contributor PRs must not include planning database changes."
 fi
 
 code_files=$(jq '[.files[]?.path | select(test("\\.(go|py|sh)$"))] | length' <<<"$json")

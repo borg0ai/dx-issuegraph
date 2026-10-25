@@ -9,7 +9,7 @@ package tracker
 import (
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TrackerIssue represents an issue from an external tracker in a generic format.
@@ -89,7 +89,7 @@ type SyncOptions struct {
 	// ExcludeTypes excludes specific issue types from sync.
 	ExcludeTypes []types.IssueType
 	// ExcludeIDPrefix skips issues whose ID starts with this prefix (case-
-	// sensitive). Used to filter workflow-artifact beads (e.g. "hw-mol-")
+	// sensitive). Used to filter workflow-artifact issuegraph (e.g. "hw-mol-")
 	// from external sync. Empty means no prefix filter.
 	ExcludeIDPrefix string
 	// ExcludeIDPatterns skips issues whose ID contains any of these
@@ -99,10 +99,10 @@ type SyncOptions struct {
 	ExcludeIDPatterns []string
 	// ExcludeEphemeral skips ephemeral/wisp issues from push (default behavior in CLI).
 	ExcludeEphemeral bool
-	// ParentID limits push to this beads issue and all its descendants via
+	// ParentID limits push to this issuegraph issue and all its descendants via
 	// parent-child dependencies. Empty means no restriction.
 	ParentID string
-	// IssueIDs restricts sync to only these issues. Accepts bead IDs (e.g. "bd-123")
+	// IssueIDs restricts sync to only these issues. Accepts issue IDs (e.g. "bd-123")
 	// or external refs (e.g. "EXT-456"). When non-empty, push filters local issues
 	// by ID and pull uses FetchIssue() for targeted retrieval instead of bulk fetch.
 	IssueIDs []string
@@ -180,7 +180,7 @@ type BatchPushResult struct {
 
 // Conflict represents a bidirectional modification conflict.
 type Conflict struct {
-	IssueID            string    // Beads issue ID
+	IssueID            string    // IssueGraph issue ID
 	LocalUpdated       time.Time // When the local version was last modified
 	ExternalUpdated    time.Time // When the external version was last modified
 	ExternalRef        string    // URL or identifier for the external issue
@@ -194,13 +194,15 @@ type ConflictResolution string
 const (
 	// ConflictTimestamp resolves conflicts by keeping the newer version.
 	ConflictTimestamp ConflictResolution = "timestamp"
-	// ConflictLocal always keeps the local beads version.
+	// ConflictLocal always keeps the local issuegraph version.
 	ConflictLocal ConflictResolution = "local"
 	// ConflictExternal always keeps the external tracker's version.
 	ConflictExternal ConflictResolution = "external"
+	// ConflictPreserve keeps both current versions unchanged and reports the conflict.
+	ConflictPreserve ConflictResolution = "preserve"
 )
 
-// IssueConversion holds the result of converting an external tracker issue to beads.
+// IssueConversion holds the result of converting an external tracker issue to issuegraph.
 type IssueConversion struct {
 	Issue        *types.Issue
 	Dependencies []DependencyInfo
@@ -210,7 +212,7 @@ type IssueConversion struct {
 type DependencyInfo struct {
 	FromExternalID string // External identifier of the dependent issue
 	ToExternalID   string // External identifier of the dependency target
-	Type           string // Beads dependency type (blocks, related, duplicates, parent-child)
+	Type           string // IssueGraph dependency type (blocks, related, duplicates, parent-child)
 	Source         DependencySource
 }
 

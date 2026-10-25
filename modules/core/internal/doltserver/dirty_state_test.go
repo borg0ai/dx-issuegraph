@@ -10,17 +10,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/testutil/integration"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil/integration"
 )
 
 // TestDirtyState_StalePIDAliveNonDolt verifies that Start() recovers when the
 // PID file contains the PID of a live non-dolt process.
 // Would have caught: false-positive IsRunning when PID recycled to a different process.
 func TestDirtyState_StalePIDAliveNonDolt(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
 	// Start a non-dolt process.
@@ -34,12 +34,12 @@ func TestDirtyState_StalePIDAliveNonDolt(t *testing.T) {
 	})
 
 	// Write its PID as the server PID.
-	corruptor := integration.NewStateCorruptor(t, beadsDir)
+	corruptor := integration.NewStateCorruptor(t, issuegraphDir)
 	corruptor.WriteStalePID(sleepCmd.Process.Pid)
 	corruptor.WriteStalePort(13306)
 
 	// IsRunning should detect non-dolt process.
-	state, err := doltserver.IsRunning(beadsDir)
+	state, err := doltserver.IsRunning(issuegraphDir)
 	if err != nil {
 		t.Fatalf("IsRunning: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestDirtyState_StalePIDAliveNonDolt(t *testing.T) {
 	}
 
 	// Start should succeed after cleaning up stale state.
-	startState, err := doltserver.Start(beadsDir)
+	startState, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestDirtyState_StalePIDAliveNonDolt(t *testing.T) {
 		t.Error("sleep process was killed — Start should not kill non-dolt processes")
 	}
 
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Logf("Stop: %v", err)
 	}
 	reg.Deregister(startState.PID)
@@ -74,18 +74,18 @@ func TestDirtyState_StalePIDAliveNonDolt(t *testing.T) {
 // to a process that no longer exists.
 // Would have caught: GH#2559 (system restart breaks all Dolt connections).
 func TestDirtyState_StalePIDDead(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
 	// Write a PID that doesn't exist.
-	corruptor := integration.NewStateCorruptor(t, beadsDir)
+	corruptor := integration.NewStateCorruptor(t, issuegraphDir)
 	corruptor.WriteStalePID(99999999)
 	corruptor.WriteStalePort(13306)
 
 	// IsRunning should return false and clean up.
-	state, err := doltserver.IsRunning(beadsDir)
+	state, err := doltserver.IsRunning(issuegraphDir)
 	if err != nil {
 		t.Fatalf("IsRunning: %v", err)
 	}
@@ -99,7 +99,7 @@ func TestDirtyState_StalePIDDead(t *testing.T) {
 	}
 
 	// Start should succeed.
-	startState, err := doltserver.Start(beadsDir)
+	startState, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestDirtyState_StalePIDDead(t *testing.T) {
 		reg.Register(p)
 	}
 
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Logf("Stop: %v", err)
 	}
 	reg.Deregister(startState.PID)
@@ -116,17 +116,17 @@ func TestDirtyState_StalePIDDead(t *testing.T) {
 // TestDirtyState_StalePortOnly verifies recovery when a port file exists
 // but no PID file is present.
 func TestDirtyState_StalePortOnly(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
 	// Write only a stale port file.
-	corruptor := integration.NewStateCorruptor(t, beadsDir)
+	corruptor := integration.NewStateCorruptor(t, issuegraphDir)
 	corruptor.WriteStalePort(13306)
 
 	// Start should succeed.
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestDirtyState_StalePortOnly(t *testing.T) {
 		reg.Register(p)
 	}
 
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Logf("Stop: %v", err)
 	}
 	reg.Deregister(state.PID)
@@ -146,16 +146,16 @@ func TestDirtyState_StalePortOnly(t *testing.T) {
 // TestDirtyState_CorruptPIDFile verifies recovery when the PID file contains
 // non-numeric content.
 func TestDirtyState_CorruptPIDFile(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	issuegraphDir := setupLifecycleTestDir(t)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
-	corruptor := integration.NewStateCorruptor(t, beadsDir)
+	corruptor := integration.NewStateCorruptor(t, issuegraphDir)
 	corruptor.WriteCorruptPID()
 	corruptor.WriteStalePort(13306)
 
 	// IsRunning should return false and clean up corrupt files.
-	state, err := doltserver.IsRunning(beadsDir)
+	state, err := doltserver.IsRunning(issuegraphDir)
 	if err != nil {
 		t.Fatalf("IsRunning: %v", err)
 	}
@@ -173,17 +173,17 @@ func TestDirtyState_CorruptPIDFile(t *testing.T) {
 // TestDirtyState_TruncatedMetadata verifies that truncated metadata.json
 // does not cause a panic.
 func TestDirtyState_TruncatedMetadata(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
-	corruptor := integration.NewStateCorruptor(t, beadsDir)
+	corruptor := integration.NewStateCorruptor(t, issuegraphDir)
 	corruptor.WriteTruncatedMetadata()
 
 	// Start should not panic. It may succeed (ignoring corrupt metadata)
 	// or return an error — either is acceptable.
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Logf("Start returned error (acceptable): %v", err)
 		return
@@ -192,7 +192,7 @@ func TestDirtyState_TruncatedMetadata(t *testing.T) {
 	if p, err := os.FindProcess(state.PID); err == nil {
 		reg.Register(p)
 	}
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Logf("Stop: %v", err)
 	}
 	reg.Deregister(state.PID)
@@ -201,16 +201,16 @@ func TestDirtyState_TruncatedMetadata(t *testing.T) {
 // TestDirtyState_PortZero verifies recovery when port file contains "0".
 // Would have caught: GH#2598 (port 0 in state file poisons circuit breaker).
 func TestDirtyState_PortZero(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
-	corruptor := integration.NewStateCorruptor(t, beadsDir)
+	corruptor := integration.NewStateCorruptor(t, issuegraphDir)
 	corruptor.WritePortZero()
 
 	// Start should succeed — port 0 is treated as "no port".
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -221,7 +221,7 @@ func TestDirtyState_PortZero(t *testing.T) {
 		reg.Register(p)
 	}
 
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Logf("Stop: %v", err)
 	}
 	reg.Deregister(state.PID)
@@ -231,16 +231,16 @@ func TestDirtyState_PortZero(t *testing.T) {
 // port files are stale (e.g., after an unclean system shutdown).
 // Would have caught: GH#2559 (init --force required after system restart).
 func TestDirtyState_CombinedStalePIDAndPort(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
-	corruptor := integration.NewStateCorruptor(t, beadsDir)
+	corruptor := integration.NewStateCorruptor(t, issuegraphDir)
 	corruptor.CreateCombinedStaleState(99999999, 13306)
 
 	// Start should clean up and succeed.
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -258,7 +258,7 @@ func TestDirtyState_CombinedStalePIDAndPort(t *testing.T) {
 	}
 	_ = db.Close()
 
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Logf("Stop: %v", err)
 	}
 	reg.Deregister(state.PID)
@@ -267,13 +267,13 @@ func TestDirtyState_CombinedStalePIDAndPort(t *testing.T) {
 // TestDirtyState_OrphanNomsLock verifies that an orphaned 0-byte noms LOCK
 // file (from a power loss) does not prevent server startup.
 func TestDirtyState_OrphanNomsLock(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
-	doltDir := filepath.Join(beadsDir, "dolt")
-	corruptor := integration.NewStateCorruptor(t, beadsDir)
+	doltDir := filepath.Join(issuegraphDir, "dolt")
+	corruptor := integration.NewStateCorruptor(t, issuegraphDir)
 	corruptor.CreateOrphanNomsLock(doltDir)
 
 	// Verify the lock file exists.
@@ -283,7 +283,7 @@ func TestDirtyState_OrphanNomsLock(t *testing.T) {
 	}
 
 	// Start should succeed (dolt handles orphan LOCK files).
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		// Some dolt versions may fail here — log but don't hard-fail.
 		t.Logf("Start with orphan LOCK: %v (may be dolt version dependent)", err)
@@ -296,7 +296,7 @@ func TestDirtyState_OrphanNomsLock(t *testing.T) {
 	// Give server time to initialize.
 	time.Sleep(1 * time.Second)
 
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Logf("Stop: %v", err)
 	}
 	reg.Deregister(state.PID)

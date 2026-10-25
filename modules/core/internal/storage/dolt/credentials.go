@@ -17,15 +17,15 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/steveyegge/beads/internal/githooksenv"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/githooksenv"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // Credential storage and encryption for federation peers.
 // Enables SQL user authentication when syncing with peer workspaces.
 
 // credentialKeyFile is the filename for the random encryption key stored alongside the database.
-const credentialKeyFile = ".beads-credential-key" //nolint:gosec // G101: not a credential, just a filename
+const credentialKeyFile = ".issuegraph-credential-key" //nolint:gosec // G101: not a credential, just a filename
 
 const awsResponseChecksumValidationEnv = "AWS_RESPONSE_CHECKSUM_VALIDATION"
 
@@ -51,24 +51,24 @@ func validatePeerName(name string) error {
 }
 
 // initCredentialKey loads or generates the credential encryption key.
-// The key file is stored in .beads/ (beadsDir), NOT in .beads/dolt/ (dbPath),
+// The key file is stored in .issuegraph/ (issuegraphDir), NOT in .issuegraph/dolt/ (dbPath),
 // to avoid creating ghost directories in shared-server mode (GH bd-cby).
 // Falls back to the old dbPath location for transparent migration.
 func (s *DoltStore) initCredentialKey(ctx context.Context) error {
-	if s.beadsDir == "" {
+	if s.issuegraphDir == "" {
 		return nil // No filesystem path — credential encryption unavailable
 	}
 
-	keyPath := filepath.Join(s.beadsDir, credentialKeyFile)
+	keyPath := filepath.Join(s.issuegraphDir, credentialKeyFile)
 
-	// Try to load from new location (.beads/)
-	key, err := os.ReadFile(keyPath) //nolint:gosec // G304: keyPath is derived from trusted beadsDir, not user input
+	// Try to load from new location (.issuegraph/)
+	key, err := os.ReadFile(keyPath) //nolint:gosec // G304: keyPath is derived from trusted issuegraphDir, not user input
 	if err == nil && len(key) == 32 {
 		s.credentialKey = key
 		return nil
 	}
 
-	// Migration: try old location (.beads/dolt/) and move to new location
+	// Migration: try old location (.issuegraph/dolt/) and move to new location
 	if s.dbPath != "" {
 		oldKeyPath := filepath.Join(s.dbPath, credentialKeyFile)
 		oldKey, oldErr := os.ReadFile(oldKeyPath) //nolint:gosec // G304: oldKeyPath is derived from trusted dbPath
@@ -95,9 +95,9 @@ func (s *DoltStore) initCredentialKey(ctx context.Context) error {
 
 	// Write key file with owner-only permissions (0600).
 	// Ensure the directory exists first — when connecting to an external
-	// server without having run `bd init`, .beads/ may not exist yet (GH#2641).
-	if err := os.MkdirAll(s.beadsDir, 0700); err != nil {
-		return fmt.Errorf("failed to create beads directory %s: %w", s.beadsDir, err)
+	// server without having run `issuegraph init`, .issuegraph/ may not exist yet (GH#2641).
+	if err := os.MkdirAll(s.issuegraphDir, 0700); err != nil {
+		return fmt.Errorf("failed to create issuegraph directory %s: %w", s.issuegraphDir, err)
 	}
 	if err := os.WriteFile(keyPath, key, 0600); err != nil {
 		return fmt.Errorf("failed to write credential key file: %w", err)
@@ -130,7 +130,7 @@ func (s *DoltStore) ensureCredentialKey(ctx context.Context) error {
 // Used only during migration from the old key derivation scheme.
 func (s *DoltStore) legacyEncryptionKey() []byte {
 	h := sha256.New()
-	h.Write([]byte(s.dbPath + "beads-federation-key-v1"))
+	h.Write([]byte(s.dbPath + "issuegraph-federation-key-v1"))
 	return h.Sum(nil)
 }
 
@@ -498,7 +498,7 @@ func applyS3ChecksumEnvToCmd(cmd *exec.Cmd) {
 // into its `hooks/` dir. When the user's templated `pre-push` hook calls
 // `git diff` / `git status` (e.g. via the pre-commit framework's
 // staged_files_only setup) it fails with `fatal: this operation must be
-// run in a work tree` and bd's push fails with it.
+// run in a work tree` and issuegraph's push fails with it.
 //
 // `GIT_CONFIG_PARAMETERS='core.hooksPath=/dev/null'` tells every git
 // invocation in the subprocess to look for hooks in `/dev/null` — i.e. to
@@ -662,7 +662,7 @@ func (s *DoltStore) shouldUseCLIForPeerCredentialsWithError(ctx context.Context,
 //
 // When true, callers should route through doltCLIPush/Pull instead of
 // CALL DOLT_PUSH/PULL, because withEnvCredentials() sets env vars on the
-// bd client process — the external server process cannot see them.
+// issuegraph client process — the external server process cannot see them.
 //
 // Returns true when ALL conditions are met:
 //  1. Credentials exist (remoteUser or remotePassword non-empty)
@@ -784,10 +784,10 @@ func envPrefixesForRemoteURL(url string) []string {
 // will trigger CLI routing for an az:// remote but NOT for a dolthub:// remote.
 //
 // Scheme detection uses the SQL remote URL. If matching cloud credentials are
-// present, bd materializes the same remote into the local CLI directory before
+// present, issuegraph materializes the same remote into the local CLI directory before
 // routing to the CLI subprocess.
 //
-// When bd connects to an external dolt-sql-server (server mode), CALL
+// When issuegraph connects to an external dolt-sql-server (server mode), CALL
 // DOLT_PUSH/PULL executes inside the server process. That process only has
 // the env vars it inherited at startup. If cloud credentials were set (or
 // changed) after the server started, the SQL path silently fails to

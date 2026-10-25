@@ -8,7 +8,7 @@ The `metadata` field on issues accepts arbitrary JSON. Any valid JSON value is s
 Metadata is the preferred extension point for data that is specific to an
 integration, orchestrator, team workflow, or experimental automation. Before
 adding first-class fields, commands, or schema changes, check the
-[Project Charter](https://github.com/gastownhall/beads/blob/main/engdocs/PROJECT_CHARTER.md#schema-boundary).
+[Project Charter](https://github.com/borg0ai/dx-issuegraph/blob/main/engdocs/PROJECT_CHARTER.md#schema-boundary).
 
 ## Example: Agent Execution Metadata
 
@@ -79,12 +79,12 @@ to issuegraph itself, revisit whether it deserves a native field.
 
 | Prefix | Reserved For |
 |--------|------------|
-| `bd:` | IssueGraph internal use |
+| `issuegraph:` | IssueGraph internal use |
 | `_` | Internal/private keys |
 
 Avoid these prefixes in user-defined keys to prevent conflicts with future IssueGraph features.
 
 ## Related
 
-- [Project Charter](https://github.com/gastownhall/beads/blob/main/engdocs/PROJECT_CHARTER.md) - Product scope and schema boundary
-- [#1416](https://github.com/gastownhall/beads/issues/1416) - Optional schema enforcement (future)
+- [Project Charter](https://github.com/borg0ai/dx-issuegraph/blob/main/engdocs/PROJECT_CHARTER.md) - Product scope and schema boundary
+- [#1416](https://github.com/borg0ai/dx-issuegraph/issues/1416) - Optional schema enforcement (future)

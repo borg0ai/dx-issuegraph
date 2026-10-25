@@ -1,20 +1,20 @@
 ---
-title: "bd tag"
-description: "Add a label to an issue."
+title: "issuegraph tag"
+description: "Add a label to an issue"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc tag`.
+Generated from `issuegraph help --doc tag`.
 
 Add a label to an issue.
 
-Shorthand for 'bd update &lt;id&gt; --add-label &lt;label&gt;'.
+Shorthand for 'issuegraph update &lt;id&gt; --add-label &lt;label&gt;'.
 
 Examples:
-  bd tag bd-123 bug
-  bd tag bd-123 needs-review
+  issuegraph tag bd-123 bug
+  issuegraph tag bd-123 needs-review
 
 ```
-bd tag <id> <label> [flags]
+issuegraph tag <id> <label> [flags]
 ```

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**IssueGraph** (command: `issuegraph`) is a Dolt-powered issue tracker for AI-supervised coding workflows. Git integration is optional — see `BEADS_DIR` + `--stealth` for git-free operation. We dogfood our own tool.
+**IssueGraph** (command: `issuegraph`) is a Dolt-powered issue tracker for AI-supervised coding workflows. Git integration is optional — see `ISSUEGRAPH_DIR` + `--stealth` for git-free operation. We dogfood our own tool.
 
 **IMPORTANT**: See [AGENTS.md](../AGENTS.md) for complete workflow instructions, issuegraph commands, and development guidelines.
 
@@ -22,7 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Proxy and pidfile helpers live under `internal/storage/db/`
    - Storage-facing server adapters live under `internal/storage/doltserver/`
 
-3. **CLI Layer** (`modules/cli/`)
+3. **CLI Layer** (`apps/cli/`)
    - Cobra-based commands (one file per command: `create.go`, `list.go`, etc.)
    - Direct database access (embedded mode for standalone, server mode for orchestrator)
    - All commands support `--json` for programmatic use

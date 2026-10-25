@@ -36,8 +36,8 @@ func TestPullWithAutoResolve_BranchTrackingSuccess(t *testing.T) {
 	baseDir := t.TempDir()
 
 	// ── Remote server ──────────────────────────────────────────────────────────
-	// Set up a "remote" Dolt repo with a committed beads schema. This represents
-	// the centralised NAS repo that `bd dolt remote add` points at.
+	// Set up a "remote" Dolt repo with a committed issuegraph schema. This represents
+	// the centralised NAS repo that `issuegraph dolt remote add` points at.
 	remoteDir := filepath.Join(baseDir, "remote")
 	if err := os.MkdirAll(remoteDir, 0o755); err != nil {
 		t.Fatalf("mkdir remote: %v", err)
@@ -65,14 +65,14 @@ func TestPullWithAutoResolve_BranchTrackingSuccess(t *testing.T) {
 
 	// ── Local DoltStore ────────────────────────────────────────────────────────
 	// Create a fresh local DoltStore (embedded auto-start). This mirrors what a
-	// user gets after `bd init` on a new machine: a local repo with no remote.
+	// user gets after `issuegraph init` on a new machine: a local repo with no remote.
 	localDir := filepath.Join(baseDir, "local")
 	localStore, localCleanup := setupFederationStore(t, ctx, localDir, "local")
 	defer localCleanup()
 
 	// Add the remote via DOLT_REMOTE SQL — NOT via dolt clone. This leaves
 	// repo_state.json with an empty 'branches' map: the prerequisite for GH#3144.
-	remoteURL := fmt.Sprintf("doltremoteapi://127.0.0.1:%d/beads", remotesAPIPort)
+	remoteURL := fmt.Sprintf("doltremoteapi://127.0.0.1:%d/issuegraph", remotesAPIPort)
 	if _, err := localStore.db.ExecContext(ctx, "CALL DOLT_REMOTE('add', 'origin', ?)", remoteURL); err != nil {
 		t.Fatalf("failed to add remote: %v", err)
 	}

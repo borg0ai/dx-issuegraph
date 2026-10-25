@@ -13,8 +13,8 @@ import (
 
 	mysql "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // Regression test for the server-mode lost-update bug
@@ -179,7 +179,7 @@ func TestIssueOperationDoltCommitRunsAfterTxCommit(t *testing.T) {
 
 	s := &DoltStore{db: db}
 
-	err := s.runIssueOperationTx(context.Background(), "bd: update test-1", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
+	err := s.runIssueOperationTx(context.Background(), "issuegraph: update test-1", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
 		if _, err := tx.ExecContext(context.Background(), "UPDATE issues SET status = 'in_progress' WHERE id = 'test-1'"); err != nil {
 			return nil, err
 		}
@@ -239,7 +239,7 @@ func TestIssueOperationNoTablesSkipsDoltCommit(t *testing.T) {
 
 	s := &DoltStore{db: db}
 
-	err := s.runIssueOperationTx(context.Background(), "bd: noop", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
+	err := s.runIssueOperationTx(context.Background(), "issuegraph: noop", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
 		return nil, nil
 	})
 	if err != nil {
@@ -267,7 +267,7 @@ func TestPostTxDoltAddCommitSharesOneConnection(t *testing.T) {
 
 	s := &DoltStore{db: db}
 
-	err := s.runIssueOperationTx(context.Background(), "bd: update test-1", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
+	err := s.runIssueOperationTx(context.Background(), "issuegraph: update test-1", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
 		if _, err := tx.ExecContext(context.Background(), "UPDATE issues SET status = 'in_progress' WHERE id = 'test-1'"); err != nil {
 			return nil, err
 		}
@@ -318,7 +318,7 @@ func TestPostTxDoltCommitFailureDoesNotFailMutation(t *testing.T) {
 
 	s := &DoltStore{db: db}
 
-	err := s.runIssueOperationTx(context.Background(), "bd: update test-1", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
+	err := s.runIssueOperationTx(context.Background(), "issuegraph: update test-1", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
 		return storageissueops.ChangedTables{"issues": true}, nil
 	})
 	if err != nil {
@@ -377,7 +377,7 @@ func TestBatchMutatorPostTxDoltCommitFailureReturnsSuccess(t *testing.T) {
 		if _, err := tx.ExecContext(context.Background(), "INSERT INTO issues (id) VALUES ('batch-1')"); err != nil {
 			return nil, "", err
 		}
-		return storageissueops.ChangedTables{"issues": true}, "bd: create 1 issue (batch)", nil
+		return storageissueops.ChangedTables{"issues": true}, "issuegraph: create 1 issue (batch)", nil
 	})
 	if err != nil {
 		t.Fatalf("batch post-tx dolt commit failure must not fail the mutation (data committed); got: %v", err)
@@ -435,7 +435,7 @@ func TestPostTxDoltCommitRetriesSerializationConflict(t *testing.T) {
 
 	s := &DoltStore{db: db}
 
-	if err := s.doltAddAndCommitPostTx(context.Background(), []string{"issues"}, "bd: update test-1"); err != nil {
+	if err := s.doltAddAndCommitPostTx(context.Background(), []string{"issues"}, "issuegraph: update test-1"); err != nil {
 		t.Fatalf("serialization conflict must be retried to success, got: %v", err)
 	}
 	doltCommits := 0
@@ -464,7 +464,7 @@ func TestPostTxDoltCommitSurvivesCallerCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // already cancelled before the post-tx commit starts
 
-	if err := s.doltAddAndCommitPostTx(ctx, []string{"issues"}, "bd: update test-1"); err != nil {
+	if err := s.doltAddAndCommitPostTx(ctx, []string{"issues"}, "issuegraph: update test-1"); err != nil {
 		t.Fatalf("post-tx dolt commit must survive caller cancellation, got: %v", err)
 	}
 	sawDoltCommit := false
@@ -495,7 +495,7 @@ func TestAmbiguousTxCommitDoesNotMintDoltCommit(t *testing.T) {
 
 	s := &DoltStore{db: db}
 
-	err := s.runIssueOperationTx(context.Background(), "bd: update test-1", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
+	err := s.runIssueOperationTx(context.Background(), "issuegraph: update test-1", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
 		return storageissueops.ChangedTables{"issues": true}, nil
 	})
 	if err == nil {
@@ -540,7 +540,7 @@ func TestVerifiedClaimResolvesPostTxCommitFailureAsApplied(t *testing.T) {
 	s := &DoltStore{db: db, serverMode: true}
 
 	write := func() error {
-		return s.runIssueOperationTx(context.Background(), "bd: claim test-1 by claim-actor", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
+		return s.runIssueOperationTx(context.Background(), "issuegraph: claim test-1 by claim-actor", func(tx *sql.Tx) (storageissueops.ChangedTables, error) {
 			return storageissueops.ChangedTables{"issues": true}, nil
 		})
 	}

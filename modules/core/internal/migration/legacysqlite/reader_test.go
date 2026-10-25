@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 func TestExportAuthenticatedLegacySQLite(t *testing.T) {
@@ -132,8 +132,8 @@ func TestExportRejectsUnauthenticatedOrUnsafeLegacySQLite(t *testing.T) {
 	}{
 		{"drift", mutations(`ALTER TABLE issues ADD COLUMN surprise TEXT`)},
 		{"metadata-drift", mutations(`ALTER TABLE metadata ADD COLUMN surprise TEXT`)},
-		{"wrong-release", mutations(`UPDATE metadata SET value='0.50.4' WHERE key='bd_version'`)},
-		{"missing-release", mutations(`DELETE FROM metadata WHERE key='bd_version'`)},
+		{"wrong-release", mutations(`UPDATE metadata SET value='0.50.4' WHERE key='issuegraph_version'`)},
+		{"missing-release", mutations(`DELETE FROM metadata WHERE key='issuegraph_version'`)},
 		{"tombstone", mutations(`UPDATE issues SET status='tombstone' WHERE id='old-1'`)},
 		{"removed-field", mutations(`UPDATE issues SET closed_by_session='legacy' WHERE id='old-1'`)},
 		{"invalid-json", mutations(`UPDATE issues SET metadata='{' WHERE id='old-1'`)},
@@ -950,7 +950,7 @@ func mustExec(t *testing.T, db *sql.DB, query string, args ...any) {
 
 func legacyFixture(t *testing.T, version string) (*sql.DB, string) {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "beads.db")
+	path := filepath.Join(t.TempDir(), "issuegraph.db")
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		t.Fatal(err)
@@ -961,7 +961,7 @@ func legacyFixture(t *testing.T, version string) (*sql.DB, string) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := db.Exec(`INSERT INTO metadata VALUES ('bd_version', ?)`, version); err != nil {
+	if _, err := db.Exec(`INSERT INTO metadata VALUES ('issuegraph_version', ?)`, version); err != nil {
 		t.Fatal(err)
 	}
 	for _, id := range []string{"old-1", "old-2"} {
@@ -975,7 +975,7 @@ func legacyFixture(t *testing.T, version string) (*sql.DB, string) {
 func authenticDDL() []string {
 	return []string{
 		`CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
-		`CREATE TABLE issues (id TEXT PRIMARY KEY, content_hash TEXT, title TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', design TEXT NOT NULL DEFAULT '', acceptance_criteria TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'open', priority INTEGER NOT NULL DEFAULT 2, issue_type TEXT NOT NULL DEFAULT 'task', assignee TEXT, estimated_minutes INTEGER, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, created_by TEXT DEFAULT '', owner TEXT DEFAULT '', updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, closed_at DATETIME, closed_by_session TEXT DEFAULT '', external_ref TEXT, spec_id TEXT, compaction_level INTEGER DEFAULT 0, compacted_at DATETIME, compacted_at_commit TEXT, original_size INTEGER, deleted_at DATETIME, deleted_by TEXT DEFAULT '', delete_reason TEXT DEFAULT '', original_type TEXT DEFAULT '', sender TEXT DEFAULT '', ephemeral INTEGER DEFAULT 0, wisp_type TEXT DEFAULT '', pinned INTEGER DEFAULT 0, is_template INTEGER DEFAULT 0, crystallizes INTEGER DEFAULT 0, mol_type TEXT DEFAULT '', work_type TEXT DEFAULT 'mutex', quality_score REAL, source_system TEXT DEFAULT '', metadata TEXT NOT NULL DEFAULT '{}', event_kind TEXT DEFAULT '', actor TEXT DEFAULT '', target TEXT DEFAULT '', payload TEXT DEFAULT '', source_repo TEXT DEFAULT '.', close_reason TEXT DEFAULT '', await_type TEXT, await_id TEXT, timeout_ns INTEGER, waiters TEXT, hook_bead TEXT DEFAULT '', role_bead TEXT DEFAULT '', agent_state TEXT DEFAULT '', last_activity DATETIME, role_type TEXT DEFAULT '', rig TEXT DEFAULT '', due_at DATETIME, defer_until DATETIME)`,
+		`CREATE TABLE issues (id TEXT PRIMARY KEY, content_hash TEXT, title TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', design TEXT NOT NULL DEFAULT '', acceptance_criteria TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'open', priority INTEGER NOT NULL DEFAULT 2, issue_type TEXT NOT NULL DEFAULT 'task', assignee TEXT, estimated_minutes INTEGER, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, created_by TEXT DEFAULT '', owner TEXT DEFAULT '', updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, closed_at DATETIME, closed_by_session TEXT DEFAULT '', external_ref TEXT, spec_id TEXT, compaction_level INTEGER DEFAULT 0, compacted_at DATETIME, compacted_at_commit TEXT, original_size INTEGER, deleted_at DATETIME, deleted_by TEXT DEFAULT '', delete_reason TEXT DEFAULT '', original_type TEXT DEFAULT '', sender TEXT DEFAULT '', ephemeral INTEGER DEFAULT 0, wisp_type TEXT DEFAULT '', pinned INTEGER DEFAULT 0, is_template INTEGER DEFAULT 0, crystallizes INTEGER DEFAULT 0, mol_type TEXT DEFAULT '', work_type TEXT DEFAULT 'mutex', quality_score REAL, source_system TEXT DEFAULT '', metadata TEXT NOT NULL DEFAULT '{}', event_kind TEXT DEFAULT '', actor TEXT DEFAULT '', target TEXT DEFAULT '', payload TEXT DEFAULT '', source_repo TEXT DEFAULT '.', close_reason TEXT DEFAULT '', await_type TEXT, await_id TEXT, timeout_ns INTEGER, waiters TEXT, hook_issue TEXT DEFAULT '', role_issue TEXT DEFAULT '', agent_state TEXT DEFAULT '', last_activity DATETIME, role_type TEXT DEFAULT '', rig TEXT DEFAULT '', due_at DATETIME, defer_until DATETIME)`,
 		`CREATE TABLE dependencies (issue_id TEXT NOT NULL, depends_on_id TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'blocks', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, created_by TEXT NOT NULL, metadata TEXT, thread_id TEXT, PRIMARY KEY(issue_id,depends_on_id,type), FOREIGN KEY(issue_id) REFERENCES issues(id) ON DELETE CASCADE)`,
 		`CREATE TABLE labels (issue_id TEXT NOT NULL, label TEXT NOT NULL, PRIMARY KEY(issue_id,label), FOREIGN KEY(issue_id) REFERENCES issues(id) ON DELETE CASCADE)`,
 		`CREATE TABLE comments (id INTEGER PRIMARY KEY, issue_id TEXT NOT NULL, author TEXT NOT NULL, text TEXT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(issue_id) REFERENCES issues(id) ON DELETE CASCADE)`,

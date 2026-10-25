@@ -1,0 +1,18 @@
+# Test issuegraph stats command
+issuegraph init --prefix test
+
+# Create issues
+issuegraph create 'First issue'
+cp stdout first.txt
+exec sh -c 'grep -oE "test-[a-z0-9]+" first.txt > first_id.txt'
+
+issuegraph create 'Second issue'
+
+# Close one issue
+exec sh -c 'issuegraph close $(cat first_id.txt)'
+
+# Check stats
+issuegraph stats
+stdout 'Total Issues:'
+stdout 'Open:'
+stdout 'Closed:'

@@ -26,7 +26,7 @@
 16 2 TestReadWriteMix
 16 3 TestCreateGuard_ErrorMessage
 16 3 TestConcurrentIssueCreationWithoutCallerRetry
-16 4 TestCreateGuard_ExistingDB_DoesNotCreateMissingBeadsDir
+16 4 TestCreateGuard_ExistingDB_DoesNotCreateMissingIssueGraphDir
 16 5 TestCreateGuard_ExistingDB_NoFlag
 16 6 TestCreateGuard_ExistingDB_WithData
 16 7 TestCreateGuard_MissingDB_CreateIfMissing

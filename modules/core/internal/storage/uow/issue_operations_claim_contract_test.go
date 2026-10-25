@@ -7,10 +7,10 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The three request completions this backend has to honour, over a stub unit of
@@ -146,7 +146,7 @@ func TestUpdateProvenanceNamesTheHistoryEntry(t *testing.T) {
 		provenance string
 		want       string
 	}{
-		{"caller supplies one", "bd serve: claim bd-1 by alice", "bd serve: claim bd-1 by alice"},
+		{"caller supplies one", "issuegraph serve: claim bd-1 by alice", "issuegraph serve: claim bd-1 by alice"},
 		{"caller supplies none", "", "update issue"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -169,7 +169,7 @@ func TestUpdateProvenanceNamesTheHistoryEntry(t *testing.T) {
 
 // Reopen answers to the same rule update does, and it needs its own coverage
 // because this backend's default is the one that disagrees with the
-// store-backed implementations: "reopen issue" here against "bd: reopen issue"
+// store-backed implementations: "reopen issue" here against "issuegraph: reopen issue"
 // there. A caller that spells a label gets the same entry from both.
 //
 // The close that sets each case up carries no label — CloseRequest has none —
@@ -180,7 +180,7 @@ func TestReopenProvenanceNamesTheHistoryEntry(t *testing.T) {
 		provenance string
 		wantReopen string
 	}{
-		{"caller supplies one", "bd: reopen bd-1", "bd: reopen bd-1"},
+		{"caller supplies one", "issuegraph: reopen bd-1", "issuegraph: reopen bd-1"},
 		{"caller supplies none", "", "reopen issue"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -211,7 +211,7 @@ func TestIdempotentClaimRecordsNoHistoryEntry(t *testing.T) {
 	operations, uw := newClaimContract(t, held, false)
 
 	result, err := operations.Update(context.Background(), publicops.UpdateRequest{
-		Actor: "alice", IssueID: "bd-1", Claim: true, Provenance: "bd serve: claim bd-1 by alice",
+		Actor: "alice", IssueID: "bd-1", Claim: true, Provenance: "issuegraph serve: claim bd-1 by alice",
 	})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
@@ -237,7 +237,7 @@ func TestIdempotentClaimAcrossSpellingRecordsNoHistoryEntry(t *testing.T) {
 	operations, uw := newClaimContract(t, held, false)
 
 	result, err := operations.Update(context.Background(), publicops.UpdateRequest{
-		Actor: "gastown.mayor", IssueID: "bd-1", Claim: true, Provenance: "bd serve: claim bd-1 by gastown.mayor",
+		Actor: "gastown.mayor", IssueID: "bd-1", Claim: true, Provenance: "issuegraph serve: claim bd-1 by gastown.mayor",
 	})
 	if err != nil {
 		t.Fatalf("Update: %v, want success (same identity, different separator spelling)", err)
@@ -260,7 +260,7 @@ func TestClaimByGenuinelyDifferentIdentityRecordsAHistoryEntry(t *testing.T) {
 	operations, uw := newClaimContract(t, held, false)
 
 	result, err := operations.Update(context.Background(), publicops.UpdateRequest{
-		Actor: "gastown.dog-3", IssueID: "bd-1", Claim: true, Provenance: "bd serve: claim bd-1 by gastown.dog-3",
+		Actor: "gastown.dog-3", IssueID: "bd-1", Claim: true, Provenance: "issuegraph serve: claim bd-1 by gastown.dog-3",
 	})
 	if err != nil {
 		t.Fatalf("Update: %v", err)

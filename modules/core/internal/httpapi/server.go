@@ -24,12 +24,12 @@ import (
 
 	"golang.org/x/net/netutil"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/issueops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // APIVersion is the path major this package serves, reported as
@@ -152,11 +152,11 @@ type Config struct {
 	// A caller with a store takes them off the store's own accessors, and WHICH
 	// store value it takes them off is the whole question. Every decorator a
 	// store wears is on the value its accessor returns — that is what the
-	// accessors are for — and bd's chain is
+	// accessors are for — and issuegraph's chain is
 	// HookFiringStore -> InstrumentedStorage -> raw, so `store.IssueClaimer()`
 	// there returns a claimer that runs the workspace's on_update hook script
 	// for every claim it lands. That is precisely what this server documents it
-	// does not do (modules/cli/serve.go). Take the roles from BENEATH the hook layer:
+	// does not do (apps/cli/serve.go). Take the roles from BENEATH the hook layer:
 	//
 	//	src := store
 	//	if hooked, ok := src.(*storage.HookFiringStore); ok {
@@ -167,7 +167,7 @@ type Config struct {
 	//	... one per field below, all off the same src ...
 	//	httpapi.Listen(httpapi.Config{Reader: rd, Claimer: cl, /* and the rest */})
 	//
-	// modules/cli's serveIssueRoles is that loop, written out.
+	// apps/cli's serveIssueRoles is that loop, written out.
 	//
 	// Listen refuses a hook-firing role rather than trusting the paragraph
 	// above — see checkDatabaseSource.
@@ -180,7 +180,7 @@ type Config struct {
 	// Embedded Dolt is the backend that does not qualify (its commit runs
 	// outside the SQL transaction on a separate connection) and it is refused
 	// where the workspace is actually known: serveDatabaseSource in
-	// modules/cli/serve.go.
+	// apps/cli/serve.go.
 	//
 	// Unlike the provider path these are built ONCE, before Listen, rather than
 	// per request. The provider path rebuilds its roles per request for exactly
@@ -190,18 +190,18 @@ type Config struct {
 	Reader  issueops.Reader
 	Claimer issueops.Claimer
 	// BatchCloser closes many issues as one transaction, behind
-	// POST /v0/beads/issues:batchClose. It is its own field rather than a mode
+	// POST /v0/issuegraph/issues:batchClose. It is its own field rather than a mode
 	// of Lifecycle for the role's reason: the request is the transaction
 	// boundary, and a loop over Lifecycle.Close is N transactions.
 	BatchCloser issueops.BatchCloser
 	// ReadyClaimer is the atomic take of ready work, behind
-	// POST /v0/beads/issues:claimNext. It is its own field rather than a second
+	// POST /v0/issuegraph/issues:claimNext. It is its own field rather than a second
 	// verb on Claimer for the reason the role is its own interface: the caller
 	// names a QUESTION and the implementation picks the answer, so selection is
 	// part of the operation and not a patch.
 	ReadyClaimer issueops.ReadyClaimer
 	// Releaser is the claim's inverse, behind
-	// POST /v0/beads/issues/{id}:release. It is its own field rather than a
+	// POST /v0/issuegraph/issues/{id}:release. It is its own field rather than a
 	// method on Claimer for the reason the role is its own interface: a caller
 	// entitled to give its own work back is very often not entitled to take
 	// new work, so a surface carrying both hands out a capability it should not
@@ -218,14 +218,14 @@ type Config struct {
 	CycleDetector issueops.CycleDetector
 	EdgeReader    issueops.EdgeReader
 	// GraphCounter is the edge-count role behind
-	// GET /v0/beads/dependencies:count. It is a SEPARATE field from EdgeReader
+	// GET /v0/issuegraph/dependencies:count. It is a SEPARATE field from EdgeReader
 	// for the reason Counter is separate from ReadyCounter: that role answers
 	// with the edge ROWS in one direction, this one with a number in either,
 	// and neither can answer the other's question. Required on the same terms
 	// as every field here.
 	GraphCounter issueops.GraphCounter
 	// Relations is the single-anchor neighbor read behind
-	// GET /v0/beads/issues/{id}/related. It is a SEPARATE field from EdgeReader
+	// GET /v0/issuegraph/issues/{id}/related. It is a SEPARATE field from EdgeReader
 	// for the reason issueops.EdgeReader's own doc gives at length: that role
 	// answers with the edge ROWS for many anchors and reports a miss per anchor,
 	// this one answers with the hydrated ISSUES on the far end for ONE anchor and
@@ -233,7 +233,7 @@ type Config struct {
 	// different arity. Required on the same terms as every field here.
 	Relations issueops.Relations
 	// Commenter is the append-one-comment role behind
-	// POST /v0/beads/issues/{id}/comments. It is its own field rather than a
+	// POST /v0/issuegraph/issues/{id}/comments. It is its own field rather than a
 	// verb on Lifecycle for the role's own reason: a comment is not a patch to
 	// an issue — it appends a row to a thread the issue owns and leaves every
 	// field of the issue untouched, so an IssuePatch has nothing to carry and an
@@ -243,7 +243,7 @@ type Config struct {
 	BlockingAnnotator issueops.BlockingAnnotator
 	TreeWalker        issueops.TreeWalker
 	ReadyCounter      issueops.ReadyCounter
-	// Counter is the issue-count role behind GET /v0/beads/issues:count. It is
+	// Counter is the issue-count role behind GET /v0/issuegraph/issues:count. It is
 	// a SEPARATE field from ReadyCounter because it is a separate role: that
 	// one sizes the ready predicate, this one sizes a filter, and neither can
 	// answer the other's question. Required on the same terms as every field
@@ -251,8 +251,8 @@ type Config struct {
 	Counter issueops.Counter
 	Querier issueops.Querier
 	// Sweeper is the DESTRUCTIVE one, required on the same terms as every other
-	// role rather than opt-in: whether this build erases beads is a decision
-	// for the operator who chose to run bd serve, not a consequence of whether
+	// role rather than opt-in: whether this build erases issuegraph is a decision
+	// for the operator who chose to run issuegraph serve, not a consequence of whether
 	// a caller remembered a field.
 	Sweeper issueops.Sweeper
 	// Deleter is the OTHER destructive one, required for the same reason.
@@ -260,16 +260,16 @@ type Config struct {
 	BatchCreator issueops.BatchCreator
 	// DependencyEditor is the graph's write side. Required on the same terms as
 	// the two destructive roles above: whether this build can rewire the
-	// dependency graph is a decision for the operator who chose to run bd serve,
+	// dependency graph is a decision for the operator who chose to run issuegraph serve,
 	// not a consequence of whether a caller remembered a field.
 	DependencyEditor issueops.DependencyEditor
 	// MetadataCAS is the conditional single-key metadata write behind
-	// POST /v0/beads/issues/{id}:casMetadata. Required on the same terms as
+	// POST /v0/issuegraph/issues/{id}:casMetadata. Required on the same terms as
 	// every other role: a Config missing it would bind and nil-dereference on
 	// the first request that reached that handler.
 	MetadataCAS issueops.MetadataCAS
 	// BatchApplier is the ordered, heterogeneous plan behind
-	// POST /v0/beads/issues:batchApply. Required on the same terms as every
+	// POST /v0/issuegraph/issues:batchApply. Required on the same terms as every
 	// other role: a Config missing it would bind and nil-dereference on the
 	// first request that reached that handler.
 	//
@@ -290,7 +290,7 @@ type Config struct {
 	// role here that is required CONDITIONALLY — which is why it is absent from
 	// sourceRoles and checked on its own. Like Memories it is not an issueops
 	// role: the journal is a replay feed over engine state on a dolt_ignored
-	// table, not a bead query, so it has its own leaf package (journalops,
+	// table, not a issue query, so it has its own leaf package (journalops,
 	// whose doc states why). storage.EventsJournalCursor is an ALIAS of
 	// journalops.Journal, so this field names the role whichever spelling
 	// reaches it.
@@ -312,7 +312,7 @@ type Config struct {
 	//
 	// It is a resolved BOOLEAN rather than something this package works out,
 	// for the reason Config gives at the top: activation reads the target
-	// workspace's own config.yaml and the BD_EVENTS_JOURNAL environment
+	// workspace's own config.yaml and the ISSUEGRAPH_EVENTS_JOURNAL environment
 	// override, which is workspace state, and this package resolves none.
 	//
 	// It cannot be inferred from the data either, which is the whole reason the
@@ -321,7 +321,7 @@ type Config struct {
 	// a server without this flag would answer "you are caught up" to a consumer
 	// polling a workspace that will never emit a record.
 	EventsJournalEnabled bool
-	// Workspace is the startup snapshot GET /v0/beads/context answers from.
+	// Workspace is the startup snapshot GET /v0/issuegraph/context answers from.
 	// Only the allowlisted fields are ever serialized — see contextResponse,
 	// which names the whole set and the reasons for the exclusions.
 	Workspace domain.ContextInfo
@@ -431,7 +431,7 @@ type Server struct {
 
 // ValidateBindAddr enforces the bind posture, following the policy the managed
 // Dolt child already lives under (validateManagedServerConfigPolicy in
-// modules/cli/proxied_server.go): the host must be a NUMERIC IP literal.
+// apps/cli/proxied_server.go): the host must be a NUMERIC IP literal.
 //
 // Hostnames are refused, "localhost" included. A name is not a listener
 // specification — it resolves to whatever the host's resolver says today, so
@@ -460,7 +460,7 @@ func ValidateBindAddr(addr string, allowNonLoopback bool) (net.IP, error) {
 // bound address on stdout and the startup state on stderr. It does not accept
 // anything until Serve runs.
 //
-// There is no lock file, pid file or discovery file: bd serve is
+// There is no lock file, pid file or discovery file: issuegraph serve is
 // operator-invoked and the TCP bind IS the mutual exclusion, so a second
 // instance on the same fixed port fails here with the operating system's own
 // address-in-use error. (Under the ephemeral default that exclusion does not
@@ -534,7 +534,7 @@ func Listen(cfg Config) (*Server, error) {
 		closing:         make(chan struct{}),
 		maxWatchStreams: maxWatchStreams,
 
-		log:      log.New(cfg.Stderr, "bd serve: ", log.LstdFlags|log.LUTC),
+		log:      log.New(cfg.Stderr, "issuegraph serve: ", log.LstdFlags|log.LUTC),
 		stdout:   cfg.Stdout,
 		ctxBody:  contextResponse(cfg.Workspace, cfg.SchemaVersion, Capabilities()),
 		hosts:    newHostPolicy(ip, cfg.AllowedHosts),
@@ -555,7 +555,7 @@ func Listen(cfg Config) (*Server, error) {
 		ReadTimeout:       readTimeout,
 		IdleTimeout:       idleTimeout,
 		MaxHeaderBytes:    maxHeaderBytes,
-		ErrorLog:          log.New(cfg.Stderr, "bd serve: http: ", log.LstdFlags|log.LUTC),
+		ErrorLog:          log.New(cfg.Stderr, "issuegraph serve: http: ", log.LstdFlags|log.LUTC),
 		ConnState:         s.connState,
 	}
 	// Tell the streams to wind up as soon as a drain starts. Without it a
@@ -580,7 +580,7 @@ func Listen(cfg Config) (*Server, error) {
 		}
 	}
 
-	fmt.Fprintf(s.stdout, "bd serve: listening on http://%s\n", s.Addr())
+	fmt.Fprintf(s.stdout, "issuegraph serve: listening on http://%s\n", s.Addr())
 	s.logStartup()
 	return s, nil
 }
@@ -606,9 +606,9 @@ func Listen(cfg Config) (*Server, error) {
 //
 // The last refusal is the one a caller does not see coming. A store wears
 // decorators and its accessors hand them out — that is what the accessors are
-// FOR — so the obvious `store.IssueClaimer()` on bd's own storage chain returns
+// FOR — so the obvious `store.IssueClaimer()` on issuegraph's own storage chain returns
 // a claimer that fires the workspace's on_update hook for every claim it lands.
-// This server's contract says hooks do not fire (modules/cli/serve.go), and a
+// This server's contract says hooks do not fire (apps/cli/serve.go), and a
 // contract broken by the caller's most natural line is not a contract. Refusing
 // at Listen is the difference between a startup error naming the store to take
 // roles from and a server that has been quietly running a user's subprocess per
@@ -1859,7 +1859,7 @@ func newHostPolicy(bind net.IP, extra []string) hostPolicy {
 // embedded whitespace is the same mistake in a louder form.
 func ValidateAllowedHost(v string) error {
 	if strings.TrimSpace(v) == "" {
-		return errors.New("--allowed-host is empty; pass the Host header value clients send, such as bd-myproject.beads.svc.cluster.local")
+		return errors.New("--allowed-host is empty; pass the Host header value clients send, such as bd-myproject.issuegraph.svc.cluster.local")
 	}
 	if strings.ContainsAny(v, " \t\r\n") {
 		return fmt.Errorf("--allowed-host %q contains whitespace; it must be a bare host name or IP", v)
@@ -1941,7 +1941,7 @@ func (s *Server) logStartup() {
 		"mode", s.cfg.Mode,
 		"db", s.dbSource(),
 		"workspace", s.cfg.Workspace.RepoRoot,
-		"beads_dir", s.cfg.Workspace.BeadsDir,
+		"issuegraph_dir", s.cfg.Workspace.IssueGraphDir,
 		"database", s.cfg.Workspace.Database,
 		"host_allowlist", s.hosts.label(),
 		"capabilities", strings.Join(s.ctxBody.Capabilities, ","),

@@ -10,10 +10,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 const (
@@ -59,7 +59,7 @@ var (
 // It carries the claim's posture verbatim. The actor is caller-ASSERTED
 // provenance for the audit trail and not authenticated identity; hooks do not
 // fire and the per-command auto-commit machinery does not run, exactly as for
-// POST /v0/beads/issues/{id}:claim. The only durable effect is the single
+// POST /v0/issuegraph/issues/{id}:claim. The only durable effect is the single
 // storage commit the role makes inside its own transaction.
 //
 // A PLAIN PATCH on the issue-detail path rather than a custom method, so the id
@@ -235,7 +235,7 @@ func (s *Server) updateExpectedAssignee(w http.ResponseWriter, r *http.Request, 
 // surface for reopenProvenance's reason: the role's implementations disagree
 // about their own default, so a spelled label is what makes an entry read the
 // same whichever backend answered. Not wire-visible.
-const updateProvenance = "bd serve: update issue"
+const updateProvenance = "issuegraph serve: update issue"
 
 // issuePatch projects the decoded `patch` member onto the role's IssuePatch.
 //
@@ -484,7 +484,7 @@ func patchParam(member string) string {
 // the divergence from failBatchCreate: this operation addresses a resource, so
 // an id that names nothing is a genuine 404. A missing new PARENT is not that —
 // it is an edge endpoint, and it is a 400 on `patch.parent_id`, conforming to
-// POST /v0/beads/dependencies:add.
+// POST /v0/issuegraph/dependencies:add.
 func (s *Server) failUpdate(w http.ResponseWriter, r *http.Request, request issueops.UpdateRequest, err error) {
 	var (
 		typeConflict *issueops.DependencyTypeConflictError
@@ -578,7 +578,7 @@ func (s *Server) failUpdate(w http.ResponseWriter, r *http.Request, request issu
 			patchParam("parent_id")))
 
 	// An edge endpoint, not the resource this request addresses: the 400 that
-	// conforms to POST /v0/beads/dependencies:add. It is matched before the
+	// conforms to POST /v0/issuegraph/dependencies:add. It is matched before the
 	// generic ErrNotFound so a missing PARENT can never be reported as a missing
 	// ISSUE, which would send a client looking for the wrong row.
 	case errors.As(err, &endpoint):

@@ -6,8 +6,8 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 
-	"github.com/steveyegge/beads/internal/storage/domain/db"
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain/db"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 type Tx interface {

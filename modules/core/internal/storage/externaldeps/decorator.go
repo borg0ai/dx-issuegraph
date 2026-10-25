@@ -8,11 +8,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi/storereadycounter"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi/storereadycounter"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Store decorates a local store with query-time external capability handling.
@@ -43,7 +43,7 @@ func (s *Store) Unwrap() storage.DoltStorage { return s.inner }
 
 // IssueLifecycle preserves the external close policy for public lifecycle
 // operations. Returning the inner lifecycle directly would promote around the
-// decorator when bd close or bd update uses the lifecycle seam.
+// decorator when issuegraph close or issuegraph update uses the lifecycle seam.
 func (s *Store) IssueLifecycle() (publicops.Lifecycle, error) {
 	inner, err := s.inner.IssueLifecycle()
 	if err != nil {
@@ -231,8 +231,8 @@ func (s *Store) CountReadyWork(ctx context.Context, filter types.WorkFilter) (in
 }
 
 // ReadyCounter sizes the ready set through CountReadyWork above, so the total
-// text-mode `bd ready` prints honors the same external exclusions as the page
-// and as the in-band total `bd ready --json` takes from
+// text-mode `issuegraph ready` prints honors the same external exclusions as the page
+// and as the in-band total `issuegraph ready --json` takes from
 // GetReadyWorkWithCountsAndTotal. It must be overridden here: the embedded
 // passthrough would hand back the inner store's counter, which counts
 // externally blocked issues as ready.
@@ -243,7 +243,7 @@ func (s *Store) CountReadyWork(ctx context.Context, filter types.WorkFilter) (in
 // its layer back by wrapping the finished counter — which is what
 // telemetry.InstrumentedStorage.WrapReadyCounter exists for, and why the
 // documented storage.ReadyCounter.CountReady span still appears for text-mode
-// `bd ready` in the modules/cli chain (hooks -> externaldeps -> telemetry -> store).
+// `issuegraph ready` in the apps/cli chain (hooks -> externaldeps -> telemetry -> store).
 func (s *Store) ReadyCounter() (publicops.ReadyCounter, error) {
 	counter, err := storereadycounter.New(s)
 	if err != nil {

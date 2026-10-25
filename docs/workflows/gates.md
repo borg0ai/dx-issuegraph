@@ -11,13 +11,13 @@ so agents never need to poll or spin.
 
 ## How a gate works
 
-A gate is a bead like any other: created open, it blocks its waiters through
+A gate is a issue like any other: created open, it blocks its waiters through
 a normal dependency edge, and the step becomes ready the moment the gate
 closes. Gates close in one of two ways:
 
 - **Manually** — `issuegraph gate resolve <gate-id>` (human gates always close this
   way).
-- **Via `issuegraph gate check`** — evaluates open timer, GitHub, and bead gates
+- **Via `issuegraph gate check`** — evaluates open timer, GitHub, and issue gates
   against the real world and closes the ones whose condition is met.
 
 ```bash
@@ -37,7 +37,7 @@ issuegraph gate resolve <gate-id>    # close a gate manually
 | `timer` | a duration after gate creation | `issuegraph gate check` once the timeout elapses |
 | `gh:run` | a GitHub Actions workflow to complete successfully | `issuegraph gate check` (uses `gh run view`) |
 | `gh:pr` | a pull request to merge | `issuegraph gate check` (uses `gh pr view`) |
-| `bead` | a bead to close — a plain ID names a bead in this rig, the cross-rig form is `<rig>:<bead-id>` | `issuegraph gate check` for plain local IDs; cross-rig values cannot be checked — resolve those manually |
+| `issue` | a issue to close — a plain ID names a issue in this rig, the cross-rig form is `<rig>:<issue-id>` | `issuegraph gate check` for plain local IDs; cross-rig values cannot be checked — resolve those manually |
 
 Timeouts use Go duration syntax: `30m`, `1h`, `24h` (there is no `d` unit —
 write `24h`, not `1d`).
@@ -46,25 +46,25 @@ GitHub gates use the current Git repository by default. To evaluate a PR or
 workflow run in another repository, set the gate's string `metadata.repo` value
 to `OWNER/REPO` or `HOST/OWNER/REPO`. An ad-hoc `gh:run`/`gh:pr` gate created
 with `issuegraph gate create` inherits a valid `metadata.repo` value from the issue it
-blocks; `human`/`timer`/`bead` gates do not, since `metadata.repo` is
+blocks; `human`/`timer`/`issue` gates do not, since `metadata.repo` is
 unrelated, ordinary metadata for those types. `issuegraph gate check` rejects
 malformed repository values instead of falling back to the current
 repository.
 
 ### Known limitations: multi-rig and proxied-server topologies
 
-Bead gates and prefix routing (`routes.jsonl`) do not work in every
+Issue gates and prefix routing (`routes.jsonl`) do not work in every
 topology. Three limitations to expect, all tracked in
-[#5861](https://github.com/gastownhall/beads/issues/5861):
+[#5861](https://github.com/borg0ai/dx-issuegraph/issues/5861):
 
-- **Cross-rig bead gates never resolve on their own.** A `<rig>:<bead-id>`
+- **Cross-rig issue gates never resolve on their own.** A `<rig>:<issue-id>`
   await value reports `cannot be checked (multi-rig routing removed)` and
-  stays pending regardless of the awaited bead's status. Close it with
+  stays pending regardless of the awaited issue's status. Close it with
   `issuegraph gate resolve`.
-- **`issuegraph close` cannot verify a bead gate in the experimental proxied-server
+- **`issuegraph close` cannot verify a issue gate in the experimental proxied-server
   mode.** Proxied-server commands never open a local store, so closing the
-  gate refuses with `no local store available` even when the awaited bead is
-  closed. Run `issuegraph gate check`, which evaluates bead gates in proxied-server
+  gate refuses with `no local store available` even when the awaited issue is
+  closed. Run `issuegraph gate check`, which evaluates issue gates in proxied-server
   mode and closes the satisfied ones, or `issuegraph close --force`.
 - **Prefix routing cannot open a proxied-server target rig.** A routed
   lookup into a rig that is itself in proxied-server mode fails with
@@ -156,11 +156,11 @@ issuegraph formula show <formula> --json   # inspect the parsed gate blocks
 `issuegraph gate create` attaches a gate to existing work:
 
 ```bash
-# Block bd-abc until a PR merges
-issuegraph gate create --type=gh:pr --blocks bd-abc --await-id=42
+# Block issuegraph-abc until a PR merges
+issuegraph gate create --type=gh:pr --blocks issuegraph-abc --await-id=42
 
-# Block bd-abc until a human resolves the gate
-issuegraph gate create --type=human --blocks bd-abc --reason "Design sign-off"
+# Block issuegraph-abc until a human resolves the gate
+issuegraph gate create --type=human --blocks issuegraph-abc --reason "Design sign-off"
 
 # Add another waiter to an existing gate
 issuegraph gate add-waiter <gate-id> <issue-id>

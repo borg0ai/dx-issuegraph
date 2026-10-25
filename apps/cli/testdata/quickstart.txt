@@ -1,0 +1,5 @@
+# Test issuegraph quickstart command
+issuegraph quickstart
+stdout 'Dependency-Aware'
+stdout 'issuegraph init'
+stdout 'issuegraph create'

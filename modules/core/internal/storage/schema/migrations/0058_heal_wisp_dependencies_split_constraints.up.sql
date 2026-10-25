@@ -1,6 +1,6 @@
 -- Migration 0058: heal wisp_dependencies constraints missed by the 0047
 -- delegate repair path (#4555 residual, mybd-mq9b, discovered while closing
--- gastownhall/beads#4878's review coverage gaps).
+-- borg0ai/dx-issuegraph#4878's review coverage gaps).
 --
 -- migration_repairs.go's ensureWispDependenciesSplitTargets (dispatched from
 -- 0047's preMigrationRepair when wisps AND wisp_dependencies both already
@@ -49,7 +49,7 @@
 -- missing is exactly the failure class ignored/0011 (#4534) documents:
 -- foreign keys re-added under FOREIGN_KEY_CHECKS = 0 accept whatever
 -- orphaned rows are already there, and "Dolt then fails constraint
--- validation on subsequent writes, so one legacy orphan bricks every bd
+-- validation on subsequent writes, so one legacy orphan bricks every issuegraph
 -- create on an otherwise healthy database." The delegate path's
 -- unconstrained window can leave two more classes of row that would abort a
 -- later PREPARE'd ADD CONSTRAINT the same way, so this migration cleans up

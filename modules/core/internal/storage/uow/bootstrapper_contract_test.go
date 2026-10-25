@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
-	"github.com/steveyegge/beads/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 )
 
 // TestBootstrapperContract runs the Bootstrapper and InitVerifier contract
@@ -49,9 +49,9 @@ func TestBootstrapperContract(t *testing.T) {
 		conformance.RunBootstrapperLeavesTheSubstrateUntouchedWhenItCannotComplete(t, ctx, fixture)
 	})
 	// ONE, not zero, and not a range. The proxied init route
-	// (modules/cli/init_proxied_server.go) calls this role and stops, so the entry
+	// (apps/cli/init_proxied_server.go) calls this role and stops, so the entry
 	// this body labels is the only thing that versions the identity there; both
-	// store wirings pin ZERO because `bd init` commits for them. The two are a
+	// store wirings pin ZERO because `issuegraph init` commits for them. The two are a
 	// ratified split, so do not "fix" either by matching it to the other — read
 	// RunBootstrapperRecordsNoHistoryEntryOfItsOwn first.
 	t.Run("RecordsExactlyOneHistoryEntry", func(t *testing.T) {
@@ -106,7 +106,7 @@ func newUOWBootstrapperFixture(t *testing.T, ctx context.Context) conformance.Bo
 				if err := cfg.SetConfig(ctx, workapi.ConfigKeyIssuePrefix, prefix); err != nil {
 					return "", err
 				}
-				return "bd: seed workspace identity",
+				return "issuegraph: seed workspace identity",
 					cfg.SetMetadata(ctx, workapi.MetadataKeyProjectID, projectID)
 			})
 		},

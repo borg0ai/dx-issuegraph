@@ -8,9 +8,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Claim-family verify-after-write (bd-zccb9, from wyvern incident wy-ejph3).
@@ -21,7 +21,7 @@ import (
 // duplicate full implementation), and the inverse — an error printed with the
 // write actually applied — is on record from wy-x543k. Fleet wrappers solved
 // this with verify-by-re-read (wyvern's wh-take.sh); this file folds that
-// protocol into bd itself for the coordination-critical writes: claim, ready
+// protocol into issuegraph itself for the coordination-critical writes: claim, ready
 // claim, and unclaim. Ordinary field updates are out of scope — a lost label
 // edit is an annoyance, a phantom claim is a duplicated implementation.
 //

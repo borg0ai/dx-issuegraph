@@ -49,12 +49,8 @@ Every build path that produces a binary for users must include `-tags gms_pure_g
 | Location | File |
 |----------|------|
 | Local builds | `Makefile` (`BUILD_TAGS := gms_pure_go`) |
-| Release builds | `.goreleaser.yml` (all build targets) |
-| Install script | `scripts/install.sh` |
-| Windows installer | `install.ps1` |
 | PR CI | `.github/workflows/pr.yml`, `.github/workflows/pr-risk.yml` |
 | Main CI test matrix | `.github/workflows/main.yml` (Linux, macOS, Windows) |
-| macOS release | `.github/workflows/release.yml` |
 | Migration tests | `.github/workflows/migration-test.yml` |
 | Nightly tests | `.github/workflows/nightly.yml` |
 | Cross-version smoke | `.github/workflows/cross-version-smoke.yml` |
@@ -75,7 +71,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck source=../.buildflags
 source "$REPO_ROOT/.buildflags"
 
-go build -o bd ./modules/cli     # -tags=gms_pure_go applied via GOFLAGS
+go build -o issuegraph ./apps/cli     # -tags=gms_pure_go applied via GOFLAGS
 ```
 
 Makefile targets use `-tags "$(BUILD_TAGS)"` directly, since make already
@@ -95,8 +91,6 @@ CI workflow, git hook, or the Makefile contains a
   value contains `gms_pure_go`, AND
 - is not a third-party tool install (`go install X@version` / `go run X@version`).
 
-This is the source-time companion to `scripts/verify-cgo.sh` (runtime).
-Between the two, an ICU regression cannot reach a release binary.
 
 To intentionally opt a file out (e.g. because it tests the ICU path),
 add `# build-tags: allow-bare` within the first five lines of the file.
@@ -115,13 +109,13 @@ that warns and forwards to `scripts/test-icu-path.sh`.
 
 ## Post-Build Verification
 
-Release builds are verified to be ICU-free:
+Release builds must be ICU-free. The release builder (the `shipify` skill) is
+responsible for checking the built binary:
 
 - **Linux**: `readelf -d` and `ldd` check for `libicu` (must not appear)
 - **macOS**: `otool -L` check for `libicu` (must not appear)
-- **Script**: `scripts/verify-cgo.sh` runs these checks as a goreleaser post-hook
 
-If ICU linkage is detected, the release build fails.
+If ICU linkage is detected, the release build must fail.
 
 ## The Upstream Fork (historical)
 
@@ -136,7 +130,7 @@ The dolthub maintainers have made clear the upstream default will not flip: *"We
 
 Two supported modes, documented in [INSTALLING.md](../docs/getting-started/installation.md):
 
-1. **`CGO_ENABLED=0 go install github.com/steveyegge/beads/modules/cli@latest`** produces a **server-mode-only** binary. Works on any Go-capable box with no C compiler. Users must run an external `dolt sql-server` and use `issuegraph init --server`.
+1. **`CGO_ENABLED=0 go install github.com/borg0ai/dx-issuegraph/apps/cli@latest`** produces a **server-mode-only** binary. Works on any Go-capable box with no C compiler. Users must run an external `dolt sql-server` and use `issuegraph init --server`.
 
 2. **`CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install ...`** produces an embedded-capable binary. Requires a C compiler but NOT libicu.
 

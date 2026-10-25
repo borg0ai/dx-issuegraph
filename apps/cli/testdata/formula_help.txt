@@ -1,0 +1,19 @@
+# Test that issuegraph formula --help surfaces the primitive-discoverability pointers.
+#
+# Failure of any of these assertions means an agent reading 'issuegraph formula --help'
+# would not be told that 'issuegraph formula schema' / 'issuegraph formula primitives' /
+# examples/formulas/primitives/ exist. That is the exact failure mode GH#3621
+# is closing, so this test is the regression gate.
+issuegraph formula --help
+stdout 'issuegraph formula schema'
+stdout 'issuegraph formula primitives'
+stdout 'examples/formulas/primitives/'
+stdout 'docs/workflows/formulas.md'
+
+# The list and show subcommands also point at the schema index so agents
+# arriving via either subcommand find the primitive surface.
+issuegraph formula list --help
+stdout 'issuegraph formula schema'
+
+issuegraph formula show --help
+stdout 'issuegraph formula schema'

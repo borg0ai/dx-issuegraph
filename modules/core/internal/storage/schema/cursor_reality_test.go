@@ -441,7 +441,7 @@ func TestSentinelColumnsAreCreatedByTheSeries(t *testing.T) {
 // the real short-circuit that caused it. Both cursors read at-latest, so
 // before this change migrationWorkNeeded returned false, MigrateUp did
 // nothing, and the missing wisp tables were never recreated — the user met the
-// bug much later as "table not found: wisp_dependencies" on `bd close`.
+// bug much later as "table not found: wisp_dependencies" on `issuegraph close`.
 //
 // The first sentinel probe returning 0 is enough to decide, so exactly one
 // probe is expected: proving the check short-circuits is part of the contract,

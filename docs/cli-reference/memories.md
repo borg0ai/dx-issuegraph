@@ -1,19 +1,19 @@
 ---
-title: "bd memories"
-description: "List all memories, or search by keyword."
+title: "issuegraph memories"
+description: "List or search persistent memories"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc memories`.
+Generated from `issuegraph help --doc memories`.
 
 List all memories, or search by keyword.
 
 Examples:
-  bd memories              # list all memories
-  bd memories dolt         # search for memories about dolt
-  bd memories "race flag"  # search for a phrase
+  issuegraph memories              # list all memories
+  issuegraph memories dolt         # search for memories about dolt
+  issuegraph memories "race flag"  # search for a phrase
 
 ```
-bd memories [search] [flags]
+issuegraph memories [search] [flags]
 ```

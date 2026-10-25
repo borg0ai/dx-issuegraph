@@ -1,23 +1,23 @@
-// Package conformance is the end-to-end (real `bd` binary) conformance harness. It
+// Package conformance is the end-to-end (real `issuegraph` binary) conformance harness. It
 // complements the in-process store suite (backend/conformance): that one
-// exercises a store object; this one exercises the whole CLI path — `bd init`, the
+// exercises a store object; this one exercises the whole CLI path — `issuegraph init`, the
 // factory, metadata.json, and output formatting — differentially against the Dolt
 // reference.
 //
 // One declarative registry (Profiles) describes how to create and tear down an
 // isolated workspace for each backend. Adding a backend is one Profiles entry; the
 // runner and scripts/conformance.sh pick it up automatically. The suite is behind
-// the `e2e` build tag because it shells out to a freshly built bd.
+// the `e2e` build tag because it shells out to a freshly built issuegraph.
 //
 // # Stability
 //
 // EXPERIMENTAL, same terms as the backend package: this harness tracks the
 // evolving storage contract and its registry may change in a minor release.
-// Pin an exact beads version.
+// Pin an exact issuegraph version.
 package conformance
 
-// Workspace is one isolated place a backend can be `bd init`-ed. Dir is the working
-// directory; init creates its .beads directory.
+// Workspace is one isolated place a backend can be `issuegraph init`-ed. Dir is the working
+// directory; init creates its .issuegraph directory.
 type Workspace struct {
 	Dir string
 }
@@ -34,9 +34,9 @@ type BackendProfile struct {
 	// Available reports whether this backend can run here (e.g. a required env var
 	// is set). Unavailable profiles are skipped, not failed.
 	Available func() bool
-	// InitArgs returns the extra args appended to `bd init` for a fresh workspace.
+	// InitArgs returns the extra args appended to `issuegraph init` for a fresh workspace.
 	InitArgs func(ws *Workspace) []string
-	// Env returns extra environment (KEY=VALUE) for every bd invocation in ws.
+	// Env returns extra environment (KEY=VALUE) for every issuegraph invocation in ws.
 	Env func(ws *Workspace) []string
 	// XFail lists scenarios this backend is known not to match the reference on,
 	// each with a reason. They are reported as XFAIL (visible, never masked); an

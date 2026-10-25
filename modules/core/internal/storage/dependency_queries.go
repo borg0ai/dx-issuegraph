@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // DependencyQueryStore provides extended dependency queries beyond the base Storage interface.
@@ -58,6 +58,6 @@ type DependencyQueryStore interface {
 
 	// CountDependentsByStatus returns the number of issues that depend on issueID
 	// and are in the given status. Preferred over CountDependents + per-row filtering
-	// for the bd close epic-closure check.
+	// for the issuegraph close epic-closure check.
 	CountDependentsByStatus(ctx context.Context, issueID string, status types.Status) (int64, error)
 }

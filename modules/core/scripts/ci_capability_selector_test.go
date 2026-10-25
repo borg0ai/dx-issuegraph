@@ -22,12 +22,12 @@ func TestCICapabilitySelectorClassifiesOwnedPaths(t *testing.T) {
 		want    map[string]string
 	}{
 		{"docs", []string{"A", "docs/guide.md"}, decisions(false, false, false, false, false, "docs_only")},
-		{"command", []string{"M", "modules/cli/create.go"}, decisions(true, true, false, false, false, "cmd_bd")},
+		{"command", []string{"M", "apps/cli/create.go"}, decisions(true, true, false, false, false, "cmd_bd")},
 		{"embedded", []string{"M", "internal/storage/embeddeddolt/store.go"}, decisions(true, false, true, true, false, "embedded_storage")},
 		{"server", []string{"M", "internal/storage/dolt/store.go"}, decisions(false, true, false, false, true, "server_storage")},
 		{"shared conformance", []string{"M", "backend/conformance/portable.go"}, decisions(false, false, false, true, true, "shared_conformance")},
-		{"mixed union", []string{"M", "modules/cli/create.go", "M", "internal/storage/embeddeddolt/store.go"}, decisions(true, true, true, true, false, "mixed")},
-		{"all leaves normalize full", []string{"M", "modules/cli/create.go", "M", "internal/storage/embeddeddolt/store.go", "M", "internal/storage/dolt/store.go"}, decisions(true, true, true, true, true, "full")},
+		{"mixed union", []string{"M", "apps/cli/create.go", "M", "internal/storage/embeddeddolt/store.go"}, decisions(true, true, true, true, false, "mixed")},
+		{"all leaves normalize full", []string{"M", "apps/cli/create.go", "M", "internal/storage/embeddeddolt/store.go", "M", "internal/storage/dolt/store.go"}, decisions(true, true, true, true, true, "full")},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			got, _ := runCICapabilitySelector(t, tt.records, "pull_request", true, false)
@@ -96,7 +96,7 @@ func TestCICapabilitySelectorWorkflowPreservesExistingAuthority(t *testing.T) {
 	if err := yaml.Unmarshal(data, &workflow); err != nil {
 		t.Fatalf("parse workflow: %v", err)
 	}
-	wantJobs := map[string]bool{"detect-ci-tier": true, "build-embedded": true, "test-embedded-storage": true, "test-embedded-conformance": true, "test-server-storage": true, "test-server-storage-full": true, "test-embedded-cmd": true, "test-proxied-cmd": true, "test-nix": true, "ci-gate": true}
+	wantJobs := map[string]bool{"detect-ci-tier": true, "build-embedded": true, "test-embedded-storage": true, "test-embedded-conformance": true, "test-server-storage": true, "test-server-storage-full": true, "test-embedded-cmd": true, "test-proxied-cmd": true, "ci-gate": true}
 	if len(workflow.Jobs) != len(wantJobs) {
 		t.Errorf("job count = %d, want %d", len(workflow.Jobs), len(wantJobs))
 	}
@@ -123,13 +123,10 @@ func TestCICapabilitySelectorWorkflowPreservesExistingAuthority(t *testing.T) {
 			t.Errorf("%s if = %q", name, got)
 		}
 	}
-	if workflow.Jobs["test-nix"].If != "" {
-		t.Errorf("test-nix if = %q, want ungated", workflow.Jobs["test-nix"].If)
-	}
 	gate := workflow.Jobs["ci-gate"]
-	wantNeeds := []string{"detect-ci-tier", "build-embedded", "test-embedded-storage", "test-embedded-conformance", "test-server-storage", "test-server-storage-full", "test-embedded-cmd", "test-proxied-cmd", "test-nix"}
+	wantNeeds := []string{"detect-ci-tier", "build-embedded", "test-embedded-storage", "test-embedded-conformance", "test-server-storage", "test-server-storage-full", "test-embedded-cmd", "test-proxied-cmd"}
 	gateStep := gate.step(t, "Evaluate CI gate")
-	if gate.If != "${{ always() }}" || strings.Join(gate.Needs, ",") != strings.Join(wantNeeds, ",") || gateStep.Env["FULL_EMBEDDED"] != "${{ needs.detect-ci-tier.outputs.full_embedded }}" || gateStep.Env["CI_GATE_REQUIRED"] != "DETECT_CI_TIER BUILD_EMBEDDED TEST_EMBEDDED_STORAGE TEST_EMBEDDED_CONFORMANCE TEST_SERVER_STORAGE TEST_SERVER_STORAGE_FULL TEST_EMBEDDED_CMD TEST_PROXIED_CMD TEST_NIX" || !strings.Contains(gateStep.Run, "skipped_ok=\"BUILD_EMBEDDED TEST_EMBEDDED_STORAGE TEST_EMBEDDED_CONFORMANCE TEST_SERVER_STORAGE TEST_SERVER_STORAGE_FULL TEST_EMBEDDED_CMD TEST_PROXIED_CMD\"") {
+	if gate.If != "${{ always() }}" || strings.Join(gate.Needs, ",") != strings.Join(wantNeeds, ",") || gateStep.Env["FULL_EMBEDDED"] != "${{ needs.detect-ci-tier.outputs.full_embedded }}" || gateStep.Env["CI_GATE_REQUIRED"] != "DETECT_CI_TIER BUILD_EMBEDDED TEST_EMBEDDED_STORAGE TEST_EMBEDDED_CONFORMANCE TEST_SERVER_STORAGE TEST_SERVER_STORAGE_FULL TEST_EMBEDDED_CMD TEST_PROXIED_CMD" || !strings.Contains(gateStep.Run, "skipped_ok=\"BUILD_EMBEDDED TEST_EMBEDDED_STORAGE TEST_EMBEDDED_CONFORMANCE TEST_SERVER_STORAGE TEST_SERVER_STORAGE_FULL TEST_EMBEDDED_CMD TEST_PROXIED_CMD\"") {
 		t.Errorf("ci-gate authority changed: needs=%v env=%v", gate.Needs, gateStep.Env)
 	}
 	for name, job := range workflow.Jobs {

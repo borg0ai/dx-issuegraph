@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the PERSISTENCE-SEAM half of the behavior contract every
@@ -127,7 +127,7 @@ func RunIssueOperationsCreateRoutesInfraTypesToWisps(t *testing.T, ctx context.C
 
 	result, err := fixture.Operations.Create(ctx, publicops.CreateRequest{
 		Actor: "writer",
-		Issue: &types.Issue{Title: "infra bead", Status: types.StatusOpen, Priority: 2, IssueType: types.IssueType("agent")},
+		Issue: &types.Issue{Title: "infra issue", Status: types.StatusOpen, Priority: 2, IssueType: types.IssueType("agent")},
 	})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
@@ -156,7 +156,7 @@ func RunIssueOperationsCreateRoutesInfraTypesToWisps(t *testing.T, ctx context.C
 	// A non-infra type is unaffected.
 	durable, err := fixture.Operations.Create(ctx, publicops.CreateRequest{
 		Actor: "writer",
-		Issue: &types.Issue{Title: "durable bead", Status: types.StatusOpen, Priority: 2, IssueType: types.TypeTask},
+		Issue: &types.Issue{Title: "durable issue", Status: types.StatusOpen, Priority: 2, IssueType: types.TypeTask},
 	})
 	if err != nil {
 		t.Fatalf("Create durable: %v", err)
@@ -231,7 +231,7 @@ func RunIssueOperationsCreateRoutesInfraTypesToWisps(t *testing.T, ctx context.C
 //
 // The last arm carries the collation half (bd-oyvc2.10): two parents whose ids
 // differ ONLY IN CASE keep separate counters, because the scan's comparison is
-// case-sensitive. Where it is not, one team's beads silently advance another's.
+// case-sensitive. Where it is not, one team's issuegraph silently advance another's.
 //
 // Residue left where it is: GetNextChildID's "advance the counter WITHOUT
 // creating an issue" and its wisp-parent routing stay audit-only. Neither is
@@ -355,7 +355,7 @@ func RunIssueOperationsUpdateClosedFieldsMatchClose(t *testing.T, ctx context.Co
 
 	// A generic close on a row a previous close stamped must not inherit that
 	// close's reason or session. This is the misattribution ga-kjkv1 fixes:
-	// `bd show` renders a stale closed_by_session as "Closed by session".
+	// `issuegraph show` renders a stale closed_by_session as "Closed by session".
 	recloseID := fixture.IssuePrefix + "-closedfields-reclose"
 	seedIssueOperationsPlainIssue(t, ctx, fixture, recloseID)
 	if _, err := fixture.Operations.Close(ctx, publicops.CloseRequest{
@@ -478,7 +478,7 @@ func RunIssueOperationsUpdateClosedFieldsMatchClose(t *testing.T, ctx context.Co
 	// into the other (issueops.MoveIssuePersistenceInTx), so the close columns
 	// only survive if the copy carries them and the insert lists them. A move
 	// that dropped one would blank attribution nobody asked it to touch, and
-	// `bd show` would render a closed issue with no record of who closed it.
+	// `issuegraph show` would render a closed issue with no record of who closed it.
 	//
 	// It is asserted against the plane that now HOLDS the row, not through the
 	// result issue: a result hydrated from the pre-move struct reports a session
@@ -1301,7 +1301,7 @@ func RunIssueOperationsRequestValuesAreNotMutated(t *testing.T, ctx context.Cont
 // second past the later of created_at and updated_at
 // (internal/storage/issueops/create.go PrepareIssueForInsert).
 //
-// The path is `bd import` and every restore and tracker-sync: rows arrive
+// The path is `issuegraph import` and every restore and tracker-sync: rows arrive
 // closed, from a system that recorded when they were made and last touched but
 // not when they were finished. A backend that left the column NULL produces a
 // closed backlog with no completion dates — every cycle-time and throughput
@@ -1516,14 +1516,14 @@ func RunIssueOperationsUpdateWritesEveryScalarPatchField(t *testing.T, ctx conte
 // (internal/storage/issueops/update.go ManageStartedAt: "auto-sets started_at
 // when transitioning to in_progress. If the issue already has a started_at, it
 // is preserved"). It drives the UNTYPED FUNNEL, because IssuePatch has no
-// started_at member and the funnel is what every `bd update -s` and every
+// started_at member and the funnel is what every `issuegraph update -s` and every
 // external-sync caller reaches.
 //
 // STAMPING AND PRESERVING FAIL IN OPPOSITE DIRECTIONS, so both are here. A body
 // that never stamps leaves an in_progress row that has never started, and
 // nothing downstream can say how long the work has been running — the lease
 // reclaim reads exactly this column. A body that RE-stamps resets that clock
-// every time an agent bounces a bead through open and back, which is the shape
+// every time an agent bounces a issue through open and back, which is the shape
 // a retry loop produces, and the row then looks freshly started forever.
 //
 // The closest existing case is
@@ -1607,7 +1607,7 @@ func assertIssueOperationsStartedAt(t *testing.T, ctx context.Context, fixture I
 // RunIssueOperationsUpdateRawMetadataTakesTheFunnelsValueShapes pins what the
 // UNTYPED update funnel accepts in its metadata slot. The typed
 // IssuePatch.Metadata surface is an ordered merge/set/unset document with its
-// own owning cases; this is the OTHER entry, the one every `bd update
+// own owning cases; this is the OTHER entry, the one every `issuegraph update
 // --metadata` and every backfill script reaches, where the value arrives as
 // whatever the caller's JSON decoder produced.
 //
@@ -1668,7 +1668,7 @@ func RunIssueOperationsUpdateRawMetadataTakesTheFunnelsValueShapes(t *testing.T,
 // The refusal is typed (issueops.ErrValidation) and leaves the row alone, under
 // Lifecycle.Update's standing promise that a refusal "leaves persistent state
 // unchanged". A stored issue_type nothing in the workspace defines is worse
-// than a rejected update: `bd list --type` stops matching the row and the
+// than a rejected update: `issuegraph list --type` stops matching the row and the
 // renderers have no rule for it.
 //
 // THE SECOND HALF IS WHAT GIVES THE FIRST ONE TEETH. A body that refused every

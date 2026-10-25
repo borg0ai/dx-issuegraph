@@ -7,7 +7,7 @@
 -- This is a separate table from `events` on purpose. `events` is the hot
 -- field-mutation audit trail (old_value/new_value pairs); provenance_events is
 -- a typed binding to an opaque external reference produced by any runtime
--- (git hook, orchestrator, CI). bd never interprets `actor` or `ref` — they are
+-- (git hook, orchestrator, CI). issuegraph never interprets `actor` or `ref` — they are
 -- opaque identifiers — so the table stays a primitive usable without any
 -- specific orchestrator. Only `kind` and `ref_kind` are structurally validated.
 --

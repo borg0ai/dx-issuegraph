@@ -43,7 +43,7 @@ keep their existing model, now covering the post-processed output.
 
 ### 4. Post-processor is a Go tool in the repo
 
-`tools/docsmint/` (package outside `modules/cli`, run via `go run` from
+`tools/docsmint/` (package outside `apps/cli`, run via `go run` from
 `generate-cli-docs.sh`): transforms IssueGraph's generic pages into the Mintlify
 pages and splices the docs.json CLI nav. Unit-tested with `go test`.
 

@@ -5,12 +5,11 @@ set -e
 # Quick version bump utility (no git operations)
 # =============================================================================
 #
-# Updates version numbers across all beads components without any git
+# Updates version numbers across all issuegraph components without any git
 # operations. Use this for local testing or when you want manual control
 # over commits.
 #
-# For full releases with CI gates and verification, use:
-#   bd mol wisp beads-release --var version=X.Y.Z
+# Releases run through the shipify skill.
 #
 # =============================================================================
 
@@ -28,7 +27,7 @@ usage() {
     echo "  $0 0.47.1"
     echo "  $0 1.1.0-rc.1"
     echo ""
-    echo "For full releases, use: bd mol wisp beads-release --var version=X.Y.Z"
+    echo "Releases run through the shipify skill."
 }
 
 NEW_VERSION=""
@@ -58,21 +57,16 @@ if ! [[ $NEW_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z][0-9A-Za-z.-]*)?$ ]]
     exit 1
 fi
 
-BASE_VERSION="${NEW_VERSION%%-*}"
-
 # Check we're in repo root
-if [ ! -f "modules/cli/version.go" ]; then
+if [ ! -f "apps/cli/version.go" ]; then
     echo -e "${RED}Error: Must run from repository root${NC}"
     exit 1
 fi
 
 # Get current version
-CURRENT_VERSION=$(grep 'Version = ' modules/cli/version.go | sed 's/.*"\(.*\)".*/\1/')
+CURRENT_VERSION=$(grep 'Version = ' apps/cli/version.go | sed 's/.*"\(.*\)".*/\1/')
 # Base (prerelease-stripped) form of the current version. The Windows PE
 # numeric fields (file_version/product_version, manifest version) only ever
-# hold the base form, so they must be matched on the base, not on the full
-# CURRENT_VERSION which may carry a -rc.N suffix.
-CURRENT_BASE="${CURRENT_VERSION%%-*}"
 echo -e "${YELLOW}Bumping: $CURRENT_VERSION → $NEW_VERSION${NC}"
 echo ""
 
@@ -90,21 +84,22 @@ update_file() {
 
 echo "Updating version files..."
 
-# 1. modules/cli/version.go
-echo "  • modules/cli/version.go"
-update_file "modules/cli/version.go" "Version = \"$CURRENT_VERSION\"" "Version = \"$NEW_VERSION\""
+# 1. apps/cli/version.go
+echo "  • apps/cli/version.go"
+update_file "apps/cli/version.go" "Version = \"$CURRENT_VERSION\"" "Version = \"$NEW_VERSION\""
 
 # 2. Plugin JSON files
 echo "  • plugin metadata"
-update_file "plugins/beads/.claude-plugin/plugin.json" "\"version\": \"$CURRENT_VERSION\"" "\"version\": \"$NEW_VERSION\""
-update_file "plugins/beads/.codex-plugin/plugin.json" "\"version\": \"$CURRENT_VERSION\"" "\"version\": \"$NEW_VERSION\""
-update_file "plugins/beads/.copilot-plugin/plugin.json" "\"version\": \"$CURRENT_VERSION\"" "\"version\": \"$NEW_VERSION\""
+update_file "issuegraph/.claude-plugin/plugin.json" "\"version\": \"$CURRENT_VERSION\"" "\"version\": \"$NEW_VERSION\""
+update_file "issuegraph/.codex-plugin/plugin.json" "\"version\": \"$CURRENT_VERSION\"" "\"version\": \"$NEW_VERSION\""
+update_file "issuegraph/.copilot-plugin/plugin.json" "\"version\": \"$CURRENT_VERSION\"" "\"version\": \"$NEW_VERSION\""
 update_file ".claude-plugin/marketplace.json" "\"version\": \"$CURRENT_VERSION\"" "\"version\": \"$NEW_VERSION\""
+update_file ".codex-plugin/plugin.json" "\"version\": \"$CURRENT_VERSION\"" "\"version\": \"$NEW_VERSION\""
 
 # 3. MCP Python package
-echo "  • integrations/beads-mcp/*"
-update_file "integrations/beads-mcp/pyproject.toml" "version = \"$CURRENT_VERSION\"" "version = \"$NEW_VERSION\""
-update_file "integrations/beads-mcp/src/beads_mcp/__init__.py" "__version__ = \"$CURRENT_VERSION\"" "__version__ = \"$NEW_VERSION\""
+echo "  • integrations/issuegraph-mcp/*"
+update_file "integrations/issuegraph-mcp/pyproject.toml" "version = \"$CURRENT_VERSION\"" "version = \"$NEW_VERSION\""
+update_file "integrations/issuegraph-mcp/src/issuegraph_mcp/__init__.py" "__version__ = \"$CURRENT_VERSION\"" "__version__ = \"$NEW_VERSION\""
 # The release workflow's MCP package gate runs `uv sync --locked`, so a
 # pyproject bump without a lock refresh fails the release only in the
 # tag-triggered run — after the tag exists and can no longer be rewritten.
@@ -113,32 +108,24 @@ update_file "integrations/beads-mcp/src/beads_mcp/__init__.py" "__version__ = \"
 # not abort the bump half-applied (set -e): warn and let check-versions.sh
 # hold the gate.
 if command -v uv >/dev/null 2>&1; then
-    echo "  • integrations/beads-mcp/uv.lock"
-    if ! uv lock --directory integrations/beads-mcp; then
-        echo -e "${RED}✗ uv lock failed — integrations/beads-mcp/uv.lock NOT refreshed.${NC}"
+    echo "  • integrations/issuegraph-mcp/uv.lock"
+    if ! uv lock --directory integrations/issuegraph-mcp; then
+        echo -e "${RED}✗ uv lock failed — integrations/issuegraph-mcp/uv.lock NOT refreshed.${NC}"
         echo "  Fix and rerun before tagging, or check-versions.sh and the release MCP gate will fail:"
-        echo "    uv lock --directory integrations/beads-mcp"
+        echo "    uv lock --directory integrations/issuegraph-mcp"
     fi
 else
-    echo -e "${RED}✗ uv not found — integrations/beads-mcp/uv.lock NOT refreshed.${NC}"
+    echo -e "${RED}✗ uv not found — integrations/issuegraph-mcp/uv.lock NOT refreshed.${NC}"
     echo "  Run this before tagging, or check-versions.sh and the release MCP gate will fail:"
-    echo "    uv lock --directory integrations/beads-mcp"
+    echo "    uv lock --directory integrations/issuegraph-mcp"
 fi
-
-# 4. npm package
-echo "  • npm-package/package.json"
-update_file "npm-package/package.json" "\"version\": \"$CURRENT_VERSION\"" "\"version\": \"$NEW_VERSION\""
 
 # 5. README badge
 echo "  • README.md"
 update_file "README.md" "Alpha (v$CURRENT_VERSION)" "Alpha (v$NEW_VERSION)"
 
-# 6. default.nix
-echo "  • default.nix"
-update_file "default.nix" "version = \"$CURRENT_VERSION\";" "version = \"$NEW_VERSION\";"
-
-# 7. Tracked managed git-hook sections. The hooks a fresh `bd init` installs
-# are generated dynamically by modules/cli/hooks.go, but this repo also TRACKS
+# 7. Tracked managed git-hook sections. The hooks a fresh `issuegraph init` installs
+# are generated dynamically by apps/cli/hooks.go, but this repo also TRACKS
 # rendered copies in .githooks/, whose BEGIN/END markers embed the binary
 # Version (hookSectionBeginLine), and TestTrackedManagedHookSectionsMatchGenerator
 # holds them byte-equal to the generator's output. Rewrite the marker version
@@ -148,20 +135,11 @@ echo "  • .githooks/* managed section markers"
 for hook in .githooks/*; do
     [ -f "$hook" ] || continue
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' -E "s#(--- (BEGIN|END) BEADS INTEGRATION) v[^ ]+ ---#\1 v$NEW_VERSION ---#g" "$hook"
+        sed -i '' -E "s#(--- (BEGIN|END) ISSUEGRAPH INTEGRATION) v[^ ]+ ---#\1 v$NEW_VERSION ---#g" "$hook"
     else
-        sed -i -E "s#(--- (BEGIN|END) BEADS INTEGRATION) v[^ ]+ ---#\1 v$NEW_VERSION ---#g" "$hook"
+        sed -i -E "s#(--- (BEGIN|END) ISSUEGRAPH INTEGRATION) v[^ ]+ ---#\1 v$NEW_VERSION ---#g" "$hook"
     fi
 done
-
-# 8. Windows PE resource metadata
-echo "  • modules/cli/winres/winres.json"
-update_file "modules/cli/winres/winres.json" "\"file_version\": \"$CURRENT_BASE\"" "\"file_version\": \"$BASE_VERSION\""
-update_file "modules/cli/winres/winres.json" "\"product_version\": \"$CURRENT_BASE\"" "\"product_version\": \"$BASE_VERSION\""
-update_file "modules/cli/winres/winres.json" "\"FileVersion\": \"$CURRENT_VERSION\"" "\"FileVersion\": \"$NEW_VERSION\""
-update_file "modules/cli/winres/winres.json" "\"ProductVersion\": \"$CURRENT_VERSION\"" "\"ProductVersion\": \"$NEW_VERSION\""
-echo "  • modules/cli/winres/manifest.xml"
-update_file "modules/cli/winres/manifest.xml" "version=\"$CURRENT_BASE.0\"" "version=\"$BASE_VERSION.0\""
 
 echo ""
 echo -e "${GREEN}✓ Version constants updated to $NEW_VERSION${NC}"
@@ -171,5 +149,5 @@ git diff --stat 2>/dev/null || true
 echo ""
 echo "Next steps:"
 echo "  • Update CHANGELOG.md with release notes"
-echo "  • Update modules/cli/info.go versionChanges"
-echo "  • Or use: bd mol wisp beads-release --var version=$NEW_VERSION"
+echo "  • Update apps/cli/info.go versionChanges"
+echo "  • Releases run through the shipify skill"

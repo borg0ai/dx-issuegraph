@@ -8,7 +8,7 @@ import (
 
 // RecommendedMin is the dolt version this package recommends for managed
 // proxied-server mode, based on the cross-version compatibility matrix run
-// 2026-07-25: it showed that cross-reading storage written by the beads
+// 2026-07-25: it showed that cross-reading storage written by the issuegraph
 // Dolt Go module (as opposed to writing it, which older dolt CLIs can also
 // do) requires an external dolt >= 2.0.0 — dolt 1.85 can *serve* proxied
 // mode but cannot *read* storage the module wrote, and dolt 1.52.1 fails at
@@ -75,13 +75,13 @@ func (w *Warning) Message() string {
 	case warningUnverifiable:
 		return fmt.Sprintf(
 			"could not verify dolt version (raw output: %q); proceeding without a version recommendation check "+
-				"(see gastownhall/beads doltversion package docs)",
+				"(see borg0ai/dx-issuegraph doltversion package docs)",
 			w.RawOutput,
 		)
 	default:
 		return fmt.Sprintf(
 			"dolt %s is older than the recommended minimum %s for proxied-server mode; "+
-				"cross-reading storage written by newer dolt Go modules may fail (see gastownhall/beads doltversion package docs)",
+				"cross-reading storage written by newer dolt Go modules may fail (see borg0ai/dx-issuegraph doltversion package docs)",
 			w.Probed, w.Recommended,
 		)
 	}
@@ -105,7 +105,7 @@ func CheckRecommended(id Identity) *Warning {
 //
 // It demotes ErrUnparseableVersion to a *Warning instead of returning it as
 // an error. This was originally gated behind an opt-in
-// BEADS_DOLT_ALLOW_UNVERIFIED env var (an escape hatch a caller had to
+// ISSUEGRAPH_DOLT_ALLOW_UNVERIFIED env var (an escape hatch a caller had to
 // explicitly enable), but that was inconsistent with this package's
 // no-hard-floor posture elsewhere: a dolt binary running a KNOWN-bad
 // version (1.52.1, well below RecommendedMin) only warns, while a binary

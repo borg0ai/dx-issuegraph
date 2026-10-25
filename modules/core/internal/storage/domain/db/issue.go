@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func NewIssueSQLRepository(runner Runner) domain.IssueSQLRepository {
@@ -394,7 +394,7 @@ func (r *issueSQLRepositoryImpl) Claim(ctx context.Context, id, actor string, op
 		return domain.ClaimRowResult{}, errors.New("db: Claim: id must not be empty")
 	}
 	// The CAS below writes assignee = actor. actor is user-settable (--actor /
-	// BEADS_ACTOR), so bound it against the VARCHAR(255) assignee column up front
+	// ISSUEGRAPH_ACTOR), so bound it against the VARCHAR(255) assignee column up front
 	// and return a typed ErrFieldTooLong rather than a raw backend error.
 	if err := types.CheckFieldLen("actor", actor); err != nil {
 		return domain.ClaimRowResult{}, err
@@ -984,7 +984,7 @@ func (r *issueSQLRepositoryImpl) DeleteByIDs(ctx context.Context, ids []string, 
 	// Resolve WHICH ids this delete actually removes before the batched DELETE
 	// runs: afterwards the rows are gone, and RowsAffected reports a count, not
 	// a set. A journal record for an id that was already absent would tell a
-	// consumer to drop a bead this transaction never touched.
+	// consumer to drop a issue this transaction never touched.
 	actualIDs, err := issueops.ExistingIssueIDsInTableInTx(ctx, r.runner, table, ids)
 	if err != nil {
 		return 0, fmt.Errorf("db: IssueSQLRepository.DeleteByIDs resolve existing ids: %w", err)
@@ -1232,7 +1232,7 @@ func (r *issueSQLRepositoryImpl) UnclaimIssueIfAssignee(ctx context.Context, id,
 // and the SQL work is the classic issueops.HeartbeatIssueInTx — same clock
 // (time.Now().UTC()), same TTL resolution (issueops.LeaseTTL), and the same
 // only-current-owner classification (storage.ErrAlreadyClaimed /
-// ErrNotClaimable) — so classic `bd reclaim` staleness semantics see proxied
+// ErrNotClaimable) — so classic `issuegraph reclaim` staleness semantics see proxied
 // heartbeats identically. Deliberately NO Dolt commit: the leases table is
 // dolt_ignored (bd-lrgn1), and the cmd layer commits this transaction with
 // uow.RunTxEphemeral (plain SQL COMMIT, nothing in dolt_log).

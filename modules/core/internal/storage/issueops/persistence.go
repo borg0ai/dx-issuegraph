@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // PersistenceMoveResult reports the durable tables changed by a persistence move.
@@ -36,7 +36,7 @@ func MoveIssuePersistenceInTx(ctx context.Context, tx DBTX, current *types.Issue
 		// no move is needed but the flags still disagree with the row, and that
 		// state is reachable in the ISSUES plane: a durable row carrying
 		// ephemeral = 1 is exactly what the pre-role proxied update produced,
-		// and `bd update --persistent` is the command an operator reaches for
+		// and `issuegraph update --persistent` is the command an operator reaches for
 		// to repair it. Hardcoding `wisps` sent that repair at the wrong table,
 		// where it matched nothing and still reported success.
 		table := persistenceIssueTable(sourceWisp)
@@ -53,7 +53,7 @@ func MoveIssuePersistenceInTx(ctx context.Context, tx DBTX, current *types.Issue
 			return PersistenceMoveResult{}, fmt.Errorf("normalize local issue persistence: %s names no row in %s", current.ID, table)
 		}
 		result.ChangedTables[table] = true
-		// The flags are part of the bead snapshot, so a normalize journals as
+		// The flags are part of the issue snapshot, so a normalize journals as
 		// an update. The no-change early return above emits nothing.
 		if err := RecordEventInTx(ctx, tx, EventUpdate, current.ID, actor); err != nil {
 			return PersistenceMoveResult{}, err
@@ -122,7 +122,7 @@ func MoveIssuePersistenceInTx(ctx context.Context, tx DBTX, current *types.Issue
 	}
 	result.ChangedTables[persistenceIssueTable(sourceWisp)] = true
 	result.ChangedTables[persistenceIssueTable(targetWisp)] = true
-	// The bead keeps its ID across a plane move; only where it is stored
+	// The issue keeps its ID across a plane move; only where it is stored
 	// changes. Journal one update carrying the moved snapshot, after derived
 	// blocked-state maintenance has settled.
 	if err := RecordEventInTx(ctx, tx, EventUpdate, current.ID, actor); err != nil {

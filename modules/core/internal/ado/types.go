@@ -2,7 +2,7 @@
 //
 // This package handles all interactions with Azure DevOps work item tracking,
 // including fetching, creating, and updating work items. It provides
-// bidirectional mapping between ADO's data model and Beads' internal types.
+// bidirectional mapping between ADO's data model and IssueGraph' internal types.
 package ado
 
 import "time"

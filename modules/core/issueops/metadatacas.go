@@ -180,7 +180,7 @@ type MetadataCAS interface {
 	//
 	// A FRONT DOOR OWES THE CALLER AN UNMISTAKABLE ANSWER, WHICH IS NOT THE
 	// SAME AS AN ERROR, and the shipped HTTP spelling is the worked example:
-	// POST /v0/beads/issues/{id}:casMetadata answers a refused swap with 200
+	// POST /v0/issuegraph/issues/{id}:casMetadata answers a refused swap with 200
 	// and `swapped: false` beside `current`, and publishes NO 409 at all,
 	// because a conflict code would put a retry loop's ordinary iteration into
 	// the error channel and force the value that loop needs next to travel as

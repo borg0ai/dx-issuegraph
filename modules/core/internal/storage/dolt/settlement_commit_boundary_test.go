@@ -7,7 +7,7 @@ import (
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func TestServerSettlementSQLCommitResponseLossIsIndeterminate(t *testing.T) {
@@ -156,7 +156,7 @@ func TestCommitWorkingSetAfterSQLCommitResponseLossIsIndeterminate(t *testing.T)
 					WithArgs("issues").
 					WillReturnRows(sqlmock.NewRows([]string{"status"}))
 				mock.ExpectQuery(regexp.QuoteMeta("CALL DOLT_COMMIT('-m', ?, '--author', ?)")).
-					WithArgs("bd: recompute is_blocked after pull", " <>").
+					WithArgs("issuegraph: recompute is_blocked after pull", " <>").
 					WillReturnError(responseLoss)
 			},
 		},
@@ -171,7 +171,7 @@ func TestCommitWorkingSetAfterSQLCommitResponseLossIsIndeterminate(t *testing.T)
 			responseLoss := errors.New(tc.name + " response lost after SQL commit")
 			tc.setup(mock, responseLoss)
 			store := &DoltStore{db: db}
-			err = store.commitWorkingSetAfterSQLCommit(t.Context(), "bd: recompute is_blocked after pull", configExclude)
+			err = store.commitWorkingSetAfterSQLCommit(t.Context(), "issuegraph: recompute is_blocked after pull", configExclude)
 			assertPublicCommitIndeterminate(t, err, responseLoss)
 			if err := mock.ExpectationsWereMet(); err != nil {
 				t.Fatalf("unmet sqlmock expectations: %v", err)

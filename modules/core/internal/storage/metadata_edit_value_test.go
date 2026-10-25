@@ -6,7 +6,7 @@ import (
 )
 
 // TestMetadataEditValuePinsV122Inference pins the shipped v1.2.2 `--set-metadata`
-// scalar contract (v1.2.2's modules/cli/update.go toJSONValue): null/bool/number keep
+// scalar contract (v1.2.2's apps/cli/update.go toJSONValue): null/bool/number keep
 // their JSON type, and a spelling that is not valid JSON on its own stays a
 // string even when it scans as a float. An in-window build stored every value as
 // a string; that regression is what this table guards against coming back.

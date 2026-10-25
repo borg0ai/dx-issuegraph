@@ -5,13 +5,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // ReadyWorkExcludeTypes returns the issue types excluded from ready work by
 // default, plus any caller extras (deduped, empty entries dropped). Infra types
-// stay hidden from ready work, and rig identity beads are also hidden even
+// stay hidden from ready work, and rig identity issuegraph are also hidden even
 // though they are durable issues rather than infra wisps.
 func ReadyWorkExcludeTypes(extra []types.IssueType) []types.IssueType {
 	out := []types.IssueType{
@@ -95,7 +95,7 @@ func BuildReadyWorkWhere(filter types.WorkFilter, tables FilterTables, in ReadyW
 	var args []any
 	switch {
 	case filter.Status != "":
-		// Singular StatusOpen is the `bd ready` pin and means the ready-
+		// Singular StatusOpen is the `issuegraph ready` pin and means the ready-
 		// eligible set: built-in open plus category-active custom statuses,
 		// matching the ready_issues view since migration 0025 (GH#5831).
 		// Any other singular status stays exact.

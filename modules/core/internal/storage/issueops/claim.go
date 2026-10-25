@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ClaimResult holds the result of a ClaimIssueInTx call.
@@ -35,7 +35,7 @@ type ClaimResult struct {
 //nolint:gosec // G201: table names come from WispTableRouting (hardcoded constants)
 func ClaimIssueInTx(ctx context.Context, tx DBTX, id string, actor string) (*ClaimResult, error) {
 	// The CAS below writes assignee = actor. actor is user-settable (--actor /
-	// BEADS_ACTOR), so bound it against the VARCHAR(255) assignee column up front
+	// ISSUEGRAPH_ACTOR), so bound it against the VARCHAR(255) assignee column up front
 	// and return a typed ErrFieldTooLong rather than a raw backend error.
 	if err := types.CheckFieldLen("actor", actor); err != nil {
 		return nil, err
@@ -153,7 +153,7 @@ func ClaimIssueInTx(ctx context.Context, tx DBTX, id string, actor string) (*Cla
 		// here, because ClaimConflictError.Error() passes its wrapped refusal
 		// through byte-for-byte — a bare sentinel would reach the caller as
 		// "issue already claimed" with the holder dropped and
-		// beads.ParseClaimConflict unable to recover it. The fragments are the
+		// issuegraph.ParseClaimConflict unable to recover it. The fragments are the
 		// storage layer's exported ones, which is what keeps the parser and
 		// this producer in step. The sentinel stays matchable through both
 		// wraps, which errors.Is, ParseClaimConflict and the proxied batch
@@ -171,17 +171,17 @@ func ClaimIssueInTx(ctx context.Context, tx DBTX, id string, actor string) (*Cla
 			case slices.Contains(pools, assignee):
 				// refusal already names the status.
 			case currentStatus == types.StatusOpen:
-				// Do not name a release command here — not `bd unclaim`, not
-				// `bd unclaim --force`. Refusal copy that names one gets
+				// Do not name a release command here — not `issuegraph unclaim`, not
+				// `issuegraph unclaim --force`. Refusal copy that names one gets
 				// pattern-matched by batch agents into an unclaim+claim
 				// steamroller of live claims (wy-yuclk). Point at the holder;
-				// bd reclaim is safe to name because it only recovers claims
+				// issuegraph reclaim is safe to name because it only recovers claims
 				// whose lease has already expired.
 				//
 				// This copy deliberately omits the parseable " by <assignee>"
 				// tail, so ParseClaimConflict recovers the holder from the
 				// typed field rather than the prose (bd-at6rc).
-				refusal = fmt.Errorf("%w: already assigned to %q — coordinate with the holder; if their claim is abandoned (crashed agent), lease expiry will surface it for bd reclaim", storage.ErrAlreadyClaimed, assignee)
+				refusal = fmt.Errorf("%w: already assigned to %q — coordinate with the holder; if their claim is abandoned (crashed agent), lease expiry will surface it for issuegraph reclaim", storage.ErrAlreadyClaimed, assignee)
 			default:
 				refusal = fmt.Errorf("%w%s%s", storage.ErrAlreadyClaimed, storage.ClaimedByFragment, assignee)
 			}
@@ -195,7 +195,7 @@ func ClaimIssueInTx(ctx context.Context, tx DBTX, id string, actor string) (*Cla
 	}
 
 	// Grant the lease: what makes the claim recoverable — a worker that dies
-	// stops heartbeating and bd reclaim later reverts the issue. Lease rows
+	// stops heartbeating and issuegraph reclaim later reverts the issue. Lease rows
 	// live in the ephemeral leases table (no Dolt commit, node-local). Wisps
 	// are never leased (they are ephemeral, not reclaimable work).
 	if !isWisp {
@@ -258,12 +258,12 @@ func ClaimReadyIssueInTx(
 	// Claim only ever delivers the one issue it successfully claims below —
 	// the breaker's job is to bound delivered payloads, and a claim's
 	// payload is always exactly one row regardless of how large the ready
-	// pool it scanned was. So a rig-wide BEADS_MAX_ROWS/--max-rows cap
+	// pool it scanned was. So a rig-wide ISSUEGRAPH_MAX_ROWS/--max-rows cap
 	// (sized for bulk list/ready reads) must not fire here, and the scan
 	// itself must stay unbounded (Limit=0): the loop below walks
 	// readyIssues in order and continues past any that are transiently
 	// unclaimable (already claimed by a racing agent, etc), so bounding
-	// the scan to Limit=MaxRows (e.g. BEADS_MAX_ROWS=1 → scan only the
+	// the scan to Limit=MaxRows (e.g. ISSUEGRAPH_MAX_ROWS=1 → scan only the
 	// single top-of-queue row) would make claim spuriously return "nothing
 	// to claim" whenever that narrow window is unclaimable, even with
 	// plenty of other ready work available. Clear the cap fields so
@@ -333,11 +333,11 @@ func ParseClaimPools(raw string) []string {
 // ClaimableSourceStatusesInTx returns the set of statuses an issue may be
 // claimed FROM: the built-in "open" status plus any configured custom status
 // whose category is "active" (the same category that surfaces issues in
-// bd ready). Custom statuses in the wip/done/frozen categories are intentionally
+// issuegraph ready). Custom statuses in the wip/done/frozen categories are intentionally
 // excluded so claim retains its anti-steal protection (GH-3570) — an
 // in_progress/blocked issue, or a custom alias for one, is never silently
 // re-claimable. Unspecified-category customs are also excluded, matching their
-// absence from bd ready.
+// absence from issuegraph ready.
 func ClaimableSourceStatusesInTx(ctx context.Context, tx DBTX) ([]string, error) {
 	statuses := []string{string(types.StatusOpen)}
 	customs, err := ResolveCustomStatusesDetailedInTx(ctx, tx)

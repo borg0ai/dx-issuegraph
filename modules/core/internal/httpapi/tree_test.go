@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-const treePath = "/v0/beads/dependencies/tree"
+const treePath = "/v0/issuegraph/dependencies/tree"
 
 // treeServer binds a roles-backed server whose tree walker answers with walker.
 // Listen requires a COMPLETE source, so rolesConfig fills in the rest.
@@ -235,7 +235,7 @@ func TestTreeRefusesTheDocumentedBadRequests(t *testing.T) {
 }
 
 // TestTreeAnswers404ForARootThatIsNotThere pins the difference from
-// GET /v0/beads/dependencies, which reports a miss in the body: this operation
+// GET /v0/issuegraph/dependencies, which reports a miss in the body: this operation
 // has ONE anchor, so there is no other answer to preserve.
 func TestTreeAnswers404ForARootThatIsNotThere(t *testing.T) {
 	ts := treeServer(t, &roleTreeWalker{err: fmt.Errorf("%w: issue bd-ghost", storage.ErrNotFound)})

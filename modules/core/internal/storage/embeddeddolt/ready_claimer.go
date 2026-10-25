@@ -6,10 +6,10 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/workapi"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ReadyClaimer returns the guarded take-ready-work surface for this store.
@@ -40,7 +40,7 @@ func (c *readyClaimer) ClaimNext(ctx context.Context, request issueops.ClaimNext
 		return issueops.ClaimNextResult{}, err
 	}
 
-	// Wake expired dated defers before selecting, so a bead whose snooze just
+	// Wake expired dated defers before selecting, so a issue whose snooze just
 	// ended is claimable the moment its date passes. Advisory, in a write tx
 	// of its own: a failed sweep must not cost the claim.
 	c.store.wakeExpiredDefers(ctx)
@@ -55,7 +55,7 @@ func (c *readyClaimer) ClaimNext(ctx context.Context, request issueops.ClaimNext
 		if attempt.Claimed == nil {
 			return tables, "", nil
 		}
-		// Same id-bearing commit message as the server-backed store, so `bd
+		// Same id-bearing commit message as the server-backed store, so `issuegraph
 		// dolt log` reads the same on both backends.
 		return tables, storageissueops.ClaimNextCommitMessage(attempt.Claimed.ID), nil
 	})

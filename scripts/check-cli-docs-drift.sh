@@ -20,7 +20,7 @@
 # probe result stands, preserving the historical behavior.
 #
 # Usage: check-cli-docs-drift.sh [--base <ref>] [--patch-out <file>] [bd-binary]
-#   --base       diff base ref (default: $BD_DOCS_DIFF_BASE, then
+#   --base       diff base ref (default: $ISSUEGRAPH_DOCS_DIFF_BASE, then
 #                origin/$GITHUB_BASE_REF when set, as in GitHub PR CI)
 #   --patch-out  where to write the regeneration patch on attributable drift
 #                (default: $DOC_DRIFT_PATCH_OUT when set)
@@ -36,7 +36,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 BASE_REF=""
 PATCH_OUT="${DOC_DRIFT_PATCH_OUT:-}"
-BD_ARG=""
+ISSUEGRAPH_ARG=""
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -55,14 +55,14 @@ while [ "$#" -gt 0 ]; do
             exit 0
             ;;
         *)
-            BD_ARG="$1"
+            ISSUEGRAPH_ARG="$1"
             shift
             ;;
     esac
 done
 
 if [ -z "$BASE_REF" ]; then
-    BASE_REF="${BD_DOCS_DIFF_BASE:-}"
+    BASE_REF="${ISSUEGRAPH_DOCS_DIFF_BASE:-}"
 fi
 if [ -z "$BASE_REF" ] && [ -n "${GITHUB_BASE_REF:-}" ]; then
     BASE_REF="origin/${GITHUB_BASE_REF}"
@@ -77,7 +77,7 @@ GEN_PATHSPECS=(
 
 print_fix_help() {
     echo ""
-    echo "To fix in any environment, regenerate with the pipeline's canonical bd"
+    echo "To fix in any environment, regenerate with the pipeline's canonical issuegraph"
     echo "(built from the release pin in docs/cli-docs.pin when set, else from"
     echo "this checkout, CGO_ENABLED=0 -tags gms_pure_go):"
     echo "  ./scripts/generate-cli-docs.sh"
@@ -91,12 +91,12 @@ regen_worktree() {
     git -C "$PROJECT_ROOT" worktree add --detach --quiet "$dir" "$sha"
     (
         cd "$dir"
-        if [ -x scripts/resolve-docs-bd.sh ] && [ -n "$(scripts/resolve-docs-bd.sh)" ]; then
+        if [ -x scripts/resolve-docs-issuegraph.sh ] && [ -n "$(scripts/resolve-docs-issuegraph.sh)" ]; then
             ./scripts/generate-cli-docs.sh >/dev/null
         else
-            CGO_ENABLED=0 go build -tags gms_pure_go -o "$dir/.docs-bd" github.com/steveyegge/beads/modules/cli
-            ./scripts/generate-cli-docs.sh "$dir/.docs-bd" >/dev/null
-            rm -f "$dir/.docs-bd"
+            CGO_ENABLED=0 go build -tags gms_pure_go -o "$dir/.docs-issuegraph" github.com/borg0ai/dx-issuegraph/apps/cli
+            ./scripts/generate-cli-docs.sh "$dir/.docs-issuegraph" >/dev/null
+            rm -f "$dir/.docs-issuegraph"
         fi
     )
 }
@@ -127,7 +127,7 @@ surface_fingerprint() {
 
 # --- Strict probe ------------------------------------------------------------
 
-if "$PROJECT_ROOT/scripts/generate-cli-docs.sh" --check ${BD_ARG:+"$BD_ARG"}; then
+if "$PROJECT_ROOT/scripts/generate-cli-docs.sh" --check ${ISSUEGRAPH_ARG:+"$ISSUEGRAPH_ARG"}; then
     exit 0
 fi
 
@@ -178,7 +178,7 @@ fi
 if git -C "$W_HEAD" diff --quiet; then
     echo "PASS: committed docs are fresh under the canonical pinned build."
     echo "(The strict probe failed for a reason that does not affect committed state:"
-    echo " either the supplied bd binary differs from the canonical pinned build"
+    echo " either the supplied issuegraph binary differs from the canonical pinned build"
     echo " [CGO_ENABLED=0 go build -tags gms_pure_go], or uncommitted local edits"
     echo " to generated docs made the working tree diverge. Attribution compares"
     echo " committed states only - commit local changes before relying on it.)"

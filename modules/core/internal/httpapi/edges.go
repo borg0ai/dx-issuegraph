@@ -6,27 +6,27 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // maxDependencyAnchors bounds how many issues one call may ask about.
 //
 // It is the operation's ONLY size bound and it is deliberately on the QUESTION
-// rather than on the answer. `bd dep list` takes no limit, so a `limit`
+// rather than on the answer. `issuegraph dep list` takes no limit, so a `limit`
 // parameter here would make the two front doors answer differently by default;
 // a cap on the answer with no cursor behind it would truncate with no way to
 // fetch the rest. Bounding the anchors bounds the work without doing either.
 const maxDependencyAnchors = 100
 
-// handleListDependencies answers GET /v0/beads/dependencies.
+// handleListDependencies answers GET /v0/issuegraph/dependencies.
 //
 // Everything below the wire is on issueops.EdgeReader: which plane each anchor
 // is probed on, whether an absent anchor is a miss or an error, the type
 // filter, the edge order, and the de-duplication of a repeated id. What stays
 // here is transport — two repeatable parameters, the size bound, and flattening
-// the role's per-anchor answer onto the flat array `bd dep list --json` emits.
+// the role's per-anchor answer onto the flat array `issuegraph dep list --json` emits.
 func (s *Server) handleListDependencies(w http.ResponseWriter, r *http.Request) {
 	q := newQuery(r.URL.Query())
 
@@ -67,7 +67,7 @@ func (s *Server) handleListDependencies(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, wireEdges(result))
 }
 
-// handleCountDependencyEdges answers GET /v0/beads/dependencies:count.
+// handleCountDependencyEdges answers GET /v0/issuegraph/dependencies:count.
 //
 // Everything below the wire is on issueops.GraphCounter: which plane each
 // anchor is probed on, that an absent anchor is a per-anchor miss rather than
@@ -79,7 +79,7 @@ func (s *Server) handleListDependencies(w http.ResponseWriter, r *http.Request) 
 // The DIRECTION is not validated here, deliberately. It is the role's closed
 // vocabulary, and issueops.GraphCounter has ONE body on all three legs with
 // ValidateEdgeCountRequest inside it, so refusing at the edge would be a second
-// definition of the same rule — the opposite of GET /v0/beads/issues:count,
+// definition of the same rule — the opposite of GET /v0/issuegraph/issues:count,
 // where the handler owns its enum precisely because no role refusal is
 // reachable there. Here four of them are, and failEdgeCountErr names the
 // parameter for each.

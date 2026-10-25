@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // IssueReaderSource is the capability accessor a unit-of-work provider offers.
@@ -89,7 +89,7 @@ func (r *issueReader) List(ctx context.Context, req publicops.ListRequest) (publ
 	return RunTxRead(ctx, r.provider, func(ctx context.Context, uw UnitOfWork) (publicops.IssuePage, error) {
 		// The config source comes from the unit of work this call already
 		// holds, so a caller reaching this method through the role has nothing
-		// to supply and no step to skip. `bd list --proxied-server` gets its
+		// to supply and no step to skip. `issuegraph list --proxied-server` gets its
 		// page this way in every mode but --watch and the hierarchical --parent
 		// tree; those two still open their own unit of work because they consume
 		// the FILTER rather than a page (see issueops.Reader's doc comment).

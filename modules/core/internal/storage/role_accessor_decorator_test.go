@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/issueops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // roleAccessorNames is the capability surface every storage decorator has to
@@ -440,9 +440,9 @@ func (*memoryRoleSentinel) List(context.Context, memoryops.ListRequest) (memoryo
 // unwrapped,
 // each in its own hook_*.go. The ones in that column that are NOT reads are
 // WorkspaceConfig, Memories, VersionReconciler, Bootstrapper, Sweeper and
-// Deleter: a settings write changes the workspace rather than a bead, a
-// remembered insight names no bead and there is no on_remember to fire, a
-// version marker names no bead at all, a bootstrap lands on a workspace whose
+// Deleter: a settings write changes the workspace rather than a issue, a
+// remembered insight names no issue and there is no on_remember to fire, a
+// version marker names no issue at all, a bootstrap lands on a workspace whose
 // hooks are not installed yet, a swept row is gone, and the hook vocabulary has
 // no name for a deletion — so this decorator's issue-shaped hook vocabulary has
 // nothing to hand a hook script. This test pins every one of them as a decision

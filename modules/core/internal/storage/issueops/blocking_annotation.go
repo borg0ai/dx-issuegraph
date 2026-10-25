@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/steveyegge/beads/internal/storage"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ValidateBlockingRequest applies the one request rule every BlockingAnnotator

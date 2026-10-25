@@ -5,7 +5,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestSearchIssuesAndSearchIssueIDs_Parity asserts that SearchIssues and

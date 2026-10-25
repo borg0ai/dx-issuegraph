@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestRegistered(t *testing.T) {
@@ -133,39 +133,39 @@ func TestBuildExternalRef(t *testing.T) {
 func TestFieldMapperStatus(t *testing.T) {
 	m := &githubFieldMapper{config: DefaultMappingConfig()}
 
-	if got := m.StatusToBeads("open"); got != types.StatusOpen {
-		t.Errorf("StatusToBeads(open) = %q, want %q", got, types.StatusOpen)
+	if got := m.StatusToIssueGraph("open"); got != types.StatusOpen {
+		t.Errorf("StatusToIssueGraph(open) = %q, want %q", got, types.StatusOpen)
 	}
-	if got := m.StatusToBeads("closed"); got != types.StatusClosed {
-		t.Errorf("StatusToBeads(closed) = %q, want %q", got, types.StatusClosed)
+	if got := m.StatusToIssueGraph("closed"); got != types.StatusClosed {
+		t.Errorf("StatusToIssueGraph(closed) = %q, want %q", got, types.StatusClosed)
 	}
 }
 
 func TestFieldMapperPriority(t *testing.T) {
 	m := &githubFieldMapper{config: DefaultMappingConfig()}
 
-	if got := m.PriorityToBeads("critical"); got != 0 {
-		t.Errorf("PriorityToBeads(critical) = %d, want 0", got)
+	if got := m.PriorityToIssueGraph("critical"); got != 0 {
+		t.Errorf("PriorityToIssueGraph(critical) = %d, want 0", got)
 	}
-	if got := m.PriorityToBeads("high"); got != 1 {
-		t.Errorf("PriorityToBeads(high) = %d, want 1", got)
+	if got := m.PriorityToIssueGraph("high"); got != 1 {
+		t.Errorf("PriorityToIssueGraph(high) = %d, want 1", got)
 	}
-	if got := m.PriorityToBeads("low"); got != 3 {
-		t.Errorf("PriorityToBeads(low) = %d, want 3", got)
+	if got := m.PriorityToIssueGraph("low"); got != 3 {
+		t.Errorf("PriorityToIssueGraph(low) = %d, want 3", got)
 	}
 }
 
 func TestFieldMapperType(t *testing.T) {
 	m := &githubFieldMapper{config: DefaultMappingConfig()}
 
-	if got := m.TypeToBeads("bug"); got != types.TypeBug {
-		t.Errorf("TypeToBeads(bug) = %q, want %q", got, types.TypeBug)
+	if got := m.TypeToIssueGraph("bug"); got != types.TypeBug {
+		t.Errorf("TypeToIssueGraph(bug) = %q, want %q", got, types.TypeBug)
 	}
-	if got := m.TypeToBeads("feature"); got != types.TypeFeature {
-		t.Errorf("TypeToBeads(feature) = %q, want %q", got, types.TypeFeature)
+	if got := m.TypeToIssueGraph("feature"); got != types.TypeFeature {
+		t.Errorf("TypeToIssueGraph(feature) = %q, want %q", got, types.TypeFeature)
 	}
-	if got := m.TypeToBeads("unknown"); got != types.TypeTask {
-		t.Errorf("TypeToBeads(unknown) = %q, want %q (default)", got, types.TypeTask)
+	if got := m.TypeToIssueGraph("unknown"); got != types.TypeTask {
+		t.Errorf("TypeToIssueGraph(unknown) = %q, want %q (default)", got, types.TypeTask)
 	}
 }
 
@@ -236,7 +236,7 @@ func TestGitHubToTrackerIssue_ClosedWithTimestamp(t *testing.T) {
 	}
 }
 
-func TestFieldMapperIssueToBeads(t *testing.T) {
+func TestFieldMapperIssueToIssueGraph(t *testing.T) {
 	m := &githubFieldMapper{config: DefaultMappingConfig()}
 
 	now := time.Now()
@@ -262,12 +262,12 @@ func TestFieldMapperIssueToBeads(t *testing.T) {
 		Raw:        gh,
 	}
 
-	conv := m.IssueToBeads(ti)
+	conv := m.IssueToIssueGraph(ti)
 	if conv == nil {
-		t.Fatal("IssueToBeads returned nil")
+		t.Fatal("IssueToIssueGraph returned nil")
 	}
 	if conv.Issue == nil {
-		t.Fatal("IssueToBeads returned nil issue")
+		t.Fatal("IssueToIssueGraph returned nil issue")
 	}
 	if conv.Issue.Title != "Test issue" {
 		t.Errorf("Issue.Title = %q, want %q", conv.Issue.Title, "Test issue")
@@ -277,7 +277,7 @@ func TestFieldMapperIssueToBeads(t *testing.T) {
 	}
 }
 
-func TestFieldMapperIssueToBeads_NilRaw(t *testing.T) {
+func TestFieldMapperIssueToIssueGraph_NilRaw(t *testing.T) {
 	m := &githubFieldMapper{config: DefaultMappingConfig()}
 
 	ti := &tracker.TrackerIssue{
@@ -285,15 +285,15 @@ func TestFieldMapperIssueToBeads_NilRaw(t *testing.T) {
 		Raw: nil, // Not a *github.Issue
 	}
 
-	conv := m.IssueToBeads(ti)
+	conv := m.IssueToIssueGraph(ti)
 	if conv != nil {
-		t.Error("IssueToBeads with nil Raw should return nil")
+		t.Error("IssueToIssueGraph with nil Raw should return nil")
 	}
 }
 
 // TestGetConfig_YamlOnlyKeyBypassesStore is a regression test for the bug where
-// `bd github sync` errored "GitHub token not configured" even though the token
-// was set in .beads/config.yaml. The github tracker's getConfig used to read
+// `issuegraph github sync` errored "GitHub token not configured" even though the token
+// was set in .issuegraph/config.yaml. The github tracker's getConfig used to read
 // every key from the Dolt store, but github.token is a yaml-only secret key
 // (never written to the DB). The fix routes yaml-only keys through config.yaml
 // and env var, skipping the store entirely.
@@ -322,7 +322,7 @@ func TestGetConfig_YamlOnlyKeyBypassesStore(t *testing.T) {
 }
 
 // TestGetConfig_YamlOnlyKeyReadsFromYaml is the positive case for the fix:
-// when github.token is present in .beads/config.yaml, getConfig must return
+// when github.token is present in .issuegraph/config.yaml, getConfig must return
 // that value (and not depend on GITHUB_TOKEN being set). This is the primary
 // behavior the PR restores; the BypassesStore test only proves the env-var
 // fallback path. Together they cover both branches of the yaml-only handler.
@@ -330,19 +330,19 @@ func TestGetConfig_YamlOnlyKeyReadsFromYaml(t *testing.T) {
 	const wantToken = "yaml-config-token-value"
 
 	tmpDir := t.TempDir()
-	beadsDir := filepath.Join(tmpDir, ".beads")
-	if err := os.MkdirAll(beadsDir, 0o750); err != nil {
-		t.Fatalf("mkdir .beads: %v", err)
+	issuegraphDir := filepath.Join(tmpDir, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
+		t.Fatalf("mkdir .issuegraph: %v", err)
 	}
 	yamlBody := "github.token: \"" + wantToken + "\"\n"
-	if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(yamlBody), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(yamlBody), 0o600); err != nil {
 		t.Fatalf("write config.yaml: %v", err)
 	}
 
 	// Isolate from the developer's environment so we read only the temp yaml.
 	t.Setenv("GITHUB_TOKEN", "")
-	t.Setenv("BEADS_DIR", "")
-	t.Setenv("BEADS_TEST_IGNORE_REPO_CONFIG", "1")
+	t.Setenv("ISSUEGRAPH_DIR", "")
+	t.Setenv("ISSUEGRAPH_TEST_IGNORE_REPO_CONFIG", "1")
 	t.Setenv("HOME", filepath.Join(tmpDir, "home"))
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(tmpDir, "xdg"))
 	t.Chdir(tmpDir)

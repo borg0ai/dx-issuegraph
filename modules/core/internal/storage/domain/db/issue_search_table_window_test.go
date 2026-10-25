@@ -3,8 +3,8 @@ package db
 import (
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestIssueSearchPerTableWindow is the per-table (and counts-twin) copy of
@@ -125,7 +125,7 @@ func (s *testSuite) perTableRoutesAnswerOnePage() {
 // seam. idSrcPage.sortGoSide honored sortDesc from the start, so this is a
 // regression fence rather than a fix witness — it is here because the per-table
 // cases above assert the same page shape, and the three seams answering one
-// page is the contract the pair of beads restores. Seeds wisps; keep it LAST.
+// page is the contract the pair of issuegraph restores. Seeds wisps; keep it LAST.
 func (s *testSuite) unionGoSideSortDescKeepsTheByteLastRows() {
 	const prefix = "bd-ptw-udesc"
 	ids := s.seedTwoPlanes(prefix, 6)

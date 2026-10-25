@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
 )
 
 var gitCommandRunner = func(repoPath string, args ...string) ([]byte, error) {
@@ -31,7 +31,7 @@ const (
 // based on git configuration and repository permissions.
 //
 // Detection strategy:
-// 1. Check git config for beads.role setting (preferred source of truth)
+// 1. Check git config for issuegraph.role setting (preferred source of truth)
 // 2. Fall back to URL heuristic with deprecation warning (graceful degradation)
 // 3. Default to maintainer for local projects (no remote configured)
 func DetectUserRole(repoPath string) (UserRole, error) {
@@ -41,7 +41,7 @@ func DetectUserRole(repoPath string) (UserRole, error) {
 	}
 
 	// jj secondary workspaces have no .git of their own, so the lookup above
-	// fails even when the primary workspace has beads.role set. Resolve the
+	// fails even when the primary workspace has issuegraph.role set. Resolve the
 	// primary workspace and retry there, then run the remaining fallbacks
 	// against the primary's git repo since the secondary has no usable git
 	// context. The resolution is anchored at repoPath (not cwd) so it stays
@@ -57,17 +57,17 @@ func DetectUserRole(repoPath string) (UserRole, error) {
 
 	// Fallback to URL heuristic (deprecated, with warning)
 	// This keeps existing users working while encouraging migration
-	fmt.Fprintln(os.Stderr, "warning: beads.role not configured (GH#2950).")
-	fmt.Fprintln(os.Stderr, "  Fix: git config beads.role maintainer")
-	fmt.Fprintln(os.Stderr, "  Or:  git config beads.role contributor")
+	fmt.Fprintln(os.Stderr, "warning: issuegraph.role not configured (GH#2950).")
+	fmt.Fprintln(os.Stderr, "  Fix: git config issuegraph.role maintainer")
+	fmt.Fprintln(os.Stderr, "  Or:  git config issuegraph.role contributor")
 	return detectFromURL(repoPath), nil
 }
 
-// roleFromGitConfig reads beads.role from the git config of repoPath.
+// roleFromGitConfig reads issuegraph.role from the git config of repoPath.
 // Returns (role, true) only for a valid explicit value; (_, false) when the
 // config is unset, git is unavailable, or the value is not a recognized role.
 func roleFromGitConfig(repoPath string) (UserRole, bool) {
-	output, err := gitCommandRunner(repoPath, "config", "--get", "beads.role")
+	output, err := gitCommandRunner(repoPath, "config", "--get", "issuegraph.role")
 	if err != nil {
 		return "", false
 	}

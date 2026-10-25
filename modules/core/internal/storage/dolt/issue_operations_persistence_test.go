@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestMoveIssuePersistenceInTxMovesAggregateAndReportsTables(t *testing.T) {
@@ -309,7 +309,7 @@ func TestMoveIssuePersistenceInTxLateCounterConflictRollsBack(t *testing.T) {
 // with the plane the row is in, and the reachable instance is a DURABLE row
 // carrying ephemeral = 1 — what the pre-role proxied update produced. It used
 // to issue `UPDATE wisps` unconditionally, so the repair matched no row in the
-// issues plane and still reported Changed: true: `bd update <id> --persistent`
+// issues plane and still reported Changed: true: `issuegraph update <id> --persistent`
 // printed success and left the flag set.
 //
 // The assertion is on the STORED ROW rather than on the result, because

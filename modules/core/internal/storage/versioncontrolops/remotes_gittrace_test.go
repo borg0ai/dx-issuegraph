@@ -50,7 +50,7 @@ func TestRemoteCallsScrubStderrGitTrace(t *testing.T) {
 		{"ForcePush", func(db DBConn) error { return ForcePush(context.Background(), db, "origin", "main", "") }},
 		{"Fetch", func(db DBConn) error { return Fetch(context.Background(), db, "peer", "") }},
 		{"Clone", func(db DBConn) error {
-			return DoltClone(context.Background(), db, "https://example.com/r.git", "beads", "")
+			return DoltClone(context.Background(), db, "https://example.com/r.git", "issuegraph", "")
 		}},
 	}
 	for _, tt := range tests {

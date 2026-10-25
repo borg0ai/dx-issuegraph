@@ -24,7 +24,7 @@ func writeCentralConfig(t *testing.T, path string, cfg *Config) {
 
 func TestLoadCentralConfig_FileExists(t *testing.T) {
 	tmpHome := t.TempDir()
-	centralPath := filepath.Join(tmpHome, ".config", "beads", "server.json")
+	centralPath := filepath.Join(tmpHome, ".config", "issuegraph", "server.json")
 
 	writeCentralConfig(t, centralPath, &Config{
 		DoltMode:       DoltModeServer,
@@ -70,7 +70,7 @@ func TestLoadCentralConfig_FileNotExists(t *testing.T) {
 
 func TestLoadCentralConfig_InvalidJSON(t *testing.T) {
 	tmpHome := t.TempDir()
-	centralPath := filepath.Join(tmpHome, ".config", "beads", "server.json")
+	centralPath := filepath.Join(tmpHome, ".config", "issuegraph", "server.json")
 	if err := os.MkdirAll(filepath.Dir(centralPath), 0o750); err != nil {
 		t.Fatal(err)
 	}
@@ -159,8 +159,8 @@ func TestApplyCentralDefaults_EnvVarsOverrideBoth(t *testing.T) {
 	ApplyCentralDefaults(project, central)
 
 	// Now set env vars — the getter methods should pick these up
-	t.Setenv("BEADS_DOLT_SERVER_HOST", "env.override.com")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "9999")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_HOST", "env.override.com")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "9999")
 
 	// Env vars should override the central config values via getter methods
 	if got := project.GetDoltServerHost(); got != "env.override.com" {
@@ -219,7 +219,7 @@ func TestDefaultCentralConfigPath(t *testing.T) {
 		t.Errorf("DefaultCentralConfigPath() = %q, want filename server.json", path)
 	}
 	dir := filepath.Base(filepath.Dir(path))
-	if dir != "beads" {
-		t.Errorf("DefaultCentralConfigPath() parent dir = %q, want beads", dir)
+	if dir != "issuegraph" {
+		t.Errorf("DefaultCentralConfigPath() parent dir = %q, want issuegraph", dir)
 	}
 }

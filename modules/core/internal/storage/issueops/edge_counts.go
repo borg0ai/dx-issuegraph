@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // edgeCountPlanes are the two dependency tables an edge count spans, paired
@@ -129,7 +129,7 @@ func ExecuteEdgeCount(ctx context.Context, tx DBTX, request publicops.EdgeCountR
 // It SUMS the two planes rather than counting distinct row ids, which is the
 // shipped answer of every raw count this role covers (dolt/counts.go's
 // CountDependents, CountDependencies and CountDependentsByStatus) and of
-// CountDependencyEdgesInTx, the domain body behind `bd show`'s counts on the
+// CountDependencyEdgesInTx, the domain body behind `issuegraph show`'s counts on the
 // unit-of-work leg. CountDependentRecordsInTx de-duplicates instead, because it
 // must agree with a keyset PAGE of the same rows; a cardinality has no page and
 // has never de-duplicated.

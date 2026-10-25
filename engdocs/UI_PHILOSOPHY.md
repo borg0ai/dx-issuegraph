@@ -1,6 +1,6 @@
 # UI/UX Philosophy
 
-Beads CLI follows Tufte-inspired design principles for terminal output, using semantic color tokens with adaptive light/dark mode support via Lipgloss.
+IssueGraph CLI follows Tufte-inspired design principles for terminal output, using semantic color tokens with adaptive light/dark mode support via Lipgloss.
 
 ## Core Principles
 
@@ -92,7 +92,7 @@ ui.RenderFail("✗")     // Error indicator
 ui.RenderAccent("→")   // Accent/link
 ui.RenderMuted("...")  // Secondary info
 ui.RenderBold("name")  // Emphasis
-ui.RenderCommand("bd") // Command reference
+ui.RenderCommand("issuegraph") // Command reference
 ```
 
 ## Help Text Styling

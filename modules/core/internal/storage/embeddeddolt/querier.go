@@ -3,9 +3,9 @@
 package embeddeddolt
 
 import (
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/workapi/storequerier"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi/storequerier"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Querier returns the guarded boolean-query surface for this store.

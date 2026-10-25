@@ -20,7 +20,7 @@ func TestManagesLiveServerOnPort(t *testing.T) {
 
 	newDir := func(t *testing.T) string {
 		t.Helper()
-		dir := filepath.Join(t.TempDir(), ".beads")
+		dir := filepath.Join(t.TempDir(), ".issuegraph")
 		if err := os.MkdirAll(dir, 0o700); err != nil {
 			t.Fatalf("mkdir: %v", err)
 		}
@@ -54,12 +54,12 @@ func TestManagesLiveServerOnPort(t *testing.T) {
 	t.Run("dead pid is not proof", func(t *testing.T) {
 		// The workspace once ran its own server on this port; it died, and an
 		// externally managed server now answers there. 3307 is both the common
-		// external port and bd's own default, so the collision is likely.
+		// external port and issuegraph's own default, so the collision is likely.
 		dir := newDir(t)
 		write(t, dir, PortFileName, port)
 		write(t, dir, PIDFileName, dead)
 		if ManagesLiveServerOnPort(dir, port) {
-			t.Fatal("a port file records that bd once bound a port, not that bd answers on it now")
+			t.Fatal("a port file records that issuegraph once bound a port, not that issuegraph answers on it now")
 		}
 	})
 
@@ -68,14 +68,14 @@ func TestManagesLiveServerOnPort(t *testing.T) {
 		write(t, dir, PortFileName, 40083)
 		write(t, dir, PIDFileName, os.Getpid())
 		if ManagesLiveServerOnPort(dir, port) {
-			t.Fatal("bd's server is on another port; this endpoint is somebody else's")
+			t.Fatal("issuegraph's server is on another port; this endpoint is somebody else's")
 		}
 	})
 
 	t.Run("missing state files are not proof", func(t *testing.T) {
 		dir := newDir(t)
 		if ManagesLiveServerOnPort(dir, port) {
-			t.Fatal("bd never started a server here")
+			t.Fatal("issuegraph never started a server here")
 		}
 		write(t, dir, PortFileName, port)
 		if ManagesLiveServerOnPort(dir, port) {

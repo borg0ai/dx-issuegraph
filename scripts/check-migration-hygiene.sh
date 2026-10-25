@@ -43,7 +43,7 @@
 #      bundle rather than the diff and so also covers migrations this
 #      new-files-only check never sees. Neither is a prepared
 #      `INSERT INTO __<standin>`: that IS the
-#      recommended pattern (0059, gastownhall/beads#4877), where a silent
+#      recommended pattern (0059, borg0ai/dx-issuegraph#4877), where a silent
 #      no-op degrades gracefully instead of corrupting state. The exemption
 #      stops there on purpose -- a prepared UPDATE or DELETE is never
 #      exempted, because their multi-table forms put the modified table after
@@ -230,7 +230,7 @@ fi
 if [ -z "$base" ] || [ -z "${merge_base:-}" ]; then
   echo "WARN (ignored twins) no usable base ref; skipping check D." >&2
 else
-  ignored_tables='wisps|wisp_[a-z_]+|repo_mtimes|local_metadata|leases|events|bd_events_journal|bd_events_seq|ignored_schema_migrations'
+  ignored_tables='wisps|wisp_[a-z_]+|repo_mtimes|local_metadata|leases|events|issuegraph_events_journal|issuegraph_events_seq|ignored_schema_migrations'
   ddl_re="(alter|create|rename|drop)[[:space:]]+table([[:space:]]+if[[:space:]]+(not[[:space:]]+)?exists)?[[:space:]]+[\`']?(${ignored_tables})\b"
   # Untracked files count as added too (mirrors check C's working-tree scope:
   # in CI the tree is clean so this equals the PR diff).
@@ -282,13 +282,13 @@ fi
 # the leading keyword inside the quoted text decides.
 # prepared_target_is_standin STMT — true when the prepared DML writes to a
 # migration-local stand-in table rather than a real one. That is the pattern
-# this check RECOMMENDS (0059, gastownhall/beads#4877): copy into a throwaway
+# this check RECOMMENDS (0059, borg0ai/dx-issuegraph#4877): copy into a throwaway
 # table with PREPARE, then have a direct statement read it, so a silent no-op
 # degrades gracefully instead of corrupting state. Flagging it would reject the
 # very remedy the failure message hands out.
 #
-# The convention in this tree is a double-underscore prefix — __bd_0059_* and
-# __temp__* are the existing instances — and a real beads table never starts
+# The convention in this tree is a double-underscore prefix — __issuegraph_0059_* and
+# __temp__* are the existing instances — and a real issuegraph table never starts
 # with one. STMT is already lowercased by the caller.
 # neutralize_sql_clauses TEXT — mask the UPDATE keywords that are column/insert
 # clauses rather than write verbs, so the scans below cannot mistake them for
@@ -429,7 +429,7 @@ else
   reports success and changes nothing. Write the real-table mutation as
   direct SQL; if it needs to be conditional, gate it on a stand-in table that
   the direct statement reads instead of PREPARE'ing the write itself
-  (precedent: 0059, gastownhall/beads#4877 -- a prepared INSERT INTO a
+  (precedent: 0059, borg0ai/dx-issuegraph#4877 -- a prepared INSERT INTO a
   __-prefixed stand-in is recognised and not flagged; a prepared UPDATE or
   DELETE is never exempted, since a JOIN can move its real target out of
   reach of this check). Prepared ALTER TABLE is a separate, accepted idiom

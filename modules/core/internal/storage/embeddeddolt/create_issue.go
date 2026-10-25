@@ -7,9 +7,9 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func (s *EmbeddedDoltStore) CreateIssue(ctx context.Context, issue *types.Issue, actor string) error {
@@ -58,7 +58,7 @@ func (s *EmbeddedDoltStore) CreateIssuesWithFullOptions(ctx context.Context, iss
 	//
 	// Do NOT loop the single-issue CreateIssueInTx for the all-wisps case: it never
 	// runs the batch dependency-persist pass, so an all-wisps batch carrying inline
-	// dependencies (e.g. importing no-history beads with inter-bead edges, which
+	// dependencies (e.g. importing no-history issuegraph with inter-issue edges, which
 	// export does include) would silently drop every edge — not even reported via
 	// OnSkippedDependency — and one transaction per issue would forfeit batch
 	// atomicity. This mirrors the server-mode DoltStore's all-wisps arm.

@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storeops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storeops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // MetadataCAS returns the conditional single-key metadata write for this store.
@@ -70,7 +70,7 @@ func (m *metadataCAS) CompareAndSetKey(ctx context.Context, req issueops.Compare
 		// The swap routes through UpdateIssueInTx, which also writes an
 		// EventUpdated row, so stage both tables (mirrors MergeMetadata).
 		return m.store.doltAddAndCommitInTx(ctx, tx, []string{"issues", "events"},
-			fmt.Sprintf("bd: compare-and-set metadata %s.%s", plan.IssueID, plan.Key))
+			fmt.Sprintf("issuegraph: compare-and-set metadata %s.%s", plan.IssueID, plan.Key))
 	}); err != nil {
 		return issueops.CompareAndSetKeyResult{}, err
 	}

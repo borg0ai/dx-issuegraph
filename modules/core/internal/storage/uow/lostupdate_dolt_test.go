@@ -15,12 +15,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestUOW_ConcurrentMergeOps_NoLostUpdate proves the lost-update fix against a
@@ -28,7 +28,7 @@ import (
 // unit-of-work stack (the proxied-server CLI's write path) must never lose a
 // write that reported success.
 //
-// Each writer follows the exact contract modules/cli's applyUpdateProxiedOne now
+// Each writer follows the exact contract apps/cli's applyUpdateProxiedOne now
 // implements:
 //
 //   - metadata edits and note appends pass through ApplyUpdate as
@@ -62,9 +62,9 @@ func TestUOW_ConcurrentMergeOps_NoLostUpdate(t *testing.T) {
 	portInt, err := strconv.Atoi(port)
 	require.NoError(t, err)
 
-	bdBin := buildBDBinary(t)
+	issuegraphBin := buildIssueGraphBinary(t)
 	prev := proxy.ResolveExecutable
-	proxy.ResolveExecutable = func() (string, error) { return bdBin, nil }
+	proxy.ResolveExecutable = func() (string, error) { return issuegraphBin, nil }
 	t.Cleanup(func() { proxy.ResolveExecutable = prev })
 
 	t.Setenv("HOME", t.TempDir())
@@ -80,7 +80,7 @@ func TestUOW_ConcurrentMergeOps_NoLostUpdate(t *testing.T) {
 	provider, err := NewExternalDoltServerUOWProvider(
 		ctx,
 		storeRootDir,
-		"beads_lostupdate_test",
+		"issuegraph_lostupdate_test",
 		logPath,
 		configfile.ExternalDoltConfig{Host: "127.0.0.1", Port: portInt},
 		"root",

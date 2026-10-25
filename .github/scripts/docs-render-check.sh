@@ -51,9 +51,9 @@ has_report() {
 }
 
 # Parse `mint broken-links` report lines. Each broken link looks like:
-#   [broken-links]  tutorials/01-beads.md  ->  /tutorials/01-beads.md
+#   [broken-links]  tutorials/01-issuegraph.md  ->  /tutorials/01-issuegraph.md
 # or
-#   ✗  /tutorials/01-beads.md
+#   ✗  /tutorials/01-issuegraph.md
 # Capture path-shaped tokens on report lines only — root-relative (/foo) or
 # relative with a slash — excluding URLs and static assets. The same parser
 # runs on both HEAD and BASE output, so residual noise cancels out in the
@@ -143,7 +143,7 @@ while IFS= read -r link; do
 done <"$NEW_LINKS"
 echo ""
 echo "──────────────────────────────────────────────────────────────────────────"
-echo "docs/ is authored for the Mintlify site (the beads Mintlify site),"
+echo "docs/ is authored for the Mintlify site (the issuegraph Mintlify site),"
 echo "not for direct GitHub viewing. These paths/links are intentional —"
 echo "please don't reformat them for GitHub. If something is genuinely broken"
 echo "on the live site, note it in the PR and we'll fix it Mintlify-side."

@@ -17,22 +17,22 @@ const (
 // up as the name of the field that leaked rather than as a failed count.
 func populatedSnapshot() ContextInfo {
 	return ContextInfo{
-		BeadsDir:     "/host/workspace/.beads",
-		RepoRoot:     "/host/workspace",
-		CWDRepoRoot:  "/host/elsewhere",
-		IsRedirected: true,
-		IsWorktree:   true,
-		Backend:      "dolt",
-		DoltMode:     "proxied-server",
-		ServerHost:   "10.4.2.9",
-		ServerPort:   3307,
-		ProxiedDir:   "/host/workspace/.beads/dolt",
-		Database:     "beads",
-		DataDir:      "/host/workspace/.beads/embeddeddolt",
-		ProjectID:    "proj-1",
-		SyncRemote:   publishedFakeRemote,
-		Role:         "maintainer",
-		BdVersion:    "9.9.9",
+		IssueGraphDir: "/host/workspace/.issuegraph",
+		RepoRoot:      "/host/workspace",
+		CWDRepoRoot:   "/host/elsewhere",
+		IsRedirected:  true,
+		IsWorktree:    true,
+		Backend:       "dolt",
+		DoltMode:      "proxied-server",
+		ServerHost:    "10.4.2.9",
+		ServerPort:    3307,
+		ProxiedDir:    "/host/workspace/.issuegraph/dolt",
+		Database:      "issuegraph",
+		DataDir:       "/host/workspace/.issuegraph/embeddeddolt",
+		ProjectID:     "proj-1",
+		SyncRemote:    publishedFakeRemote,
+		Role:          "maintainer",
+		BdVersion:     "9.9.9",
 	}
 }
 
@@ -95,7 +95,7 @@ func TestPublishedContextCarriesTheIdentity(t *testing.T) {
 		{"Backend", published.Backend, snapshot.Backend},
 		{"DoltMode", published.DoltMode, snapshot.DoltMode},
 		{"Database", published.Database, snapshot.Database},
-		{"BeadsDir", published.BeadsDir, snapshot.BeadsDir},
+		{"IssueGraphDir", published.IssueGraphDir, snapshot.IssueGraphDir},
 		{"RepoRoot", published.RepoRoot, snapshot.RepoRoot},
 		{"ProjectID", published.ProjectID, snapshot.ProjectID},
 	} {

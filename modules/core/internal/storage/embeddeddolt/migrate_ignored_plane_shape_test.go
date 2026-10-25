@@ -9,7 +9,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // TestEmbeddedIgnoredSeriesConvergesWithFreshInitShape pins the bd-hs7fa
@@ -59,7 +59,7 @@ func TestEmbeddedIgnoredSeriesConvergesWithFreshInitShape(t *testing.T) {
 	for _, table := range []string{
 		"wisp_dependencies", "wisp_events", "wisp_comments", "wisp_labels",
 		"wisp_child_counters", "wisps", "events", "leases", "repo_mtimes",
-		"local_metadata", "bd_events_journal", "bd_events_seq",
+		"local_metadata", "issuegraph_events_journal", "issuegraph_events_seq",
 		"ignored_schema_migrations",
 	} {
 		execFrozenGuard(t, ctx, cloneConn, "DROP TABLE IF EXISTS "+table)
@@ -74,12 +74,12 @@ func TestEmbeddedIgnoredSeriesConvergesWithFreshInitShape(t *testing.T) {
 	// deletions); MigrateUp's seedDoltIgnorePatterns re-asserts them
 	// immediately after.
 	//
-	// All three static patterns, not just leases: bd_events_journal and
-	// bd_events_seq are seeded the same way (schema.doltIgnorePatterns), so
+	// All three static patterns, not just leases: issuegraph_events_journal and
+	// issuegraph_events_seq are seeded the same way (schema.doltIgnorePatterns), so
 	// clearing only leases left the journal tables' deletions unstageable and
 	// the guard refused the pass.
 	execFrozenGuard(t, ctx, cloneConn,
-		"DELETE FROM dolt_ignore WHERE pattern IN ('leases', 'bd_events_journal', 'bd_events_seq')")
+		"DELETE FROM dolt_ignore WHERE pattern IN ('leases', 'issuegraph_events_journal', 'issuegraph_events_seq')")
 	mustDrain(t, ctx, cloneConn, "CALL DOLT_ADD('-A')")
 	mustDrain(t, ctx, cloneConn, "CALL DOLT_COMMIT('-m', 'test: remove clone-local state from history', '--skip-empty')")
 	if _, err := schema.MigrateUp(ctx, cloneConn); err != nil {
@@ -89,7 +89,7 @@ func TestEmbeddedIgnoredSeriesConvergesWithFreshInitShape(t *testing.T) {
 	for _, table := range []string{
 		"wisps", "wisp_labels", "wisp_dependencies", "wisp_events",
 		"wisp_comments", "wisp_child_counters", "events", "leases",
-		"repo_mtimes", "local_metadata", "bd_events_journal", "bd_events_seq",
+		"repo_mtimes", "local_metadata", "issuegraph_events_journal", "issuegraph_events_seq",
 	} {
 		initShape := clonePlaneTableShape(t, ctx, initConn, table)
 		cloneShape := clonePlaneTableShape(t, ctx, cloneConn, table)
@@ -100,7 +100,7 @@ func TestEmbeddedIgnoredSeriesConvergesWithFreshInitShape(t *testing.T) {
 // clonePlaneColumn is the column identity compared across the two doors.
 // Ordinal position is deliberately excluded: an ALTER ADD on the init door
 // appends where the ignored series' CREATE may inline, and column order is
-// not load-bearing for any bd query.
+// not load-bearing for any issuegraph query.
 type clonePlaneColumn struct {
 	ColumnType string
 	Nullable   string

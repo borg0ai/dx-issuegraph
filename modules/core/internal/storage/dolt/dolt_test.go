@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // testTimeout is the maximum time for any single test operation.
@@ -361,7 +361,7 @@ func TestDoltStoreConfig(t *testing.T) {
 }
 
 // TestSetConfigNormalizesIssuePrefix verifies that SetConfig strips trailing
-// hyphens from issue_prefix to prevent double-hyphen bead IDs (bd-6uly).
+// hyphens from issue_prefix to prevent double-hyphen issue IDs (bd-6uly).
 func TestSetConfigNormalizesIssuePrefix(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
@@ -453,7 +453,7 @@ func TestCreateWispNoDoubleHyphen(t *testing.T) {
 }
 
 // TestCreateWispNoDoublePrefix verifies that wisps with IDPrefix="wisp" don't
-// get double-prefixed as "bd-wisp-wisp-xxx" (beads-yzh).
+// get double-prefixed as "issuegraph-wisp-wisp-xxx" (issuegraph-yzh).
 func TestCreateWispNoDoublePrefix(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
@@ -700,7 +700,7 @@ func TestCloseIssueNotFound(t *testing.T) {
 	}
 }
 
-// TestClosePromotedWisp verifies that bd close works for wisps that were
+// TestClosePromotedWisp verifies that issuegraph close works for wisps that were
 // promoted to the issues table via PromoteFromEphemeral (bd-ftc).
 // Promoted wisps have -wisp- in their ID but live in the issues table,
 // so routing must fall through from the wisps table.
@@ -1165,7 +1165,7 @@ func TestDoltStoreDeleteIssue(t *testing.T) {
 
 // TestDeleteIssuesBatchPerformance verifies that batch deletion works correctly
 // with a large number of issues and chain dependencies. This exercises the batched
-// IN-clause query paths that prevent N+1 hangs on embedded Dolt (steveyegge/beads#1692).
+// IN-clause query paths that prevent N+1 hangs on embedded Dolt (borg0ai/issuegraph#1692).
 func TestDeleteIssuesBatchPerformance(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
@@ -1731,16 +1731,16 @@ func TestValidateDatabaseName(t *testing.T) {
 		dbName  string
 		wantErr bool
 	}{
-		{"valid simple", "beads", false},
-		{"valid with underscore", "beads_test", false},
-		{"valid with hyphen", "beads-test", false},
-		{"valid with numbers", "beads123", false},
+		{"valid simple", "issuegraph", false},
+		{"valid with underscore", "issuegraph_test", false},
+		{"valid with hyphen", "issuegraph-test", false},
+		{"valid with numbers", "issuegraph123", false},
 		{"empty", "", true},
 		{"too long", string(make([]byte, 100)), true},
-		{"starts with number", "123beads", true},
-		{"with backtick injection", "beads`; DROP DATABASE beads; --", true},
+		{"starts with number", "123issuegraph", true},
+		{"with backtick injection", "issuegraph`; DROP DATABASE issuegraph; --", true},
 		{"with space", "my database", true},
-		{"with semicolon", "beads;evil", true},
+		{"with semicolon", "issuegraph;evil", true},
 	}
 
 	for _, tt := range tests {
@@ -1759,19 +1759,19 @@ func TestIsTestDatabaseName(t *testing.T) {
 		dbName string
 		want   bool
 	}{
-		{"exact test db", "beads_test", true},
-		{"test db with suffix", "beads_test_123", true},
+		{"exact test db", "issuegraph_test", true},
+		{"test db with suffix", "issuegraph_test_123", true},
 		{"testdb prefix", "testdb_foo", true},
 		{"doctest prefix", "doctest_bar", true},
 		{"doctortest prefix", "doctortest_baz", true},
-		{"beads_pt prefix", "beads_pt_xyz", true},
-		{"beads_vr prefix", "beads_vr_abc", true},
-		{"production db", "beads", false},
-		{"project prefix ta", "beads_ta", false},
-		{"project prefix tabula", "beads_tabula", false},
-		{"project prefix tr", "beads_tr", false},
-		{"project prefix tools", "beads_tools", false},
-		{"project prefix vulcan", "beads_vulcan", false},
+		{"issuegraph_pt prefix", "issuegraph_pt_xyz", true},
+		{"issuegraph_vr prefix", "issuegraph_vr_abc", true},
+		{"production db", "issuegraph", false},
+		{"project prefix ta", "issuegraph_ta", false},
+		{"project prefix tabula", "issuegraph_tabula", false},
+		{"project prefix tr", "issuegraph_tr", false},
+		{"project prefix tools", "issuegraph_tools", false},
+		{"project prefix vulcan", "issuegraph_vulcan", false},
 		{"unrelated name", "mydb", false},
 	}
 
@@ -2245,7 +2245,7 @@ func assertOrder(t *testing.T, ids []string, expected ...string) {
 	}
 }
 
-// TestEphemeralExplicitID_GetIssue verifies that GetIssue finds ephemeral beads
+// TestEphemeralExplicitID_GetIssue verifies that GetIssue finds ephemeral issuegraph
 // created with explicit (non-wisp) IDs. Regression test for GH#2053.
 func TestEphemeralExplicitID_GetIssue(t *testing.T) {
 	store, cleanup := setupTestStore(t)
@@ -2254,7 +2254,7 @@ func TestEphemeralExplicitID_GetIssue(t *testing.T) {
 	ctx, cancel := testContext(t)
 	defer cancel()
 
-	// Create an ephemeral bead with an explicit ID (no -wisp- in name)
+	// Create an ephemeral issue with an explicit ID (no -wisp- in name)
 	issue := &types.Issue{
 		ID:        "test-agent-emma",
 		Title:     "Agent: test-agent-emma",
@@ -2270,7 +2270,7 @@ func TestEphemeralExplicitID_GetIssue(t *testing.T) {
 	// GetIssue should find it (this was the GH#2053 bug)
 	got, err := store.GetIssue(ctx, "test-agent-emma")
 	if err != nil {
-		t.Fatalf("GetIssue failed for ephemeral bead with explicit ID: %v", err)
+		t.Fatalf("GetIssue failed for ephemeral issue with explicit ID: %v", err)
 	}
 	if got.ID != "test-agent-emma" {
 		t.Errorf("Expected ID %q, got %q", "test-agent-emma", got.ID)
@@ -2315,7 +2315,7 @@ func TestGetIssue_WispLabelTableErrorPropagates(t *testing.T) {
 }
 
 // TestEphemeralExplicitID_UpdateIssue verifies that UpdateIssue works on
-// ephemeral beads created with explicit IDs. Regression test for GH#2053.
+// ephemeral issuegraph created with explicit IDs. Regression test for GH#2053.
 func TestEphemeralExplicitID_UpdateIssue(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
@@ -2340,7 +2340,7 @@ func TestEphemeralExplicitID_UpdateIssue(t *testing.T) {
 		"title": "Updated ephemeral title",
 	}
 	if err := store.UpdateIssue(ctx, "test-ephemeral-update", updates, "test-user"); err != nil {
-		t.Fatalf("UpdateIssue failed for ephemeral bead with explicit ID: %v", err)
+		t.Fatalf("UpdateIssue failed for ephemeral issue with explicit ID: %v", err)
 	}
 
 	// Verify the update persisted
@@ -2354,7 +2354,7 @@ func TestEphemeralExplicitID_UpdateIssue(t *testing.T) {
 }
 
 // TestEphemeralExplicitID_SearchIssues verifies that SearchIssues finds
-// ephemeral beads with explicit IDs (this already worked pre-fix via wisp merge).
+// ephemeral issuegraph with explicit IDs (this already worked pre-fix via wisp merge).
 func TestEphemeralExplicitID_SearchIssues(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()
@@ -2391,7 +2391,7 @@ func TestEphemeralExplicitID_SearchIssues(t *testing.T) {
 
 // TestCreateEphemeralAutoID verifies that CreateIssue generates a non-empty
 // wisp-prefixed ID for ephemeral issues when no explicit ID is provided.
-// Regression test for GH#2087: bd create --ephemeral generated empty IDs.
+// Regression test for GH#2087: issuegraph create --ephemeral generated empty IDs.
 func TestCreateEphemeralAutoID(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()

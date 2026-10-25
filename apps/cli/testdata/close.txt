@@ -1,0 +1,15 @@
+# Test issuegraph close command
+issuegraph init --prefix test
+
+# Create issue and capture its hash ID
+issuegraph create 'Issue to close'
+cp stdout issue.txt
+exec sh -c 'grep -oE "test-[a-z0-9]+" issue.txt > issue_id.txt'
+
+# Close the issue
+exec sh -c 'issuegraph close $(cat issue_id.txt) --reason Fixed'
+stdout 'Closed test-'
+
+# Verify it's closed
+exec sh -c 'issuegraph show $(cat issue_id.txt)'
+stdout 'closed'

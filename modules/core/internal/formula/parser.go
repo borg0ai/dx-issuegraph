@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 // ErrVarValidation wraps a variable validation failure so callers with a
@@ -49,7 +49,7 @@ type Parser struct {
 
 // NewParser creates a new formula parser.
 // searchPaths are directories to search for formulas when resolving extends.
-// Default paths are the active beads project's formulas dir, then user-level,
+// Default paths are the active issuegraph project's formulas dir, then user-level,
 // then GT_ROOT if configured.
 func NewParser(searchPaths ...string) *Parser {
 	paths := searchPaths
@@ -66,9 +66,9 @@ func NewParser(searchPaths ...string) *Parser {
 
 // DefaultSearchPaths returns the default formula search paths.
 //
-// The project-level path prefers the resolved beads directory so worktrees with
-// shared/main-repo .beads state search the same formula registry as the rest of
-// the command surface. If no beads project is resolved, fall back to cwd/.beads
+// The project-level path prefers the resolved issuegraph directory so worktrees with
+// shared/main-repo .issuegraph state search the same formula registry as the rest of
+// the command surface. If no issuegraph project is resolved, fall back to cwd/.issuegraph
 // so formula registries can still be used before a project is initialized.
 func DefaultSearchPaths() []string {
 	var paths []string
@@ -85,31 +85,31 @@ func DefaultSearchPaths() []string {
 		paths = append(paths, path)
 	}
 
-	// Project-level formulas via resolved beads directory.
-	if beadsDir := beads.FindBeadsDir(); beadsDir != "" {
-		addPath(filepath.Join(beadsDir, "formulas"))
+	// Project-level formulas via resolved issuegraph directory.
+	if issuegraphDir := issuegraph.FindIssueGraphDir(); issuegraphDir != "" {
+		addPath(filepath.Join(issuegraphDir, "formulas"))
 	}
 
 	// Checkout-local formulas should remain discoverable even when the active
-	// beads database resolves to a parent/shared .beads directory. This lets a
-	// repo ship workflow formulas under .beads/formulas without requiring every
-	// maintainer to copy them into ~/.beads.
+	// issuegraph database resolves to a parent/shared .issuegraph directory. This lets a
+	// repo ship workflow formulas under .issuegraph/formulas without requiring every
+	// maintainer to copy them into ~/.issuegraph.
 	if cwd, err := os.Getwd(); err == nil {
 		checkoutRoot := cwd
 		if repoRoot := git.GetRepoRoot(); repoRoot != "" {
 			checkoutRoot = repoRoot
 		}
-		addPath(filepath.Join(checkoutRoot, ".beads", "formulas"))
+		addPath(filepath.Join(checkoutRoot, ".issuegraph", "formulas"))
 	}
 
 	// User-level formulas
 	if home, err := os.UserHomeDir(); err == nil {
-		addPath(filepath.Join(home, ".beads", "formulas"))
+		addPath(filepath.Join(home, ".issuegraph", "formulas"))
 	}
 
 	// Orchestrator formulas (via GT_ROOT)
 	if gtRoot := os.Getenv("GT_ROOT"); gtRoot != "" {
-		addPath(filepath.Join(gtRoot, ".beads", "formulas"))
+		addPath(filepath.Join(gtRoot, ".issuegraph", "formulas"))
 	}
 
 	return paths
@@ -465,7 +465,7 @@ func ValidateVars(formula *Formula, values map[string]string) error {
 // ValidateProvidedVars checks enum/pattern/required-empty constraints only
 // for variables that are present in values; it does not flag variables that
 // are entirely absent. Callers that already surface a more specific
-// missing-variable message (e.g. bd mol pour/wisp's hint path) should keep
+// missing-variable message (e.g. issuegraph mol pour/wisp's hint path) should keep
 // using that path for absent vars — this exists so those same callers still
 // catch malformed *provided* values, which a presence-only check misses
 // (mybd-u2r6).

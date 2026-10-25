@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the contract every implementation of
@@ -189,7 +189,7 @@ func RunBlockingAnnotatorDropsAClosedParent(t *testing.T, ctx context.Context, f
 //
 // The three blockers are seeded in an order that is neither ascending nor its
 // reverse, so an implementation answering in insertion order fails here. Both
-// lists are joined into ONE LINE of `bd list` output, so the query's natural
+// lists are joined into ONE LINE of `issuegraph list` output, so the query's natural
 // order is user-visible bytes.
 func RunBlockingAnnotatorOrdersAndCollapsesEachList(t *testing.T, ctx context.Context, fixture BlockingAnnotatorFixture) {
 	t.Helper()

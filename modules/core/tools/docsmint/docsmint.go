@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	// Full HTML comments on one line. bd's generic pages use these as
+	// Full HTML comments on one line. issuegraph's generic pages use these as
 	// auto-generated markers; Mintlify parses .md through MDX, where HTML
 	// comments are invalid, so they become JSX comments.
 	htmlCommentRE = regexp.MustCompile(`<!--\s*(.*?)\s*-->`)
@@ -23,8 +23,8 @@ var (
 // run post-processes the generic staging tree at <root>/build/cli-docs into
 // the committed Mintlify pages at <root>/docs/cli-reference and splices the
 // CLI Reference pages array in <root>/docs/docs.json. When the generic tree
-// is absent but the pinned bd's legacy emitter wrote
-// <root>/website/docs/cli-reference (Docusaurus form, bd <= v1.1.0), those
+// is absent but the pinned issuegraph's legacy emitter wrote
+// <root>/website/docs/cli-reference (Docusaurus form, issuegraph <= v1.1.0), those
 // pages are converted to the generic form first (see legacy.go).
 func run(root string) error {
 	staging := filepath.Join(root, "build", "cli-docs")
@@ -38,7 +38,7 @@ func run(root string) error {
 	if err != nil {
 		entries, err = os.ReadDir(legacyStaging)
 		if err != nil {
-			return fmt.Errorf("no staging tree at %s or %s (run `bd help --docs-root` first)", staging, legacyStaging)
+			return fmt.Errorf("no staging tree at %s or %s (run `issuegraph help --docs-root` first)", staging, legacyStaging)
 		}
 		stagingDir = legacyStaging
 		legacy = true
@@ -52,7 +52,7 @@ func run(root string) error {
 		pages = append(pages, entry.Name())
 	}
 	if len(pages) == 0 {
-		return fmt.Errorf("staging tree %s contains no markdown pages (run `bd help --docs-root` first)", stagingDir)
+		return fmt.Errorf("staging tree %s contains no markdown pages (run `issuegraph help --docs-root` first)", stagingDir)
 	}
 	sort.Strings(pages)
 
@@ -141,7 +141,7 @@ func neutralizeESMHazards(content string) string {
 }
 
 // neutralizeESMLine wraps a prose line whose first token is `export` or
-// `import` in an inline code span. Such lines are legal CommonMark in bd's
+// `import` in an inline code span. Such lines are legal CommonMark in issuegraph's
 // generic output (indented example lines in help text), but Mintlify's
 // prebuild dedents them to column 0 and then parses them as MDX ESM blocks,
 // which fails the entire page (observed on cli-reference/mail).
@@ -159,7 +159,7 @@ func neutralizeESMLine(line string) string {
 }
 
 // neutralizeSingleFileReference applies the ESM-hazard neutralization to
-// docs/CLI_REFERENCE.md. bd emits it directly — without the per-page
+// docs/CLI_REFERENCE.md. issuegraph emits it directly — without the per-page
 // transforms — but Mintlify still builds it as a hidden page, so a bare
 // indented `export ...` line fails it the same way.
 func neutralizeSingleFileReference(path string) error {
@@ -167,7 +167,7 @@ func neutralizeSingleFileReference(path string) error {
 	// tool is invoked with; it only ever reads the repo's own generated file.
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("reading %s (run `bd help --docs-root` first): %w", path, err)
+		return fmt.Errorf("reading %s (run `issuegraph help --docs-root` first): %w", path, err)
 	}
 	out := neutralizeESMHazards(string(data))
 	if out == string(data) {

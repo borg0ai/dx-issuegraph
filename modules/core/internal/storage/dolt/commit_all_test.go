@@ -7,7 +7,7 @@ import (
 // TestCommitAllSweepsOutOfBandConfig is the regression test for the explicit
 // commit commands' false success: a table modified out of band (the chronic
 // config touch above all) never enters any transaction's dirty-table tracking,
-// and plain Commit() excludes config (GH#2455) — so `bd vc commit` staged
+// and plain Commit() excludes config (GH#2455) — so `issuegraph vc commit` staged
 // nothing, created no commit, and printed "Created commit <old HEAD>" while
 // dolt_status stayed dirty. That also made the doctor's dirty-working-set
 // warning unclearable by its own recommended remedy. CommitAll must sweep the
@@ -32,7 +32,7 @@ func TestCommitAllSweepsOutOfBandConfig(t *testing.T) {
 		t.Fatalf("GetCurrentCommit: %v", err)
 	}
 
-	// Out-of-band write: config modified with no bd transaction tracking it.
+	// Out-of-band write: config modified with no issuegraph transaction tracking it.
 	if _, err := db.ExecContext(ctx,
 		"INSERT INTO config (`key`, value) VALUES ('test.oob-commit-all', 'v1')"); err != nil {
 		t.Fatalf("insert out-of-band config row: %v", err)
@@ -70,7 +70,7 @@ func TestCommitAllSweepsOutOfBandConfig(t *testing.T) {
 
 // TestCommitAllNothingToCommit pins the honest-no-op half of the fix: on a
 // working set with nothing committable, CommitAll must return (false, nil)
-// and leave HEAD alone, so `bd vc commit` prints "Nothing to commit" instead
+// and leave HEAD alone, so `issuegraph vc commit` prints "Nothing to commit" instead
 // of fabricating "Created commit <existing HEAD>".
 func TestCommitAllNothingToCommit(t *testing.T) {
 	store, cleanup := setupTestStore(t)

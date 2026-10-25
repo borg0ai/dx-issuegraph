@@ -1,10 +1,10 @@
 // Package journalscan provides the static-analysis primitives the events
 // journal completeness guards share. Both the issueops seam and the domain/db
-// unit-of-work seam must journal every mutation that writes a work-bead table;
+// unit-of-work seam must journal every mutation that writes a work-issue table;
 // their guard tests detect such mutators STRUCTURALLY — by the DML a function
 // executes — rather than by matching on method-name prefixes, which could let a
 // mutator named off-pattern ship un-journaled. This package holds the parsing,
-// bead-table DML detection, and call-graph fixpoint those guards run.
+// issue-table DML detection, and call-graph fixpoint those guards run.
 package journalscan
 
 import (
@@ -19,12 +19,12 @@ import (
 // FuncInfo captures the call/DML shape of one top-level function or method,
 // keyed by a package-unique name (receiver-qualified for methods).
 type FuncInfo struct {
-	Recv       string   // receiver type name ("" for free functions)
-	Name       string   // bare method/function name
-	Exported   bool     // the bare name is exported
-	IdentCalls []string // intra-package bare-identifier calls (free functions)
-	SelCalls   []string // selector calls, by selector name (x.Foo -> "Foo")
-	OwnBeadDML bool     // body issues INSERT/UPDATE/DELETE against a bead table
+	Recv        string   // receiver type name ("" for free functions)
+	Name        string   // bare method/function name
+	Exported    bool     // the bare name is exported
+	IdentCalls  []string // intra-package bare-identifier calls (free functions)
+	SelCalls    []string // selector calls, by selector name (x.Foo -> "Foo")
+	OwnIssueDML bool     // body issues INSERT/UPDATE/DELETE against a issue table
 }
 
 // AllCallNames returns every called name, both bare-identifier and selector.
@@ -86,8 +86,8 @@ func ParsePackage(dir string) (map[string]*FuncInfo, error) {
 							f.SelCalls = append(f.SelCalls, fun.Sel.Name)
 						}
 					case *ast.BasicLit:
-						if node.Kind == token.STRING && SQLWritesBeadTable(node.Value) {
-							f.OwnBeadDML = true
+						if node.Kind == token.STRING && SQLWritesIssueTable(node.Value) {
+							f.OwnIssueDML = true
 						}
 					}
 					return true
@@ -149,8 +149,8 @@ func Fixpoint(fns map[string]*FuncInfo, seed func(*FuncInfo) bool, edges func(*F
 	return got
 }
 
-// BeadTables are the work-bead tables a mutation must be journaled for.
-var BeadTables = []string{
+// IssueTables are the work-issue tables a mutation must be journaled for.
+var IssueTables = []string{
 	"issues", "wisps",
 	"dependencies", "wisp_dependencies",
 	"labels", "wisp_labels",
@@ -163,18 +163,18 @@ var BeadTables = []string{
 // reusing one format argument.
 var indexedVerb = regexp.MustCompile(`%\[[0-9]+\]`)
 
-// SQLWritesBeadTable reports whether a SQL string literal issues an
-// INSERT / UPDATE / DELETE against a work-bead table, whether the table name is
+// SQLWritesIssueTable reports whether a SQL string literal issues an
+// INSERT / UPDATE / DELETE against a work-issue table, whether the table name is
 // literal (INSERT INTO issues) or templated (INSERT INTO %s / INSERT INTO %[1]s
-// — which in the mutation seams always routes to a bead table via table-routing
+// — which in the mutation seams always routes to a issue table via table-routing
 // helpers).
-func SQLWritesBeadTable(lit string) bool {
+func SQLWritesIssueTable(lit string) bool {
 	s := strings.ToUpper(lit)
 	s = strings.ReplaceAll(s, "`", "")
 	s = indexedVerb.ReplaceAllString(s, "%")
 	s = strings.Join(strings.Fields(s), " ") // collapse whitespace/newlines
 	targets := []string{"%S"}
-	for _, tbl := range BeadTables {
+	for _, tbl := range IssueTables {
 		targets = append(targets, strings.ToUpper(tbl))
 	}
 	for _, tbl := range targets {

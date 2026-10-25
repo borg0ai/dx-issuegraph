@@ -9,19 +9,19 @@ import (
 
 const legacyShowPage = `---
 id: show
-title: bd show
+title: issuegraph show
 slug: /cli-reference/show
 sidebar_position: 40
 ---
 
 <!-- AUTO-GENERATED: do not edit manually -->
-Generated from ` + "`bd help --doc show`" + `
+Generated from ` + "`issuegraph help --doc show`" + `
 
-## bd show
+## issuegraph show
 
 Show issue details
 
-### bd show sub
+### issuegraph show sub
 
 Nested subcommand help.
 
@@ -39,13 +39,13 @@ sidebar_position: 0
 # CLI Reference
 
 <!-- AUTO-GENERATED: do not edit manually -->
-Reference for bd Latest. Generated from ` + "`bd help --docs-root`" + `.
+Reference for issuegraph Latest. Generated from ` + "`issuegraph help --docs-root`" + `.
 
-This reference covers all 2 live top-level ` + "`bd`" + ` commands.
+This reference covers all 2 live top-level ` + "`issuegraph`" + ` commands.
 
 ## Commands
 
-- [` + "`bd show`" + `](./show.md)
+- [` + "`issuegraph show`" + `](./show.md)
 `
 
 func TestConvertLegacyPageProducesGenericForm(t *testing.T) {
@@ -54,10 +54,10 @@ func TestConvertLegacyPageProducesGenericForm(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
-		"title: \"bd show\"\n",
+		"title: \"issuegraph show\"\n",
 		"description: \"Show issue details\"\n",
-		"Generated from `bd help --doc show`.\n",
-		"\n## bd show sub\n",
+		"Generated from `issuegraph help --doc show`.\n",
+		"\n## issuegraph show sub\n",
 		"\n### fenced heading stays put\n",
 	} {
 		if !strings.Contains(got, want) {
@@ -67,7 +67,7 @@ func TestConvertLegacyPageProducesGenericForm(t *testing.T) {
 	if strings.Contains(got, "sidebar_position") || strings.Contains(got, "slug:") {
 		t.Errorf("legacy frontmatter leaked into converted page:\n%s", got)
 	}
-	if strings.Contains(got, "\n## bd show\n") {
+	if strings.Contains(got, "\n## issuegraph show\n") {
 		t.Errorf("top command heading should be dropped:\n%s", got)
 	}
 }
@@ -79,9 +79,9 @@ func TestConvertLegacyIndexProducesGenericForm(t *testing.T) {
 	}
 	for _, want := range []string{
 		"title: CLI Reference\n",
-		"description: Generated reference for every bd command\n",
-		"Generated from `bd help --docs-root`.\n",
-		"- [`bd show`](./show.md)",
+		"description: Generated reference for every issuegraph command\n",
+		"Generated from `issuegraph help --docs-root`.\n",
+		"- [`issuegraph show`](./show.md)",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("converted index missing %q\n--- got ---\n%s", want, got)
@@ -90,16 +90,16 @@ func TestConvertLegacyIndexProducesGenericForm(t *testing.T) {
 	if strings.Contains(got, "# CLI Reference\n\n<!--") {
 		t.Errorf("H1 should be dropped (frontmatter title is the H1):\n%s", got)
 	}
-	if strings.Contains(got, "Reference for bd Latest") {
+	if strings.Contains(got, "Reference for issuegraph Latest") {
 		t.Errorf("versioned intro line should be replaced:\n%s", got)
 	}
 }
 
 func TestConvertLegacyPageFailsOnUnexpectedShape(t *testing.T) {
 	for name, content := range map[string]string{
-		"no frontmatter":  "## bd show\n",
-		"no marker":       "---\nid: x\n---\n\nGenerated from `bd help --doc x`\n\n## bd x\n",
-		"no command head": "---\nid: x\n---\n\n<!-- AUTO-GENERATED: do not edit manually -->\nGenerated from `bd help --doc x`\n\nprose\n",
+		"no frontmatter":  "## issuegraph show\n",
+		"no marker":       "---\nid: x\n---\n\nGenerated from `issuegraph help --doc x`\n\n## issuegraph x\n",
+		"no command head": "---\nid: x\n---\n\n<!-- AUTO-GENERATED: do not edit manually -->\nGenerated from `issuegraph help --doc x`\n\nprose\n",
 	} {
 		if _, err := convertLegacyPage(content); err == nil {
 			t.Errorf("%s: expected error, got none", name)
@@ -111,7 +111,7 @@ func TestRunConsumesLegacyStagingTree(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "website", "docs", "cli-reference", "index.md"), legacyIndexPage)
 	writeFile(t, filepath.Join(root, "website", "docs", "cli-reference", "show.md"), legacyShowPage)
-	writeFile(t, filepath.Join(root, "docs", "CLI_REFERENCE.md"), "# bd — Complete Command Reference\n")
+	writeFile(t, filepath.Join(root, "docs", "CLI_REFERENCE.md"), "# issuegraph — Complete Command Reference\n")
 	writeFile(t, filepath.Join(root, "docs", "docs.json"), `{
   "navigation": {
     "groups": [
@@ -138,7 +138,7 @@ func TestRunConsumesLegacyStagingTree(t *testing.T) {
 	if !strings.Contains(page, "{/* AUTO-GENERATED: do not edit manually */}") {
 		t.Errorf("legacy page should get the Mintlify comment transform:\n%s", page)
 	}
-	if !strings.Contains(page, "title: \"bd show\"") {
+	if !strings.Contains(page, "title: \"issuegraph show\"") {
 		t.Errorf("legacy page should carry generic frontmatter:\n%s", page)
 	}
 

@@ -3,7 +3,7 @@ package issueops
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/journalscan"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/journalscan"
 )
 
 // The emit helpers a function calls to journal a row directly.
@@ -59,9 +59,9 @@ func journalEmitEdges(f *journalscan.FuncInfo) []string {
 
 // mutationEntryPoints are the issueops functions that must result in a journal
 // row. Every write plumbing bottoms out in one of these. The structural
-// cross-check below (TestEveryBeadMutatorJournalsOrIsExempt) guarantees this
-// list stays complete: any exported function that writes a work-bead table must
-// appear here or in beadDMLExemptions, so a new mutation path cannot be added
+// cross-check below (TestEveryIssueMutatorJournalsOrIsExempt) guarantees this
+// list stays complete: any exported function that writes a work-issue table must
+// appear here or in issueDMLExemptions, so a new mutation path cannot be added
 // without being accounted for.
 var mutationEntryPoints = []string{
 	// create
@@ -108,7 +108,7 @@ var mutationEntryPoints = []string{
 	"UpdateIssueIDInTx",
 	"AddIssueCommentInTx",
 	"ImportIssueCommentInTx",
-	// derived-state maintenance that flips a bead's exported readiness
+	// derived-state maintenance that flips a issue's exported readiness
 	"RecomputeIsBlockedInTx",
 	"RecomputeIsBlockedInTxWithResult",
 	"RecomputeIsBlockedForIDsInTx",
@@ -134,27 +134,27 @@ var mutationEntryPoints = []string{
 	"ExecuteRemoveDependency",
 }
 
-// beadDMLExemptions are exported functions the DML detector flags as writing a
-// work-bead table but which legitimately do NOT journal, each with a reason.
+// issueDMLExemptions are exported functions the DML detector flags as writing a
+// work-issue table but which legitimately do NOT journal, each with a reason.
 // They fall into four buckets: (1) derived child-counter maintenance; (2)
-// aux-table writers the templated-%s heuristic can't distinguish from a bead
+// aux-table writers the templated-%s heuristic can't distinguish from a issue
 // table (events, child counters); (3) constituent sub-helpers of a
 // create/rename/promote/delete whose top-level entry point journals the whole
 // mutation once; (4) compaction maintenance outside the
 // create/update/close/delete/dep/label op vocabulary. The staleness check fails
 // if any stops being flagged, so an exemption cannot rot.
-var beadDMLExemptions = map[string]string{
+var issueDMLExemptions = map[string]string{
 	// (1) Child counters are derived CLI acceleration state. In contrast,
-	// is_blocked is part of the exported bead snapshot and its recompute helpers
+	// is_blocked is part of the exported issue snapshot and its recompute helpers
 	// structurally journal every value that actually changes.
-	"ReconcileChildCounters": "recomputes denormalized child-counter state, not a bead mutation",
+	"ReconcileChildCounters": "recomputes denormalized child-counter state, not a issue mutation",
 
-	// (2) aux tables matched via templated %s, not work-bead state.
-	"RecordEventInTable":            "writes the events audit table (templated %s), not work-bead state",
-	"RecordFullEventInTable":        "writes the events audit table (templated %s), not work-bead state",
-	"InsertDerivedEvent":            "writes the events audit table (templated %s), not work-bead state",
-	"InsertDerivedEventReturningID": "writes the events audit table (templated %s), not work-bead state",
-	"GetNextChildIDTx":              "writes the child_counters allocation table (templated %s), not work-bead state",
+	// (2) aux tables matched via templated %s, not work-issue state.
+	"RecordEventInTable":            "writes the events audit table (templated %s), not work-issue state",
+	"RecordFullEventInTable":        "writes the events audit table (templated %s), not work-issue state",
+	"InsertDerivedEvent":            "writes the events audit table (templated %s), not work-issue state",
+	"InsertDerivedEventReturningID": "writes the events audit table (templated %s), not work-issue state",
+	"GetNextChildIDTx":              "writes the child_counters allocation table (templated %s), not work-issue state",
 
 	// (3) constituent sub-helpers; the calling entry point journals the whole
 	// mutation once (a create/rename/promote/delete emits a single row).
@@ -175,24 +175,24 @@ var beadDMLExemptions = map[string]string{
 	// create/update/close/delete/dep/label op vocabulary. Carried from the
 	// reference lineage for enterprise shape parity, and it is a KNOWN CONTRACT
 	// GAP, not a harmless omission: because these rewrite issue content without
-	// emitting, a journal consumer's mirror of that bead goes stale and stays
+	// emitting, a journal consumer's mirror of that issue goes stale and stays
 	// stale until the issue's next journaled mutation delivers a fresh snapshot.
 	// Deliberate and open for review — do not read these reasons as saying the
 	// omission is invisible to consumers.
-	"ApplyCompactionInTx":     "compaction content rewrite outside the op vocabulary; consumer mirrors of this bead go stale until its next journaled mutation (known contract gap, carried from the reference lineage)",
-	"RestoreFromSnapshotInTx": "restores a compacted issue outside the op vocabulary; consumer mirrors of this bead go stale until its next journaled mutation (known contract gap, carried from the reference lineage)",
+	"ApplyCompactionInTx":     "compaction content rewrite outside the op vocabulary; consumer mirrors of this issue go stale until its next journaled mutation (known contract gap, carried from the reference lineage)",
+	"RestoreFromSnapshotInTx": "restores a compacted issue outside the op vocabulary; consumer mirrors of this issue go stale until its next journaled mutation (known contract gap, carried from the reference lineage)",
 }
 
 // journalExemptMutations are mutation paths that deliberately do NOT journal
 // and that the DML detector cannot speak to, because the table they write is
-// not a work-bead table. beadDMLExemptions cannot hold them: its staleness
-// check requires every entry to still be flagged as a bead mutator, and these
+// not a work-issue table. issueDMLExemptions cannot hold them: its staleness
+// check requires every entry to still be flagged as a issue mutator, and these
 // never are. TestExemptMutationsDoNotJournal pins the decision from the other
 // side — each must exist and must NOT emit — so re-adding an emit fails loudly
 // instead of silently reversing the ruling.
 var journalExemptMutations = map[string]string{
 	"HeartbeatIssueInTx": "high-frequency lease keepalive: writes only the clone-local `leases` table " +
-		"(lease-liveness state), never a durable bead field. Journaling it would put a full-snapshot " +
+		"(lease-liveness state), never a durable issue field. Journaling it would put a full-snapshot " +
 		"write plus the shared seq-counter serialization on the hottest write in the fleet, and a replay " +
 		"consumer gains nothing — lease state is working-set-plane and expires on its own. Lease RECLAIM " +
 		"is the opposite case and does journal: it clears assignee and reverts status, which is durable.",
@@ -259,25 +259,25 @@ func TestExemptMutationsDoNotJournal(t *testing.T) {
 	}
 }
 
-// TestEveryBeadMutatorJournalsOrIsExempt is the STRUCTURAL completeness
+// TestEveryIssueMutatorJournalsOrIsExempt is the STRUCTURAL completeness
 // cross-check. It detects, by DML rather than by name, every EXPORTED function
-// that writes a work-bead table (INSERT / UPDATE / DELETE against issues, wisps,
+// that writes a work-issue table (INSERT / UPDATE / DELETE against issues, wisps,
 // dependencies, labels, comments, and their wisp variants — literal or templated
 // table name), and asserts each one journals (calls an emit helper directly or
 // transitively) OR is an explicitly-exempted derived-state / aux / sub-helper.
-// A new exported mutator that writes a bead table therefore cannot ship without
-// either journaling or being justified in beadDMLExemptions, closing the "named
+// A new exported mutator that writes a issue table therefore cannot ship without
+// either journaling or being justified in issueDMLExemptions, closing the "named
 // outside the pattern, silently un-journaled" hole the hand list alone left open.
-func TestEveryBeadMutatorJournalsOrIsExempt(t *testing.T) {
+func TestEveryIssueMutatorJournalsOrIsExempt(t *testing.T) {
 	fns, err := journalscan.ParsePackage(".")
 	if err != nil {
 		t.Fatalf("parse issueops package: %v", err)
 	}
 
-	// A function writes a bead table if its own body does, or a free function it
+	// A function writes a issue table if its own body does, or a free function it
 	// calls transitively does.
-	beadDML := journalscan.Fixpoint(fns,
-		func(f *journalscan.FuncInfo) bool { return f.OwnBeadDML },
+	issueDML := journalscan.Fixpoint(fns,
+		func(f *journalscan.FuncInfo) bool { return f.OwnIssueDML },
 		func(f *journalscan.FuncInfo) []string { return f.IdentCalls })
 
 	// A function emits if it calls an emit helper directly or transitively.
@@ -288,10 +288,10 @@ func TestEveryBeadMutatorJournalsOrIsExempt(t *testing.T) {
 	seenExempt := map[string]bool{}
 	var checked int
 	for key, f := range fns {
-		if f.Recv != "" || !f.Exported || !beadDML[key] {
+		if f.Recv != "" || !f.Exported || !issueDML[key] {
 			continue
 		}
-		if reason, ok := beadDMLExemptions[f.Name]; ok {
+		if reason, ok := issueDMLExemptions[f.Name]; ok {
 			if reason == "" {
 				t.Errorf("%s has an empty exemption reason", f.Name)
 			}
@@ -300,16 +300,16 @@ func TestEveryBeadMutatorJournalsOrIsExempt(t *testing.T) {
 		}
 		checked++
 		if !emits[key] {
-			t.Errorf("exported function %q writes a work-bead table but does not journal (no Record*InTx emit helper directly or transitively) and is not exempted — make it journal, or add it to beadDMLExemptions with a reason", f.Name)
+			t.Errorf("exported function %q writes a work-issue table but does not journal (no Record*InTx emit helper directly or transitively) and is not exempted — make it journal, or add it to issueDMLExemptions with a reason", f.Name)
 		}
 	}
 
 	if checked == 0 {
-		t.Fatal("cross-check found no exported bead mutators — DML detection or parsing changed; the guard is not actually running")
+		t.Fatal("cross-check found no exported issue mutators — DML detection or parsing changed; the guard is not actually running")
 	}
-	for m := range beadDMLExemptions {
+	for m := range issueDMLExemptions {
 		if !seenExempt[m] {
-			t.Errorf("exemption %q no longer matches an exported bead-writing function — remove it", m)
+			t.Errorf("exemption %q no longer matches an exported issue-writing function — remove it", m)
 		}
 	}
 }

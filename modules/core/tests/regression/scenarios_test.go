@@ -278,9 +278,9 @@ func TestReadySemantics(t *testing.T) {
 }
 
 // TestSortingInvariants creates issues with different priorities and checks
-// that bd ready output ordering is consistent (#1880).
+// that issuegraph ready output ordering is consistent (#1880).
 func TestSortingInvariants(t *testing.T) {
-	t.Skip("known regression: GH#1880 — bd ready sort order differs between backends")
+	t.Skip("known regression: GH#1880 — issuegraph ready sort order differs between backends")
 	scenario := func(w *workspace) {
 		w.create("--title", "Low priority", "--type", "task", "--priority", "4")
 		w.create("--title", "Critical", "--type", "task", "--priority", "0")
@@ -306,7 +306,7 @@ func TestSortingInvariants(t *testing.T) {
 
 // TestTypeExclusionInReady creates issues with internal types (agent, role, rig,
 // gate, molecule, message, merge-request) plus normal tasks, and verifies both
-// versions agree on what appears in bd ready.
+// versions agree on what appears in issuegraph ready.
 //
 // Note: v0.49.6 had NO type exclusions; main excludes internal types.
 // This is an intentional behavior change, not a regression.
@@ -363,12 +363,12 @@ func TestDueAndDeferRoundTrip(t *testing.T) {
 }
 
 // TestMetadataRoundTrip verifies that JSON metadata survives update and export.
-// Regression: Dolt backend drops metadata set via bd update --metadata.
+// Regression: Dolt backend drops metadata set via issuegraph update --metadata.
 func TestMetadataRoundTrip(t *testing.T) {
 	// Confirmed regression: fresh candidate binary drops metadata from export.
-	// Raw candidate export shows no metadata field at all after bd update --metadata.
+	// Raw candidate export shows no metadata field at all after issuegraph update --metadata.
 	// Raw baseline (v0.49.6/SQLite) correctly preserves metadata:{"component":"auth","risk":"high"}.
-	t.Skip("new regression: GH#1912 — Dolt backend drops metadata set via bd update --metadata")
+	t.Skip("new regression: GH#1912 — Dolt backend drops metadata set via issuegraph update --metadata")
 	compareExports(t, func(w *workspace) {
 		id := w.create("--title", "Metadata test", "--type", "task")
 		w.run("update", id, "--metadata", `{"component":"auth","risk":"high"}`)
@@ -531,7 +531,7 @@ func TestCloseReasonPreservation(t *testing.T) {
 }
 
 // TestListStatusFilterParity creates issues in open/closed/in_progress states
-// and verifies bd list --status open --json returns the same set in both backends.
+// and verifies issuegraph list --status open --json returns the same set in both backends.
 func TestListStatusFilterParity(t *testing.T) {
 	scenario := func(w *workspace) {
 		w.create("--title", "Open task", "--type", "task", "--priority", "2")
@@ -596,7 +596,7 @@ func TestListSortLimitParity(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // TestDuplicateCommand marks an issue as duplicate and compares exports.
-// GH#1889: bd duplicate fails with "invalid field for update: duplicate_of".
+// GH#1889: issuegraph duplicate fails with "invalid field for update: duplicate_of".
 func TestDuplicateCommand(t *testing.T) {
 	scenario := func(w *workspace) (string, string) {
 		canonical := w.create("--title", "Canonical issue", "--type", "bug", "--priority", "2")
@@ -613,13 +613,13 @@ func TestDuplicateCommand(t *testing.T) {
 	_, cErr := candidateWS.tryRun("duplicate", cDup, "--of", cCanonical)
 
 	if bErr != nil && cErr != nil {
-		t.Skip("pre-existing bug (baseline): bd duplicate fails in both baseline and candidate")
+		t.Skip("pre-existing bug (baseline): issuegraph duplicate fails in both baseline and candidate")
 	}
 	if bErr == nil && cErr != nil {
-		t.Fatalf("bd duplicate succeeds in baseline but fails in candidate: %v", cErr)
+		t.Fatalf("issuegraph duplicate succeeds in baseline but fails in candidate: %v", cErr)
 	}
 	if bErr != nil && cErr == nil {
-		t.Log("bd duplicate fails in baseline but succeeds in candidate (new command)")
+		t.Log("issuegraph duplicate fails in baseline but succeeds in candidate (new command)")
 		return
 	}
 
@@ -726,7 +726,7 @@ func TestLabelAddRemoveBatch(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // TestSupersedeCommand marks an issue as superseded by another and compares exports.
-// bd supersede <old-id> --with <new-id> should close the old with a supersedes dep.
+// issuegraph supersede <old-id> --with <new-id> should close the old with a supersedes dep.
 func TestSupersedeCommand(t *testing.T) {
 	scenario := func(w *workspace) (string, string) {
 		old := w.create("--title", "Original approach", "--type", "task", "--priority", "2")
@@ -743,13 +743,13 @@ func TestSupersedeCommand(t *testing.T) {
 	_, cErr := candidateWS.tryRun("supersede", cOld, "--with", cNew)
 
 	if bErr != nil && cErr != nil {
-		t.Skip("pre-existing bug (baseline): bd supersede fails in both baseline and candidate")
+		t.Skip("pre-existing bug (baseline): issuegraph supersede fails in both baseline and candidate")
 	}
 	if bErr == nil && cErr != nil {
-		t.Fatalf("bd supersede succeeds in baseline but fails in candidate: %v", cErr)
+		t.Fatalf("issuegraph supersede succeeds in baseline but fails in candidate: %v", cErr)
 	}
 	if bErr != nil && cErr == nil {
-		t.Log("bd supersede fails in baseline but succeeds in candidate (new command)")
+		t.Log("issuegraph supersede fails in baseline but succeeds in candidate (new command)")
 		return
 	}
 
@@ -808,7 +808,7 @@ func TestCreateWithDepsExplicitBlocks(t *testing.T) {
 // Update type change
 // ---------------------------------------------------------------------------
 
-// TestUpdateTypeChange verifies that changing an issue's type via bd update --type
+// TestUpdateTypeChange verifies that changing an issue's type via issuegraph update --type
 // survives export and doesn't corrupt other fields.
 func TestUpdateTypeChange(t *testing.T) {
 	compareExports(t, func(w *workspace) {
@@ -823,7 +823,7 @@ func TestUpdateTypeChange(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // TestListByLabelFilter creates issues with different labels and verifies
-// bd list --label returns the same set in both backends.
+// issuegraph list --label returns the same set in both backends.
 func TestListByLabelFilter(t *testing.T) {
 	scenario := func(w *workspace) {
 		id1 := w.create("--title", "Frontend task", "--type", "task")
@@ -852,7 +852,7 @@ func TestListByLabelFilter(t *testing.T) {
 		t.Skip("pre-existing bug (baseline): v0.49.6 does not support --label filter on list")
 	}
 	if cErr != nil {
-		t.Fatalf("bd list --label works in baseline but fails in candidate: %v", cErr)
+		t.Fatalf("issuegraph list --label works in baseline but fails in candidate: %v", cErr)
 	}
 
 	bTitles := extractTitleOrder(t, bOut)
@@ -874,7 +874,7 @@ func TestListByLabelFilter(t *testing.T) {
 }
 
 // TestListByTypeFilter creates issues of different types and verifies
-// bd list --type returns the same set in both backends.
+// issuegraph list --type returns the same set in both backends.
 func TestListByTypeFilter(t *testing.T) {
 	scenario := func(w *workspace) {
 		w.create("--title", "A bug report", "--type", "bug", "--priority", "1")
@@ -896,7 +896,7 @@ func TestListByTypeFilter(t *testing.T) {
 		t.Skip("pre-existing bug (baseline): v0.49.6 does not support --type filter on list")
 	}
 	if cErr != nil {
-		t.Fatalf("bd list --type works in baseline but fails in candidate: %v", cErr)
+		t.Fatalf("issuegraph list --type works in baseline but fails in candidate: %v", cErr)
 	}
 
 	bTitles := extractTitleOrder(t, bOut)
@@ -1043,12 +1043,12 @@ func TestAcceptanceCriteriaRoundTrip(t *testing.T) {
 // TestUndeferRoundTrip creates a deferred issue, undefers it, and compares
 // exports. Verifies that defer_until is cleared and status returns to open.
 func TestUndeferRoundTrip(t *testing.T) {
-	// Probe: does baseline support bd undefer?
+	// Probe: does baseline support issuegraph undefer?
 	probe := newWorkspace(t, baselineBin)
 	probeID := probe.create("--title", "probe", "--type", "task")
 	probe.run("update", probeID, "--defer", "2099-12-31")
 	if _, err := probe.tryRun("undefer", probeID); err != nil {
-		t.Skip("pre-existing bug (baseline): v0.49.6 does not support bd undefer command")
+		t.Skip("pre-existing bug (baseline): v0.49.6 does not support issuegraph undefer command")
 	}
 
 	compareExports(t, func(w *workspace) {
@@ -1135,7 +1135,7 @@ func TestRemoveParent(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // TestExportByAssigneeFilter creates issues with different assignees and
-// verifies bd export --assignee returns the same set in both backends.
+// verifies issuegraph export --assignee returns the same set in both backends.
 func TestExportByAssigneeFilter(t *testing.T) {
 	t.Skip("intentional change: current export no longer supports --assignee filtering; use list/query filters before export workflows")
 	scenario := func(w *workspace) {
@@ -1160,7 +1160,7 @@ func TestExportByAssigneeFilter(t *testing.T) {
 		t.Skip("pre-existing bug (baseline): v0.49.6 does not support --assignee filter on export")
 	}
 	if cErr != nil {
-		t.Fatalf("bd export --assignee works in baseline but fails in candidate: %v", cErr)
+		t.Fatalf("issuegraph export --assignee works in baseline but fails in candidate: %v", cErr)
 	}
 
 	diffNormalized(t, bRaw, cRaw,
@@ -1176,7 +1176,7 @@ func TestExportByAssigneeFilter(t *testing.T) {
 // TestParentChildDepExportBothDirections creates a parent-child relationship
 // and verifies that BOTH the child's dep row (child depends-on parent) AND
 // the parent's dep row (parent has child) appear in export.
-// GH#1926: bd export omits parent-to-child dependency rows.
+// GH#1926: issuegraph export omits parent-to-child dependency rows.
 func TestParentChildDepExportBothDirections(t *testing.T) {
 	scenario := func(w *workspace) {
 		parent := w.create("--title", "Epic parent", "--type", "epic")
@@ -1221,8 +1221,8 @@ func TestParentChildDepExportBothDirections(t *testing.T) {
 }
 
 // TestWaitsForDepBlocksReady creates issues linked via waits-for dependency
-// and verifies both backends agree on which issues appear in bd ready.
-// GH#1899: bd ready ignores waits-for dependencies.
+// and verifies both backends agree on which issues appear in issuegraph ready.
+// GH#1899: issuegraph ready ignores waits-for dependencies.
 //
 // Finding: baseline (v0.49.6) silently drops waits-for deps from storage/export
 // entirely. Candidate correctly stores them. This is a baseline deficiency,
@@ -1574,7 +1574,7 @@ func TestDeleteAndRestoreRoundTrip(t *testing.T) {
 	bWS.run("delete", probeID, "--force")
 	_, bErr := bWS.tryRun("restore", probeID)
 	if bErr != nil {
-		t.Skip("pre-existing bug (baseline): v0.49.6 does not support bd restore")
+		t.Skip("pre-existing bug (baseline): v0.49.6 does not support issuegraph restore")
 	}
 
 	compareExports(t, func(w *workspace) {
@@ -1606,7 +1606,7 @@ func TestEpicWithChildrenStatus(t *testing.T) {
 	})
 }
 
-// TestSearchByTitleSubstring uses bd list with title filtering to verify
+// TestSearchByTitleSubstring uses issuegraph list with title filtering to verify
 // both backends return the same results.
 func TestSearchByTitleSubstring(t *testing.T) {
 	scenario := func(w *workspace) {
@@ -1629,7 +1629,7 @@ func TestSearchByTitleSubstring(t *testing.T) {
 		t.Skip("pre-existing bug (baseline): v0.49.6 does not support --search on list")
 	}
 	if cErr != nil {
-		t.Fatalf("bd list --search works in baseline but fails in candidate: %v", cErr)
+		t.Fatalf("issuegraph list --search works in baseline but fails in candidate: %v", cErr)
 	}
 
 	bTitles := extractTitleOrder(t, bOut)
@@ -1643,7 +1643,7 @@ func TestSearchByTitleSubstring(t *testing.T) {
 }
 
 // TestListCountParity creates a known set of issues with different statuses
-// and verifies bd list --count (or just counting list output) agrees.
+// and verifies issuegraph list --count (or just counting list output) agrees.
 func TestListCountParity(t *testing.T) {
 	scenario := func(w *workspace) {
 		w.create("--title", "Open 1", "--type", "task")
@@ -1711,7 +1711,7 @@ func TestEmptyAndWhitespaceFields(t *testing.T) {
 
 // TestEpicAllChildrenClosedNotBlocked creates an epic with children, closes
 // all children, then verifies the epic is not reported as BLOCKED by
-// bd blocked. GH#1495: completed epics show BLOCKED with "0 dependencies".
+// issuegraph blocked. GH#1495: completed epics show BLOCKED with "0 dependencies".
 func TestEpicAllChildrenClosedNotBlocked(t *testing.T) {
 	scenario := func(w *workspace) string {
 		epic := w.create("--title", "Release epic", "--type", "epic", "--priority", "1")
@@ -1739,7 +1739,7 @@ func TestEpicAllChildrenClosedNotBlocked(t *testing.T) {
 			bReady[bEpic], cReady[cEpic])
 	}
 
-	// Also check bd blocked --json: epic should NOT appear
+	// Also check issuegraph blocked --json: epic should NOT appear
 	bBlocked, _ := baselineWS.tryRun("blocked", "--json")
 	cBlocked, _ := candidateWS.tryRun("blocked", "--json")
 
@@ -1771,7 +1771,7 @@ func TestEpicAllChildrenClosedNotBlocked(t *testing.T) {
 
 // TestBlockedEpicChildrenNotReady creates an epic blocked by another issue,
 // then creates child tasks under the epic. Children should NOT appear in
-// bd ready if their parent epic is blocked. GH#1495 issue 3.
+// issuegraph ready if their parent epic is blocked. GH#1495 issue 3.
 func TestBlockedEpicChildrenNotReady(t *testing.T) {
 	scenario := func(w *workspace) (epic, blocker string, children [3]string) {
 		blocker = w.create("--title", "Prerequisite epic", "--type", "epic", "--priority", "1")
@@ -1853,12 +1853,12 @@ func TestCloseGuardNonBlocksDepTypes(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// bd list --all with --label filter (GH#1840)
+// issuegraph list --all with --label filter (GH#1840)
 // ---------------------------------------------------------------------------
 
 // TestListAllOverridesLimitWithLabel creates >50 issues with a label and
-// verifies that bd list --all --label returns all of them, not just 50.
-// GH#1840: bd list --all has a default limit of 50 when combined with --label.
+// verifies that issuegraph list --all --label returns all of them, not just 50.
+// GH#1840: issuegraph list --all has a default limit of 50 when combined with --label.
 func TestListAllOverridesLimitWithLabel(t *testing.T) {
 	// Create issues in both workspaces — more than the default limit
 	scenario := func(w *workspace) {
@@ -1880,7 +1880,7 @@ func TestListAllOverridesLimitWithLabel(t *testing.T) {
 		t.Skip("pre-existing bug (baseline): v0.49.6 does not support --all --label combination")
 	}
 	if cErr != nil {
-		t.Fatalf("bd list --all --label works in baseline but fails in candidate: %v", cErr)
+		t.Fatalf("issuegraph list --all --label works in baseline but fails in candidate: %v", cErr)
 	}
 
 	bTitles := extractTitleOrder(t, bOut)
@@ -1893,13 +1893,13 @@ func TestListAllOverridesLimitWithLabel(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// bd list resolved blockers annotation (GH#1858)
+// issuegraph list resolved blockers annotation (GH#1858)
 // ---------------------------------------------------------------------------
 
 // TestListResolvedBlockerAnnotation creates a blocking dependency, closes
-// the blocker, and checks that bd list text output does NOT show
+// the blocker, and checks that issuegraph list text output does NOT show
 // "(blocked by: ...)" for the unblocked issue.
-// GH#1858: bd list shows resolved blockers as still blocking.
+// GH#1858: issuegraph list shows resolved blockers as still blocking.
 func TestListResolvedBlockerAnnotation(t *testing.T) {
 	scenario := func(w *workspace) (blocker, blocked string) {
 		blocker = w.create("--title", "Blocker task", "--type", "task", "--priority", "1")
@@ -1952,12 +1952,12 @@ func TestListResolvedBlockerAnnotation(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// bd dep tree (GH#1954)
+// issuegraph dep tree (GH#1954)
 // ---------------------------------------------------------------------------
 
 // TestDepTreeOutput creates a parent-child hierarchy and verifies that
-// bd dep tree produces output that includes all children.
-// GH#1954: bd dep tree epic-id command no longer works.
+// issuegraph dep tree produces output that includes all children.
+// GH#1954: issuegraph dep tree epic-id command no longer works.
 func TestDepTreeOutput(t *testing.T) {
 	scenario := func(w *workspace) string {
 		epic := w.create("--title", "My Epic", "--type", "epic")
@@ -1978,13 +1978,13 @@ func TestDepTreeOutput(t *testing.T) {
 	cOut, cErr := candidateWS.tryRun("dep", "tree", cEpic)
 
 	if bErr != nil && cErr != nil {
-		t.Skip("pre-existing bug (baseline): bd dep tree fails in both versions")
+		t.Skip("pre-existing bug (baseline): issuegraph dep tree fails in both versions")
 	}
 	if bErr == nil && cErr != nil {
-		t.Fatalf("bd dep tree works in baseline but fails in candidate: %v\nOutput: %s", cErr, cOut)
+		t.Fatalf("issuegraph dep tree works in baseline but fails in candidate: %v\nOutput: %s", cErr, cOut)
 	}
 	if bErr != nil && cErr == nil {
-		t.Log("bd dep tree fails in baseline but works in candidate (new/fixed command)")
+		t.Log("issuegraph dep tree fails in baseline but works in candidate (new/fixed command)")
 		return
 	}
 
@@ -2127,10 +2127,10 @@ func TestRapidCommentAddStability(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Children command (bd children)
+// Children command (issuegraph children)
 // ---------------------------------------------------------------------------
 
-// TestChildrenCommand creates a parent with children and verifies bd children
+// TestChildrenCommand creates a parent with children and verifies issuegraph children
 // returns the correct set.
 func TestChildrenCommand(t *testing.T) {
 	scenario := func(w *workspace) (parent string, children [3]string) {
@@ -2150,14 +2150,14 @@ func TestChildrenCommand(t *testing.T) {
 	cOut, cErr := candidateWS.tryRun("children", cParent, "--json")
 
 	if bErr != nil && cErr != nil {
-		t.Skip("pre-existing: bd children fails in both versions")
+		t.Skip("pre-existing: issuegraph children fails in both versions")
 	}
 	if bErr != nil && cErr == nil {
-		t.Log("bd children fails in baseline but works in candidate (new command)")
+		t.Log("issuegraph children fails in baseline but works in candidate (new command)")
 		return
 	}
 	if bErr == nil && cErr != nil {
-		t.Fatalf("bd children works in baseline but fails in candidate: %v", cErr)
+		t.Fatalf("issuegraph children works in baseline but fails in candidate: %v", cErr)
 	}
 
 	bTitles := extractTitleOrder(t, bOut)
@@ -2171,11 +2171,11 @@ func TestChildrenCommand(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// bd blocked command parity
+// issuegraph blocked command parity
 // ---------------------------------------------------------------------------
 
 // TestBlockedCommandParity creates a dependency graph with blocked and
-// unblocked issues, runs bd blocked --json, and verifies both backends
+// unblocked issues, runs issuegraph blocked --json, and verifies both backends
 // agree on which issues are blocked.
 func TestBlockedCommandParity(t *testing.T) {
 	scenario := func(w *workspace) {
@@ -2201,10 +2201,10 @@ func TestBlockedCommandParity(t *testing.T) {
 	cOut, cErr := candidateWS.tryRun("blocked", "--json")
 
 	if bErr != nil {
-		t.Skip("pre-existing: bd blocked --json fails in baseline")
+		t.Skip("pre-existing: issuegraph blocked --json fails in baseline")
 	}
 	if cErr != nil {
-		t.Fatalf("bd blocked --json fails in candidate: %v", cErr)
+		t.Fatalf("issuegraph blocked --json fails in candidate: %v", cErr)
 	}
 
 	bTitles := extractTitleOrder(t, bOut)
@@ -2218,11 +2218,11 @@ func TestBlockedCommandParity(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// bd count command parity
+// issuegraph count command parity
 // ---------------------------------------------------------------------------
 
 // TestCountCommandParity creates issues in various states and verifies
-// bd count returns consistent numbers across backends.
+// issuegraph count returns consistent numbers across backends.
 func TestCountCommandParity(t *testing.T) {
 	scenario := func(w *workspace) {
 		w.create("--title", "Open 1", "--type", "task")
@@ -2243,10 +2243,10 @@ func TestCountCommandParity(t *testing.T) {
 	cOut, cErr := candidateWS.tryRun("count")
 
 	if bErr != nil {
-		t.Skip("pre-existing: bd count fails in baseline")
+		t.Skip("pre-existing: issuegraph count fails in baseline")
 	}
 	if cErr != nil {
-		t.Fatalf("bd count fails in candidate: %v", cErr)
+		t.Fatalf("issuegraph count fails in candidate: %v", cErr)
 	}
 
 	// Counts should match (even if format differs, the numbers should)
@@ -2270,11 +2270,11 @@ func TestCountCommandParity(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// bd show --json field completeness
+// issuegraph show --json field completeness
 // ---------------------------------------------------------------------------
 
 // TestShowJSONFieldCompleteness creates an issue with every possible field
-// set, then verifies bd show --json returns all of them. This catches
+// set, then verifies issuegraph show --json returns all of them. This catches
 // scan projection bugs (GH#1914) where new columns are missing from
 // individual issue hydration.
 func TestShowJSONFieldCompleteness(t *testing.T) {
@@ -2327,10 +2327,10 @@ func TestShowJSONFieldCompleteness(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// bd query DSL parity
+// issuegraph query DSL parity
 // ---------------------------------------------------------------------------
 
-// TestQueryDSLParity runs identical bd query expressions against both
+// TestQueryDSLParity runs identical issuegraph query expressions against both
 // backends and verifies they return the same results.
 func TestQueryDSLParity(t *testing.T) {
 	scenario := func(w *workspace) {
@@ -2363,10 +2363,10 @@ func TestQueryDSLParity(t *testing.T) {
 			cOut, cErr := candidateWS.tryRun("query", q, "--json")
 
 			if bErr != nil {
-				t.Skipf("pre-existing: bd query %q fails in baseline", q)
+				t.Skipf("pre-existing: issuegraph query %q fails in baseline", q)
 			}
 			if cErr != nil {
-				t.Fatalf("bd query %q fails in candidate: %v", q, cErr)
+				t.Fatalf("issuegraph query %q fails in candidate: %v", q, cErr)
 			}
 
 			bTitles := extractTitleOrder(t, bOut)
@@ -2383,10 +2383,10 @@ func TestQueryDSLParity(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// bd stale command parity
+// issuegraph stale command parity
 // ---------------------------------------------------------------------------
 
-// TestStaleCommandParity verifies bd stale returns consistent results.
+// TestStaleCommandParity verifies issuegraph stale returns consistent results.
 func TestStaleCommandParity(t *testing.T) {
 	scenario := func(w *workspace) {
 		w.create("--title", "Fresh issue", "--type", "task")
@@ -2404,10 +2404,10 @@ func TestStaleCommandParity(t *testing.T) {
 	cOut, cErr := candidateWS.tryRun("stale", "--days", "1", "--json")
 
 	if bErr != nil {
-		t.Skip("pre-existing: bd stale fails in baseline")
+		t.Skip("pre-existing: issuegraph stale fails in baseline")
 	}
 	if cErr != nil {
-		t.Fatalf("bd stale fails in candidate: %v", cErr)
+		t.Fatalf("issuegraph stale fails in candidate: %v", cErr)
 	}
 
 	bTitles := extractTitleOrder(t, bOut)
@@ -2463,7 +2463,7 @@ func TestLargeExportImportRoundTrip(t *testing.T) {
 	candidateWS.run("import", "-i", importFile)
 
 	// Compare real export output on both sides. The snapshot helper uses
-	// bd show and includes derived dependent objects that old export did not.
+	// issuegraph show and includes derived dependent objects that old export did not.
 	candidateExportFile := filepath.Join(candidateWS.dir, "bulk-candidate-export.jsonl")
 	candidateWS.run("export", "-o", candidateExportFile)
 	candidateRaw, err := os.ReadFile(candidateExportFile)
@@ -2560,7 +2560,7 @@ func parseJSONFieldNames(t *testing.T, output string) []string {
 	return nil
 }
 
-// extractTitleOrder parses bd ready --json output and returns titles in order.
+// extractTitleOrder parses issuegraph ready --json output and returns titles in order.
 func extractTitleOrder(t *testing.T, output string) []string {
 	t.Helper()
 	var titles []string

@@ -22,8 +22,8 @@ func TestExternalDoltConfig_ResolvedUser(t *testing.T) {
 	})
 
 	t.Run("explicit user passes through", func(t *testing.T) {
-		if got := (ExternalDoltConfig{User: "beads"}).ResolvedUser(); got != "beads" {
-			t.Errorf("got %q, want %q", got, "beads")
+		if got := (ExternalDoltConfig{User: "issuegraph"}).ResolvedUser(); got != "issuegraph" {
+			t.Errorf("got %q, want %q", got, "issuegraph")
 		}
 	})
 }

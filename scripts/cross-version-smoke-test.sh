@@ -5,7 +5,7 @@ set -uo pipefail
 # Cross-Version Smoke Test
 # =============================================================================
 #
-# Verifies that data created with old bd versions is readable after upgrading
+# Verifies that data created with old issuegraph versions is readable after upgrading
 # to the candidate (current worktree) binary.
 #
 # For each version tested:
@@ -19,11 +19,11 @@ set -uo pipefail
 #   ./scripts/cross-version-smoke-test.sh --local               # candidate only
 #   ./scripts/cross-version-smoke-test.sh --from v0.30.0        # all tags from v0.30.0
 #   ./scripts/cross-version-smoke-test.sh v0.63.3 v1.0.0        # specific versions
-#   CANDIDATE_BIN=./bd ./scripts/cross-version-smoke-test.sh    # prebuilt candidate
+#   CANDIDATE_BIN=./issuegraph ./scripts/cross-version-smoke-test.sh    # prebuilt candidate
 #
 # Environment:
 #   CANDIDATE_BIN    Path to prebuilt candidate binary (skip build)
-#   BEADS_TEST_MODE  Set to 1 to suppress telemetry/prompts
+#   ISSUEGRAPH_TEST_MODE  Set to 1 to suppress telemetry/prompts
 #
 # Exit codes:
 #   0  All tested versions passed (skips don't count as failures)
@@ -43,7 +43,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck source=../modules/core/.buildflags
 source "$PROJECT_ROOT/modules/core/.buildflags"
 
-CACHE_DIR="${HOME}/.cache/beads-regression"
+CACHE_DIR="${HOME}/.cache/issuegraph-regression"
 mkdir -p "$CACHE_DIR"
 
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -53,7 +53,7 @@ case "$ARCH" in
     aarch64|arm64) ARCH="arm64" ;;
 esac
 
-export BEADS_TEST_MODE="${BEADS_TEST_MODE:-1}"
+export ISSUEGRAPH_TEST_MODE="${ISSUEGRAPH_TEST_MODE:-1}"
 export GIT_CONFIG_NOSYSTEM=1
 
 # ---------------------------------------------------------------------------
@@ -70,8 +70,8 @@ download_binary() {
         return
     fi
 
-    local asset="beads_${ver_bare}_${OS}_${ARCH}.tar.gz"
-    local url="https://github.com/gastownhall/beads/releases/download/${version}/${asset}"
+    local asset="issuegraph_${ver_bare}_${OS}_${ARCH}.tar.gz"
+    local url="https://github.com/borg0ai/dx-issuegraph/releases/download/${version}/${asset}"
 
     echo -e "  ${YELLOW}downloading ${version}...${NC}" >&2
     local tmpdir
@@ -82,14 +82,14 @@ download_binary() {
     fi
 
     tar -xzf "$tmpdir/archive.tar.gz" -C "$tmpdir"
-    local bd_path
-    bd_path=$(find "$tmpdir" -name bd -type f | head -1)
-    if [ -z "$bd_path" ]; then
+    local issuegraph_path
+    issuegraph_path=$(find "$tmpdir" -name issuegraph -type f | head -1)
+    if [ -z "$issuegraph_path" ]; then
         rm -rf "$tmpdir"
         return 1
     fi
 
-    cp -f "$bd_path" "$cached"
+    cp -f "$issuegraph_path" "$cached"
     chmod +x "$cached"
     rm -rf "$tmpdir"
     echo "$cached"
@@ -120,9 +120,9 @@ build_candidate() {
         return
     fi
 
-    local candidate="$CACHE_DIR/bd-candidate-$$"
+    local candidate="$CACHE_DIR/issuegraph-candidate-$$"
     echo -e "${YELLOW}Building candidate binary...${NC}" >&2
-    (cd "$PROJECT_ROOT" && go build -o "$candidate" github.com/steveyegge/beads/modules/cli) >&2
+    (cd "$PROJECT_ROOT" && go build -o "$candidate" github.com/borg0ai/dx-issuegraph/apps/cli) >&2
     echo "$candidate"
 }
 
@@ -135,14 +135,14 @@ new_workspace() {
     dir=$(mktemp -d /tmp/bdxver-XXXXXX)
     git -C "$dir" init --quiet
     git -C "$dir" config user.name "smoke-test"
-    git -C "$dir" config user.email "test@beads.test"
+    git -C "$dir" config user.email "test@issuegraph.test"
     touch "$dir/.gitkeep"
     git -C "$dir" add .
     git -C "$dir" commit --quiet -m "initial"
     echo "$dir"
 }
 
-bd_in() {
+issuegraph_in() {
     local ws="$1"
     local bin="$2"
     shift 2
@@ -151,15 +151,15 @@ bd_in() {
 
 # create an issue, returning just the ID on stdout
 # tries --silent first, falls back to parsing "Created issue: <id>" output
-bd_create() {
+issuegraph_create() {
     local ws="$1"
     local bin="$2"
     shift 2
     # try --silent first
     local id
-    id=$(bd_in "$ws" "$bin" create --silent "$@" 2>/dev/null) && [ -n "$id" ] && echo "$id" && return 0
+    id=$(issuegraph_in "$ws" "$bin" create --silent "$@" 2>/dev/null) && [ -n "$id" ] && echo "$id" && return 0
     # fallback: parse verbose output
-    id=$(bd_in "$ws" "$bin" create "$@" 2>&1 | grep -oP 'Created issue: \K\S+' || true)
+    id=$(issuegraph_in "$ws" "$bin" create "$@" 2>&1 | grep -oP 'Created issue: \K\S+' || true)
     [ -n "$id" ] && echo "$id" && return 0
     return 1
 }
@@ -169,7 +169,7 @@ stop_dolt_server() {
     local ws="$1"
     # kill by pid file — covers dolt server, monitor, and daemon
     local pid=""
-    for pidfile in "$ws/.beads/dolt-server.pid" "$ws/.beads/dolt-monitor.pid" "$ws/.beads/daemon.pid"; do
+    for pidfile in "$ws/.issuegraph/dolt-server.pid" "$ws/.issuegraph/dolt-monitor.pid" "$ws/.issuegraph/daemon.pid"; do
         if [ -f "$pidfile" ]; then
             pid=$(cat "$pidfile" 2>/dev/null) || true
             [ -n "$pid" ] && kill -9 "$pid" 2>/dev/null || true
@@ -178,7 +178,7 @@ stop_dolt_server() {
     # kill any process with this workspace path in its command line
     pkill -9 -f "$ws" 2>/dev/null || true
     sleep 1
-    rm -f "$ws/.beads/bd.sock" "$ws/.beads/dolt-server.lock" 2>/dev/null || true
+    rm -f "$ws/.issuegraph/issuegraph.sock" "$ws/.issuegraph/dolt-server.lock" 2>/dev/null || true
 }
 
 cleanup_workspace() {
@@ -281,7 +281,7 @@ verify_candidate() {
     VERIFY_DETAIL=""
 
     local LIST_OUT
-    LIST_OUT=$(bd_in "$ws" "$cand_bin" list --json -n 0 --all 2>/dev/null || echo "")
+    LIST_OUT=$(issuegraph_in "$ws" "$cand_bin" list --json -n 0 --all 2>/dev/null || echo "")
 
     for title in "Smoke epic" "Smoke task alpha" "Smoke task beta"; do
         if echo "$LIST_OUT" | grep -qF "$title"; then
@@ -294,11 +294,11 @@ verify_candidate() {
     done
 
     for id in "$epic" "$id1" "$id2"; do
-        if bd_in "$ws" "$cand_bin" show "$id" --json >/dev/null 2>&1; then
+        if issuegraph_in "$ws" "$cand_bin" show "$id" --json >/dev/null 2>&1; then
             echo -e "  ${GREEN}✓${NC} show $id"
         else
             local show_err=""
-            show_err=$(bd_in "$ws" "$cand_bin" show "$id" --json 2>&1 | grep -i error | head -1 | cut -c1-120 || true)
+            show_err=$(issuegraph_in "$ws" "$cand_bin" show "$id" --json 2>&1 | grep -i error | head -1 | cut -c1-120 || true)
             echo -e "  ${RED}✗${NC} show $id failed: ${show_err}"
             VERIFY_ERRORS=$((VERIFY_ERRORS + 1))
             VERIFY_DETAIL="${show_err:-show failed}"
@@ -306,7 +306,7 @@ verify_candidate() {
     done
 
     local DEP_OUT
-    DEP_OUT=$(bd_in "$ws" "$cand_bin" show "$id2" --json 2>/dev/null || echo "")
+    DEP_OUT=$(issuegraph_in "$ws" "$cand_bin" show "$id2" --json 2>/dev/null || echo "")
     if echo "$DEP_OUT" | grep -qF "$id1"; then
         echo -e "  ${GREEN}✓${NC} dependency preserved"
     else
@@ -315,7 +315,7 @@ verify_candidate() {
         [ -z "$VERIFY_DETAIL" ] && VERIFY_DETAIL="dependency lost"
     fi
 
-    if bd_in "$ws" "$cand_bin" doctor quick >/dev/null 2>&1; then
+    if issuegraph_in "$ws" "$cand_bin" doctor quick >/dev/null 2>&1; then
         echo -e "  ${GREEN}✓${NC} doctor quick"
     else
         echo -e "  ${RED}✗${NC} doctor quick failed"
@@ -341,16 +341,16 @@ test_version() {
     # -- step 1: init with old binary --
     # try --non-interactive (v1.0.0+), fall back without
     local init_ok=false
-    if bd_in "$WS" "$prev_bin" init --quiet --non-interactive --prefix sm-o_ke </dev/null >/dev/null 2>&1; then
+    if issuegraph_in "$WS" "$prev_bin" init --quiet --non-interactive --prefix sm-o_ke </dev/null >/dev/null 2>&1; then
         init_ok=true
-    elif bd_in "$WS" "$prev_bin" init --quiet --prefix sm-o_ke </dev/null >/dev/null 2>&1; then
+    elif issuegraph_in "$WS" "$prev_bin" init --quiet --prefix sm-o_ke </dev/null >/dev/null 2>&1; then
         init_ok=true
     fi
 
     if ! $init_ok; then
         # capture the actual error for the report
         local init_err=""
-        init_err=$(bd_in "$WS" "$prev_bin" init --quiet --prefix sm-o_ke </dev/null 2>&1 | head -1 || true)
+        init_err=$(issuegraph_in "$WS" "$prev_bin" init --quiet --prefix sm-o_ke </dev/null 2>&1 | head -1 || true)
         cleanup_workspace "$WS" "$prev_bin"
 
         if echo "$init_err" | grep -qi "CGO"; then
@@ -364,13 +364,13 @@ test_version() {
         echo -e "  ${RESULT_STATUSES[$_idx]}: ${RESULT_DETAILS[$_idx]}"
         return 0
     fi
-    git -C "$WS" config beads.role maintainer 2>/dev/null || true
+    git -C "$WS" config issuegraph.role maintainer 2>/dev/null || true
 
     # -- step 2: create data with old binary --
     local EPIC ID1 ID2
-    EPIC=$(bd_create "$WS" "$prev_bin" --title "Smoke epic" --type epic --priority 2) || true
-    ID1=$(bd_create "$WS" "$prev_bin" --title "Smoke task alpha" --type task --priority 2) || true
-    ID2=$(bd_create "$WS" "$prev_bin" --title "Smoke task beta" --type bug --priority 1) || true
+    EPIC=$(issuegraph_create "$WS" "$prev_bin" --title "Smoke epic" --type epic --priority 2) || true
+    ID1=$(issuegraph_create "$WS" "$prev_bin" --title "Smoke task alpha" --type task --priority 2) || true
+    ID2=$(issuegraph_create "$WS" "$prev_bin" --title "Smoke task beta" --type bug --priority 1) || true
 
     if [ -z "${EPIC:-}" ] || [ -z "${ID1:-}" ] || [ -z "${ID2:-}" ]; then
         cleanup_workspace "$WS" "$prev_bin"
@@ -380,7 +380,7 @@ test_version() {
         return 0
     fi
 
-    bd_in "$WS" "$prev_bin" dep add "$ID2" "$ID1" >/dev/null 2>&1 || true
+    issuegraph_in "$WS" "$prev_bin" dep add "$ID2" "$ID1" >/dev/null 2>&1 || true
     echo -e "  created: epic=$EPIC task=$ID1 bug=$ID2"
 
     # commit to trigger JSONL export via git hooks (pre-embeddeddolt versions
@@ -398,29 +398,29 @@ test_version() {
     local errors=$VERIFY_ERRORS
     local error_details="$VERIFY_DETAIL"
 
-    # -- step 4: if direct read failed and candidate suggests "bd init", follow that advice --
+    # -- step 4: if direct read failed and candidate suggests "issuegraph init", follow that advice --
     #            use --from-jsonl to import data from the git-tracked JSONL export
     if [ "$errors" -gt 0 ]; then
         local hint
-        hint=$(bd_in "$WS" "$cand_bin" list 2>&1 | grep -o "run 'bd init'" || true)
+        hint=$(issuegraph_in "$WS" "$cand_bin" list 2>&1 | grep -o "run 'issuegraph init'" || true)
         if [ -n "$hint" ]; then
             local init_flags="--quiet --non-interactive --prefix sm-o_ke"
             # use --from-jsonl when JSONL has data (pre-embeddeddolt versions exported via git hooks)
-            if [ -s "$WS/.beads/issues.jsonl" ]; then
+            if [ -s "$WS/.issuegraph/issues.jsonl" ]; then
                 init_flags="--from-jsonl $init_flags"
-                echo -e "  ${YELLOW}candidate suggests 'bd init', using --from-jsonl to recover data...${NC}"
+                echo -e "  ${YELLOW}candidate suggests 'issuegraph init', using --from-jsonl to recover data...${NC}"
             else
-                echo -e "  ${YELLOW}candidate suggests 'bd init', following that advice...${NC}"
+                echo -e "  ${YELLOW}candidate suggests 'issuegraph init', following that advice...${NC}"
             fi
-            bd_in "$WS" "$cand_bin" init $init_flags </dev/null >/dev/null 2>&1 || true
+            issuegraph_in "$WS" "$cand_bin" init $init_flags </dev/null >/dev/null 2>&1 || true
 
             verify_candidate "$WS" "$cand_bin" "$EPIC" "$ID1" "$ID2"
             if [ "$VERIFY_ERRORS" -eq 0 ]; then
-                record_result "${version}" "PASS" "passed after bd init"
+                record_result "${version}" "PASS" "passed after issuegraph init"
                 cleanup_workspace "$WS" "$prev_bin"
                 return 0
             fi
-            error_details="direct: ${error_details}; after bd init: ${VERIFY_DETAIL}"
+            error_details="direct: ${error_details}; after issuegraph init: ${VERIFY_DETAIL}"
             errors=$VERIFY_ERRORS
         fi
     fi

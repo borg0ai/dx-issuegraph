@@ -126,7 +126,7 @@ fi
 	}
 	env := []string{
 		"PATH=" + os.Getenv("PATH"),
-		"BEADS_TEST_COMMAND_PATH=" + commandPath,
+		"ISSUEGRAPH_TEST_COMMAND_PATH=" + commandPath,
 		"HOME=" + statePath,
 		"LC_ALL=C",
 		"LANG=C",

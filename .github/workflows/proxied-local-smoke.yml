@@ -2,7 +2,7 @@
 #
 # The proxied shards in main.yml exercise command behavior against an
 # EXTERNALLY managed Dolt testcontainer. This lane covers the production
-# local-first path those shards cannot: bd launches its own loopback proxy,
+# local-first path those shards cannot: issuegraph launches its own loopback proxy,
 # the proxy launches a locally installed `dolt sql-server`, and the whole
 # lifecycle (create/read, loopback-only listeners, idle shutdown,
 # transparent restart with persistence), identity failures, orphan recovery,
@@ -19,19 +19,19 @@ on:
   push:
     branches: [main]
     paths:
-      - 'modules/cli/proxied_local_*'
-      - 'modules/cli/proxied_server*.go'
-      - 'modules/cli/dolt*.go'
-      - 'modules/cli/*_proxied_server.go'
-      - 'modules/cli/*managed_local*'
-      - 'modules/cli/proxied_outage_reconnect_integration_test.go'
-      - 'modules/cli/db_proxy_child.go'
-      - 'modules/cli/init*.go'
-      - 'modules/cli/proxied_integration_helpers_test.go'
-      - 'modules/cli/store_factory*.go'
-      - 'modules/cli/test_dolt_server_cgo_test.go'
-      - 'modules/cli/tracker_proxy_uow_conformance_integration_test.go'
-      - 'modules/cli/uow_factory.go'
+      - 'apps/cli/proxied_local_*'
+      - 'apps/cli/proxied_server*.go'
+      - 'apps/cli/dolt*.go'
+      - 'apps/cli/*_proxied_server.go'
+      - 'apps/cli/*managed_local*'
+      - 'apps/cli/proxied_outage_reconnect_integration_test.go'
+      - 'apps/cli/db_proxy_child.go'
+      - 'apps/cli/init*.go'
+      - 'apps/cli/proxied_integration_helpers_test.go'
+      - 'apps/cli/store_factory*.go'
+      - 'apps/cli/test_dolt_server_cgo_test.go'
+      - 'apps/cli/tracker_proxy_uow_conformance_integration_test.go'
+      - 'apps/cli/uow_factory.go'
       - 'internal/configfile/**'
       - 'internal/doltserver/**'
       - 'internal/storage/dbproxy/**'
@@ -40,24 +40,26 @@ on:
       - 'internal/tracker/uow_store.go'
       - 'internal/tracker/engine.go'
       - 'internal/tracker/store.go'
-      - 'go.mod'
-      - 'go.sum'
+      - 'modules/core/go.mod'
+      - 'modules/core/go.sum'
+      - 'apps/cli/go.mod'
+      - 'apps/cli/go.sum'
       - '.github/workflows/proxied-local-smoke.yml'
   pull_request:
     paths:
-      - 'modules/cli/proxied_local_*'
-      - 'modules/cli/proxied_server*.go'
-      - 'modules/cli/dolt*.go'
-      - 'modules/cli/*_proxied_server.go'
-      - 'modules/cli/*managed_local*'
-      - 'modules/cli/proxied_outage_reconnect_integration_test.go'
-      - 'modules/cli/db_proxy_child.go'
-      - 'modules/cli/init*.go'
-      - 'modules/cli/proxied_integration_helpers_test.go'
-      - 'modules/cli/store_factory*.go'
-      - 'modules/cli/test_dolt_server_cgo_test.go'
-      - 'modules/cli/tracker_proxy_uow_conformance_integration_test.go'
-      - 'modules/cli/uow_factory.go'
+      - 'apps/cli/proxied_local_*'
+      - 'apps/cli/proxied_server*.go'
+      - 'apps/cli/dolt*.go'
+      - 'apps/cli/*_proxied_server.go'
+      - 'apps/cli/*managed_local*'
+      - 'apps/cli/proxied_outage_reconnect_integration_test.go'
+      - 'apps/cli/db_proxy_child.go'
+      - 'apps/cli/init*.go'
+      - 'apps/cli/proxied_integration_helpers_test.go'
+      - 'apps/cli/store_factory*.go'
+      - 'apps/cli/test_dolt_server_cgo_test.go'
+      - 'apps/cli/tracker_proxy_uow_conformance_integration_test.go'
+      - 'apps/cli/uow_factory.go'
       - 'internal/configfile/**'
       - 'internal/doltserver/**'
       - 'internal/storage/dbproxy/**'
@@ -66,8 +68,10 @@ on:
       - 'internal/tracker/uow_store.go'
       - 'internal/tracker/engine.go'
       - 'internal/tracker/store.go'
-      - 'go.mod'
-      - 'go.sum'
+      - 'modules/core/go.mod'
+      - 'modules/core/go.sum'
+      - 'apps/cli/go.mod'
+      - 'apps/cli/go.sum'
       - '.github/workflows/proxied-local-smoke.yml'
 
 permissions:
@@ -91,7 +95,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
 
       - name: Install pinned Dolt CLI
         run: |
@@ -100,16 +104,16 @@ jobs:
           sudo install /tmp/dolt-linux-amd64/bin/dolt /usr/local/bin/dolt
           dolt version
 
-      - name: Build bd and compile the test binary (online)
+      - name: Build issuegraph and compile the test binary (online)
         run: |
-          go build -tags gms_pure_go -o /tmp/bd-under-test github.com/steveyegge/beads/modules/cli
-          go test -tags gms_pure_go -c -o /tmp/proxied-local-smoke.test github.com/steveyegge/beads/modules/cli
+          go build -tags gms_pure_go -o /tmp/bd-under-test github.com/borg0ai/dx-issuegraph/apps/cli
+          go test -tags gms_pure_go -c -o /tmp/proxied-local-smoke.test github.com/borg0ai/dx-issuegraph/apps/cli
 
       - name: Assert the managed-local lifecycle tests are compiled in
         run: |
           listed="$(
-            BEADS_TEST_PROXIED_LOCAL=1 \
-            BEADS_TEST_SKIP=dolt \
+            ISSUEGRAPH_TEST_PROXIED_LOCAL=1 \
+            ISSUEGRAPH_TEST_SKIP=dolt \
             /tmp/proxied-local-smoke.test \
               -test.list '^TestManagedLocalProxied'
           )"
@@ -137,9 +141,9 @@ jobs:
         run: |
           sudo env \
             "PATH=$PATH" \
-            BEADS_TEST_PROXIED_LOCAL=1 \
-            BEADS_TEST_SKIP=dolt \
-            BEADS_TEST_BD_BINARY=/tmp/bd-under-test \
+            ISSUEGRAPH_TEST_PROXIED_LOCAL=1 \
+            ISSUEGRAPH_TEST_SKIP=dolt \
+            ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY=/tmp/bd-under-test \
             unshare --net -- bash -euxc '
               ip link set lo up
               # Prove the namespace really has no outbound network before
@@ -148,7 +152,7 @@ jobs:
                 echo "outbound network unexpectedly available inside the netns" >&2
                 exit 1
               fi
-              cd modules/cli
+              cd apps/cli
               /tmp/proxied-local-smoke.test \
                 -test.run "^TestManagedLocalProxied" \
                 -test.v -test.timeout 15m

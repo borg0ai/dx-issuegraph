@@ -1,5 +1,5 @@
 // Package httpapi implements the HTTP surface described by
-// internal/httpapi/spec/openapi.v0.yaml — the /v0 wire contract `bd serve`
+// internal/httpapi/spec/openapi.v0.yaml — the /v0 wire contract `issuegraph serve`
 // answers on.
 //
 // What is live: the process lifecycle (Listen and Serve), the bind policy, the
@@ -17,14 +17,14 @@
 // that does not work.
 //
 // Two rows answer from the process itself and touch no database (GET /healthz
-// and GET /v0/beads/context); they carry bypassSemaphore for that reason, and
+// and GET /v0/issuegraph/context); they carry bypassSemaphore for that reason, and
 // nothing else may.
 //
 // No handler here holds query logic of its own. Each decodes its parameters
 // and hands the whole request to a role obtained from the provider's own
 // capability accessor — the same roles, reached the same way, the CLI reaches
-// on a store. Three of them reach issueops.Reader (GET /v0/beads/ready,
-// GET /v0/beads/issues, GET /v0/beads/issues/{id}), which is the role `bd show
+// on a store. Three of them reach issueops.Reader (GET /v0/issuegraph/ready,
+// GET /v0/issuegraph/issues, GET /v0/issuegraph/issues/{id}), which is the role `issuegraph show
 // --json` reaches and the one the property below is about; the rest reach
 // siblings of it, one role per operation. Filter construction, the workspace
 // config it depends on, the default limits and the wisp fallback all live
@@ -44,43 +44,43 @@
 // of the anti-drift property is worth getting exactly right, because
 // overstating it is what stops the next person checking.
 //
-// `bd show --json` is on the role, on both its routes. `bd ready` and `bd
+// `issuegraph show --json` is on the role, on both its routes. `issuegraph ready` and `issuegraph
 // list` are not, on either: they consume the filter for modes the role does
 // not express (see issueops.Reader's doc comment for the list, and for why
 // splitting those commands would be worse). What they share instead is
 // CONSTRUCTION — the same request types through the same builders, pinned by
 // the builders' golden files — and, where it reaches, EXECUTION:
 // workapi.FinishPage, the sort, trim and has-more verdict this surface's
-// reader runs too, is `bd list`'s epilogue on both routes in every mode but
+// reader runs too, is `issuegraph list`'s epilogue on both routes in every mode but
 // the hierarchical --parent tree (which renders its recursive walk's result
-// directly, on either route), and `bd ready`'s on the proxied route only.
-// `bd ready`'s direct route keeps its own epilogue because it publishes a
+// directly, on either route), and `issuegraph ready`'s on the proxied route only.
+// `issuegraph ready`'s direct route keeps its own epilogue because it publishes a
 // hidden-row TOTAL this surface has no member for.
 //
 // THE CLAIM, stated once and in full so it can be checked sentence by
 // sentence. SHARED: the three reads named above go through issueops.Reader,
-// and so does `bd show --json`'s detail view on both its routes — this says
+// and so does `issuegraph show --json`'s detail view on both its routes — this says
 // nothing about the surface's OTHER reads, which are on sibling roles and
-// carry their own conformance suites; `bd list` and `bd ready` are not on the
+// carry their own conformance suites; `issuegraph list` and `issuegraph ready` are not on the
 // role and share instead the
 // request types, the two builders in internal/workapi that their golden files
-// pin, and workapi.FinishPage — `bd list` on both routes in every mode but the
-// hierarchical --parent tree, `bd ready` on its proxied route only.
+// pin, and workapi.FinishPage — `issuegraph list` on both routes in every mode but the
+// hierarchical --parent tree, `issuegraph ready` on its proxied route only.
 // ENFORCED, and by what: depguard (httpapi-transport-boundary) denies
 // internal/workapi from every non-test file of this package, so no builder is
 // callable here, and a forbidigo rule denies naming types.IssueFilter or
 // types.WorkFilter here at all, so no filter is writable here either — both
 // are directory-scoped with no per-file exception, so a file added to this
 // package tomorrow is covered the moment it exists. That same forbidigo rule
-// covers modules/cli deny-by-default with 64 named exceptions, so the files
-// implementing `bd list` and `bd show` cannot write a filter, and neither can
+// covers apps/cli deny-by-default with 64 named exceptions, so the files
+// implementing `issuegraph list` and `issuegraph show` cannot write a filter, and neither can
 // a file they are split or renamed into unless the new name lands on that
 // list. NOT ENFORCED: the rule forbids NAMING those types, not holding a
 // value, so the property is "no filter is written here", not "every filter
 // here came from a builder"; test files are exempt from both rules, because
 // the oracles hold filters in order to inspect them; GET /healthz and GET
-// /v0/beads/context answer from the process and its startup snapshot, are not
-// issue queries, and are on no role; `bd ready`'s direct route and `bd list`'s
+// /v0/issuegraph/context answer from the process and its startup snapshot, are not
+// issue queries, and are on no role; `issuegraph ready`'s direct route and `issuegraph list`'s
 // hierarchical tree run epilogues of their own; and none of this is a merge
 // gate — the rules run in `make ci-pr-lint` on every pull request and
 // aggregate into the ci-gate job, but main carries no branch protection beyond
@@ -97,7 +97,7 @@
 // embedder assembled rather than a use case: server.go, whose Config.Workspace
 // is the domain.ContextInfo startup snapshot it is handed, and handlers.go,
 // whose contextResponse projects that snapshot through domain.PublishedContext
-// — the same projection `bd context` publishes, and where the credential and
+// — the same projection `issuegraph context` publishes, and where the credential and
 // host-path exclusions live. No handler file is on that list, and adding one
 // to it is the edit review has to catch.
 //
@@ -110,7 +110,7 @@
 // is its own and points here for the rest. Which rows are writes is read from
 // routeTable, not from a list kept here.
 //
-// The claim shares no function with `bd update --claim` above the transaction
+// The claim shares no function with `issuegraph update --claim` above the transaction
 // and deliberately so — the CAS itself is already one implementation one level
 // down, in the domain's issue use case, which both reach. claimOnUOW says why
 // nothing above that is worth extracting.

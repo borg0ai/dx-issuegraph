@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/storagecontract"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/storagecontract"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestHistoryPresenceContract runs the HistoryPresence contract against the

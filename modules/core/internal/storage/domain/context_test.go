@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 type fakeContextRepo struct {
@@ -55,18 +55,18 @@ func (f *fakeContextRepo) SyncRemote(ctx context.Context) (string, error) {
 func TestContextUseCase_Embedded(t *testing.T) {
 	repo := &fakeContextRepo{
 		paths: RepoPaths{
-			BeadsDir:     "/repo/.beads",
-			RepoRoot:     "/repo",
-			CWDRepoRoot:  "/cwd",
-			IsRedirected: true,
-			IsWorktree:   true,
+			IssueGraphDir: "/repo/.issuegraph",
+			RepoRoot:      "/repo",
+			CWDRepoRoot:   "/cwd",
+			IsRedirected:  true,
+			IsWorktree:    true,
 		},
 		role:   "contributor",
 		roleOK: true,
 		backend: BackendConfig{
 			Backend:   configfile.BackendDolt,
 			DoltMode:  configfile.DoltModeEmbedded,
-			Database:  "beads",
+			Database:  "issuegraph",
 			ProjectID: "proj-1",
 			DataDir:   "/data",
 		},
@@ -78,7 +78,7 @@ func TestContextUseCase_Embedded(t *testing.T) {
 		t.Fatalf("GetContextInfo: %v", err)
 	}
 
-	if info.BeadsDir != "/repo/.beads" || info.RepoRoot != "/repo" || info.CWDRepoRoot != "/cwd" {
+	if info.IssueGraphDir != "/repo/.issuegraph" || info.RepoRoot != "/repo" || info.CWDRepoRoot != "/cwd" {
 		t.Errorf("paths not mapped: %+v", info)
 	}
 	if !info.IsRedirected || !info.IsWorktree {
@@ -93,7 +93,7 @@ func TestContextUseCase_Embedded(t *testing.T) {
 	if info.BdVersion != "1.2.3" {
 		t.Errorf("BdVersion = %q, want 1.2.3", info.BdVersion)
 	}
-	if info.DoltMode != configfile.DoltModeEmbedded || info.Database != "beads" || info.ProjectID != "proj-1" || info.DataDir != "/data" {
+	if info.DoltMode != configfile.DoltModeEmbedded || info.Database != "issuegraph" || info.ProjectID != "proj-1" || info.DataDir != "/data" {
 		t.Errorf("backend config not mapped: %+v", info)
 	}
 	if info.SyncRemote != "origin-url" {
@@ -129,23 +129,23 @@ func TestSetBackendIdentityIsTotal(t *testing.T) {
 			info.Backend, info.DoltMode, info.Database)
 	}
 
-	info.SetBackendIdentity(configfile.BackendDolt, configfile.DoltModeServer, "beads")
-	if info.DoltMode != configfile.DoltModeServer || info.Database != "beads" {
-		t.Errorf("DoltMode/Database = %q/%q, want server/beads", info.DoltMode, info.Database)
+	info.SetBackendIdentity(configfile.BackendDolt, configfile.DoltModeServer, "issuegraph")
+	if info.DoltMode != configfile.DoltModeServer || info.Database != "issuegraph" {
+		t.Errorf("DoltMode/Database = %q/%q, want server/issuegraph", info.DoltMode, info.Database)
 	}
 }
 
 // TestContextUseCase_RegisteredBackendGetsNoDoltIdentity.
 //
-// Every context surface answers from this projection — `bd context`, `bd
-// context --json`, and GET /v0/beads/context — so a workspace on a registered
+// Every context surface answers from this projection — `issuegraph context`, `issuegraph
+// context --json`, and GET /v0/issuegraph/context — so a workspace on a registered
 // backend that is described here as embedded Dolt is described that way on all
 // three. It is not a cosmetic mislabel: the HTTP handshake is the one endpoint
 // automation is told to trust for a server's identity, and it was reporting the
-// exact topology `bd serve` refuses to serve.
+// exact topology `issuegraph serve` refuses to serve.
 //
 // The three Dolt-derived values all default rather than fail — an absent
-// dolt_mode reads "embedded", an absent dolt_database reads "beads" — so a
+// dolt_mode reads "embedded", an absent dolt_database reads "issuegraph" — so a
 // registered workspace that configures none of them was described in full
 // detail, entirely wrongly.
 func TestContextUseCase_RegisteredBackendGetsNoDoltIdentity(t *testing.T) {
@@ -169,7 +169,7 @@ func TestContextUseCase_RegisteredBackendGetsNoDoltIdentity(t *testing.T) {
 		t.Errorf("Backend = %q, want acme: the projection named a backend this workspace is not on", info.Backend)
 	}
 	if info.DoltMode != "" {
-		t.Errorf("DoltMode = %q, want empty: a registered backend has no Dolt mode, and bd cannot invent one", info.DoltMode)
+		t.Errorf("DoltMode = %q, want empty: a registered backend has no Dolt mode, and issuegraph cannot invent one", info.DoltMode)
 	}
 	if info.Database != "" {
 		t.Errorf("Database = %q, want empty: %q is the Dolt default, not a name this backend answers from",
@@ -217,15 +217,15 @@ func TestContextUseCase_ProxiedServerMode(t *testing.T) {
 			DoltMode:            configfile.DoltModeProxiedServer,
 			IsProxiedServerMode: true,
 		},
-		proxiedRoot: "/repo/.beads/proxieddb",
+		proxiedRoot: "/repo/.issuegraph/proxieddb",
 	}
 
 	info, err := NewContextUseCase(repo, "v0").GetContextInfo(context.Background())
 	if err != nil {
 		t.Fatalf("GetContextInfo: %v", err)
 	}
-	if info.ProxiedDir != "/repo/.beads/proxieddb" {
-		t.Errorf("ProxiedDir = %q, want /repo/.beads/proxieddb", info.ProxiedDir)
+	if info.ProxiedDir != "/repo/.issuegraph/proxieddb" {
+		t.Errorf("ProxiedDir = %q, want /repo/.issuegraph/proxieddb", info.ProxiedDir)
 	}
 	if info.ServerHost != "" || info.ServerPort != 0 {
 		t.Errorf("server fields should be empty in proxied mode: %+v", info)

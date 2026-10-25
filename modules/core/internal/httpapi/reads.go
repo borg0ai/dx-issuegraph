@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The issue-collection reads. Each one decodes its parameters, hands the whole
@@ -19,7 +19,7 @@ import (
 // WHAT IS NOT HERE IS THE POINT. No filter is built, no ConfigSource is wired,
 // no default limit is applied, no status exclusion is chosen, no wisp fallback
 // is arranged: all of that is inside issueops.Reader's implementation, which
-// `bd show --json` reaches through the same accessor. A handler that skipped a
+// `issuegraph show --json` reaches through the same accessor. A handler that skipped a
 // step of that construction — which is exactly how a hosted viewer once shipped
 // a bare IssueFilter and silently served in_progress rows as "ready" — is not
 // writable from here.
@@ -38,19 +38,19 @@ import (
 // aggregates into its ci-gate job; what that gate is and is not worth as
 // enforcement is stated once, in doc.go.
 //
-// `bd ready` and `bd list` still call the builders directly, for the reasons
+// `issuegraph ready` and `issuegraph list` still call the builders directly, for the reasons
 // issueops.Reader's doc comment sets out. They are not unguarded for it: they
 // build from the same request types through the same builders, and they run
-// the same workapi.FinishPage epilogue the reader below runs — `bd list` in
-// every mode but the hierarchical --parent tree, `bd ready` on its proxied
+// the same workapi.FinishPage epilogue the reader below runs — `issuegraph list` in
+// every mode but the hierarchical --parent tree, `issuegraph ready` on its proxied
 // route only. Where both hold, what a CLI listing and one of these bodies can
-// differ by is presentation, not the query and not the page. `bd show --json`
+// differ by is presentation, not the query and not the page. `issuegraph show --json`
 // is on the role outright, on both its routes.
 //
 // What DOES stay here is transport: parameter decoding, the opaque cursor
 // codec, the bind-mode refusal of an unlimited read, and the wire envelopes.
 
-// handleReady answers GET /v0/beads/ready.
+// handleReady answers GET /v0/issuegraph/ready.
 func (s *Server) handleReady(w http.ResponseWriter, r *http.Request) {
 	q := newQuery(r.URL.Query())
 
@@ -61,7 +61,7 @@ func (s *Server) handleReady(w http.ResponseWriter, r *http.Request) {
 	// while the document still read `default: priority`. It is not a cosmetic
 	// difference: hybrid demotes older high-priority work, so the item SET
 	// changes as soon as `limit` truncates — and only for the clients this API
-	// exists to migrate off `bd ready`, whose flag registers a concrete default
+	// exists to migrate off `issuegraph ready`, whose flag registers a concrete default
 	// and never sends empty.
 	req.Sort = q.oneOf("sort", readySortDefault, "hybrid", "priority", "oldest")
 	req.Limit = q.limit()
@@ -125,7 +125,7 @@ func readyFilters(q *query) issueops.ReadyRequest {
 	}
 }
 
-// handleCountReady answers GET /v0/beads/ready:count.
+// handleCountReady answers GET /v0/issuegraph/ready:count.
 //
 // THE REQUEST IS THE LISTING'S REQUEST with the page taken off, which is what
 // makes the answer the size of the page the listing would return. It is not
@@ -161,7 +161,7 @@ func (s *Server) handleCountReady(w http.ResponseWriter, r *http.Request) {
 }
 
 // readySortDefault is the ordering this operation applies when `sort` is
-// absent. It is the same value `bd ready --sort` registers.
+// absent. It is the same value `issuegraph ready --sort` registers.
 //
 // Three things have to agree: the frozen document, the CLI flag, and this.
 // TestDefaultsMatchCLIFlags compares all three against each other and
@@ -265,7 +265,7 @@ func countGroupNames() []string {
 	return names
 }
 
-// handleCountIssues answers GET /v0/beads/issues:count.
+// handleCountIssues answers GET /v0/issuegraph/issues:count.
 //
 // ONE HANDLER FOR BOTH OF THE ROLE'S METHODS, because `group_by` chooses
 // between two shapes of one answer rather than between two questions: the same
@@ -329,7 +329,7 @@ func (s *Server) handleCountIssues(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, apigen.IssueCount{Total: result.Total})
 }
 
-// handleListIssues answers GET /v0/beads/issues.
+// handleListIssues answers GET /v0/issuegraph/issues.
 func (s *Server) handleListIssues(w http.ResponseWriter, r *http.Request) {
 	q := newQuery(r.URL.Query())
 
@@ -364,14 +364,14 @@ func (s *Server) handleListIssues(w http.ResponseWriter, r *http.Request) {
 	// contract — its own position shape and its own strictly-after predicate —
 	// so `sort` selects the ORDER BY and, with it, what a position means. The
 	// vocabulary is closed for that reason and not for tidiness: the seven
-	// other orders `bd list --sort` takes have no proven total key (mutable,
+	// other orders `issuegraph list --sort` takes have no proven total key (mutable,
 	// nullable, or not expressible in SQL at all), and serving one behind a
 	// cursor would page a walk that skips and repeats rows.
 	//
 	// SortBy takes the wire value verbatim, which is safe only because the two
 	// vocabularies coincide by construction: sqlbuild.SortDefs already spells
 	// these orders `created` and `priority`, and `priority` there is exactly
-	// (priority ASC, created_at DESC, id ASC) — `bd list`'s flagless order.
+	// (priority ASC, created_at DESC, id ASC) — `issuegraph list`'s flagless order.
 	order := listOrder(q.oneOf("sort", string(listOrderDefault), listOrders...))
 	req.SortBy = string(order)
 
@@ -428,7 +428,7 @@ func (s *Server) handleListIssues(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, body)
 }
 
-// handleQueryIssues answers GET /v0/beads/issues:query.
+// handleQueryIssues answers GET /v0/issuegraph/issues:query.
 //
 // The EXPRESSION IS NOT PARSED HERE. Parsing, evaluation, the predicate
 // decision and the scan bound all live inside the role, so this handler cannot
@@ -478,7 +478,7 @@ func (s *Server) handleQueryIssues(w http.ResponseWriter, r *http.Request) {
 // one whose order the caller does not understand.
 var querySorts = []string{"priority", "created", "updated", "closed", "status", "id", "title", "type", "assignee"}
 
-// handleGetIssue answers GET /v0/beads/issues/{id}.
+// handleGetIssue answers GET /v0/issuegraph/issues/{id}.
 func (s *Server) handleGetIssue(w http.ResponseWriter, r *http.Request) {
 	q := newQuery(r.URL.Query())
 
@@ -615,7 +615,7 @@ func invalidFilterParam(err error) (string, bool) {
 // The element type is an ALIAS of types.IssueWithCounts — the same struct the
 // CLI's --json marshals — so this copies a header and shares everything under
 // it. There is no second wire struct here and there must never be one: that is
-// what keeps `bd list --json` and this body one compatibility domain.
+// what keeps `issuegraph list --json` and this body one compatibility domain.
 func wireItems(items []*types.IssueWithCounts) []apigen.IssueWithCounts {
 	out := make([]apigen.IssueWithCounts, 0, len(items))
 	for _, item := range items {

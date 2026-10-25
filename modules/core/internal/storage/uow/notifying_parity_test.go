@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
 )
 
 // The structural parity guard.
@@ -105,16 +105,16 @@ func interfaceMethods(iface reflect.Type) []string {
 func TestNotifyingUOWWrapsEveryMutatingUseCase(t *testing.T) {
 	assertPartition(t, "UnitOfWork", interfaceMethods(reflect.TypeOf((*UnitOfWork)(nil)).Elem()),
 		reflect.TypeOf((*notifyingUOW)(nil)), map[string]string{
-			"SwitchDatabase": "DDL against the connection, not a write to any bead",
-			"ConfigUseCase": "workspace settings and metadata, not beads: the DoltStorage chain's " +
+			"SwitchDatabase": "DDL against the connection, not a write to any issue",
+			"ConfigUseCase": "workspace settings and metadata, not issuegraph: the DoltStorage chain's " +
 				"WorkspaceConfig role passes through undecorated for the same reason (hook_workspace_config.go)",
-			"DoltRemoteUseCase": "Dolt remotes are repository plumbing; no bead changes and no event to name",
+			"DoltRemoteUseCase": "Dolt remotes are repository plumbing; no issue changes and no event to name",
 			"RawSQLUseCase": "the raw escape hatch executes statements this layer cannot read, so it " +
-				"cannot say which bead changed; the DoltStorage chain fires nothing for raw access either",
+				"cannot say which issue changed; the DoltStorage chain fires nothing for raw access either",
 			"EventsJournalUseCase": "read-only cursor surface; fires no hooks. Two of its three " +
-				"operations read bd_events_journal (Read, and ReadPage which adds the counter head " +
-				"GET /v0/beads/events pages with) and the third is a prefix delete of records " +
-				"already committed — the delete changes no bead, and the journal itself is written " +
+				"operations read issuegraph_events_journal (Read, and ReadPage which adds the counter head " +
+				"GET /v0/issuegraph/events pages with) and the third is a prefix delete of records " +
+				"already committed — the delete changes no issue, and the journal itself is written " +
 				"at the issueops seam inside the mutation's own transaction, so everything it " +
 				"records is already covered by the use case that made the change",
 		})
@@ -130,7 +130,7 @@ func TestRecordingIssueUseCaseCoversItsSurface(t *testing.T) {
 		"has no name for a deletion and the row is gone (hook_deleter.go, hookTrackingTransaction.DeleteIssue)"
 	leases := "lease and claim bookkeeping the DoltStorage plumbing fires no hook for: " +
 		"HookFiringStore overrides neither UnclaimIssue, UnclaimIssueIfAssignee, HeartbeatIssue nor " +
-		"ReclaimExpiredLeases, so `bd unclaim` and `bd heartbeat` run no script on either plumbing"
+		"ReclaimExpiredLeases, so `issuegraph unclaim` and `issuegraph heartbeat` run no script on either plumbing"
 
 	assertPartition(t, "IssueUseCase", interfaceMethods(reflect.TypeOf((*domain.IssueUseCase)(nil)).Elem()),
 		reflect.TypeOf((*recordingIssueUC)(nil)), map[string]string{
@@ -170,7 +170,7 @@ func TestRecordingIssueUseCaseCoversItsSurface(t *testing.T) {
 			"ReclaimExpiredLeases":         leases,
 			"WakeExpiredDefers": "the deferred-work sweep is a clock crossing rather than a user's " +
 				"mutation, and the DoltStorage plumbing fires nothing for it",
-			"PromoteWisp": "moves a row between planes without changing the bead; the DoltStorage " +
+			"PromoteWisp": "moves a row between planes without changing the issue; the DoltStorage " +
 				"plumbing has no promote hook either",
 		})
 }
@@ -261,7 +261,7 @@ func TestNotifyingProviderAnswersTheWholeProviderSurface(t *testing.T) {
 	// paths it fans out to (dolt_sql_provider.go). Like initSchema above them, each
 	// is an unexported startup helper reached only as p.<method> on the concrete
 	// provider — never through a UnitOfWorkProvider type assertion — so the wrapper
-	// has no capability to answer and no bead write to fire a hook for.
+	// has no capability to answer and no issue write to fire a hook for.
 	initBranch := "an unexported branch of initSchema's startup path, reached only on the concrete " +
 		"provider, not a capability any caller can reach through the wrapper"
 	assertPartition(t, "UnitOfWorkProvider", surface, reflect.TypeOf((*notifyingProvider)(nil)), map[string]string{
@@ -295,7 +295,7 @@ func TestNotifyingProviderBuildsRolesOnItself(t *testing.T) {
 		"SetPoolLimits": true,
 		"Unwrap":        true,
 		// Events-journal capability plumbing: activation binds on the inner
-		// provider's transactions, and a retention pass writes no bead. Neither
+		// provider's transactions, and a retention pass writes no issue. Neither
 		// builds a role, so neither can build one "on itself".
 		"SetEventsJournalEnabled": true,
 		"RunEventsMaintenanceTx":  true,

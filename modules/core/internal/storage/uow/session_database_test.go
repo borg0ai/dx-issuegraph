@@ -12,7 +12,7 @@ import (
 )
 
 // sessionDatabaseMock stands in for a front door that answers SELECT DATABASE()
-// with whatever it actually put the session on, which may not be what bd asked
+// with whatever it actually put the session on, which may not be what issuegraph asked
 // for.
 func sessionDatabaseMock(t *testing.T, answer any) (*sql.DB, sqlmock.Sqlmock) {
 	t.Helper()
@@ -104,7 +104,7 @@ func TestAssertSessionDatabase(t *testing.T) {
 	t.Run("messages name no product", func(t *testing.T) {
 		db, _ := sessionDatabaseMock(t, "team_a")
 		err := assertSessionDatabase(ctx, db, "team_b")
-		for _, banned := range []string{"beads-team-server", "bts "} {
+		for _, banned := range []string{"issuegraph-team-server", "bts "} {
 			if strings.Contains(err.Error(), banned) {
 				t.Fatalf("message must not name a product (%q): %v", banned, err)
 			}

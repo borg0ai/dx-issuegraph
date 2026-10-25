@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	itracker "github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	itracker "github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 type fakeAPI struct {
@@ -63,11 +63,11 @@ func TestTrackerFetchIssuesFiltersArchivedAndState(t *testing.T) {
 				CreatedTime:    createdAt,
 				LastEditedTime: updatedAt,
 				Properties: map[string]PageProperty{
-					PropertyTitle:    {Title: []RichText{{PlainText: "Open task"}}},
-					PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-1"}}},
-					PropertyStatus:   {Select: &SelectOption{Name: "Open"}},
-					PropertyPriority: {Select: &SelectOption{Name: "Medium"}},
-					PropertyType:     {Select: &SelectOption{Name: "Task"}},
+					PropertyTitle:        {Title: []RichText{{PlainText: "Open task"}}},
+					PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-1"}}},
+					PropertyStatus:       {Select: &SelectOption{Name: "Open"}},
+					PropertyPriority:     {Select: &SelectOption{Name: "Medium"}},
+					PropertyType:         {Select: &SelectOption{Name: "Task"}},
 				},
 			},
 			{
@@ -76,22 +76,22 @@ func TestTrackerFetchIssuesFiltersArchivedAndState(t *testing.T) {
 				CreatedTime:    createdAt,
 				LastEditedTime: updatedAt,
 				Properties: map[string]PageProperty{
-					PropertyTitle:    {Title: []RichText{{PlainText: "Closed task"}}},
-					PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-2"}}},
-					PropertyStatus:   {Select: &SelectOption{Name: "Closed"}},
-					PropertyPriority: {Select: &SelectOption{Name: "Low"}},
-					PropertyType:     {Select: &SelectOption{Name: "Task"}},
+					PropertyTitle:        {Title: []RichText{{PlainText: "Closed task"}}},
+					PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-2"}}},
+					PropertyStatus:       {Select: &SelectOption{Name: "Closed"}},
+					PropertyPriority:     {Select: &SelectOption{Name: "Low"}},
+					PropertyType:         {Select: &SelectOption{Name: "Task"}},
 				},
 			},
 			{
 				ID:       "11111111-2222-3333-4444-555555555555",
 				Archived: true,
 				Properties: map[string]PageProperty{
-					PropertyTitle:    {Title: []RichText{{PlainText: "Archived"}}},
-					PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-3"}}},
-					PropertyStatus:   {Select: &SelectOption{Name: "Open"}},
-					PropertyPriority: {Select: &SelectOption{Name: "Medium"}},
-					PropertyType:     {Select: &SelectOption{Name: "Task"}},
+					PropertyTitle:        {Title: []RichText{{PlainText: "Archived"}}},
+					PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-3"}}},
+					PropertyStatus:       {Select: &SelectOption{Name: "Open"}},
+					PropertyPriority:     {Select: &SelectOption{Name: "Medium"}},
+					PropertyType:         {Select: &SelectOption{Name: "Task"}},
 				},
 			},
 		},
@@ -121,11 +121,11 @@ func TestTrackerFetchIssuesBackfillStillHonorsClosedState(t *testing.T) {
 				CreatedTime:    time.Now().UTC().Add(-2 * time.Hour),
 				LastEditedTime: time.Now().UTC().Add(-2 * time.Hour),
 				Properties: map[string]PageProperty{
-					PropertyTitle:    {Title: []RichText{{PlainText: "Open"}}},
-					PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-open"}}},
-					PropertyStatus:   {Select: &SelectOption{Name: "Open"}},
-					PropertyPriority: {Select: &SelectOption{Name: "Medium"}},
-					PropertyType:     {Select: &SelectOption{Name: "Task"}},
+					PropertyTitle:        {Title: []RichText{{PlainText: "Open"}}},
+					PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-open"}}},
+					PropertyStatus:       {Select: &SelectOption{Name: "Open"}},
+					PropertyPriority:     {Select: &SelectOption{Name: "Medium"}},
+					PropertyType:         {Select: &SelectOption{Name: "Task"}},
 				},
 			},
 			{
@@ -134,11 +134,11 @@ func TestTrackerFetchIssuesBackfillStillHonorsClosedState(t *testing.T) {
 				CreatedTime:    time.Now().UTC().Add(-2 * time.Hour),
 				LastEditedTime: time.Now().UTC().Add(-2 * time.Hour),
 				Properties: map[string]PageProperty{
-					PropertyTitle:    {Title: []RichText{{PlainText: "Closed"}}},
-					PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-closed"}}},
-					PropertyStatus:   {Select: &SelectOption{Name: "Closed"}},
-					PropertyPriority: {Select: &SelectOption{Name: "Medium"}},
-					PropertyType:     {Select: &SelectOption{Name: "Task"}},
+					PropertyTitle:        {Title: []RichText{{PlainText: "Closed"}}},
+					PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-closed"}}},
+					PropertyStatus:       {Select: &SelectOption{Name: "Closed"}},
+					PropertyPriority:     {Select: &SelectOption{Name: "Medium"}},
+					PropertyType:         {Select: &SelectOption{Name: "Task"}},
 				},
 			},
 		},
@@ -173,11 +173,11 @@ func TestTrackerFetchIssuesExcludesEqualLastSyncBoundary(t *testing.T) {
 				CreatedTime:    boundary.Add(-10 * time.Minute),
 				LastEditedTime: boundary,
 				Properties: map[string]PageProperty{
-					PropertyTitle:    {Title: []RichText{{PlainText: "Equal boundary"}}},
-					PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-1"}}},
-					PropertyStatus:   {Select: &SelectOption{Name: "Open"}},
-					PropertyPriority: {Select: &SelectOption{Name: "Medium"}},
-					PropertyType:     {Select: &SelectOption{Name: "Task"}},
+					PropertyTitle:        {Title: []RichText{{PlainText: "Equal boundary"}}},
+					PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-1"}}},
+					PropertyStatus:       {Select: &SelectOption{Name: "Open"}},
+					PropertyPriority:     {Select: &SelectOption{Name: "Medium"}},
+					PropertyType:         {Select: &SelectOption{Name: "Task"}},
 				},
 			},
 			{
@@ -186,11 +186,11 @@ func TestTrackerFetchIssuesExcludesEqualLastSyncBoundary(t *testing.T) {
 				CreatedTime:    boundary.Add(-5 * time.Minute),
 				LastEditedTime: boundary.Add(time.Second),
 				Properties: map[string]PageProperty{
-					PropertyTitle:    {Title: []RichText{{PlainText: "After boundary"}}},
-					PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-2"}}},
-					PropertyStatus:   {Select: &SelectOption{Name: "Open"}},
-					PropertyPriority: {Select: &SelectOption{Name: "Medium"}},
-					PropertyType:     {Select: &SelectOption{Name: "Task"}},
+					PropertyTitle:        {Title: []RichText{{PlainText: "After boundary"}}},
+					PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-2"}}},
+					PropertyStatus:       {Select: &SelectOption{Name: "Open"}},
+					PropertyPriority:     {Select: &SelectOption{Name: "Medium"}},
+					PropertyType:         {Select: &SelectOption{Name: "Task"}},
 				},
 			},
 		},
@@ -223,11 +223,11 @@ func TestTrackerCreateAndUpdateIssue(t *testing.T) {
 		CreatedTime:    time.Date(2026, 3, 19, 14, 0, 0, 0, time.UTC),
 		LastEditedTime: time.Date(2026, 3, 19, 14, 5, 0, 0, time.UTC),
 		Properties: map[string]PageProperty{
-			PropertyTitle:    {Title: []RichText{{PlainText: "Create me"}}},
-			PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-1"}}},
-			PropertyStatus:   {Select: &SelectOption{Name: "Open"}},
-			PropertyPriority: {Select: &SelectOption{Name: "Medium"}},
-			PropertyType:     {Select: &SelectOption{Name: "Task"}},
+			PropertyTitle:        {Title: []RichText{{PlainText: "Create me"}}},
+			PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-1"}}},
+			PropertyStatus:       {Select: &SelectOption{Name: "Open"}},
+			PropertyPriority:     {Select: &SelectOption{Name: "Medium"}},
+			PropertyType:         {Select: &SelectOption{Name: "Task"}},
 		},
 	}
 	updatedPage := &Page{
@@ -236,11 +236,11 @@ func TestTrackerCreateAndUpdateIssue(t *testing.T) {
 		CreatedTime:    createdPage.CreatedTime,
 		LastEditedTime: createdPage.LastEditedTime.Add(10 * time.Minute),
 		Properties: map[string]PageProperty{
-			PropertyTitle:    {Title: []RichText{{PlainText: "Update me"}}},
-			PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-1"}}},
-			PropertyStatus:   {Select: &SelectOption{Name: "In Progress"}},
-			PropertyPriority: {Select: &SelectOption{Name: "High"}},
-			PropertyType:     {Select: &SelectOption{Name: "Feature"}},
+			PropertyTitle:        {Title: []RichText{{PlainText: "Update me"}}},
+			PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-1"}}},
+			PropertyStatus:       {Select: &SelectOption{Name: "In Progress"}},
+			PropertyPriority:     {Select: &SelectOption{Name: "High"}},
+			PropertyType:         {Select: &SelectOption{Name: "Feature"}},
 		},
 	}
 	api := &fakeAPI{
@@ -303,11 +303,11 @@ func TestTrackerBatchPushReusesRemoteInventory(t *testing.T) {
 		CreatedTime:    createdAt,
 		LastEditedTime: createdAt.Add(5 * time.Minute),
 		Properties: map[string]PageProperty{
-			PropertyTitle:    {Title: []RichText{{PlainText: "Existing remote"}}},
-			PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-1"}}},
-			PropertyStatus:   {Select: &SelectOption{Name: "Open"}},
-			PropertyPriority: {Select: &SelectOption{Name: "Medium"}},
-			PropertyType:     {Select: &SelectOption{Name: "Task"}},
+			PropertyTitle:        {Title: []RichText{{PlainText: "Existing remote"}}},
+			PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-1"}}},
+			PropertyStatus:       {Select: &SelectOption{Name: "Open"}},
+			PropertyPriority:     {Select: &SelectOption{Name: "Medium"}},
+			PropertyType:         {Select: &SelectOption{Name: "Task"}},
 		},
 	}
 	api := &fakeAPI{
@@ -318,11 +318,11 @@ func TestTrackerBatchPushReusesRemoteInventory(t *testing.T) {
 			CreatedTime:    createdAt,
 			LastEditedTime: createdAt.Add(10 * time.Minute),
 			Properties: map[string]PageProperty{
-				PropertyTitle:    {Title: []RichText{{PlainText: "Create me"}}},
-				PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-2"}}},
-				PropertyStatus:   {Select: &SelectOption{Name: "Open"}},
-				PropertyPriority: {Select: &SelectOption{Name: "Medium"}},
-				PropertyType:     {Select: &SelectOption{Name: "Task"}},
+				PropertyTitle:        {Title: []RichText{{PlainText: "Create me"}}},
+				PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-2"}}},
+				PropertyStatus:       {Select: &SelectOption{Name: "Open"}},
+				PropertyPriority:     {Select: &SelectOption{Name: "Medium"}},
+				PropertyType:         {Select: &SelectOption{Name: "Task"}},
 			},
 		},
 		updatedPage: &Page{
@@ -331,11 +331,11 @@ func TestTrackerBatchPushReusesRemoteInventory(t *testing.T) {
 			CreatedTime:    remotePage.CreatedTime,
 			LastEditedTime: remotePage.LastEditedTime.Add(10 * time.Minute),
 			Properties: map[string]PageProperty{
-				PropertyTitle:    {Title: []RichText{{PlainText: "Updated local"}}},
-				PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-1"}}},
-				PropertyStatus:   {Select: &SelectOption{Name: "In Progress"}},
-				PropertyPriority: {Select: &SelectOption{Name: "High"}},
-				PropertyType:     {Select: &SelectOption{Name: "Feature"}},
+				PropertyTitle:        {Title: []RichText{{PlainText: "Updated local"}}},
+				PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-1"}}},
+				PropertyStatus:       {Select: &SelectOption{Name: "In Progress"}},
+				PropertyPriority:     {Select: &SelectOption{Name: "High"}},
+				PropertyType:         {Select: &SelectOption{Name: "Feature"}},
 			},
 		},
 	}
@@ -387,11 +387,11 @@ func TestTrackerBatchPushMatchesCurrentTargetByLocalID(t *testing.T) {
 		CreatedTime:    createdAt,
 		LastEditedTime: createdAt.Add(5 * time.Minute),
 		Properties: map[string]PageProperty{
-			PropertyTitle:    {Title: []RichText{{PlainText: "Existing remote"}}},
-			PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-1"}}},
-			PropertyStatus:   {Select: &SelectOption{Name: "Open"}},
-			PropertyPriority: {Select: &SelectOption{Name: "Medium"}},
-			PropertyType:     {Select: &SelectOption{Name: "Task"}},
+			PropertyTitle:        {Title: []RichText{{PlainText: "Existing remote"}}},
+			PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-1"}}},
+			PropertyStatus:       {Select: &SelectOption{Name: "Open"}},
+			PropertyPriority:     {Select: &SelectOption{Name: "Medium"}},
+			PropertyType:         {Select: &SelectOption{Name: "Task"}},
 		},
 	}
 	api := &fakeAPI{
@@ -402,11 +402,11 @@ func TestTrackerBatchPushMatchesCurrentTargetByLocalID(t *testing.T) {
 			CreatedTime:    remotePage.CreatedTime,
 			LastEditedTime: remotePage.LastEditedTime.Add(10 * time.Minute),
 			Properties: map[string]PageProperty{
-				PropertyTitle:    {Title: []RichText{{PlainText: "Updated local"}}},
-				PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-1"}}},
-				PropertyStatus:   {Select: &SelectOption{Name: "In Progress"}},
-				PropertyPriority: {Select: &SelectOption{Name: "High"}},
-				PropertyType:     {Select: &SelectOption{Name: "Feature"}},
+				PropertyTitle:        {Title: []RichText{{PlainText: "Updated local"}}},
+				PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-1"}}},
+				PropertyStatus:       {Select: &SelectOption{Name: "In Progress"}},
+				PropertyPriority:     {Select: &SelectOption{Name: "High"}},
+				PropertyType:         {Select: &SelectOption{Name: "Feature"}},
 			},
 		},
 	}
@@ -515,12 +515,12 @@ func TestTrackerBatchPushDryRunTreatsLabelOnlyChangeAsUpdate(t *testing.T) {
 		CreatedTime:    createdAt,
 		LastEditedTime: createdAt.Add(5 * time.Minute),
 		Properties: map[string]PageProperty{
-			PropertyTitle:    {Title: []RichText{{PlainText: "Existing remote"}}},
-			PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-1"}}},
-			PropertyStatus:   {Select: &SelectOption{Name: "Open"}},
-			PropertyPriority: {Select: &SelectOption{Name: "Medium"}},
-			PropertyType:     {Select: &SelectOption{Name: "Task"}},
-			PropertyLabels:   {MultiSelect: []SelectOption{{Name: "matrix-a"}, {Name: "matrix-b"}}},
+			PropertyTitle:        {Title: []RichText{{PlainText: "Existing remote"}}},
+			PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-1"}}},
+			PropertyStatus:       {Select: &SelectOption{Name: "Open"}},
+			PropertyPriority:     {Select: &SelectOption{Name: "Medium"}},
+			PropertyType:         {Select: &SelectOption{Name: "Task"}},
+			PropertyLabels:       {MultiSelect: []SelectOption{{Name: "matrix-a"}, {Name: "matrix-b"}}},
 		},
 	}
 	api := &fakeAPI{pages: []Page{remotePage}}
@@ -561,12 +561,12 @@ func TestTrackerBatchPushDryRunSkipsLabelOrderOnlyDifference(t *testing.T) {
 		CreatedTime:    createdAt,
 		LastEditedTime: createdAt.Add(5 * time.Minute),
 		Properties: map[string]PageProperty{
-			PropertyTitle:    {Title: []RichText{{PlainText: "Existing remote"}}},
-			PropertyBeadsID:  {RichText: []RichText{{PlainText: "bd-1"}}},
-			PropertyStatus:   {Select: &SelectOption{Name: "Open"}},
-			PropertyPriority: {Select: &SelectOption{Name: "Medium"}},
-			PropertyType:     {Select: &SelectOption{Name: "Task"}},
-			PropertyLabels:   {MultiSelect: []SelectOption{{Name: "matrix-b"}, {Name: "matrix-a"}}},
+			PropertyTitle:        {Title: []RichText{{PlainText: "Existing remote"}}},
+			PropertyIssueGraphID: {RichText: []RichText{{PlainText: "bd-1"}}},
+			PropertyStatus:       {Select: &SelectOption{Name: "Open"}},
+			PropertyPriority:     {Select: &SelectOption{Name: "Medium"}},
+			PropertyType:         {Select: &SelectOption{Name: "Task"}},
+			PropertyLabels:       {MultiSelect: []SelectOption{{Name: "matrix-b"}, {Name: "matrix-a"}}},
 		},
 	}
 	api := &fakeAPI{pages: []Page{remotePage}}

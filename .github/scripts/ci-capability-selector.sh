@@ -101,11 +101,11 @@ while :; do
 			set_full "unsafe_control"
 			break
 			;;
-		.buildflags|go.mod|go.sum|Makefile|default.nix|flake.nix|flake.lock|overlay.nix|packages.nix)
+		.buildflags|go.mod|go.sum|*/go.mod|*/go.sum|Makefile)
 			set_full "build_input"
 			break
 			;;
-		modules/cli/*)
+		apps/cli/*)
 			embedded_cli=true
 			proxied_cli=true
 			saw_cmd=true

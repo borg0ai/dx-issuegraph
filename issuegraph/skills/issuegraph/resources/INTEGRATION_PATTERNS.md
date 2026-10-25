@@ -1,6 +1,6 @@
 # Integration Patterns with Other Skills
 
-How bd-issue-tracking integrates with TodoWrite, writing-plans, and other skills for optimal workflow.
+How issuegraph-issue-tracking integrates with TodoWrite, writing-plans, and other skills for optimal workflow.
 
 ## Contents
 
@@ -33,12 +33,12 @@ How bd-issue-tracking integrates with TodoWrite, writing-plans, and other skills
 
 ### The Handoff Pattern
 
-1. **Session start**: Read bead → Create TodoWrite items for immediate actions
+1. **Session start**: Read issue → Create TodoWrite items for immediate actions
 2. **During work**: Mark TodoWrite items completed as you go
-3. **Reach milestone**: Update bead notes with outcomes + context
-4. **Session end**: TodoWrite disappears, bead survives with enriched notes
+3. **Reach milestone**: Update issue notes with outcomes + context
+4. **Session end**: TodoWrite disappears, issue survives with enriched notes
 
-**After compaction**: TodoWrite is gone forever, but bead notes reconstruct what happened.
+**After compaction**: TodoWrite is gone forever, but issue notes reconstruct what happened.
 
 ### Example: TodoWrite tracks execution, IssueGraph captures meaning
 
@@ -49,7 +49,7 @@ How bd-issue-tracking integrates with TodoWrite, writing-plans, and other skills
 [pending] Create session middleware
 ```
 
-**Corresponding bead notes (persistent context):**
+**Corresponding issue notes (persistent context):**
 ```bash
 issuegraph update issue-123 --notes "COMPLETED: Login endpoint with bcrypt password
 hashing (12 rounds). KEY DECISION: Using JWT tokens (not sessions) for stateless
@@ -264,7 +264,7 @@ TESTS: All 12 tests passing (auth, rotation, expiry, error handling)"
 
 **Scenario**: User asks "Help me write a strategic planning document for Q4"
 
-**Tools used**: bd-issue-tracking + developing-strategic-documents skill
+**Tools used**: issuegraph-issue-tracking + developing-strategic-documents skill
 
 **Workflow**:
 1. Create issuegraph issue for tracking:
@@ -296,7 +296,7 @@ TESTS: All 12 tests passing (auth, rotation, expiry, error handling)"
 
 **Scenario**: Refactor authentication system across 8 files
 
-**Tools used**: bd-issue-tracking + systematic-debugging (if issues found)
+**Tools used**: issuegraph-issue-tracking + systematic-debugging (if issues found)
 
 **Workflow**:
 1. Create epic and subtasks:

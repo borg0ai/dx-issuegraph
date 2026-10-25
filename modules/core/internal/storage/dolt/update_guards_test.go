@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // The single-threaded half of this file is gone.
@@ -26,7 +26,7 @@ import (
 // winner: the loser must observe the winner's write (via the shared-tx guard
 // re-check after withRetryTx replays the commit-time row_lock collision) and
 // refuse with ErrAssigneeMismatch, never silently clobber. This is the CAS
-// property the blind `bd update -a` check-then-act pattern lacks.
+// property the blind `issuegraph update -a` check-then-act pattern lacks.
 func TestGuardedReassignConcurrent(t *testing.T) {
 	store, cleanup := setupTestStore(t)
 	defer cleanup()

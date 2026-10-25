@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestEventsSince verifies the durable keyset event read: (created_at, id)
@@ -145,9 +145,9 @@ func TestEventsSinceClaimedConstant(t *testing.T) {
 	}
 }
 
-// TestEventsSinceIssueFilter verifies the optional per-bead scope: a non-empty
+// TestEventsSinceIssueFilter verifies the optional per-issue scope: a non-empty
 // issueID restricts the durable feed to that issue's events, while "" returns
-// every issue's events. This is the primitive behind `bd show`'s per-bead
+// every issue's events. This is the primitive behind `issuegraph show`'s per-issue
 // event history.
 func TestEventsSinceIssueFilter(t *testing.T) {
 	store, cleanup := setupTestStore(t)

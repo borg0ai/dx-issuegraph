@@ -10,7 +10,7 @@
 // written against it could not scope the two calls together. The shipped
 // commands did exactly that — GetConfig, then SetConfig — and papered over the
 // gap with `existing, _ :=`, which makes "Remembered" versus "Updated" and the
-// value `bd forget` prints hopeful rather than true.
+// value `issuegraph forget` prints hopeful rather than true.
 //
 // There is no exported constructor and no exported body type, so there is
 // nothing for a depguard entry to deny: every function here takes a *sql.Tx,
@@ -38,8 +38,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/kvkeys"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/kvkeys"
 )
 
 // StorageKey encodes a user key as the config-table key it is stored under.
@@ -59,9 +59,9 @@ func StorageKey(userKey string) string {
 // the prefix so the keys are the ones the caller named.
 //
 // THE PREFIX IS THE FULL "kv.memory.", not "kv.". The config table holds
-// settings rows, generic `bd kv` rows and memory rows at once, and the two
+// settings rows, generic `issuegraph kv` rows and memory rows at once, and the two
 // mistakes this function exists to not make are filtering on the shorter prefix
-// — which serves every `bd kv set` value as a memory — and trimming a different
+// — which serves every `issuegraph kv set` value as a memory — and trimming a different
 // number of bytes than it matched, which re-keys every answer. Both are silent:
 // they produce a plausible map.
 func MemoriesFromConfig(all map[string]string) map[string]string {

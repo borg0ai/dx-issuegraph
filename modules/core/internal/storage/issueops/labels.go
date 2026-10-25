@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // GetLabelsInTx retrieves all labels for an issue within an existing transaction.
@@ -161,7 +161,7 @@ func AddLabelInTx(ctx context.Context, tx DBTX, labelTable, eventTable, issueID,
 	}); err != nil {
 		return fmt.Errorf("add label: record event: %w", err)
 	}
-	// A label is part of the bead snapshot, so a label write journals as an
+	// A label is part of the issue snapshot, so a label write journals as an
 	// update carrying the complete post-mutation set.
 	return RecordEventInTx(ctx, tx, EventUpdate, issueID, actor)
 }

@@ -14,7 +14,7 @@ import (
 
 	mysql "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 )
 
 // Circuit breaker states.
@@ -46,7 +46,7 @@ const (
 	circuitStaleTTL = 5 * time.Minute
 
 	// legacyClosedSweepTTL is how long a CLOSED breaker file in the legacy
-	// "/tmp/beads-circuit" directory must sit unmodified before the legacy
+	// "/tmp/issuegraph-circuit" directory must sit unmodified before the legacy
 	// sweep removes it. The sweep's original premise — that the directory is
 	// abandoned, with "no live process left to reuse or clean" its files
 	// (GH#4636) — is false wherever os.TempDir() still resolves to /tmp: any
@@ -109,20 +109,20 @@ func maybeNewCircuitBreaker(host string, port int, database string) *circuitBrea
 // hardcoding "/tmp" resolved to C:\tmp on Windows, silently accumulating
 // breaker files there forever (GH#4636).
 func circuitBreakerDir() string {
-	return filepath.Join(os.TempDir(), "beads-circuit")
+	return filepath.Join(os.TempDir(), "issuegraph-circuit")
 }
 
 const (
-	legacyCircuitBreakerFile = "/tmp/beads-dolt-circuit-0.json"
-	testCircuitBreakerDirEnv = "BEADS_TEST_CIRCUIT_DIR"
+	legacyCircuitBreakerFile = "/tmp/issuegraph-dolt-circuit-0.json"
+	testCircuitBreakerDirEnv = "ISSUEGRAPH_TEST_CIRCUIT_DIR"
 )
 
 // circuitBreakerPaths returns production paths unless the test harness provides
 // a suite-owned circuit directory. The override redirects both current and
-// legacy state even when an individual test temporarily unsets BEADS_TEST_MODE.
+// legacy state even when an individual test temporarily unsets ISSUEGRAPH_TEST_MODE.
 func circuitBreakerPaths() (dir, legacyFile string) {
 	if testDir := filepath.Clean(os.Getenv(testCircuitBreakerDirEnv)); filepath.IsAbs(testDir) {
-		return testDir, filepath.Join(testDir, "beads-dolt-circuit-0.json")
+		return testDir, filepath.Join(testDir, "issuegraph-dolt-circuit-0.json")
 	}
 	return circuitBreakerDir(), legacyCircuitBreakerFile
 }
@@ -142,9 +142,9 @@ func newCircuitBreaker(host string, port int, database string) *circuitBreaker {
 	// CleanStaleCircuitBreakerFiles).
 	var filename string
 	if safeDB != "" {
-		filename = fmt.Sprintf("beads-dolt-circuit-%s-%d-%s.json", safeHost, port, safeDB)
+		filename = fmt.Sprintf("issuegraph-dolt-circuit-%s-%d-%s.json", safeHost, port, safeDB)
 	} else {
-		filename = fmt.Sprintf("beads-dolt-circuit-%s-%d.json", safeHost, port)
+		filename = fmt.Sprintf("issuegraph-dolt-circuit-%s-%d.json", safeHost, port)
 	}
 
 	dir, _ := circuitBreakerPaths()
@@ -169,7 +169,7 @@ func (cb *circuitBreaker) Allow() bool {
 	// In test mode, bypass the circuit breaker entirely. Tests manage their
 	// own server lifecycle via testcontainers, and the file-based breaker
 	// state persists across test runs causing cascading false-positive trips.
-	if os.Getenv("BEADS_TEST_MODE") == "1" {
+	if os.Getenv("ISSUEGRAPH_TEST_MODE") == "1" {
 		return true
 	}
 
@@ -221,7 +221,7 @@ func (cb *circuitBreaker) Allow() bool {
 // One-shot: reachability is based on dial success alone, so a drain timeout
 // (dial-accepted-but-mute) still counts as reachable here. Draining before
 // close still applies — it avoids sending the dolt sql-server a TCP RST that
-// it would interpret as an aborted MySQL handshake (gastownhall/beads#4132,
+// it would interpret as an aborted MySQL handshake (borg0ai/dx-issuegraph#4132,
 // #4133).
 func (cb *circuitBreaker) probe() bool {
 	addr := net.JoinHostPort(cb.host, fmt.Sprintf("%d", cb.port))
@@ -361,7 +361,7 @@ func (cb *circuitBreaker) writeState(state circuitState) {
 
 // CleanStaleCircuitBreakerFiles removes stale circuit breaker files.
 // This cleans up leftover files that could poison fresh inits:
-//   - Legacy port-0 files (beads-dolt-circuit-0.json) from before the port-0 fix
+//   - Legacy port-0 files (issuegraph-dolt-circuit-0.json) from before the port-0 fix
 //   - Any breaker file whose open/half-open state is older than circuitStaleTTL
 //
 // Called during init to ensure a clean starting state (GH#2598).
@@ -375,7 +375,7 @@ func CleanStaleCircuitBreakerFiles() {
 	// Double-remove is harmless when they coincide.
 	_ = os.Remove(legacyFile)
 	if os.Getenv(testCircuitBreakerDirEnv) == "" {
-		_ = os.Remove(filepath.Join("/tmp", "beads-dolt-circuit-0.json"))
+		_ = os.Remove(filepath.Join("/tmp", "issuegraph-dolt-circuit-0.json"))
 	}
 
 	// Clean stale files in the dedicated subdirectory (fast — typically 0-2
@@ -384,8 +384,8 @@ func CleanStaleCircuitBreakerFiles() {
 	_ = os.MkdirAll(dir, 0755)
 	cleanStaleCircuitBreakerFilesIn(dir, false)
 
-	// Also sweep the legacy hardcoded "/tmp/beads-circuit" location
-	// (C:\tmp\beads-circuit on Windows) where older builds accumulated files
+	// Also sweep the legacy hardcoded "/tmp/issuegraph-circuit" location
+	// (C:\tmp\issuegraph-circuit on Windows) where older builds accumulated files
 	// before the os.TempDir() fix (GH#4636). Unlike the live directory above,
 	// remove *closed* files here too — but only past an mtime TTL: this
 	// directory is NOT fully abandoned. Any TMPDIR-less process (launchd,
@@ -395,7 +395,7 @@ func CleanStaleCircuitBreakerFiles() {
 	// accumulation this sweep exists for (ephemeral ports minting a distinct
 	// filename each time, never reused).
 	if os.Getenv(testCircuitBreakerDirEnv) == "" {
-		if legacy := filepath.Join("/tmp", "beads-circuit"); legacy != dir {
+		if legacy := filepath.Join("/tmp", "issuegraph-circuit"); legacy != dir {
 			cleanStaleCircuitBreakerFilesIn(legacy, true)
 		}
 	}
@@ -405,7 +405,7 @@ func CleanStaleCircuitBreakerFiles() {
 // CleanStaleCircuitBreakerFiles that accepts a directory parameter.
 //
 // removeClosed additionally removes closed-state files whose mtime is older
-// than legacyClosedSweepTTL. It exists for the legacy "/tmp/beads-circuit"
+// than legacyClosedSweepTTL. It exists for the legacy "/tmp/issuegraph-circuit"
 // directory (GH#4636): a closed state file is written on every successful
 // RecordSuccess, and since ephemeral ports mint a distinct filename per
 // connection, closed sidecars accumulate there with no other cleanup path.
@@ -414,7 +414,7 @@ func CleanStaleCircuitBreakerFiles() {
 // their file's mtime fresh). The live directory must not pass true here —
 // a closed file there reflects a healthy, currently-in-use breaker.
 func cleanStaleCircuitBreakerFilesIn(dir string, removeClosed bool) {
-	pattern := filepath.Join(dir, "beads-dolt-circuit-*.json")
+	pattern := filepath.Join(dir, "issuegraph-dolt-circuit-*.json")
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return
@@ -423,7 +423,7 @@ func cleanStaleCircuitBreakerFilesIn(dir string, removeClosed bool) {
 		// Always remove legacy port-0 files — they should never exist
 		// (the port-0 fix prevents creating them, but old ones may linger).
 		base := filepath.Base(path)
-		if base == "beads-dolt-circuit-0.json" {
+		if base == "issuegraph-dolt-circuit-0.json" {
 			_ = os.Remove(path)
 			log.Printf("[circuit-breaker] removed legacy port-0 breaker file: %s", path)
 			continue

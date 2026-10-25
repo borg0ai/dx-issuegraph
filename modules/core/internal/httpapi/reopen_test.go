@@ -6,17 +6,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The close's test header applies unchanged: these are pure, they run the
 // reopen path end to end over a real listener against a fake ROLE, and what a
 // fake cannot prove — the close→reopen round trip clearing close_reason and
 // closed_by_session, and the reason landing on the issue's event stream — lives
-// in modules/cli's TestProxiedServerServeClose against real Dolt.
+// in apps/cli's TestProxiedServerServeClose against real Dolt.
 
-const reopenPath = "/v0/beads/issues/bd-1:reopen"
+const reopenPath = "/v0/issuegraph/issues/bd-1:reopen"
 
 func (ts *testServer) reopenIssue(t *testing.T, path, body string) *http.Response {
 	t.Helper()
@@ -72,7 +72,7 @@ func TestReopenWritesOnceAndAnswersWithTheRowItWrote(t *testing.T) {
 
 // TestReopenNamesItsHistoryEntry pins the provenance label as a value rather
 // than leaving it to the role's default. The implementations do not agree on
-// that default — "bd: reopen issue" against "reopen issue" — so a workspace
+// that default — "issuegraph: reopen issue" against "reopen issue" — so a workspace
 // served by one backend today and another tomorrow would grow two spellings of
 // one event.
 func TestReopenNamesItsHistoryEntry(t *testing.T) {
@@ -151,7 +151,7 @@ func TestReopenUnknownIDIs404(t *testing.T) {
 	lifecycle := &roleLifecycle{reopenErr: fmt.Errorf("reopen bd-9: %w", issueops.ErrNotFound)}
 	ts := newReopenServer(t, lifecycle)
 
-	resp := ts.reopenIssue(t, "/v0/beads/issues/bd-9:reopen", `{"actor":"alice"}`)
+	resp := ts.reopenIssue(t, "/v0/issuegraph/issues/bd-9:reopen", `{"actor":"alice"}`)
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -328,7 +328,7 @@ func TestReopenResolvesAcrossBothPlanes(t *testing.T) {
 	lifecycle := &roleLifecycle{reopenResult: issueops.ReopenResult{Issue: wisp, Changed: true}}
 	ts := newReopenServer(t, lifecycle)
 
-	resp := ts.reopenIssue(t, "/v0/beads/issues/bd-w1:reopen", `{"actor":"alice"}`)
+	resp := ts.reopenIssue(t, "/v0/issuegraph/issues/bd-w1:reopen", `{"actor":"alice"}`)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("reopening a wisp id: status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}

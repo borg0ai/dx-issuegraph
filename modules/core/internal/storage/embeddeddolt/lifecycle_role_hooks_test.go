@@ -5,8 +5,8 @@ package embeddeddolt_test
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // This file holds the embedded store's answers to the OUT-OF-BAND hooks the two

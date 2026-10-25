@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // fakeDoltStore is a stub DoltStorage used to assert wrapper identity and
@@ -14,14 +14,14 @@ type fakeDoltStore struct {
 	storage.DoltStorage
 }
 
-// clearTelemetryEnv unsets every BD_OTEL_* variable Enabled inspects so each
+// clearTelemetryEnv unsets every ISSUEGRAPH_OTEL_* variable Enabled inspects so each
 // test starts from a known baseline.
 func clearTelemetryEnv(t *testing.T) {
 	t.Helper()
 	for _, k := range []string{
-		"BD_OTEL_METRICS_URL",
-		"BD_OTEL_LOGS_URL",
-		"BD_OTEL_STDOUT",
+		"ISSUEGRAPH_OTEL_METRICS_URL",
+		"ISSUEGRAPH_OTEL_LOGS_URL",
+		"ISSUEGRAPH_OTEL_STDOUT",
 	} {
 		t.Setenv(k, "")
 		_ = os.Unsetenv(k)
@@ -39,7 +39,7 @@ func TestWrapStorage_DisabledReturnsOriginal(t *testing.T) {
 
 func TestWrapStorage_EnabledReturnsInstrumented(t *testing.T) {
 	clearTelemetryEnv(t)
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	raw := &fakeDoltStore{}
 	got := WrapStorage(raw)
 	wrapped, ok := got.(*InstrumentedStorage)
@@ -52,11 +52,11 @@ func TestWrapStorage_EnabledReturnsInstrumented(t *testing.T) {
 }
 
 // Verifies that storage.UnwrapStore peels the InstrumentedStorage decorator,
-// so optional-interface type assertions in modules/cli reach the concrete store
+// so optional-interface type assertions in apps/cli reach the concrete store
 // even when telemetry is on.
 func TestWrapStorage_PeelsViaUnwrapStore(t *testing.T) {
 	clearTelemetryEnv(t)
-	t.Setenv("BD_OTEL_STDOUT", "true")
+	t.Setenv("ISSUEGRAPH_OTEL_STDOUT", "true")
 	raw := &fakeDoltStore{}
 	wrapped := WrapStorage(raw)
 	got := storage.UnwrapStore(wrapped)

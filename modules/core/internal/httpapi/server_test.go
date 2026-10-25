@@ -19,10 +19,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // These tests are pure: no database, no cgo, no build tag. The whole request
@@ -67,7 +67,7 @@ func (u *fakeUOW) ConfigUseCase() domain.ConfigUseCase { return u.readConfig }
 // runs over the row a claim wrote. Neither carries state: the claimed row's
 // identity is what these tests assert on, and a fake that invented labels or
 // edges would be a second source of truth for it. The full-item shape is pinned
-// against the CLI by the parity oracle in modules/cli, over real Dolt.
+// against the CLI by the parity oracle in apps/cli, over real Dolt.
 func (u *fakeUOW) LabelUseCase() domain.LabelUseCase           { return emptyLabels{} }
 func (u *fakeUOW) DependencyUseCase() domain.DependencyUseCase { return emptyDeps{} }
 
@@ -302,7 +302,7 @@ func TestValidateBindAddr(t *testing.T) {
 		{name: "hostname refused", addr: "example.internal:8080", wantErr: "numeric IP literal"},
 
 		// A unix socket bypasses the loopback TCP boundary entirely.
-		{name: "unix socket refused", addr: "/tmp/bd.sock", wantErr: "unix sockets are not supported"},
+		{name: "unix socket refused", addr: "/tmp/issuegraph.sock", wantErr: "unix sockets are not supported"},
 		{name: "bare port refused", addr: "8080", wantErr: "HOST:PORT"},
 		{name: "no port refused", addr: "127.0.0.1", wantErr: "HOST:PORT"},
 		{name: "service name refused", addr: "127.0.0.1:http", wantErr: "port must be a number"},
@@ -358,7 +358,7 @@ func TestHealthzStaysUpWhileTheDatabaseIsDown(t *testing.T) {
 	dead := &fakeProvider{err: errors.New("dial tcp 127.0.0.1:3306: connect: connection refused")}
 	ts := newTestServer(t, Config{Provider: dead})
 
-	for _, path := range []string{"/healthz", "/v0/beads/context"} {
+	for _, path := range []string{"/healthz", "/v0/issuegraph/context"} {
 		if resp := ts.get(t, path); resp.StatusCode != http.StatusOK {
 			t.Errorf("GET %s status = %d, want 200 with the database unreachable", path, resp.StatusCode)
 		}
@@ -370,7 +370,7 @@ func TestNoQueryParametersAccepted(t *testing.T) {
 
 	for _, tc := range []struct{ path, param string }{
 		{"/healthz?verbose=1", "verbose"},
-		{"/v0/beads/context?fields=all", "fields"},
+		{"/v0/issuegraph/context?fields=all", "fields"},
 		// The degenerate spelling: url.Values keys this under the empty string,
 		// and the document promises `param` on every 400 except a body that
 		// fails to parse at all. Naming it as "" is the honest answer — the
@@ -427,7 +427,7 @@ func TestHostHeaderAllowlist(t *testing.T) {
 		})
 	}
 
-	for _, host := range []string{"evil.example", "beads.attacker.test:8080", "192.168.1.10"} {
+	for _, host := range []string{"evil.example", "issuegraph.attacker.test:8080", "192.168.1.10"} {
 		t.Run("refused/"+host, func(t *testing.T) {
 			resp := requestWithHost(t, ts, "/healthz", host)
 			if resp.StatusCode != http.StatusBadRequest {
@@ -489,7 +489,7 @@ func TestHostPolicyPerBindAddress(t *testing.T) {
 			name:   "default loopback",
 			bind:   "127.0.0.1",
 			allow:  []string{"127.0.0.1:9000", "localhost", "[::1]:9000", "[0:0:0:0:0:0:0:1]"},
-			refuse: []string{"evil.example", "10.0.0.5", "beads.attacker.test:8080"},
+			refuse: []string{"evil.example", "10.0.0.5", "issuegraph.attacker.test:8080"},
 		},
 		{
 			// ValidateBindAddr accepts any 127/8 address, so the allowlist must
@@ -510,7 +510,7 @@ func TestHostPolicyPerBindAddress(t *testing.T) {
 			name:    "wildcard",
 			bind:    "0.0.0.0",
 			allow:   []string{"127.0.0.1", "localhost", "10.0.0.5:9000", "192.168.1.10", "[fe80::1]:9000"},
-			refuse:  []string{"evil.example", "beads.attacker.test:8080", "localhost.evil.example"},
+			refuse:  []string{"evil.example", "issuegraph.attacker.test:8080", "localhost.evil.example"},
 			inLabel: "any-ip-literal",
 		},
 		{
@@ -565,7 +565,7 @@ func TestAlternateLoopbackBindAnswersItsOwnClients(t *testing.T) {
 func TestUnroutedPathsKeepTheErrorShape(t *testing.T) {
 	ts := newTestServer(t, Config{})
 
-	resp := ts.get(t, "/v1/beads/ready")
+	resp := ts.get(t, "/v1/issuegraph/ready")
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404", resp.StatusCode)
 	}
@@ -593,7 +593,7 @@ func TestUnroutedPathsKeepTheErrorShape(t *testing.T) {
 // source. It did not: it was maintained by hand from the other two, so its only
 // real behavior was to fail whenever a new operation landed. That is a cost
 // pretending to be a check, and the cost fell on the wrong PR: the count slice
-// updated this copy, missed modules/cli's identical one, and turned the proxied
+// updated this copy, missed apps/cli's identical one, and turned the proxied
 // shard red on a list nothing about the count had changed.
 //
 // CONTENT IS PINNED ELSEWHERE, AND INDEPENDENTLY.
@@ -611,7 +611,7 @@ func TestUnroutedPathsKeepTheErrorShape(t *testing.T) {
 func TestCapabilitiesAdvertiseEveryImplementedOperation(t *testing.T) {
 	ts := newTestServer(t, Config{})
 
-	caps, _ := decodeBody(t, ts.get(t, "/v0/beads/context"))["capabilities"].([]any)
+	caps, _ := decodeBody(t, ts.get(t, "/v0/issuegraph/context"))["capabilities"].([]any)
 	var got []string
 	for _, c := range caps {
 		got = append(got, c.(string))
@@ -677,14 +677,14 @@ func TestClaimPathReachesItsHandler(t *testing.T) {
 	issues := &fakeIssues{issue: seededIssue("bd-1", "alice", types.StatusInProgress)}
 	ts, _ := newClaimServer(t, issues)
 
-	resp := ts.claim(t, "/v0/beads/issues/bd-1:claim", `{"actor":"alice"}`)
+	resp := ts.claim(t, "/v0/issuegraph/issues/bd-1:claim", `{"actor":"alice"}`)
 	// A 404 here means the documented path reaches the catch-all: the route
 	// exists in the table, the parity test is green, and the endpoint is
 	// unreachable.
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("POST the documented claim path: status = %d, want 200", resp.StatusCode)
 	}
-	line := findLogLine(t, ts.stderr.String(), "path=/v0/beads/issues/bd-1:claim")
+	line := findLogLine(t, ts.stderr.String(), "path=/v0/issuegraph/issues/bd-1:claim")
 	if !strings.Contains(line, "op="+OpClaimIssue) {
 		t.Errorf("the documented claim path is served by another operation:\n%s", line)
 	}
@@ -874,7 +874,7 @@ func TestPanickingHandlerStaysInTheContract(t *testing.T) {
 	h := s.withRequestContext(s.route(boom))
 
 	rr := httptest.NewRecorder()
-	h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/v0/beads/issues/bd-1", nil))
+	h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/v0/issuegraph/issues/bd-1", nil))
 
 	if rr.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want 500 (a panic must still answer in the documented shape)", rr.Code)
@@ -910,7 +910,7 @@ func TestPanickingHandlerStaysInTheContract(t *testing.T) {
 
 	// And the stack, correlated and on one line.
 	panicLine := findLogLine(t, stderr.String(), "event=panic")
-	for _, want := range []string{"request_id=" + id, "path=/v0/beads/issues/bd-1", "exploded", "stack="} {
+	for _, want := range []string{"request_id=" + id, "path=/v0/issuegraph/issues/bd-1", "exploded", "stack="} {
 		if !strings.Contains(panicLine, want) {
 			t.Errorf("panic log line is missing %q:\n%s", want, panicLine)
 		}
@@ -973,7 +973,7 @@ func TestExemptRoutesAnswerUnderSaturation(t *testing.T) {
 		t.Cleanup(release)
 	}
 
-	for _, path := range []string{"/healthz", "/v0/beads/context"} {
+	for _, path := range []string{"/healthz", "/v0/issuegraph/context"} {
 		if resp := ts.get(t, path); resp.StatusCode != http.StatusOK {
 			t.Errorf("GET %s = %d with every slot held, want 200", path, resp.StatusCode)
 		}
@@ -1016,7 +1016,7 @@ func TestClientHangupIsNotBookedAsAServerFault(t *testing.T) {
 			h := s.withRequestContext(s.route(hangup))
 
 			rr := httptest.NewRecorder()
-			h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/v0/beads/ready", nil))
+			h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/v0/issuegraph/ready", nil))
 
 			// The wire answer is unchanged either way; it goes to a socket
 			// nobody is reading.
@@ -1188,9 +1188,9 @@ func TestStartupLines(t *testing.T) {
 		Provider: provider,
 		Mode:     "proxied-server (managed dolt)",
 		Workspace: domain.ContextInfo{
-			RepoRoot: "/w/repo",
-			BeadsDir: "/w/repo/.beads",
-			Database: "beads",
+			RepoRoot:      "/w/repo",
+			IssueGraphDir: "/w/repo/.issuegraph",
+			Database:      "issuegraph",
 		},
 	})
 
@@ -1207,7 +1207,7 @@ func TestStartupLines(t *testing.T) {
 	startup := findLogLine(t, ts.stderr.String(), "event=startup")
 	for _, field := range []string{
 		"addr=" + ts.Addr(), `mode="proxied-server (managed dolt)"`,
-		"workspace=/w/repo", "beads_dir=/w/repo/.beads",
+		"workspace=/w/repo", "issuegraph_dir=/w/repo/.issuegraph",
 	} {
 		if !strings.Contains(startup, field) {
 			t.Errorf("startup line is missing %q:\n%s", field, startup)
@@ -1354,7 +1354,7 @@ func TestLogValueQuotesInjectableText(t *testing.T) {
 }
 
 func newTestLogger(w io.Writer) *log.Logger {
-	return log.New(w, "bd serve: ", log.LstdFlags|log.LUTC)
+	return log.New(w, "issuegraph serve: ", log.LstdFlags|log.LUTC)
 }
 
 func findLogLine(t *testing.T, log, needle string) string {
@@ -1440,8 +1440,8 @@ func authedOperations(t *testing.T) []route {
 // TestBearerAuthGuardsEveryOperationButLiveness is the security deliverable:
 // with a token configured, reachability alone is no longer read and claim
 // authority. Liveness is the single exemption — a probe must answer with no
-// credential — and GET /v0/beads/context is deliberately NOT one: it reveals
-// the repo root, the beads directory and the database name.
+// credential — and GET /v0/issuegraph/context is deliberately NOT one: it reveals
+// the repo root, the issuegraph directory and the database name.
 func TestBearerAuthGuardsEveryOperationButLiveness(t *testing.T) {
 	ts := newTestServer(t, Config{Auth: authTokenFile(t, "primary-token", "secondary-token")})
 
@@ -1497,9 +1497,9 @@ func TestBearerAuthGuardsEveryOperationButLiveness(t *testing.T) {
 	// Both tokens in the file are accepted: that is the rotation overlap, and
 	// it is the only mechanism this server has for it.
 	for _, tok := range []string{"primary-token", "secondary-token"} {
-		resp := ts.do(t, http.MethodGet, "/v0/beads/context", bearer(tok))
+		resp := ts.do(t, http.MethodGet, "/v0/issuegraph/context", bearer(tok))
 		if resp.StatusCode != http.StatusOK {
-			t.Errorf("GET /v0/beads/context with token %q = %d, want 200", tok, resp.StatusCode)
+			t.Errorf("GET /v0/issuegraph/context with token %q = %d, want 200", tok, resp.StatusCode)
 		}
 	}
 }
@@ -1512,7 +1512,7 @@ func TestUnauthenticated401NeverEchoesTheCredential(t *testing.T) {
 	const presented = "leaked-secret-value"
 	ts := newTestServer(t, Config{Auth: authTokenFile(t, "real-token")})
 
-	resp := ts.do(t, http.MethodGet, "/v0/beads/ready", bearer(presented))
+	resp := ts.do(t, http.MethodGet, "/v0/issuegraph/ready", bearer(presented))
 	if resp.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401", resp.StatusCode)
 	}
@@ -1551,7 +1551,7 @@ func TestAuthRefusalNamesWhyItWasRefused(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ts := newTestServer(t, Config{Auth: authTokenFile(t, "real-token")})
-			ts.do(t, http.MethodGet, "/v0/beads/ready", tc.header)
+			ts.do(t, http.MethodGet, "/v0/issuegraph/ready", tc.header)
 			line := findLogLine(t, ts.stderr.String(), "event=auth_refused")
 			if !strings.Contains(line, "reason="+tc.wantReason) {
 				t.Errorf("auth_refused reason is not %q:\n%s", tc.wantReason, line)
@@ -1585,7 +1585,7 @@ func TestAuthRefusalCostsNoDatabaseSlot(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	start := time.Now()
-	h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/v0/beads/ready", nil))
+	h.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/v0/issuegraph/ready", nil))
 
 	if rr.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want 401 — the refusal queued for a slot instead of answering", rr.Code)
@@ -1608,7 +1608,7 @@ func TestAuthRefusalCostsNoDatabaseSlot(t *testing.T) {
 // while every path it DOES define is guarded.
 //
 // The custom-method wildcard is where the two meet. It matches every POST under
-// /v0/beads/issues/, and dispatchCustomMethod splits the suffix off BEFORE
+// /v0/issuegraph/issues/, and dispatchCustomMethod splits the suffix off BEFORE
 // s.route, so a segment ending in no registered suffix gets the catch-all's 404
 // and never reaches the credential check; a registered suffix reaches its row
 // and is refused. Neither half may be "fixed" into the other: 401 on the miss
@@ -1617,7 +1617,7 @@ func TestAuthRefusalCostsNoDatabaseSlot(t *testing.T) {
 func TestUnroutedPathsStayUnauthenticated(t *testing.T) {
 	ts := newTestServer(t, Config{Auth: authTokenFile(t, "real-token")})
 
-	for _, path := range []string{"/v0/nonsense", "/", "/v0/beads/issues/bd-1/extra"} {
+	for _, path := range []string{"/v0/nonsense", "/", "/v0/issuegraph/issues/bd-1/extra"} {
 		if resp := ts.get(t, path); resp.StatusCode != http.StatusNotFound {
 			t.Errorf("GET %s with no credential = %d, want 404: paths are public spec", path, resp.StatusCode)
 		}
@@ -1625,7 +1625,7 @@ func TestUnroutedPathsStayUnauthenticated(t *testing.T) {
 
 	// Inside the wildcard, a segment ending in no registered suffix is just as
 	// unrouted, and answers the same way.
-	for _, path := range []string{"/v0/beads/issues/bd-1", "/v0/beads/issues/bd-1:nosuchverb"} {
+	for _, path := range []string{"/v0/issuegraph/issues/bd-1", "/v0/issuegraph/issues/bd-1:nosuchverb"} {
 		if resp := ts.do(t, http.MethodPost, path, nil); resp.StatusCode != http.StatusNotFound {
 			t.Errorf("POST %s with no credential = %d, want 404: the suffix is registered nowhere", path, resp.StatusCode)
 		}
@@ -1636,7 +1636,7 @@ func TestUnroutedPathsStayUnauthenticated(t *testing.T) {
 		if rt.customMethod == "" {
 			continue
 		}
-		path := "/v0/beads/issues/bd-1" + rt.customMethod
+		path := "/v0/issuegraph/issues/bd-1" + rt.customMethod
 		if resp := ts.do(t, rt.method, path, nil); resp.StatusCode != http.StatusUnauthorized {
 			t.Errorf("%s %s with no credential = %d, want 401", rt.method, path, resp.StatusCode)
 		}
@@ -1664,7 +1664,7 @@ func TestListenRefusesAnUnservablePosture(t *testing.T) {
 		},
 		{
 			name:    "malformed allowed host",
-			cfg:     Config{Addr: "127.0.0.1:0", AllowedHosts: []string{"svc.beads.svc:8080"}},
+			cfg:     Config{Addr: "127.0.0.1:0", AllowedHosts: []string{"svc.issuegraph.svc:8080"}},
 			wantErr: "--allowed-host",
 		},
 	} {
@@ -1692,7 +1692,7 @@ func TestListenRefusesAnUnservablePosture(t *testing.T) {
 // there is no wildcard or suffix syntax — so the allowlist is exactly what the
 // operator enumerated.
 func TestAllowedHostsAdmitInClusterNames(t *testing.T) {
-	const svc = "bd-proj.beads.svc.cluster.local"
+	const svc = "bd-proj.issuegraph.svc.cluster.local"
 	ts := newTestServer(t, Config{AllowedHosts: []string{svc, "10.4.2.9"}})
 
 	for _, host := range []string{svc, svc + ":8080", strings.ToUpper(svc), "10.4.2.9", "10.4.2.9:80", "localhost"} {
@@ -1701,7 +1701,7 @@ func TestAllowedHostsAdmitInClusterNames(t *testing.T) {
 			t.Errorf("Host %q = %d, want 200", host, resp.StatusCode)
 		}
 	}
-	for _, host := range []string{"beads.svc.cluster.local", "evil." + svc, svc + ".evil.example", "10.4.2.10"} {
+	for _, host := range []string{"issuegraph.svc.cluster.local", "evil." + svc, svc + ".evil.example", "10.4.2.10"} {
 		resp := ts.do(t, http.MethodGet, "/healthz", http.Header{"Host": {host}})
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Errorf("Host %q = %d, want 400: the allowlist is exact", host, resp.StatusCode)
@@ -1735,7 +1735,7 @@ func TestARunningServerAcceptsARotatedToken(t *testing.T) {
 
 	status := func(token string) int {
 		t.Helper()
-		return ts.do(t, http.MethodGet, "/v0/beads/context", bearer(token)).StatusCode
+		return ts.do(t, http.MethodGet, "/v0/issuegraph/context", bearer(token)).StatusCode
 	}
 
 	if got := status("original-token"); got != http.StatusOK {
@@ -1771,8 +1771,8 @@ func TestValidateAllowedHost(t *testing.T) {
 	for _, tc := range []struct {
 		name, value, wantErr string
 	}{
-		{name: "service dns name", value: "bd-proj.beads.svc.cluster.local"},
-		{name: "short service name", value: "bd-proj.beads.svc"},
+		{name: "service dns name", value: "bd-proj.issuegraph.svc.cluster.local"},
+		{name: "short service name", value: "bd-proj.issuegraph.svc"},
 		{name: "single label", value: "bd-proj"},
 		{name: "ipv4 literal", value: "10.4.2.9"},
 		{name: "ipv6 literal", value: "2001:db8::1"},
@@ -1783,10 +1783,10 @@ func TestValidateAllowedHost(t *testing.T) {
 		{name: "bracketed ipv6 literal", value: "[2001:db8::1]"},
 
 		{name: "empty", value: "", wantErr: "empty"},
-		{name: "whitespace", value: "bd proj.svc", wantErr: "whitespace"},
-		{name: "url", value: "http://bd-proj.beads.svc", wantErr: "URL"},
-		{name: "path", value: "bd-proj.beads.svc/v0", wantErr: "URL"},
-		{name: "name with a port", value: "bd-proj.beads.svc:8080", wantErr: "port"},
+		{name: "whitespace", value: "issuegraph proj.svc", wantErr: "whitespace"},
+		{name: "url", value: "http://bd-proj.issuegraph.svc", wantErr: "URL"},
+		{name: "path", value: "bd-proj.issuegraph.svc/v0", wantErr: "URL"},
+		{name: "name with a port", value: "bd-proj.issuegraph.svc:8080", wantErr: "port"},
 		{name: "bracketed ipv6 with a port", value: "[2001:db8::1]:8080", wantErr: "port"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

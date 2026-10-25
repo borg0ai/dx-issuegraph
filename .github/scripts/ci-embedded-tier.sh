@@ -75,12 +75,12 @@ while IFS= read -r path; do
       reason="changed $path"
       break
       ;;
-    *.go|go.mod|go.sum|Makefile|default.nix|flake.nix|flake.lock|packages.nix)
+    *.go|go.mod|go.sum|*/go.mod|*/go.sum|Makefile)
       full_embedded=true
       reason="changed $path"
       break
       ;;
-    AGENTS.md|AGENT_INSTRUCTIONS.md|CONTRIBUTING.md|RELEASING.md)
+    AGENTS.md|AGENT_INSTRUCTIONS.md|CONTRIBUTING.md)
       full_embedded=true
       reason="changed $path"
       break

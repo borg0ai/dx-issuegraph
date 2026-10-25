@@ -1,0 +1,19 @@
+# Test issuegraph create error cases
+
+issuegraph init --prefix test
+
+# Create with no title should fail
+! issuegraph create
+stderr 'title required'
+
+# Create with empty title should fail
+! issuegraph create ''
+stderr 'title is required'
+
+# Create with invalid type should fail
+! issuegraph create 'Test' --type invalid-type
+stderr 'invalid issue type'
+
+# Create with invalid priority should fail
+! issuegraph create 'Test' --priority 99
+stderr 'invalid priority'

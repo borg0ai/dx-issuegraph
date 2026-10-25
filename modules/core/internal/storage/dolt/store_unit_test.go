@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 	mysql "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/schema"
 )
 
 // newTestDoltDB creates a temporary database on the test Dolt server.
@@ -212,51 +212,51 @@ func TestGetAdaptiveIDLength_QueryError(t *testing.T) {
 }
 
 // TestApplyConfigDefaults_TestModeUseSentinelPort verifies that
-// applyConfigDefaults uses sentinel port 1 when BEADS_TEST_MODE=1 but
-// BEADS_DOLT_PORT is not set, preventing accidental connections to
+// applyConfigDefaults uses sentinel port 1 when ISSUEGRAPH_TEST_MODE=1 but
+// ISSUEGRAPH_DOLT_PORT is not set, preventing accidental connections to
 // the production server while allowing tests to handle connection errors.
 func TestApplyConfigDefaults_TestModeUseSentinelPort(t *testing.T) {
 	// Save and restore env vars.
-	origTestMode := os.Getenv("BEADS_TEST_MODE")
-	origPort := os.Getenv("BEADS_DOLT_PORT")
+	origTestMode := os.Getenv("ISSUEGRAPH_TEST_MODE")
+	origPort := os.Getenv("ISSUEGRAPH_DOLT_PORT")
 	defer func() {
-		os.Setenv("BEADS_TEST_MODE", origTestMode)
+		os.Setenv("ISSUEGRAPH_TEST_MODE", origTestMode)
 		if origPort == "" {
-			os.Unsetenv("BEADS_DOLT_PORT")
+			os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 		} else {
-			os.Setenv("BEADS_DOLT_PORT", origPort)
+			os.Setenv("ISSUEGRAPH_DOLT_PORT", origPort)
 		}
 	}()
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
 
-	os.Setenv("BEADS_TEST_MODE", "1")
-	os.Unsetenv("BEADS_DOLT_PORT")
+	os.Setenv("ISSUEGRAPH_TEST_MODE", "1")
+	os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 
 	cfg := &Config{} // ServerPort defaults to 0
 	applyConfigDefaults(cfg)
 
 	if cfg.ServerPort != 1 {
-		t.Errorf("expected sentinel port 1 in test mode without BEADS_DOLT_PORT, got %d", cfg.ServerPort)
+		t.Errorf("expected sentinel port 1 in test mode without ISSUEGRAPH_DOLT_PORT, got %d", cfg.ServerPort)
 	}
 }
 
 // TestApplyConfigDefaults_TestModeWithPort verifies that applyConfigDefaults
-// does NOT panic when BEADS_TEST_MODE=1 and BEADS_DOLT_PORT is properly set.
+// does NOT panic when ISSUEGRAPH_TEST_MODE=1 and ISSUEGRAPH_DOLT_PORT is properly set.
 func TestApplyConfigDefaults_TestModeWithPort(t *testing.T) {
-	origTestMode := os.Getenv("BEADS_TEST_MODE")
-	origPort := os.Getenv("BEADS_DOLT_PORT")
+	origTestMode := os.Getenv("ISSUEGRAPH_TEST_MODE")
+	origPort := os.Getenv("ISSUEGRAPH_DOLT_PORT")
 	defer func() {
-		os.Setenv("BEADS_TEST_MODE", origTestMode)
+		os.Setenv("ISSUEGRAPH_TEST_MODE", origTestMode)
 		if origPort == "" {
-			os.Unsetenv("BEADS_DOLT_PORT")
+			os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 		} else {
-			os.Setenv("BEADS_DOLT_PORT", origPort)
+			os.Setenv("ISSUEGRAPH_DOLT_PORT", origPort)
 		}
 	}()
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
 
-	os.Setenv("BEADS_TEST_MODE", "1")
-	os.Setenv("BEADS_DOLT_PORT", "13307")
+	os.Setenv("ISSUEGRAPH_TEST_MODE", "1")
+	os.Setenv("ISSUEGRAPH_DOLT_PORT", "13307")
 
 	cfg := &Config{}
 	applyConfigDefaults(cfg)
@@ -266,136 +266,136 @@ func TestApplyConfigDefaults_TestModeWithPort(t *testing.T) {
 	}
 }
 
-// TestApplyConfigDefaults_TestModeBlocksProdPort verifies that BEADS_TEST_MODE=1
-// forces port 1 even when BEADS_DOLT_PORT is explicitly set to the production port.
-// This is the fix for Clown Show #14: The orchestrator's beads module injects
-// BEADS_DOLT_PORT=3307 from metadata.json, bypassing the test mode guard.
+// TestApplyConfigDefaults_TestModeBlocksProdPort verifies that ISSUEGRAPH_TEST_MODE=1
+// forces port 1 even when ISSUEGRAPH_DOLT_PORT is explicitly set to the production port.
+// This is the fix for Clown Show #14: The orchestrator's issuegraph module injects
+// ISSUEGRAPH_DOLT_PORT=3307 from metadata.json, bypassing the test mode guard.
 //
 // AD-01 (be-c5p): port == DefaultSQLPort (3307) is never suppressed by
-// BEADS_TEST_SERVER=1 (see productionPortReasons Rule 1); only the
-// BEADS_PRODUCTION_PORT and dolt-server.port heuristics honor that opt-in.
+// ISSUEGRAPH_TEST_SERVER=1 (see productionPortReasons Rule 1); only the
+// ISSUEGRAPH_PRODUCTION_PORT and dolt-server.port heuristics honor that opt-in.
 // This case covers the no-opt-in path (operator did NOT signal "I'm on a
 // test server"), where the guard must still force port 1. See
 // TestApplyConfigDefaults_TestModeBlocksProdPort_EvenWithTestServerOptIn for
 // the opt-in case, which must reach the same outcome.
 func TestApplyConfigDefaults_TestModeBlocksProdPort(t *testing.T) {
-	origTestMode := os.Getenv("BEADS_TEST_MODE")
-	origPort := os.Getenv("BEADS_DOLT_PORT")
-	origTestServer := os.Getenv("BEADS_TEST_SERVER")
+	origTestMode := os.Getenv("ISSUEGRAPH_TEST_MODE")
+	origPort := os.Getenv("ISSUEGRAPH_DOLT_PORT")
+	origTestServer := os.Getenv("ISSUEGRAPH_TEST_SERVER")
 	defer func() {
 		if origTestMode == "" {
-			os.Unsetenv("BEADS_TEST_MODE")
+			os.Unsetenv("ISSUEGRAPH_TEST_MODE")
 		} else {
-			os.Setenv("BEADS_TEST_MODE", origTestMode)
+			os.Setenv("ISSUEGRAPH_TEST_MODE", origTestMode)
 		}
 		if origPort == "" {
-			os.Unsetenv("BEADS_DOLT_PORT")
+			os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 		} else {
-			os.Setenv("BEADS_DOLT_PORT", origPort)
+			os.Setenv("ISSUEGRAPH_DOLT_PORT", origPort)
 		}
 		if origTestServer == "" {
-			os.Unsetenv("BEADS_TEST_SERVER")
+			os.Unsetenv("ISSUEGRAPH_TEST_SERVER")
 		} else {
-			os.Setenv("BEADS_TEST_SERVER", origTestServer)
+			os.Setenv("ISSUEGRAPH_TEST_SERVER", origTestServer)
 		}
 	}()
 
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
-	os.Setenv("BEADS_TEST_MODE", "1")
-	os.Setenv("BEADS_DOLT_PORT", "3307") // Production port
-	os.Unsetenv("BEADS_TEST_SERVER")     // No test-server opt-in for this case.
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
+	os.Setenv("ISSUEGRAPH_TEST_MODE", "1")
+	os.Setenv("ISSUEGRAPH_DOLT_PORT", "3307") // Production port
+	os.Unsetenv("ISSUEGRAPH_TEST_SERVER")     // No test-server opt-in for this case.
 
 	cfg := &Config{}
 	applyConfigDefaults(cfg)
 
 	if cfg.ServerPort != 1 {
-		t.Errorf("BEADS_TEST_MODE=1 with BEADS_DOLT_PORT=3307 should force port 1, got %d", cfg.ServerPort)
+		t.Errorf("ISSUEGRAPH_TEST_MODE=1 with ISSUEGRAPH_DOLT_PORT=3307 should force port 1, got %d", cfg.ServerPort)
 	}
 }
 
 // TestApplyConfigDefaults_TestModeBlocksProdPort_EvenWithTestServerOptIn
-// verifies that BEADS_TEST_SERVER=1 does NOT suppress Rule 1 of
+// verifies that ISSUEGRAPH_TEST_SERVER=1 does NOT suppress Rule 1 of
 // productionPortReasons (port == DefaultSQLPort): even with the operator's
 // dedicated-test-server opt-in set, port 3307 must still be forced to 1
-// under BEADS_TEST_MODE=1. Only the BEADS_PRODUCTION_PORT and
+// under ISSUEGRAPH_TEST_MODE=1. Only the ISSUEGRAPH_PRODUCTION_PORT and
 // dolt-server.port heuristics (Rules 2 and 3) are suppressed by that
 // opt-in — the well-known default port is never suppressible, so a
 // dedicated test server must still not bind to it.
 func TestApplyConfigDefaults_TestModeBlocksProdPort_EvenWithTestServerOptIn(t *testing.T) {
-	origTestMode := os.Getenv("BEADS_TEST_MODE")
-	origPort := os.Getenv("BEADS_DOLT_PORT")
-	origTestServer := os.Getenv("BEADS_TEST_SERVER")
+	origTestMode := os.Getenv("ISSUEGRAPH_TEST_MODE")
+	origPort := os.Getenv("ISSUEGRAPH_DOLT_PORT")
+	origTestServer := os.Getenv("ISSUEGRAPH_TEST_SERVER")
 	defer func() {
 		if origTestMode == "" {
-			os.Unsetenv("BEADS_TEST_MODE")
+			os.Unsetenv("ISSUEGRAPH_TEST_MODE")
 		} else {
-			os.Setenv("BEADS_TEST_MODE", origTestMode)
+			os.Setenv("ISSUEGRAPH_TEST_MODE", origTestMode)
 		}
 		if origPort == "" {
-			os.Unsetenv("BEADS_DOLT_PORT")
+			os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 		} else {
-			os.Setenv("BEADS_DOLT_PORT", origPort)
+			os.Setenv("ISSUEGRAPH_DOLT_PORT", origPort)
 		}
 		if origTestServer == "" {
-			os.Unsetenv("BEADS_TEST_SERVER")
+			os.Unsetenv("ISSUEGRAPH_TEST_SERVER")
 		} else {
-			os.Setenv("BEADS_TEST_SERVER", origTestServer)
+			os.Setenv("ISSUEGRAPH_TEST_SERVER", origTestServer)
 		}
 	}()
 
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
-	os.Setenv("BEADS_TEST_MODE", "1")
-	os.Setenv("BEADS_DOLT_PORT", "3307") // Production port
-	os.Setenv("BEADS_TEST_SERVER", "1")  // Opt-in IS set for this case.
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
+	os.Setenv("ISSUEGRAPH_TEST_MODE", "1")
+	os.Setenv("ISSUEGRAPH_DOLT_PORT", "3307") // Production port
+	os.Setenv("ISSUEGRAPH_TEST_SERVER", "1")  // Opt-in IS set for this case.
 
 	cfg := &Config{}
 	applyConfigDefaults(cfg)
 
 	if cfg.ServerPort != 1 {
-		t.Errorf("BEADS_TEST_MODE=1 with BEADS_DOLT_PORT=3307 should force port 1 even with "+
-			"BEADS_TEST_SERVER=1 (Rule 1 is unconditional), got %d", cfg.ServerPort)
+		t.Errorf("ISSUEGRAPH_TEST_MODE=1 with ISSUEGRAPH_DOLT_PORT=3307 should force port 1 even with "+
+			"ISSUEGRAPH_TEST_SERVER=1 (Rule 1 is unconditional), got %d", cfg.ServerPort)
 	}
 }
 
 // TestApplyConfigDefaults_ExplicitPortOverridesEnv verifies that a
 // caller-preset, already-nonzero cfg.ServerPort wins over
-// BEADS_DOLT_PORT/BEADS_DOLT_SERVER_PORT, and that the resulting
+// ISSUEGRAPH_DOLT_PORT/ISSUEGRAPH_DOLT_SERVER_PORT, and that the resulting
 // ServerPortSource is PortSourceCallerExplicit (authoritative) so
 // newServerMode's auto-start fail-closed check (GH#4052) still protects it.
 //
-// Until be-wf9a.1, BEADS_DOLT_PORT unconditionally clobbered any pre-set
+// Until be-wf9a.1, ISSUEGRAPH_DOLT_PORT unconditionally clobbered any pre-set
 // ServerPort here (formerly asserted by this same test under the name
 // TestApplyConfigDefaults_EnvOverridesConfig, added for hq-27t). That let an
 // ambient orchestrator env var silently override an explicit caller
-// assertion (e.g. `bd init --server-port`); this test now asserts the fixed,
+// assertion (e.g. `issuegraph init --server-port`); this test now asserts the fixed,
 // correct precedence instead.
 func TestApplyConfigDefaults_ExplicitPortOverridesEnv(t *testing.T) {
-	origTestMode := os.Getenv("BEADS_TEST_MODE")
-	origPort := os.Getenv("BEADS_DOLT_PORT")
+	origTestMode := os.Getenv("ISSUEGRAPH_TEST_MODE")
+	origPort := os.Getenv("ISSUEGRAPH_DOLT_PORT")
 	defer func() {
 		if origTestMode == "" {
-			os.Unsetenv("BEADS_TEST_MODE")
+			os.Unsetenv("ISSUEGRAPH_TEST_MODE")
 		} else {
-			os.Setenv("BEADS_TEST_MODE", origTestMode)
+			os.Setenv("ISSUEGRAPH_TEST_MODE", origTestMode)
 		}
 		if origPort == "" {
-			os.Unsetenv("BEADS_DOLT_PORT")
+			os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 		} else {
-			os.Setenv("BEADS_DOLT_PORT", origPort)
+			os.Setenv("ISSUEGRAPH_DOLT_PORT", origPort)
 		}
 	}()
 
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
-	os.Unsetenv("BEADS_TEST_MODE")         // NOT in test mode
-	os.Setenv("BEADS_DOLT_PORT", "19999")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
+	os.Unsetenv("ISSUEGRAPH_TEST_MODE")         // NOT in test mode
+	os.Setenv("ISSUEGRAPH_DOLT_PORT", "19999")
 
-	// Caller (e.g. `bd init --server-port`) preset an explicit port before
+	// Caller (e.g. `issuegraph init --server-port`) preset an explicit port before
 	// applyConfigDefaults runs.
 	cfg := &Config{ServerPort: DefaultSQLPort}
 	applyConfigDefaults(cfg)
 
 	if cfg.ServerPort != DefaultSQLPort {
-		t.Errorf("expected explicit ServerPort=%d to win over BEADS_DOLT_PORT=19999, got %d",
+		t.Errorf("expected explicit ServerPort=%d to win over ISSUEGRAPH_DOLT_PORT=19999, got %d",
 			DefaultSQLPort, cfg.ServerPort)
 	}
 	if cfg.ServerPortSource != doltserver.PortSourceCallerExplicit {
@@ -408,33 +408,33 @@ func TestApplyConfigDefaults_ExplicitPortOverridesEnv(t *testing.T) {
 }
 
 // TestApplyConfigDefaults_EnvWinsWhenExplicitUnset verifies that when no
-// caller has preset ServerPort (it is still the zero value), BEADS_DOLT_PORT
+// caller has preset ServerPort (it is still the zero value), ISSUEGRAPH_DOLT_PORT
 // resolves it — unchanged from before be-wf9a.1.
 func TestApplyConfigDefaults_EnvWinsWhenExplicitUnset(t *testing.T) {
-	origTestMode := os.Getenv("BEADS_TEST_MODE")
-	origPort := os.Getenv("BEADS_DOLT_PORT")
+	origTestMode := os.Getenv("ISSUEGRAPH_TEST_MODE")
+	origPort := os.Getenv("ISSUEGRAPH_DOLT_PORT")
 	defer func() {
 		if origTestMode == "" {
-			os.Unsetenv("BEADS_TEST_MODE")
+			os.Unsetenv("ISSUEGRAPH_TEST_MODE")
 		} else {
-			os.Setenv("BEADS_TEST_MODE", origTestMode)
+			os.Setenv("ISSUEGRAPH_TEST_MODE", origTestMode)
 		}
 		if origPort == "" {
-			os.Unsetenv("BEADS_DOLT_PORT")
+			os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 		} else {
-			os.Setenv("BEADS_DOLT_PORT", origPort)
+			os.Setenv("ISSUEGRAPH_DOLT_PORT", origPort)
 		}
 	}()
 
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
-	os.Unsetenv("BEADS_TEST_MODE")         // NOT in test mode
-	os.Setenv("BEADS_DOLT_PORT", "19999")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
+	os.Unsetenv("ISSUEGRAPH_TEST_MODE")         // NOT in test mode
+	os.Setenv("ISSUEGRAPH_DOLT_PORT", "19999")
 
 	cfg := &Config{} // ServerPort left unset (0)
 	applyConfigDefaults(cfg)
 
 	if cfg.ServerPort != 19999 {
-		t.Errorf("expected BEADS_DOLT_PORT=19999 to resolve unset config port, got %d", cfg.ServerPort)
+		t.Errorf("expected ISSUEGRAPH_DOLT_PORT=19999 to resolve unset config port, got %d", cfg.ServerPort)
 	}
 	if cfg.ServerPortSource != doltserver.PortSourceEnv {
 		t.Errorf("expected ServerPortSource=%q, got %q", doltserver.PortSourceEnv, cfg.ServerPortSource)
@@ -445,24 +445,24 @@ func TestApplyConfigDefaults_EnvWinsWhenExplicitUnset(t *testing.T) {
 // explicit ServerPort survives when no env var is set — unchanged from
 // before be-wf9a.1 — and is stamped PortSourceCallerExplicit (authoritative).
 func TestApplyConfigDefaults_ExplicitPortPreservedWhenEnvUnset(t *testing.T) {
-	origTestMode := os.Getenv("BEADS_TEST_MODE")
-	origPort := os.Getenv("BEADS_DOLT_PORT")
+	origTestMode := os.Getenv("ISSUEGRAPH_TEST_MODE")
+	origPort := os.Getenv("ISSUEGRAPH_DOLT_PORT")
 	defer func() {
 		if origTestMode == "" {
-			os.Unsetenv("BEADS_TEST_MODE")
+			os.Unsetenv("ISSUEGRAPH_TEST_MODE")
 		} else {
-			os.Setenv("BEADS_TEST_MODE", origTestMode)
+			os.Setenv("ISSUEGRAPH_TEST_MODE", origTestMode)
 		}
 		if origPort == "" {
-			os.Unsetenv("BEADS_DOLT_PORT")
+			os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 		} else {
-			os.Setenv("BEADS_DOLT_PORT", origPort)
+			os.Setenv("ISSUEGRAPH_DOLT_PORT", origPort)
 		}
 	}()
 
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
-	os.Unsetenv("BEADS_TEST_MODE")         // NOT in test mode
-	os.Unsetenv("BEADS_DOLT_PORT")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "") // clear new primary port env so legacy path runs
+	os.Unsetenv("ISSUEGRAPH_TEST_MODE")         // NOT in test mode
+	os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 
 	cfg := &Config{ServerPort: 25432}
 	applyConfigDefaults(cfg)
@@ -477,27 +477,27 @@ func TestApplyConfigDefaults_ExplicitPortPreservedWhenEnvUnset(t *testing.T) {
 }
 
 // TestApplyConfigDefaults_ProductionFallback verifies that without
-// BEADS_TEST_MODE and no env port, ServerPort stays 0 (ephemeral).
+// ISSUEGRAPH_TEST_MODE and no env port, ServerPort stays 0 (ephemeral).
 // Auto-start (EnsureRunning) will allocate the port at connection time.
 func TestApplyConfigDefaults_ProductionFallback(t *testing.T) {
-	origTestMode := os.Getenv("BEADS_TEST_MODE")
-	origPort := os.Getenv("BEADS_DOLT_PORT")
+	origTestMode := os.Getenv("ISSUEGRAPH_TEST_MODE")
+	origPort := os.Getenv("ISSUEGRAPH_DOLT_PORT")
 	defer func() {
 		if origTestMode == "" {
-			os.Unsetenv("BEADS_TEST_MODE")
+			os.Unsetenv("ISSUEGRAPH_TEST_MODE")
 		} else {
-			os.Setenv("BEADS_TEST_MODE", origTestMode)
+			os.Setenv("ISSUEGRAPH_TEST_MODE", origTestMode)
 		}
 		if origPort == "" {
-			os.Unsetenv("BEADS_DOLT_PORT")
+			os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 		} else {
-			os.Setenv("BEADS_DOLT_PORT", origPort)
+			os.Setenv("ISSUEGRAPH_DOLT_PORT", origPort)
 		}
 	}()
 
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "") // clear new primary port env
-	os.Unsetenv("BEADS_TEST_MODE")
-	os.Unsetenv("BEADS_DOLT_PORT")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "") // clear new primary port env
+	os.Unsetenv("ISSUEGRAPH_TEST_MODE")
+	os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 
 	cfg := &Config{}
 	applyConfigDefaults(cfg)
@@ -509,8 +509,8 @@ func TestApplyConfigDefaults_ProductionFallback(t *testing.T) {
 
 func TestShouldPersistResolvedPortFile(t *testing.T) {
 	t.Run("default runtime port may be persisted", func(t *testing.T) {
-		t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-		t.Setenv("BEADS_DOLT_PORT", "")
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+		t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
 
 		if !shouldPersistResolvedPortFile() {
 			t.Fatal("expected local resolved port to be persisted")
@@ -518,31 +518,31 @@ func TestShouldPersistResolvedPortFile(t *testing.T) {
 	})
 
 	t.Run("explicit server port is runtime override only", func(t *testing.T) {
-		t.Setenv("BEADS_DOLT_SERVER_PORT", "15432")
-		t.Setenv("BEADS_DOLT_PORT", "")
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "15432")
+		t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
 
 		if shouldPersistResolvedPortFile() {
-			t.Fatal("expected BEADS_DOLT_SERVER_PORT to suppress port file persistence")
+			t.Fatal("expected ISSUEGRAPH_DOLT_SERVER_PORT to suppress port file persistence")
 		}
 	})
 
 	t.Run("legacy orchestrator port is runtime override only", func(t *testing.T) {
-		t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-		t.Setenv("BEADS_DOLT_PORT", "15433")
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+		t.Setenv("ISSUEGRAPH_DOLT_PORT", "15433")
 
 		if shouldPersistResolvedPortFile() {
-			t.Fatal("expected BEADS_DOLT_PORT to suppress port file persistence")
+			t.Fatal("expected ISSUEGRAPH_DOLT_PORT to suppress port file persistence")
 		}
 	})
 }
 
-// TestApplyConfigDefaults_SocketFromEnv verifies that BEADS_DOLT_SERVER_SOCKET
+// TestApplyConfigDefaults_SocketFromEnv verifies that ISSUEGRAPH_DOLT_SERVER_SOCKET
 // populates ServerSocket when not already set.
 func TestApplyConfigDefaults_SocketFromEnv(t *testing.T) {
-	t.Setenv("BEADS_DOLT_SERVER_SOCKET", "/tmp/test-dolt.sock")
-	t.Setenv("BEADS_TEST_MODE", "")
-	t.Setenv("BEADS_DOLT_PORT", "")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_SOCKET", "/tmp/test-dolt.sock")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
 
 	cfg := &Config{}
 	applyConfigDefaults(cfg)
@@ -555,10 +555,10 @@ func TestApplyConfigDefaults_SocketFromEnv(t *testing.T) {
 // TestApplyConfigDefaults_SocketExplicitOverridesEnv verifies that an explicit
 // ServerSocket in Config takes precedence over the env var.
 func TestApplyConfigDefaults_SocketExplicitOverridesEnv(t *testing.T) {
-	t.Setenv("BEADS_DOLT_SERVER_SOCKET", "/tmp/env-socket.sock")
-	t.Setenv("BEADS_TEST_MODE", "")
-	t.Setenv("BEADS_DOLT_PORT", "")
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_SOCKET", "/tmp/env-socket.sock")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
 
 	cfg := &Config{ServerSocket: "/tmp/explicit.sock"}
 	applyConfigDefaults(cfg)
@@ -769,31 +769,31 @@ func TestBuildServerDSN_SpecialCharacterPassword(t *testing.T) {
 }
 
 func TestShouldStopAutoStartedServerOnClose(t *testing.T) {
-	origTestMode := os.Getenv("BEADS_TEST_MODE")
+	origTestMode := os.Getenv("ISSUEGRAPH_TEST_MODE")
 	defer func() {
 		if origTestMode == "" {
-			os.Unsetenv("BEADS_TEST_MODE")
+			os.Unsetenv("ISSUEGRAPH_TEST_MODE")
 		} else {
-			os.Setenv("BEADS_TEST_MODE", origTestMode)
+			os.Setenv("ISSUEGRAPH_TEST_MODE", origTestMode)
 		}
 	}()
 
 	t.Run("normal repo local server stays up", func(t *testing.T) {
-		os.Unsetenv("BEADS_TEST_MODE")
+		os.Unsetenv("ISSUEGRAPH_TEST_MODE")
 		if shouldStopAutoStartedServerOnClose(&Config{Database: "op_broker"}) {
 			t.Fatal("expected normal repo-local auto-start to persist after Close")
 		}
 	})
 
 	t.Run("test mode still owns cleanup", func(t *testing.T) {
-		os.Setenv("BEADS_TEST_MODE", "1")
+		os.Setenv("ISSUEGRAPH_TEST_MODE", "1")
 		if !shouldStopAutoStartedServerOnClose(&Config{Database: "op_broker"}) {
-			t.Fatal("expected BEADS_TEST_MODE to keep auto-start cleanup enabled")
+			t.Fatal("expected ISSUEGRAPH_TEST_MODE to keep auto-start cleanup enabled")
 		}
 	})
 
 	t.Run("test database names still clean up", func(t *testing.T) {
-		os.Unsetenv("BEADS_TEST_MODE")
+		os.Unsetenv("ISSUEGRAPH_TEST_MODE")
 		if !shouldStopAutoStartedServerOnClose(&Config{Database: "testdb_abcdef"}) {
 			t.Fatal("expected test database names to keep auto-start cleanup enabled")
 		}

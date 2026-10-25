@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the semantic contract every implementation of
@@ -121,7 +121,7 @@ func RunSweeperRefusesAnUnfilteredDurableSweep(t *testing.T, ctx context.Context
 	sweeperAssertIssueRows(t, ctx, fixture, 1, id)
 
 	// The ephemeral tier carries no such gate: an unfiltered sweep of closed
-	// wisps is the ordinary use of `bd purge`. Asked with a pattern that matches
+	// wisps is the ordinary use of `issuegraph purge`. Asked with a pattern that matches
 	// nothing so the case does not clear another case's seeds.
 	if _, err := fixture.Sweeper.Sweep(ctx, publicops.SweepRequest{
 		Tier:      publicops.SweepEphemeral,
@@ -157,7 +157,7 @@ func RunSweeperRefusesAMalformedRequest(t *testing.T, ctx context.Context, fixtu
 }
 
 // RunSweeperClearsOneTierAndLeavesTheOther pins the disjointness that makes
-// `bd purge` and `bd prune` ONE capability with a tier parameter
+// `issuegraph purge` and `issuegraph prune` ONE capability with a tier parameter
 // (issueops/sweeper.go, SweepTier). Both planes are seeded with ids the SAME
 // pattern admits, so a body that forgot the tier deletes the wrong rows rather
 // than merely reporting a wrong number.
@@ -234,13 +234,13 @@ func RunSweeperTreatsALegacyTypedWispAsEphemeralTier(t *testing.T, ctx context.C
 	sweeperAssertIssueRows(t, ctx, fixture, 0, durable)
 }
 
-// RunSweeperLeavesNoHistoryBeadsToTheDurableTier pins the other edge of the
-// same boundary: a NoHistory bead lives in the WISPS plane with ephemeral=0
+// RunSweeperLeavesNoHistoryIssueGraphToTheDurableTier pins the other edge of the
+// same boundary: a NoHistory issue lives in the WISPS plane with ephemeral=0
 // and no wisp_type, and it is durable-tier (GH#3649) — widening the ephemeral
 // tier to typed wisps must not sweep it up.
-func RunSweeperLeavesNoHistoryBeadsToTheDurableTier(t *testing.T, ctx context.Context, fixture SweeperFixture) {
+func RunSweeperLeavesNoHistoryIssueGraphToTheDurableTier(t *testing.T, ctx context.Context, fixture SweeperFixture) {
 	t.Helper()
-	// Seeded through CreateWisp, not CreateIssue: putting a NoHistory bead in
+	// Seeded through CreateWisp, not CreateIssue: putting a NoHistory issue in
 	// the wisps plane is the CREATE verb's routing, and not every fixture's
 	// CreateIssue goes through that verb (the uow kit calls the domain-level
 	// create, which takes the plane as an argument). The sweeper contract
@@ -256,7 +256,7 @@ func RunSweeperLeavesNoHistoryBeadsToTheDurableTier(t *testing.T, ctx context.Co
 		IDPattern: sweeperPattern(fixture, "nohist"),
 	})
 	if result.Swept != 0 {
-		t.Fatalf("ephemeral sweep Swept = %d, want 0 — a NoHistory bead is durable-tier", result.Swept)
+		t.Fatalf("ephemeral sweep Swept = %d, want 0 — a NoHistory issue is durable-tier", result.Swept)
 	}
 	sweeperAssertWispRows(t, ctx, fixture, 1, noHistory.ID)
 }
@@ -290,7 +290,7 @@ func RunSweeperProtectsPinnedRows(t *testing.T, ctx context.Context, fixture Swe
 //
 // The CUTOFF is HALF-OPEN: a row closed exactly at the cutoff is KEPT
 // (issueops.SweepRequest.ClosedBefore, "strictly before"). An off-by-one there
-// deletes a bead closed the instant a scheduled sweep names.
+// deletes a issue closed the instant a scheduled sweep names.
 //
 // The PATTERN is matched in Go rather than translated to SQL, so the case
 // includes a character class — the construct a LIKE translation would get
@@ -380,7 +380,7 @@ func RunSweeperDryRunChangesNothing(t *testing.T, ctx context.Context, fixture S
 // had none, and the two bodies read comments through different code — the
 // store-backed one partitions between `comments` and `wisp_comments`, the
 // unit-of-work one went through a use case that reads the durable table only.
-// So `bd prune` deleted the cited bead on one route and kept it on the other,
+// So `issuegraph prune` deleted the cited issue on one route and kept it on the other,
 // with all three legs green.
 //
 // The citation is the row's ONLY one, and it is on a wisp that is OPEN, so
@@ -429,7 +429,7 @@ func RunSweeperProtectsRowsCitedFromAWispComment(t *testing.T, ctx context.Conte
 
 // RunSweeperProtectsCitedRows pins ProtectReferenced
 // (issueops.SweepRequest.ProtectReferenced): a candidate whose id appears in a
-// not-done bead's description is held back, counted, and named in the bounded
+// not-done issue's description is held back, counted, and named in the bounded
 // sample — and the SAME request without the protection deletes it.
 //
 // The two halves matter together: asserting only the protection would pass for
@@ -448,7 +448,7 @@ func RunSweeperProtectsCitedRows(t *testing.T, ctx context.Context, fixture Swee
 	// The near-miss `<free>x` must NOT protect anything; the parenthesised
 	// occurrence must.
 	citing.Description = fmt.Sprintf("superseded by (%s). unrelated: %sx", cited, free)
-	// The citing bead is OPEN, so the pattern below must not admit it as a
+	// The citing issue is OPEN, so the pattern below must not admit it as a
 	// candidate: the closed recheck would skip it either way, but a case relying
 	// on that would be asserting the wrong protection.
 	sweeperSeedOpen(t, ctx, fixture, citing)

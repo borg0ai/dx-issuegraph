@@ -1,30 +1,35 @@
 ---
-title: "bd audit"
-description: "Audit log entries are appended to .beads/interactions.jsonl."
+title: "issuegraph audit"
+description: "Record and label agent interactions (append-only JSONL)"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc audit`.
+Generated from `issuegraph help --doc audit`.
 
-Audit log entries are appended to .beads/interactions.jsonl.
+Record explicit agent/tool interaction audit entries in .issuegraph/interactions.jsonl.
 
-Each line is one event. This file is intended to be versioned in git and used for:
+This optional JSONL sidecar is disabled by default. Enable it with:
+
+  issuegraph config set audit.enabled true
+
+Issue history is always recorded in the database and is visible with
+issuegraph history &lt;id&gt; --events. The JSONL sidecar is for explicit interaction capture:
 - auditing ("why did the agent do that?")
 - dataset generation (SFT/RL fine-tuning)
 
 Entries are append-only. Labeling creates a new "label" entry that references a parent entry.
 
 ```
-bd audit [flags]
+issuegraph audit [command]
 ```
 
-## bd audit label
+## issuegraph audit label
 
 Append a label entry referencing an existing interaction
 
 ```
-bd audit label <entry-id> [flags]
+issuegraph audit label <entry-id> [flags]
 ```
 
 **Flags:**
@@ -34,12 +39,12 @@ bd audit label <entry-id> [flags]
       --reason string   Reason for label
 ```
 
-## bd audit record
+## issuegraph audit record
 
 Append an audit interaction entry
 
 ```
-bd audit record [flags]
+issuegraph audit record [flags]
 ```
 
 **Flags:**

@@ -3,8 +3,8 @@ package dolt
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // TestConformance runs the backend-agnostic storage conformance suite
@@ -14,7 +14,7 @@ import (
 //
 // Like every other test in this package it requires the shared Dolt test
 // server started by TestMain; it self-skips via setupTestStore -> skipIfNoDolt
-// when no server is available (e.g. under -short or BEADS_TEST_SKIP=dolt).
+// when no server is available (e.g. under -short or ISSUEGRAPH_TEST_SKIP=dolt).
 // setupTestStore gives each conformance sub-test its own COW branch for
 // isolation and registers cleanup.
 func TestConformance(t *testing.T) {

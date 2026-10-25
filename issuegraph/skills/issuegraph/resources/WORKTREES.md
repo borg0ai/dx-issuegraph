@@ -1,6 +1,6 @@
 # Git Worktree Support
 
-> Adapted from ACF beads skill
+> Adapted from ACF issuegraph skill
 
 **v0.40+**: First-class worktree management via `issuegraph worktree` command.
 
@@ -34,13 +34,13 @@ commits. By default, both creation paths use the same shared issuegraph workspac
 
 ## Architecture
 
-By default, linked worktrees share the repository's `.beads/` workspace through
+By default, linked worktrees share the repository's `.issuegraph/` workspace through
 Git common directory discovery. They do not need per-worktree redirect files:
 
 ```
 main-repo/
 ├── .git/                ← Shared Git directory
-├── .beads/              ← Shared issuegraph config and local Dolt data
+├── .issuegraph/              ← Shared issuegraph config and local Dolt data
 └── .worktrees/
     ├── feature-a/
     └── feature-b/
@@ -49,8 +49,8 @@ main-repo/
 `issuegraph` uses the workspace's configured storage mode from every linked worktree;
 worktree use does not force embedded mode.
 
-Set `BEADS_DIR` to use an external issuegraph workspace instead. A worktree can also
-use its own `.beads/` database explicitly; otherwise discovery falls back to
+Set `ISSUEGRAPH_DIR` to use an external issuegraph workspace instead. A worktree can also
+use its own `.issuegraph/` database explicitly; otherwise discovery falls back to
 the shared workspace.
 
 ## Commands
@@ -75,7 +75,7 @@ issuegraph worktree remove .worktrees/my-feature
 When issuegraph commands behave unexpectedly in a worktree:
 
 ```bash
-issuegraph where              # Shows the effective .beads workspace location
+issuegraph where              # Shows the effective .issuegraph workspace location
 issuegraph doctor --deep      # Validates full graph integrity
 ```
 
@@ -94,20 +94,20 @@ issuegraph dolt pull                       # Pull shared issue data
 issuegraph dolt push                       # Push shared issue data
 ```
 
-No `--branch` flag or `.git/beads-worktrees/` directory is used. Keep using
+No `--branch` flag or `.git/issuegraph-worktrees/` directory is used. Keep using
 your normal Git feature branches and worktrees for code changes.
 
 ## Multi-Clone Support
 
 Multi-clone, multi-branch workflows:
 
-- Hash-based IDs (`bd-abc`) eliminate collision across clones
+- Hash-based IDs (`issuegraph-abc`) eliminate collision across clones
 - Each clone syncs through the configured Dolt remote with `issuegraph dolt pull` and
   `issuegraph dolt push`
-- See [WORKTREES.md](https://github.com/gastownhall/beads/blob/main/docs/reference/worktrees.md) for comprehensive guide
+- See [WORKTREES.md](https://github.com/borg0ai/dx-issuegraph/blob/main/docs/reference/worktrees.md) for comprehensive guide
 
 ## External References
 
-- **Official Docs**: [github.com/gastownhall/beads/docs](https://github.com/gastownhall/beads/tree/main/docs)
-- **Protected Branches**: [PROTECTED_BRANCHES.md](https://github.com/gastownhall/beads/blob/main/docs/reference/protected-branches.md)
-- **Worktrees**: [WORKTREES.md](https://github.com/gastownhall/beads/blob/main/docs/reference/worktrees.md)
+- **Official Docs**: [github.com/borg0ai/dx-issuegraph/docs](https://github.com/borg0ai/dx-issuegraph/tree/main/docs)
+- **Protected Branches**: [PROTECTED_BRANCHES.md](https://github.com/borg0ai/dx-issuegraph/blob/main/docs/reference/protected-branches.md)
+- **Worktrees**: [WORKTREES.md](https://github.com/borg0ai/dx-issuegraph/blob/main/docs/reference/worktrees.md)

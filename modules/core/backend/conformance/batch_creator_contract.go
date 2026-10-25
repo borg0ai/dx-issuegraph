@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the semantic contract every implementation of
@@ -394,7 +394,7 @@ func RunBatchCreatorRefusesAnAbsentEdgeTarget(t *testing.T, ctx context.Context,
 //
 // Both shapes are asserted because they are one rule with two spellings
 // (issueops.IsExternalDepTarget). A role that refused either would make a plan
-// naming work in a sibling rig uncreatable, which is a thing `bd dep add` has
+// naming work in a sibling rig uncreatable, which is a thing `issuegraph dep add` has
 // always allowed.
 func RunBatchCreatorAcceptsAForeignEdgeTarget(t *testing.T, ctx context.Context, fixture BatchCreatorFixture) {
 	t.Helper()
@@ -408,7 +408,7 @@ func RunBatchCreatorAcceptsAForeignEdgeTarget(t *testing.T, ctx context.Context,
 		ForceIDPrefix: true,
 		Items: []publicops.BatchCreateItem{
 			{
-				Issue:        batchCreatorIssue(external, "depends on something outside beads"),
+				Issue:        batchCreatorIssue(external, "depends on something outside issuegraph"),
 				Dependencies: []publicops.CreateDependency{{TargetID: externalTarget, Type: types.DepBlocks}},
 			},
 			{
@@ -445,7 +445,7 @@ func RunBatchCreatorRecordsOneHistoryEntry(t *testing.T, ctx context.Context, fi
 		provenance string
 	}{
 		{"default label", ""},
-		{"caller label", "bd: create 3 issue(s) from plan.md"},
+		{"caller label", "issuegraph: create 3 issue(s) from plan.md"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			before := batchCreatorHistoryCount(t, ctx, fixture)
@@ -518,7 +518,7 @@ func RunBatchCreatorDoesNotMutateTheCallerRequest(t *testing.T, ctx context.Cont
 
 	request := publicops.CreateBatchRequest{
 		Actor:      "batch-writer",
-		Provenance: "bd: create 1 issue(s) from plan.md",
+		Provenance: "issuegraph: create 1 issue(s) from plan.md",
 		Items: []publicops.BatchCreateItem{{
 			Issue:        &types.Issue{Title: "caller owned", Priority: 2, IssueType: types.TypeTask, Labels: []string{"kept"}},
 			Dependencies: []publicops.CreateDependency{{TargetID: target, Type: types.DepBlocks}},

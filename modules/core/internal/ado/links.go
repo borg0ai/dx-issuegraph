@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
 )
 
-// LinkResolver handles bidirectional link sync between beads dependencies
+// LinkResolver handles bidirectional link sync between issuegraph dependencies
 // and ADO work item relations.
 type LinkResolver struct {
 	Client *Client
@@ -46,22 +46,22 @@ func isLinkRelation(rel string) bool {
 
 // discoveredFromComment is the marker attribute used to identify discovered-from links
 // stored as ADO Related relations.
-const discoveredFromComment = "beads:discovered-from"
+const discoveredFromComment = "issuegraph:discovered-from"
 
-// adoRelToBeadsDep maps an ADO relation type to a beads dependency type.
+// adoRelToIssueGraphDep maps an ADO relation type to a issuegraph dependency type.
 // Returns the dep type and whether the from/to should be swapped
 // (true for reverse link types that need direction normalization).
-// Hierarchy links use beads storage vocabulary "parent-child" (types.DepParentChild),
+// Hierarchy links use issuegraph storage vocabulary "parent-child" (types.DepParentChild),
 // not the legacy "parent" type, which was only ever produced by the pre-fix
 // pull path and is stored backwards (GH#4961, PR #5129).
 //
-// beads stores parent-child deps child → parent: IssueID is the child,
+// issuegraph stores parent-child deps child → parent: IssueID is the child,
 // DependsOnID is the parent (see types.go ready-item parent computation).
 // RelChild (Hierarchy-Forward) means "this item is the parent of target," so
 // the resulting dep must point from target (child) to this item (parent) —
 // swap. RelParent (Hierarchy-Reverse) means "target is the parent of this
 // item," so this item is already the child — no swap.
-func adoRelToBeadsDep(rel string, attributes map[string]interface{}) (depType string, swap bool) {
+func adoRelToIssueGraphDep(rel string, attributes map[string]interface{}) (depType string, swap bool) {
 	switch rel {
 	case RelDependsOn: // Dependency-Forward: this item is predecessor (blocks target)
 		return "blocks", false
@@ -82,7 +82,7 @@ func adoRelToBeadsDep(rel string, attributes map[string]interface{}) (depType st
 }
 
 // hasDiscoveredFromAttribute checks if the relation attributes contain
-// the beads:discovered-from marker in the comment field.
+// the issuegraph:discovered-from marker in the comment field.
 func hasDiscoveredFromAttribute(attributes map[string]interface{}) bool {
 	if attributes == nil {
 		return false
@@ -98,7 +98,7 @@ func hasDiscoveredFromAttribute(attributes map[string]interface{}) bool {
 	return strings.Contains(s, discoveredFromComment)
 }
 
-// beadsDepToADORel maps a beads dependency type to an ADO relation type.
+// issuegraphDepToADORel maps a issuegraph dependency type to an ADO relation type.
 // Accepts both "parent-child" (canonical storage type) and the obsolete
 // The legacy "parent" type is intentionally not mapped here (GH#4961, PR #5129).
 //
@@ -108,7 +108,7 @@ func hasDiscoveredFromAttribute(attributes map[string]interface{}) bool {
 // the child and the target as the parent. RelParent (Hierarchy-Reverse) means
 // "target is parent of this item," which is exactly that relationship;
 // RelChild would instead assert the child is the parent's parent.
-func beadsDepToADORel(depType string) string {
+func issuegraphDepToADORel(depType string) string {
 	switch depType {
 	case "blocks":
 		return RelDependsOn
@@ -137,10 +137,10 @@ func (r *LinkResolver) buildWorkItemURL(id int) string {
 	return fmt.Sprintf("%s/wit/workitems/%d", base, id)
 }
 
-// ExtractLinkDeps extracts beads dependency information from an ADO work item's
-// relations. It normalizes link directions and maps ADO relation types to beads
+// ExtractLinkDeps extracts issuegraph dependency information from an ADO work item's
+// relations. It normalizes link directions and maps ADO relation types to issuegraph
 // dependency types. This is the package-level function used by both PullLinks
-// and the field mapper's IssueToBeads.
+// and the field mapper's IssueToIssueGraph.
 func ExtractLinkDeps(workItem *WorkItem) []tracker.DependencyInfo {
 	if len(workItem.Relations) == 0 {
 		return nil
@@ -162,7 +162,7 @@ func ExtractLinkDeps(workItem *WorkItem) []tracker.DependencyInfo {
 			continue
 		}
 
-		depType, swap := adoRelToBeadsDep(rel.Rel, rel.Attributes)
+		depType, swap := adoRelToIssueGraphDep(rel.Rel, rel.Attributes)
 		if depType == "" {
 			continue
 		}
@@ -196,8 +196,8 @@ func apiURLToWebURL(apiURL string, id int) string {
 	return apiURL
 }
 
-// PullLinks extracts beads dependency information from an ADO work item's relations.
-// It normalizes link directions and maps ADO relation types to beads dependency types.
+// PullLinks extracts issuegraph dependency information from an ADO work item's relations.
+// It normalizes link directions and maps ADO relation types to issuegraph dependency types.
 // Returns a slice of DependencyInfo for the sync engine to process.
 func (r *LinkResolver) PullLinks(workItem *WorkItem) []tracker.DependencyInfo {
 	return ExtractLinkDeps(workItem)
@@ -210,15 +210,15 @@ type adoLinkKey struct {
 	Commented bool // true if the link has a discovered-from comment
 }
 
-// removableRelTypes are the ADO relation types beads emits during push and
+// removableRelTypes are the ADO relation types issuegraph emits during push and
 // therefore owns. Only links of these types may be removed during push.
 //
-// Dependency-Forward and Related are the forward-direction types beads emits
-// for "blocks" and "related" deps. Hierarchy-Reverse is the type beads emits
+// Dependency-Forward and Related are the forward-direction types issuegraph emits
+// for "blocks" and "related" deps. Hierarchy-Reverse is the type issuegraph emits
 // for "parent-child" deps: PushLinks runs with workItemID as the child and
-// the target as the parent, so the link beads creates on the child is
+// the target as the parent, so the link issuegraph creates on the child is
 // Hierarchy-Reverse (RelParent), not Hierarchy-Forward (GH#4961). Hierarchy-
-// Forward and Dependency-Reverse are deliberately excluded: beads represents
+// Forward and Dependency-Reverse are deliberately excluded: issuegraph represents
 // those relationships via the link it owns on the *other* work item, so they
 // never appear in the desired set and must not be deleted. Likewise, any
 // other relation type (hyperlinks, attachments, custom link types) is left
@@ -229,23 +229,23 @@ var removableRelTypes = map[string]bool{
 	RelRelated:   true, // Related
 }
 
-// PushLinks synchronizes beads dependencies to ADO work item relations.
-// It compares the desired state (from beads deps) against current ADO relations,
+// PushLinks synchronizes issuegraph dependencies to ADO work item relations.
+// It compares the desired state (from issuegraph deps) against current ADO relations,
 // adding missing links and removing stale ones for idempotent convergence.
 // Errors on individual links are collected and returned together; processing
 // continues on partial failures.
 //
-// managedTargets is the set of ADO work item IDs that beads tracks. A current
-// link is only removed when beads owns it: its relation type is one beads emits
+// managedTargets is the set of ADO work item IDs that issuegraph tracks. A current
+// link is only removed when issuegraph owns it: its relation type is one issuegraph emits
 // (see removableRelTypes) AND its target is in managedTargets. This read-merge-
-// write behavior preserves links beads does not manage — the opposite-direction
+// write behavior preserves links issuegraph does not manage — the opposite-direction
 // hierarchy/dependency links and human-created Related/Predecessor-Successor
 // links to untracked items — instead of clobbering them. See GH#4522.
 func (r *LinkResolver) PushLinks(ctx context.Context, workItemID int, currentRelations []WorkItemRelation, desiredDeps []tracker.DependencyInfo, managedTargets map[int]bool) []error {
 	// Build desired link set.
 	desired := make(map[adoLinkKey]tracker.DependencyInfo)
 	for _, dep := range desiredDeps {
-		rel := beadsDepToADORel(dep.Type)
+		rel := issuegraphDepToADORel(dep.Type)
 		targetID, err := strconv.Atoi(dep.ToExternalID)
 		if err != nil {
 			continue
@@ -286,8 +286,8 @@ func (r *LinkResolver) PushLinks(ctx context.Context, workItemID int, currentRel
 	var errs []error
 
 	// Find relations to remove (in current but not desired).
-	// Only remove links beads owns: a type it emits (see removableRelTypes),
-	// pointing at a work item beads tracks. Links of the opposite hierarchy/
+	// Only remove links issuegraph owns: a type it emits (see removableRelTypes),
+	// pointing at a work item issuegraph tracks. Links of the opposite hierarchy/
 	// dependency direction and links to untracked items (e.g. human-created
 	// Related / Predecessor-Successor links) are left untouched so the push
 	// does not clobber them. See GH#4522.
@@ -320,7 +320,7 @@ func (r *LinkResolver) PushLinks(ctx context.Context, workItemID int, currentRel
 			continue
 		}
 		targetURL := r.buildWorkItemURL(key.TargetID)
-		rel := beadsDepToADORel(dep.Type)
+		rel := issuegraphDepToADORel(dep.Type)
 		comment := ""
 		if dep.Type == "discovered-from" {
 			comment = discoveredFromComment

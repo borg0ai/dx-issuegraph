@@ -1,14 +1,14 @@
 ---
-title: "bd version"
+title: "issuegraph version"
 description: "Print version information"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc version`.
+Generated from `issuegraph help --doc version`.
 
 Print version information
 
 ```
-bd version [flags]
+issuegraph version [flags]
 ```

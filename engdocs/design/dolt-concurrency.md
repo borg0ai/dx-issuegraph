@@ -11,7 +11,7 @@
 ## Problem Statement
 
 IssueGraph is the universal data plane for multi-agent systems. Every agent role —
-workers, coordinators, observers, processors, patrols — reads and writes beads as their primary
+workers, coordinators, observers, processors, patrols — reads and writes issuegraph as their primary
 means of coordination. The Dolt concurrency model must serve **all** of them,
 not just individual workers.
 
@@ -22,14 +22,14 @@ This was designed to eliminate optimistic lock contention between concurrent
 writers, and it works — 50 concurrent writers, 250 Dolt commits, 100% success
 rate in tests. But the concurrency wins are **illusory** because:
 
-1. **Workers can't see each other's beads.** A bead created by agent A is
+1. **Workers can't see each other's issuegraph.** A issue created by agent A is
    invisible to agent B until A's branch merges to main. This breaks
    cross-agent visibility for dispatching, dependency tracking, and status queries.
 
 2. **Shared state must live on main.** IssueGraph is the coordination layer for the
    entire system. Every role — workers doing tasks, coordinators dispatching, observers
    monitoring, processors validating, assistants helping — needs the same view of
-   bead state. Branch isolation is the opposite of what a shared data plane
+   issue state. Branch isolation is the opposite of what a shared data plane
    requires.
 
 3. **Merge-at-done introduces staleness.** Long-running agents accumulate
@@ -38,7 +38,7 @@ rate in tests. But the concurrency wins are **illusory** because:
 
 4. **Branch proliferation.** Each sling creates a branch; cleanup relies on
    `issuegraph done` or branch cleanup. Orphaned branches accumulate. The
-   BD_BRANCH safety analysis (#1796) adds code complexity across the codebase.
+   ISSUEGRAPH_BRANCH safety analysis (#1796) adds code complexity across the codebase.
 
 Tim Sehn's guidance (2026-02-21): **"It is far simpler to use one branch, so
 start there. You can get hundreds of transactions per second on a single
@@ -70,7 +70,7 @@ Standard SQL transaction semantics with a twist — conflict detection uses
 - Same cell updated to different values: **conflict** (must resolve)
 
 This is more permissive than traditional databases. Two agents updating
-different fields of the same bead will succeed without conflict.
+different fields of the same issue will succeed without conflict.
 
 Isolation level: **repeatable read** (vulnerable to lost updates if two
 connections read-then-write the same cell).
@@ -92,7 +92,7 @@ a bottleneck in practice.
 BEGIN;
 INSERT INTO issues (id, title, status) VALUES ('gt-abc', 'Fix bug', 'open');
 INSERT INTO dependencies (issue_id, depends_on_id, type) VALUES ('gt-abc', 'gt-def', 'blocks');
-CALL DOLT_COMMIT('-Am', 'bd: create gt-abc');
+CALL DOLT_COMMIT('-Am', 'issuegraph: create gt-abc');
 -- Transaction ends, changes are atomically visible
 ```
 
@@ -108,14 +108,14 @@ CALL DOLT_CHECKOUT('worker-ace-1708642800');
 
 ### Principle
 
-All beads live on `main`. Concurrent access is managed through SQL transactions
+All issuegraph live on `main`. Concurrent access is managed through SQL transactions
 with explicit `DOLT_COMMIT` at transaction boundaries. No per-worker branches.
 
 ### Transaction Semantics
 
 #### Rule 1: Every Write Group Gets a Transaction
 
-Every logical write operation (create bead, update status, close bead, add
+Every logical write operation (create issue, update status, close issue, add
 dependency, etc.) must be wrapped in `BEGIN` ... `CALL DOLT_COMMIT()`.
 
 ```go
@@ -168,13 +168,13 @@ tx.Commit()
 
 #### `store.go`: Remove Branch-Per-Worker
 
-Remove the `BD_BRANCH` initialization block (lines 336-358). The store always
+Remove the `ISSUEGRAPH_BRANCH` initialization block (lines 336-358). The store always
 operates on main. Remove `SetMaxOpenConns(1)` / `SetMaxIdleConns(1)` — we
 want connection pooling now since all connections share the same branch.
 
 ```go
 // DELETE this block:
-if bdBranch := os.Getenv("BD_BRANCH"); bdBranch != "" {
+if issuegraphBranch := os.Getenv("ISSUEGRAPH_BRANCH"); issuegraphBranch != "" {
     db.SetMaxOpenConns(1)
     db.SetMaxIdleConns(1)
     // ... branch creation/checkout logic
@@ -239,10 +239,10 @@ dead code for the normal write path. Retain for federation use cases
 
 #### Worker Dispatch: Stop Creating Branches
 
-The orchestrator's worker dispatch previously created a Dolt branch and injected `BD_BRANCH` into
+The orchestrator's worker dispatch previously created a Dolt branch and injected `ISSUEGRAPH_BRANCH` into
 the worker environment. After migration:
 - No branch creation at dispatch time
-- No `BD_BRANCH` env var
+- No `ISSUEGRAPH_BRANCH` env var
 - All agents use the same main-branch connection pool
 
 #### Task Completion: Stop Merging Branches
@@ -251,18 +251,18 @@ The orchestrator's task completion previously checked out main, merged the worke
 deleted it. After migration:
 - No merge step
 - No branch deletion
-- Task completion simply closes the bead (already on main, already visible)
+- Task completion simply closes the issue (already on main, already visible)
 
-#### `BD_BRANCH` Safety Infrastructure (#1796)
+#### `ISSUEGRAPH_BRANCH` Safety Infrastructure (#1796)
 
-The entire `BD_BRANCH` safety analysis (`bdbranch/analyzer.go`,
+The entire `ISSUEGRAPH_BRANCH` safety analysis (`bdbranch/analyzer.go`,
 `OnMain()`, `StripBdBranch()`, the arch test registry) can be retired.
 This is a significant simplification of the codebase.
 
 #### `session_manager.go`: No DoltBranch Option
 
 Remove the `DoltBranch` field from session options and the injection of
-`BD_BRANCH` into tmux sessions.
+`ISSUEGRAPH_BRANCH` into tmux sessions.
 
 ### Connection Pool Configuration
 
@@ -298,15 +298,15 @@ but rare due to Dolt's cell-level merge semantics:
 
 | Scenario | Conflict? | Resolution |
 |----------|-----------|------------|
-| Two agents create different beads | No | Different rows, auto-merged |
-| Two agents update different beads | No | Different rows, auto-merged |
-| Two agents update different fields of same bead | No | Different cells, auto-merged |
-| Two agents update same field of same bead | **Yes** | Last writer wins (updated_at) |
+| Two agents create different issuegraph | No | Different rows, auto-merged |
+| Two agents update different issuegraph | No | Different rows, auto-merged |
+| Two agents update different fields of same issue | No | Different cells, auto-merged |
+| Two agents update same field of same issue | **Yes** | Last writer wins (updated_at) |
 | One agent writes while another reads | No | Read sees committed state |
 
-The "same field of same bead" case is rare in practice — beads are typically
+The "same field of same issue" case is rare in practice — issuegraph are typically
 owned by one agent at a time (assigned via sling). The main risk is
-concurrent status updates (e.g., one agent closes a bead while another
+concurrent status updates (e.g., one agent closes a issue while another
 also updates it). Mitigation: use optimistic concurrency checks where needed
 (check expected status before update).
 
@@ -327,17 +327,17 @@ This works regardless of branch-per-worker — it's strictly additive safety.
 
 Conditional on Phase 1 being stable in production.
 
-- Remove `BD_BRANCH` injection from worker spawn and session management
+- Remove `ISSUEGRAPH_BRANCH` injection from worker spawn and session management
 - Remove branch creation from worker dispatch
 - Remove branch merge from task completion
-- Remove `BD_BRANCH` env var handling from `store.go`
+- Remove `ISSUEGRAPH_BRANCH` env var handling from `store.go`
 - Clean up `OnMain()`, `StripBdBranch()`, analyzer infrastructure
-- **Test**: Deploy with 2-3 agents, verify cross-agent bead visibility
+- **Test**: Deploy with 2-3 agents, verify cross-agent issue visibility
 
 ### Phase 3: Retire Branch Infrastructure (Cleanup)
 
 - Remove `bdbranch/analyzer.go` and arch test registry
-- Remove `BD_BRANCH` references from documentation
+- Remove `ISSUEGRAPH_BRANCH` references from documentation
 - Update `dolt-storage.md` design doc
 - Clean up orphaned branches from existing installations
 - **Test**: Full swarm (6+ agents), stress test with concurrent writes
@@ -354,8 +354,8 @@ The move to all-on-main **simplifies** federation:
   was hard to reason about when syncing with DoltHub remotes. All-on-main
   produces a cleaner commit history.
 
-- **Cross-rig bead visibility is immediate.** When rig A pushes to DoltHub,
-  rig B pulls and sees all beads. No branch reconciliation needed.
+- **Cross-rig issue visibility is immediate.** When rig A pushes to DoltHub,
+  rig B pulls and sees all issuegraph. No branch reconciliation needed.
 
 - **Federation transactions.** The same `BEGIN` ... `DOLT_COMMIT` pattern
   applies to federation sync: pull remote changes, resolve conflicts, commit.
@@ -366,10 +366,10 @@ The move to all-on-main **simplifies** federation:
 Wisps are `dolt_ignore`-d and never pushed. This is correct:
 
 - Wisps are ephemeral, worker-local operational state
-- Wisp digests (summaries) can optionally be crystallized into beads
+- Wisp digests (summaries) can optionally be crystallized into issuegraph
   and published to main for federation
 - The digest publication flow is already a separate operation that creates
-  a proper bead (not a wisp)
+  a proper issue (not a wisp)
 
 ## Implications for Standalone IssueGraph
 
@@ -389,8 +389,8 @@ Tim's guidance: **hundreds of transactions per second on a single branch.**
 
 Our workload:
 - Typical orchestrator rig: 6-12 concurrent agents (all roles combined)
-- Write patterns: create/update/close beads, ~1-10 writes per agent per minute
-- Read patterns: status queries, bead lookups, ~10-100 reads per agent per minute
+- Write patterns: create/update/close issuegraph, ~1-10 writes per agent per minute
+- Read patterns: status queries, issue lookups, ~10-100 reads per agent per minute
 - Total: ~60-120 writes/minute, ~600-1200 reads/minute at peak
 
 This is well within Dolt's single-branch capacity. Even at 10x scale (60+
@@ -425,10 +425,10 @@ far below the hundreds-per-second ceiling.
 
 - [Dolt Concurrency Architecture (DoltHub blog, 2026-02-18)](https://www.dolthub.com/blog/2026-02-18-dolt-concurrency/)
 - Tim Sehn email to Steve Yegge, 2026-02-21
-- `beads/internal/storage/dolt/store.go` — DoltStore, branch-per-worker init
-- `beads/internal/storage/dolt/transaction.go` — RunInTransaction
-- `beads/modules/cli/dolt_autocommit.go` — auto-commit wrapper
+- `issuegraph/internal/storage/dolt/store.go` — DoltStore, branch-per-worker init
+- `issuegraph/internal/storage/dolt/transaction.go` — RunInTransaction
+- `issuegraph/apps/cli/dolt_autocommit.go` — auto-commit wrapper
 - (Historical) Orchestrator `done.go` — merge flow (removed)
-- (Historical) Orchestrator `session_manager.go` — BD_BRANCH injection (removed)
-- (Historical) Orchestrator `bdbranch/` — BD_BRANCH safety analyzer (removed)
+- (Historical) Orchestrator `session_manager.go` — ISSUEGRAPH_BRANCH injection (removed)
+- (Historical) Orchestrator `bdbranch/` — ISSUEGRAPH_BRANCH safety analyzer (removed)
 - (Historical) Orchestrator issue: "Remove Dolt branch-per-worker entirely" (predates this design)

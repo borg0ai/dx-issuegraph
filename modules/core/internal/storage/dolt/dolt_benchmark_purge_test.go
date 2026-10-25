@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // findDroppedDirCmd locates the .dolt_dropped_databases directory anywhere in
@@ -96,7 +96,7 @@ func TestBenchDBPurgeDoesNotLeak(t *testing.T) {
 func requireLeakIsObservable(t *testing.T, ctx context.Context, ctr *testutil.IsolatedDoltContainer, admin *sql.DB, baseline int) {
 	t.Helper()
 
-	const controlDB = "beads_test_purge_control"
+	const controlDB = "issuegraph_test_purge_control"
 	if _, err := admin.ExecContext(ctx, "CREATE DATABASE `"+controlDB+"`"); err != nil {
 		t.Fatalf("control: create database: %v", err)
 	}
@@ -151,7 +151,7 @@ func requireDatabaseDropped(t *testing.T, ctx context.Context, admin *sql.DB, db
 
 // newPurgeRegressionStore creates a throwaway store against the test's own
 // Dolt container, mirroring setupBenchStore's schema-init shape without
-// setupBenchStore's BEADS_BENCH_DOLT_PORT opt-in — that opt-in firewalls real
+// setupBenchStore's ISSUEGRAPH_BENCH_DOLT_PORT opt-in — that opt-in firewalls real
 // `go test -bench` runs from ambient production Dolt ports (be-cfm3z) and is
 // never set in CI, so a regression test that must actually run under plain
 // `go test` cannot depend on it.

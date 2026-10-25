@@ -7,7 +7,7 @@ Configure your IDE or coding agent for optimal issuegraph integration.
 
 Last reviewed: 2026-07-10
 
-Freshness source: `modules/cli/setup*.go` and `internal/recipes/`.
+Freshness source: `apps/cli/setup*.go` and `internal/recipes/`.
 
 ## How `issuegraph setup` Works
 
@@ -23,19 +23,19 @@ issuegraph setup claude --remove    # Uninstall
 | Recipe | Files written | Details |
 |--------|---------------|---------|
 | `claude` | `.claude/settings.json` (or `~/.claude/settings.json` with `--global`) + `CLAUDE.md` section | [Claude Code](/integrations/claude-code) |
-| `cursor` | `.cursor/rules/beads.mdc` | [Cursor](/integrations/cursor) |
+| `cursor` | `.cursor/rules/issuegraph.mdc` | [Cursor](/integrations/cursor) |
 | `gemini` | `~/.gemini/settings.json` (or `.gemini/settings.json` with `--project`) + `GEMINI.md` section | [Gemini CLI](/integrations/gemini) |
 | `copilot` | `.copilot-plugin/plugin.json` + `.github/copilot-instructions.md` | [Copilot CLI](/integrations/copilot-cli) |
-| `codex` | `.agents/skills/beads/` + `AGENTS.md` section + `.codex/` hooks | [Codex](/integrations/codex) |
+| `codex` | `.agents/skills/issuegraph/` + `AGENTS.md` section + `.codex/` hooks | [Codex](/integrations/codex) |
 | `factory` | `AGENTS.md` section | [Factory.ai Droid](/integrations/factory) |
 | `mux` | `AGENTS.md` section (+ `.mux/` layers with `--project`/`--global`) | [Mux](/integrations/mux) |
 | `opencode` | `AGENTS.md` section | [OpenCode](/integrations/opencode) |
-| `aider` | `.aider.conf.yml` + `.aider/BEADS.md` + `.aider/README.md` | [Aider](/integrations/aider) |
+| `aider` | `.aider.conf.yml` + `.aider/ISSUEGRAPH.md` + `.aider/README.md` | [Aider](/integrations/aider) |
 | `junie` | `.junie/guidelines.md` + `.junie/mcp/mcp.json` | [Junie](/integrations/junie) |
-| `windsurf` | `.windsurf/rules/beads.md` | [Windsurf](/integrations/windsurf) |
-| `cody` | `.cody/rules/beads.md` | [Cody](/integrations/cody) |
-| `kilocode` | `.kilocode/rules/beads.md` | [Kilo Code](/integrations/kilocode) |
-| `kiro` | `.kiro/steering/beads.md` | [Kiro CLI](/integrations/kiro) |
+| `windsurf` | `.windsurf/rules/issuegraph.md` | [Windsurf](/integrations/windsurf) |
+| `cody` | `.cody/rules/issuegraph.md` | [Cody](/integrations/cody) |
+| `kilocode` | `.kilocode/rules/issuegraph.md` | [Kilo Code](/integrations/kilocode) |
+| `kiro` | `.kiro/steering/issuegraph.md` | [Kiro CLI](/integrations/kiro) |
 
 `issuegraph prime` is the single source of truth for operational workflow commands. Each integration's instruction file either points to `issuegraph prime` (hook-enabled agents) or carries the full command reference (AGENTS-first agents).
 
@@ -52,7 +52,7 @@ Each integration writes one of two **profiles** that control how much content go
 | `full` | Factory, Mux, OpenCode | Complete command reference, issue types, priorities, workflow |
 | `minimal` | Claude Code, GitHub Copilot CLI, Gemini CLI | Pointer to `issuegraph prime`, quick reference only (~60% smaller) |
 
-Hook-enabled agents use the `minimal` profile because `issuegraph prime` injects full context at session start. AGENTS-first agents use the `full` profile because their instruction file remains the primary integration surface. Codex is skill-based instead: it uses `.agents/skills/beads/SKILL.md`, with managed `AGENTS.md` guidance telling Codex when to use the skill.
+Hook-enabled agents use the `minimal` profile because `issuegraph prime` injects full context at session start. AGENTS-first agents use the `full` profile because their instruction file remains the primary integration surface. Codex is skill-based instead: it uses `.agents/skills/issuegraph/SKILL.md`, with managed `AGENTS.md` guidance telling Codex when to use the skill.
 
 **Profile precedence:** if a file already has a `full` profile section and a `minimal` profile tool installs to the same file (for example via symlinks), the `full` profile is preserved to avoid information loss.
 
@@ -64,23 +64,23 @@ Template profiles control how much text gets installed. Policy profiles control 
 |--------|---------------|----------------------|
 | `conservative` | Standalone projects, unknown projects, and one-off assistance | Use `issuegraph` for task tracking, then report changed files, validation, and proposed commands. Do not commit, push, or run Dolt remote sync without explicit user or orchestrator approval. |
 | `minimal` | Hook-first integrations where `issuegraph prime` carries the detailed workflow | Same git authority as conservative; the installed file stays short and points to `issuegraph prime`. |
-| `team-maintainer` | Repositories that explicitly delegate session close to agents | Agents may close beads, run quality gates, commit, run `issuegraph dolt push`, and `git push` as part of routine work. Current "do not commit" or "do not push" instructions still override the profile. |
+| `team-maintainer` | Repositories that explicitly delegate session close to agents | Agents may close issuegraph, run quality gates, commit, run `issuegraph dolt push`, and `git push` as part of routine work. Current "do not commit" or "do not push" instructions still override the profile. |
 
-The generated issuegraph section and `issuegraph prime` default to conservative git authority. Set the profile explicitly with the `agent.profile` config key or the `BD_AGENT_PROFILE` environment variable (values: `conservative`, `minimal`, `team-maintainer`; the env var takes precedence; an unrecognized value falls back to `conservative`):
+The generated issuegraph section and `issuegraph prime` default to conservative git authority. Set the profile explicitly with the `agent.profile` config key or the `ISSUEGRAPH_AGENT_PROFILE` environment variable (values: `conservative`, `minimal`, `team-maintainer`; the env var takes precedence; an unrecognized value falls back to `conservative`):
 
 ```bash
 issuegraph config set agent.profile team-maintainer
 # or, for a single session/process:
-BD_AGENT_PROFILE=team-maintainer issuegraph prime
+ISSUEGRAPH_AGENT_PROFILE=team-maintainer issuegraph prime
 ```
 
 `issuegraph prime` layers this explicit knob on top of its per-branch git-authority checks (stealth mode, no git remote, ephemeral branch, `no-push`); those hard constraints still take precedence, and `team-maintainer` remains subordinate to any explicit "do not commit"/"do not push" instruction. IssueGraph never infers team-maintainer authority merely because a remote exists — it must be set via this knob (or, for tools without config access, via top-level project instructions).
 
 ### Managed Sections
 
-`issuegraph setup factory`, `issuegraph setup mux`, and `issuegraph setup opencode` append an issuegraph section to `AGENTS.md`, wrapped in `BEGIN/END BEADS INTEGRATION` HTML-comment markers. The begin marker carries version, profile, and hash metadata (e.g. `<!-- BEGIN BEADS INTEGRATION v:1 profile:full hash:19cc25d9 -->`) so `--check` can report `missing`, `stale`, or `current`; legacy markers without metadata are auto-upgraded on the next install or update. Re-running setup updates the existing section in place (idempotent), and `--remove` deletes only the managed section — the rest of your `AGENTS.md` is untouched.
+`issuegraph setup factory`, `issuegraph setup mux`, and `issuegraph setup opencode` append an issuegraph section to `AGENTS.md`, wrapped in `BEGIN/END ISSUEGRAPH INTEGRATION` HTML-comment markers. The begin marker carries version, profile, and hash metadata (e.g. `<!-- BEGIN ISSUEGRAPH INTEGRATION v:1 profile:full hash:19cc25d9 -->`) so `--check` can report `missing`, `stale`, or `current`; legacy markers without metadata are auto-upgraded on the next install or update. Re-running setup updates the existing section in place (idempotent), and `--remove` deletes only the managed section — the rest of your `AGENTS.md` is untouched.
 
-`issuegraph setup codex` uses its own marker pair (`BEGIN/END BEADS CODEX SETUP`). Running it alongside `issuegraph setup factory` or `issuegraph setup mux` against the same `AGENTS.md` leaves two managed sections side by side; each recipe's `--check` inspects only its own section, and each `--remove` removes only its own section.
+`issuegraph setup codex` uses its own marker pair (`BEGIN/END ISSUEGRAPH CODEX SETUP`). Running it alongside `issuegraph setup factory` or `issuegraph setup mux` against the same `AGENTS.md` leaves two managed sections side by side; each recipe's `--check` inspects only its own section, and each `--remove` removes only its own section.
 
 One `AGENTS.md` works across many tools — Factory Droid, Mux, OpenCode, Cursor, Zed, Jules, and other AGENTS.md-aware assistants — so `issuegraph setup factory` is a good starting point when your team mixes AI tools.
 
@@ -146,7 +146,7 @@ If you prefer manual configuration, add the hook to your Claude Code settings:
 issuegraph setup cursor            # Always-applied rules file
 ```
 
-This creates `.cursor/rules/beads.mdc` with issuegraph-aware rules that Cursor
+This creates `.cursor/rules/issuegraph.mdc` with issuegraph-aware rules that Cursor
 re-includes every turn.
 
 **Verify:**
@@ -184,7 +184,7 @@ This writes three files:
 | File | Purpose |
 |------|---------|
 | `.aider.conf.yml` | Points Aider to read the instructions file |
-| `.aider/BEADS.md` | Workflow instructions for the AI |
+| `.aider/ISSUEGRAPH.md` | Workflow instructions for the AI |
 | `.aider/README.md` | Quick reference for humans |
 
 Aider is human-in-the-loop: the AI **suggests** `issuegraph` commands, and you run them with `/run`. See [Aider](/integrations/aider) for the workflow.
@@ -203,7 +203,7 @@ issuegraph setup opencode   # OpenCode — AGENTS.md section
 issuegraph setup codex      # Codex — issuegraph skill + AGENTS.md guidance + native hooks
 ```
 
-These create or update a managed section in `AGENTS.md` (see Managed Sections above). `issuegraph init` runs the project Codex setup automatically unless `--skip-agents` or `--stealth` is used. In worktree, shared, or `BEADS_DIR` setups, use `issuegraph where` to confirm the resolved workspace — these integrations do not require a local `./.beads`. Restart the tool after setup if it is already running.
+These create or update a managed section in `AGENTS.md` (see Managed Sections above). `issuegraph init` runs the project Codex setup automatically unless `--skip-agents` or `--stealth` is used. In worktree, shared, or `ISSUEGRAPH_DIR` setups, use `issuegraph where` to confirm the resolved workspace — these integrations do not require a local `./.issuegraph`. Restart the tool after setup if it is already running.
 
 Details: [Factory.ai Droid](/integrations/factory), [Mux](/integrations/mux), [OpenCode](/integrations/opencode), [Codex](/integrations/codex).
 
@@ -221,7 +221,7 @@ This installs a native Copilot CLI plugin manifest (`.copilot-plugin/plugin.json
 
 ```bash
 # Install MCP server
-uv tool install beads-mcp
+uv tool install issuegraph-mcp
 ```
 
 Create `.vscode/mcp.json` in your project:
@@ -229,8 +229,8 @@ Create `.vscode/mcp.json` in your project:
 ```json
 {
   "servers": {
-    "beads": {
-      "command": "beads-mcp"
+    "issuegraph": {
+      "command": "issuegraph-mcp"
     }
   }
 }
@@ -247,8 +247,8 @@ Create `.vscode/mcp.json` in your project:
 ```json
 {
   "servers": {
-    "beads": {
-      "command": "beads-mcp",
+    "issuegraph": {
+      "command": "issuegraph-mcp",
       "args": []
     }
   }
@@ -297,15 +297,15 @@ For MCP-only environments (Claude Desktop, no shell access):
 
 ```bash
 # Install MCP server
-pip install beads-mcp
+pip install issuegraph-mcp
 ```
 
 Add to Claude Desktop config:
 ```json
 {
   "mcpServers": {
-    "beads": {
-      "command": "beads-mcp"
+    "issuegraph": {
+      "command": "issuegraph-mcp"
     }
   }
 }
@@ -329,7 +329,7 @@ issuegraph setup myeditor --check                    # Check it
 issuegraph setup myeditor --remove                   # Remove it
 ```
 
-Custom recipes are stored in `.beads/recipes.toml` (adding one requires an active issuegraph workspace):
+Custom recipes are stored in `.issuegraph/recipes.toml` (adding one requires an active issuegraph workspace):
 
 ```toml
 [recipes.myeditor]
@@ -341,7 +341,7 @@ type = "file"
 For a one-off install without saving a recipe, write the template to any path — or inspect it first:
 
 ```bash
-issuegraph setup -o .my-custom-location/beads.md
+issuegraph setup -o .my-custom-location/issuegraph.md
 issuegraph setup --print
 ```
 

@@ -8,11 +8,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 const queryBatchSize = 200
@@ -501,7 +501,7 @@ type idSrcPage struct {
 // answer any question about the other rows. Three things say that was the wrong
 // verdict. The per-table seam has always resolved it the other way and says why
 // — "hard-erroring breaks every lookup city-wide" (issueops.searchInTx, and the
-// three sibling merges beside it, be-iabdi). `bd doctor` detects the state with
+// three sibling merges beside it, be-iabdi). `issuegraph doctor` detects the state with
 // a query of its own rather than by watching reads fail, so nothing is blinded
 // by answering; and its fix removes the stale ISSUES copy, calling the wisps row
 // canonical. And its own check text names the hard failure as the damage:
@@ -518,7 +518,7 @@ type idSrcPage struct {
 // search they need not be: legs carry the outer bound now (legWindowSQL), so a
 // durable copy inside the window whose wisp twin ranks past it survives the
 // scan and is reported. That is a corrupt store answering approximately, not a
-// second bug; the detector is `bd doctor`, not this loop.
+// second bug; the detector is `issuegraph doctor`, not this loop.
 func scanIDSrcPage(rows *sql.Rows) (idSrcPage, error) {
 	defer func() { _ = rows.Close() }()
 
@@ -717,10 +717,10 @@ func orderBySQL(sortBy string, sortDesc bool, prefix string) string {
 // matching row anyway, so skipping here is the same answer at the same cost.
 //
 // THE CALLERS THAT COMBINE AN OFFSET WITH A CAP are the ones that consume the
-// FILTER as a value and run their own query: proxied `bd list --watch`, with
+// FILTER as a value and run their own query: proxied `issuegraph list --watch`, with
 // and without --ready, and the proxied hierarchical --parent walk. They used to
 // get the engine's OFFSET and a cap counted on the survivors, which answered a
-// page for the very request `bd list --offset --max-rows` refuses one row of
+// page for the very request `issuegraph list --offset --max-rows` refuses one row of
 // result set earlier. The role that pages — issueops.Reader — hands this seam
 // no offset at all; it applies its own in the shared page epilogue for the
 // reason internal/workapi.FinishPageAt gives. The unit-of-work Querier does set

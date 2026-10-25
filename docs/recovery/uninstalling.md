@@ -8,11 +8,11 @@ binary from a machine.
 
 ## Before You Remove Data
 
-Removing `.beads/` permanently deletes the local Dolt database. If the issue
+Removing `.issuegraph/` permanently deletes the local Dolt database. If the issue
 history matters, make a Dolt-native backup first:
 
 ```bash
-issuegraph backup init /path/to/beads-backup
+issuegraph backup init /path/to/issuegraph-backup
 issuegraph backup sync
 ```
 
@@ -20,7 +20,7 @@ For review, migration, or interoperability, you can also write an issue-table
 export:
 
 ```bash
-issuegraph export -o ~/beads-issues-$(date +%Y%m%d).jsonl
+issuegraph export -o ~/issuegraph-issues-$(date +%Y%m%d).jsonl
 ```
 
 `issuegraph export` is not a complete restorable database backup. It does not preserve
@@ -43,9 +43,9 @@ issuegraph admin reset --force
 
 This removes issuegraph-managed repository data such as:
 
-- the `.beads/` directory
+- the `.issuegraph/` directory
 - git hooks that issuegraph installed in full
-- legacy issuegraph sync worktrees under `.git/beads-worktrees/`
+- legacy issuegraph sync worktrees under `.git/issuegraph-worktrees/`
 
 Reset works on whole hook files, not on sections. A hook of your own that
 issuegraph injected a section into is left in place and reported, because deleting
@@ -85,7 +85,7 @@ available to tell the difference for you.
 List which of them exist and what issuegraph left in them:
 
 ```bash
-grep -l -e 'bd-hooks-version:' -e 'bd-shim' -e 'bd (beads)' -e 'BEGIN BEADS INTEGRATION' \
+grep -l -e 'issuegraph-hooks-version:' -e 'issuegraph-shim' -e 'issuegraph (issuegraph)' -e 'BEGIN ISSUEGRAPH INTEGRATION' \
   .git/hooks/pre-commit .git/hooks/prepare-commit-msg .git/hooks/post-merge \
   .git/hooks/pre-push .git/hooks/post-checkout 2>/dev/null
 ```
@@ -93,9 +93,9 @@ grep -l -e 'bd-hooks-version:' -e 'bd-shim' -e 'bd (beads)' -e 'BEGIN BEADS INTE
 Open each file that matched and decide from what is in it:
 
 - A file whose **whole content** issuegraph generated carries a
-  `# bd-hooks-version:`, `# bd-shim`, or `# bd (beads)` line and has nothing
+  `# issuegraph-hooks-version:`, `# issuegraph-shim`, or `# issuegraph (issuegraph)` line and has nothing
   else in it but the shebang. Delete that one: `rm -f .git/hooks/<name>`.
-- A file of yours with a `# --- BEGIN BEADS INTEGRATION ... ---` block in it is
+- A file of yours with a `# --- BEGIN ISSUEGRAPH INTEGRATION ... ---` block in it is
   **your** file. Edit it: remove the lines from the `BEGIN` marker to the `END`
   marker, keep the rest, and leave the file in place. Comments of yours around
   the block count — a hook that is a header comment plus issuegraph's block is still
@@ -109,10 +109,10 @@ make the file issuegraph's.
 
 ```bash
 # Remove the local issuegraph database and config.
-rm -rf .beads
+rm -rf .issuegraph
 
 # Remove legacy sync-branch worktrees from older issuegraph versions.
-rm -rf .git/beads-worktrees
+rm -rf .git/issuegraph-worktrees
 git worktree prune
 ```
 
@@ -122,20 +122,20 @@ If it contains other project entries, edit out only the issuegraph line.
 If issuegraph-specific git config remains, remove it:
 
 ```bash
-git config --unset beads.role 2>/dev/null || true
+git config --unset issuegraph.role 2>/dev/null || true
 git config --unset core.hooksPath 2>/dev/null || true
-git config --unset merge.beads.driver 2>/dev/null || true
-git config --unset merge.beads.name 2>/dev/null || true
+git config --unset merge.issuegraph.driver 2>/dev/null || true
+git config --unset merge.issuegraph.name 2>/dev/null || true
 ```
 
 Do not skip `core.hooksPath`: if it is left set, git keeps looking for a
 hooks directory that no longer exists, and issuegraph's post-checkout import can
-recreate a `.beads/` workspace under the old prefix.
+recreate a `.issuegraph/` workspace under the old prefix.
 
 Check the value first, though — `core.hooksPath` is not issuegraph-only. If
 `git config --get core.hooksPath` reports a directory that belongs to another
-hook manager (husky's `.husky/_`, for example) rather than `.beads/hooks` or
-`.beads-hooks`, leave it alone; unsetting it would disable that tool's hooks
+hook manager (husky's `.husky/_`, for example) rather than `.issuegraph/hooks` or
+`.issuegraph-hooks`, leave it alone; unsetting it would disable that tool's hooks
 too. `issuegraph doctor` applies the same rule and will not touch a hooks path it did
 not set.
 
@@ -145,7 +145,7 @@ The CLI is a standalone binary. Remove it according to how it was installed:
 
 ```bash
 # Homebrew
-brew uninstall beads
+brew uninstall issuegraph
 
 # Go install
 rm -f "$(which issuegraph)"
@@ -161,9 +161,9 @@ you used to install it.
 
 ```bash
 which issuegraph
-test ! -e .beads
+test ! -e .issuegraph
 issuegraph hooks list 2>/dev/null || true
-git config --get merge.beads.driver
+git config --get merge.issuegraph.driver
 ```
 
 ## Reinstall Later

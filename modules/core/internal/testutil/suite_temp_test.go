@@ -19,7 +19,7 @@ func TestPinSuiteTempRootRedirectsMkdirTemp(t *testing.T) {
 		_ = os.Setenv("TEMP", oldTEMP)
 	})
 
-	root, err := PinSuiteTempRoot("beads-pin-suite-*")
+	root, err := PinSuiteTempRoot("issuegraph-pin-suite-*")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The settings-write rules, checked without a database.
@@ -26,10 +26,10 @@ func TestValidateSettingKeyRefusesOnlyTheEmptyKey(t *testing.T) {
 	for _, key := range []string{
 		"custom.anything",
 		"status.custom",
-		"export.auto", // yaml-only at the front door, but not this plane's call
-		"beads.role",  // git config at the front door, likewise
-		"  padded  ",  // stored verbatim, untrimmed
-		"Mixed.Case",  // no case folding
+		"export.auto",     // yaml-only at the front door, but not this plane's call
+		"issuegraph.role", // git config at the front door, likewise
+		"  padded  ",      // stored verbatim, untrimmed
+		"Mixed.Case",      // no case folding
 	} {
 		got, err := ValidateSettingKey(key)
 		if err != nil {
@@ -43,13 +43,13 @@ func TestValidateSettingKeyRefusesOnlyTheEmptyKey(t *testing.T) {
 
 func TestValidateSettingWriteRefusesTheProtectedKeyInBothSpellings(t *testing.T) {
 	for _, key := range []string{"issue_prefix", "issue-prefix"} {
-		_, err := ValidateSettingWrite(key, "bd")
+		_, err := ValidateSettingWrite(key, "issuegraph")
 		if !errors.Is(err, issueops.ErrValidation) {
 			t.Fatalf("ValidateSettingWrite(%q) error = %v, want ErrValidation", key, err)
 		}
 		// The message names the commands that DO own the prefix, so a caller is
 		// not left hunting for a flag on the verb that just refused them.
-		for _, want := range []string{"bd init --prefix", "bd bootstrap", "bd rename-prefix"} {
+		for _, want := range []string{"issuegraph init --prefix", "issuegraph bootstrap", "issuegraph rename-prefix"} {
 			if !strings.Contains(err.Error(), want) {
 				t.Errorf("ValidateSettingWrite(%q) message %q does not name %q", key, err, want)
 			}
@@ -110,10 +110,10 @@ func TestValidateSettingWriteReturnsTheValueUnchanged(t *testing.T) {
 // constant, a match that is not anchored, a "kv" that is not "kv.".
 func TestFilterSettingsEnumerationDropsTheWholeKVPrefix(t *testing.T) {
 	stored := map[string]string{
-		"issue_prefix":                 "bd",
+		"issue_prefix":                 "issuegraph",
 		"custom.thing":                 "kept",
 		"status.custom":                "awaiting_review",
-		"kv.deploy-token":              "a generic bd kv row",
+		"kv.deploy-token":              "a generic issuegraph kv row",
 		"kv.memory.architecture":       "the deploy token is sk-live-000",
 		"kv.memory.issue_prefix":       "a memory shadowing a settings name",
 		"kvetch":                       "not the prefix: kv. carries the dot",
@@ -121,7 +121,7 @@ func TestFilterSettingsEnumerationDropsTheWholeKVPrefix(t *testing.T) {
 		"custom.mentions.kv.somewhere": "the prefix has to be at the front",
 	}
 	want := map[string]string{
-		"issue_prefix":                 "bd",
+		"issue_prefix":                 "issuegraph",
 		"custom.thing":                 "kept",
 		"status.custom":                "awaiting_review",
 		"kvetch":                       "not the prefix: kv. carries the dot",

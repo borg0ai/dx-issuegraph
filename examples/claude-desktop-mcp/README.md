@@ -1,6 +1,6 @@
 # Claude Desktop MCP Server for IssueGraph
 
-> **Note**: The issuegraph MCP server is now fully implemented! See [integrations/beads-mcp](../../integrations/beads-mcp/) for the production implementation.
+> **Note**: The issuegraph MCP server is now fully implemented! See [integrations/issuegraph-mcp](../../integrations/issuegraph-mcp/) for the production implementation.
 
 > **Recommendation**: For environments with shell access (Claude Code, Cursor, Windsurf), use **CLI + hooks** instead of MCP. It uses ~1-2k tokens vs 10-50k for MCP schemas, resulting in lower compute cost and latency. **Use MCP only for MCP-only environments** like Claude Desktop where CLI is unavailable.
 
@@ -18,10 +18,10 @@ Install the issuegraph MCP server:
 
 ```bash
 # Using uv (recommended)
-uv tool install beads-mcp
+uv tool install issuegraph-mcp
 
 # Or using pip
-pip install beads-mcp
+pip install issuegraph-mcp
 ```
 
 Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
@@ -29,8 +29,8 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 ```json
 {
   "mcpServers": {
-    "beads": {
-      "command": "beads-mcp"
+    "issuegraph": {
+      "command": "issuegraph-mcp"
     }
   }
 }
@@ -40,7 +40,7 @@ Restart Claude Desktop and you're done! Claude can now manage your issuegraph is
 
 ## Full Documentation
 
-See the [beads-mcp README](../../integrations/beads-mcp/README.md) for:
+See the [issuegraph-mcp README](../../integrations/issuegraph-mcp/README.md) for:
 - Installation instructions
 - Configuration options
 - Environment variables
@@ -57,7 +57,7 @@ See the [beads-mcp README](../../integrations/beads-mcp/README.md) for:
 
 // Find ready work
 {
-  "name": "beads_ready_work",
+  "name": "issuegraph_ready_work",
   "description": "Find issues with no blocking dependencies",
   "parameters": {
     "limit": "number",
@@ -68,7 +68,7 @@ See the [beads-mcp README](../../integrations/beads-mcp/README.md) for:
 
 // Create issue
 {
-  "name": "beads_create_issue",
+  "name": "issuegraph_create_issue",
   "description": "Create a new issue",
   "parameters": {
     "title": "string",
@@ -80,7 +80,7 @@ See the [beads-mcp README](../../integrations/beads-mcp/README.md) for:
 
 // Update issue
 {
-  "name": "beads_update_issue",
+  "name": "issuegraph_update_issue",
   "description": "Update issue status or fields",
   "parameters": {
     "id": "string",
@@ -92,7 +92,7 @@ See the [beads-mcp README](../../integrations/beads-mcp/README.md) for:
 
 // Add dependency
 {
-  "name": "beads_add_dependency",
+  "name": "issuegraph_add_dependency",
   "description": "Link issues with dependencies",
   "parameters": {
     "from": "string (issue ID)",
@@ -110,7 +110,7 @@ See the [beads-mcp README](../../integrations/beads-mcp/README.md) for:
    - Check for ready work: "What should I work on next?"
    - Create issues: "I found a bug, let me track it"
    - Link discoveries: "This is related to the issue we're working on"
-   - Update status: "Marking bd-5 as completed"
+   - Update status: "Marking issuegraph-5 as completed"
 
 ## Example Conversation
 
@@ -118,19 +118,19 @@ See the [beads-mcp README](../../integrations/beads-mcp/README.md) for:
 User: What's ready to work on?
 
 Claude: Let me check the ready work queue...
-[Calls beads_ready_work()]
+[Calls issuegraph_ready_work()]
 
 I found 3 ready issues:
-1. bd-12: Fix authentication bug (priority 0, bug)
-2. bd-15: Add dark mode toggle (priority 1, feature)
-3. bd-18: Update documentation (priority 2, task)
+1. issuegraph-12: Fix authentication bug (priority 0, bug)
+2. issuegraph-15: Add dark mode toggle (priority 1, feature)
+3. issuegraph-18: Update documentation (priority 2, task)
 
 Which would you like to work on?
 
-User: Let's do bd-12
+User: Let's do issuegraph-12
 
-Claude: Great! I'll mark bd-12 as in progress.
-[Calls beads_update_issue("bd-12", status="in_progress")]
+Claude: Great! I'll mark issuegraph-12 as in progress.
+[Calls issuegraph_update_issue("issuegraph-12", status="in_progress")]
 
 Let me investigate the authentication code...
 [Works on the issue]
@@ -139,11 +139,11 @@ I found the bug in auth.js:45 - there's a race condition. While fixing this, I n
 
 User: Yes please
 
-Claude: [Calls beads_create_issue("Add rate limiting to auth endpoints", type="task", priority=1)]
-Created bd-23: Add rate limiting to auth endpoints
+Claude: [Calls issuegraph_create_issue("Add rate limiting to auth endpoints", type="task", priority=1)]
+Created issuegraph-23: Add rate limiting to auth endpoints
 
-[Calls beads_add_dependency("bd-23", "bd-12", type="discovered-from")]
-Linked bd-23 as discovered from bd-12
+[Calls issuegraph_add_dependency("issuegraph-23", "issuegraph-12", type="discovered-from")]
+Linked issuegraph-23 as discovered from issuegraph-12
 
 Now I'll complete the auth bug fix...
 ```
@@ -167,12 +167,12 @@ import { promisify } from "util";
 const execAsync = promisify(exec);
 
 const server = new Server({
-  name: "beads",
+  name: "issuegraph",
   version: "1.0.0"
 });
 
 // Register ready work tool
-server.tool("beads_ready_work", async (params) => {
+server.tool("issuegraph_ready_work", async (params) => {
   const { stdout } = await execAsync(
     `issuegraph ready --json --limit ${params.limit || 10}`
   );
@@ -180,7 +180,7 @@ server.tool("beads_ready_work", async (params) => {
 });
 
 // Register create issue tool
-server.tool("beads_create_issue", async (params) => {
+server.tool("issuegraph_create_issue", async (params) => {
   const { stdout } = await execAsync(
     `issuegraph create "${params.title}" -d "${params.description}" -p ${params.priority} -t ${params.type} --json`
   );
@@ -196,14 +196,14 @@ server.start();
 
 ```bash
 # Install the MCP server
-npm install -g beads-mcp-server
+npm install -g issuegraph-mcp-server
 
 # Configure Claude Desktop
 # Add to ~/Library/Application Support/Claude/claude_desktop_config.json
 {
   "mcpServers": {
-    "beads": {
-      "command": "beads-mcp-server",
+    "issuegraph": {
+      "command": "issuegraph-mcp-server",
       "args": []
     }
   }
@@ -223,9 +223,9 @@ We use IssueGraph (issuegraph) for issue tracking. Available commands:
 
 - `issuegraph ready --json` - Find ready work
 - `issuegraph create "title" -p 1 -t bug --json` - Create issue
-- `issuegraph update bd-1 --status in_progress --json` - Update status
-- `issuegraph dep add bd-2 bd-1 --type discovered-from` - Link issues
-- `issuegraph close bd-1 --reason "Done" --json` - Complete work
+- `issuegraph update issuegraph-1 --status in_progress --json` - Update status
+- `issuegraph dep add issuegraph-2 issuegraph-1 --type discovered-from` - Link issues
+- `issuegraph close issuegraph-1 --reason "Done" --json` - Complete work
 
 All commands support --json for parsing. Please use issuegraph to track work during our sessions.
 ```

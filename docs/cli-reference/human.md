@@ -1,41 +1,44 @@
 ---
-title: "bd human"
-description: "Display a focused help menu showing only the most common commands."
+title: "issuegraph human"
+description: "Show essential commands for human users"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc human`.
+Generated from `issuegraph help --doc human`.
 
 Display a focused help menu showing only the most common commands.
 
-bd has 70+ commands - many for AI agents, integrations, and advanced workflows.
+issuegraph has 70+ commands - many for AI agents, integrations, and advanced workflows.
 This command shows the ~15 essential commands that human users need most often.
 
-For the full command list, run: bd --help
+For the full command list, run: issuegraph --help
 
 SUBCOMMANDS:
-  human list              List all human-needed beads (issues with 'human' label)
-  human respond &lt;id&gt;      Respond to a human-needed bead (adds comment and closes)
-  human dismiss &lt;id&gt;      Dismiss a human-needed bead permanently
-  human stats             Show summary statistics for human-needed beads
+  human list              List human-needed issuegraph (issues with 'human' label; hides closed by default)
+  human respond &lt;id&gt;      Respond to a human-needed issue (adds comment and closes)
+  human dismiss &lt;id&gt;      Dismiss a human-needed issue permanently
+  human stats             Show summary statistics for human-needed issuegraph
 
 ```
-bd human [flags]
+issuegraph human [flags]
+issuegraph human [command]
 ```
 
-## bd human dismiss
+## issuegraph human dismiss
 
-Dismiss a human-needed bead permanently without responding.
+Dismiss a human-needed issue permanently without responding.
 
 The issue is closed with a "Dismissed" reason and optional note.
+The reason can be given as positional arguments or --reason.
 
 Examples:
-  bd human dismiss bd-123
-  bd human dismiss bd-123 --reason "No longer applicable"
+  issuegraph human dismiss bd-123
+  issuegraph human dismiss bd-123 "No longer applicable"
+  issuegraph human dismiss bd-123 --reason "No longer applicable"
 
 ```
-bd human dismiss <issue-id> [flags]
+issuegraph human dismiss <issue-id> [reason...] [flags]
 ```
 
 **Flags:**
@@ -44,57 +47,67 @@ bd human dismiss <issue-id> [flags]
       --reason string   Reason for dismissal (optional)
 ```
 
-## bd human list
+## issuegraph human list
 
-List all issues labeled with 'human' tag.
+List issues labeled with 'human' tag.
 
-These are issues that require human intervention or input.
+These are issues that require human intervention or input. Every
+human-labeled issue shows regardless of type (including gates and wisps).
+By default closed, pinned, and other done/frozen issuegraph are hidden; use
+--status to select specific statuses, or --status=all to include every
+status.
 
 Examples:
-  bd human list
-  bd human list --status=open
-  bd human list --json
+  issuegraph human list
+  issuegraph human list --status=closed
+  issuegraph human list --status=all
+  issuegraph human list --json
 
 ```
-bd human list [flags]
+issuegraph human list [flags]
 ```
 
 **Flags:**
 
 ```
-  -s, --status string   Filter by status (open, closed, etc.)
+  -s, --status string   Filter by status (open, closed, etc.; comma-separated for multiple, 'all' for every status)
 ```
 
-## bd human respond
+## issuegraph human respond
 
-Respond to a human-needed bead by adding a comment and closing it.
+Respond to a human-needed issue by adding a comment and closing it.
 
 The response is added as a comment and the issue is closed with reason "Responded".
+The response text can be given as positional arguments, --response, --file, or --stdin.
 
 Examples:
-  bd human respond bd-123 --response "Use OAuth2 for authentication"
-  bd human respond bd-123 -r "Approved, proceed with implementation"
+  issuegraph human respond bd-123 "Use OAuth2 for authentication"
+  issuegraph human respond bd-123 -r "Approved, proceed with implementation"
+  issuegraph human respond bd-123 --file response.md
+  echo "Approved" | issuegraph human respond bd-123 --stdin
 
 ```
-bd human respond <issue-id> [flags]
+issuegraph human respond <issue-id> [response...] [flags]
 ```
 
 **Flags:**
 
 ```
-  -r, --response string   Response text (required)
+      --file string       Read response text from file
+  -r, --response string   Response text
+      --stdin             Read response text from stdin
 ```
 
-## bd human stats
+## issuegraph human stats
 
-Display summary statistics for human-needed beads.
+Display summary statistics for human-needed issuegraph.
 
 Shows counts for total, pending (open), responded (closed without dismiss),
-and dismissed beads.
+and dismissed issuegraph.
 
 Example:
-  bd human stats
+  issuegraph human stats
 
 ```
-bd human stats [flags]
+issuegraph human stats [flags]
 ```

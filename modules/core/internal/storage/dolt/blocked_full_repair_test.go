@@ -15,7 +15,7 @@ package dolt
 // issue parent) with exact corrected-row counts; this test pins the
 // remaining legs, which would otherwise have no full-repair coverage.
 //
-// What the differential half proves narrowed in gastownhall/beads#6291: both
+// What the differential half proves narrowed in borg0ai/dx-issuegraph#6291: both
 // sides — the ground-truth producer (batched templates) and the system under
 // test (full repair) — now render from the one shouldBeBlockedIDsUnionSQL
 // builder, so write-path-vs-full-repair agreement no longer cross-checks two
@@ -31,8 +31,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func readIsBlockedFlags(t *testing.T, ctx context.Context, store *DoltStore, table string) map[string]bool {

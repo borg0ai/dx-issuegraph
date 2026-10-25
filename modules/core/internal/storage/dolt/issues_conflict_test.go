@@ -201,7 +201,7 @@ func TestTryAutoResolveMergeConflicts_IssuesConcurrentContestedCellLWW(t *testin
 
 // TestTryAutoResolveMergeConflicts_IssuesDisjointFieldsMerge is the flagship
 // case (federation ask #1): both sides edited the same issue since the merge
-// base but touched DIFFERENT fields. The row conflicts only because every bd
+// base but touched DIFFERENT fields. The row conflicts only because every issuegraph
 // mutation stamps updated_at, so a row-level resolver would have to drop one
 // side's edit — the field-level merge keeps both.
 func TestTryAutoResolveMergeConflicts_IssuesDisjointFieldsMerge(t *testing.T) {

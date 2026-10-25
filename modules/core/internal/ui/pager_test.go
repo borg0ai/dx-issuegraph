@@ -62,9 +62,9 @@ func TestShouldUsePager(t *testing.T) {
 			wantPager: false,
 		},
 		{
-			name:      "BD_NO_PAGER env set",
+			name:      "ISSUEGRAPH_NO_PAGER env set",
 			opts:      PagerOptions{NoPager: false},
-			envVars:   map[string]string{"BD_NO_PAGER": "1"},
+			envVars:   map[string]string{"ISSUEGRAPH_NO_PAGER": "1"},
 			wantPager: false,
 		},
 	}
@@ -98,8 +98,8 @@ func TestGetPagerCommand(t *testing.T) {
 			wantPager: "less",
 		},
 		{
-			name:      "BD_PAGER set",
-			envVars:   map[string]string{"BD_PAGER": "more"},
+			name:      "ISSUEGRAPH_PAGER set",
+			envVars:   map[string]string{"ISSUEGRAPH_PAGER": "more"},
 			wantPager: "more",
 		},
 		{
@@ -108,8 +108,8 @@ func TestGetPagerCommand(t *testing.T) {
 			wantPager: "cat",
 		},
 		{
-			name:      "BD_PAGER takes precedence over PAGER",
-			envVars:   map[string]string{"BD_PAGER": "more", "PAGER": "cat"},
+			name:      "ISSUEGRAPH_PAGER takes precedence over PAGER",
+			envVars:   map[string]string{"ISSUEGRAPH_PAGER": "more", "PAGER": "cat"},
 			wantPager: "more",
 		},
 	}
@@ -117,13 +117,13 @@ func TestGetPagerCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Save and clear relevant env vars
-			oldBdPager := os.Getenv("BD_PAGER")
+			oldBdPager := os.Getenv("ISSUEGRAPH_PAGER")
 			oldPager := os.Getenv("PAGER")
-			os.Unsetenv("BD_PAGER")
+			os.Unsetenv("ISSUEGRAPH_PAGER")
 			os.Unsetenv("PAGER")
 			defer func() {
 				if oldBdPager != "" {
-					os.Setenv("BD_PAGER", oldBdPager)
+					os.Setenv("ISSUEGRAPH_PAGER", oldBdPager)
 				}
 				if oldPager != "" {
 					os.Setenv("PAGER", oldPager)
@@ -156,13 +156,13 @@ func TestToPagerNoPagerOption(t *testing.T) {
 }
 
 func TestToPagerWithBdNoPagerEnv(t *testing.T) {
-	oldVal := os.Getenv("BD_NO_PAGER")
-	os.Setenv("BD_NO_PAGER", "1")
+	oldVal := os.Getenv("ISSUEGRAPH_NO_PAGER")
+	os.Setenv("ISSUEGRAPH_NO_PAGER", "1")
 	defer func() {
 		if oldVal != "" {
-			os.Setenv("BD_NO_PAGER", oldVal)
+			os.Setenv("ISSUEGRAPH_NO_PAGER", oldVal)
 		} else {
-			os.Unsetenv("BD_NO_PAGER")
+			os.Unsetenv("ISSUEGRAPH_NO_PAGER")
 		}
 	}()
 

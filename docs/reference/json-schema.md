@@ -5,11 +5,11 @@ description: The stable JSON output contract for issuegraph --json commands, cov
 
 Last reviewed: 2026-08-07
 
-Freshness source: `modules/cli/output.go`, `modules/cli/errors.go`, and
-`modules/cli/protocol/json_contract_test.go`.
+Freshness source: `apps/cli/output.go`, `apps/cli/errors.go`, and
+`apps/cli/protocol/json_contract_test.go`.
 
 All `issuegraph` commands that support `--json` output can wrap their response in
-a uniform envelope by setting `BD_JSON_ENVELOPE=1`. This will become the
+a uniform envelope by setting `ISSUEGRAPH_JSON_ENVELOPE=1`. This will become the
 default format in v2.0.
 
 ## Migration Guide
@@ -17,10 +17,10 @@ default format in v2.0.
 ### Opt in to the envelope format
 
 ```bash
-export BD_JSON_ENVELOPE=1
+export ISSUEGRAPH_JSON_ENVELOPE=1
 ```
 
-### Envelope format (BD_JSON_ENVELOPE=1, default in v2.0)
+### Envelope format (ISSUEGRAPH_JSON_ENVELOPE=1, default in v2.0)
 
 Every `--json` command wraps output as:
 
@@ -46,11 +46,11 @@ the result was not truncated. Legacy mode keeps the stderr text hint instead.
 ```bash
 # Before (legacy):
 issuegraph list --json | jq '.[0].id'
-issuegraph show beads-abc --json | jq '.[0].title'
+issuegraph show issuegraph-abc --json | jq '.[0].title'
 
 # After (envelope):
 issuegraph list --json | jq '.data[0].id'
-issuegraph show beads-abc --json | jq '.data[0].title'
+issuegraph show issuegraph-abc --json | jq '.data[0].title'
 
 # Version check (object commands, e.g. create):
 issuegraph create "Example" --json | jq '.schema_version'
@@ -58,11 +58,11 @@ issuegraph create "Example" --json | jq '.schema_version'
 
 ### Timeline
 
-- **Current release**: Legacy format is default. Set `BD_JSON_ENVELOPE=1` to opt in.
+- **Current release**: Legacy format is default. Set `ISSUEGRAPH_JSON_ENVELOPE=1` to opt in.
   A deprecation notice is printed to stderr when `--json` is used without the env
   var — but only when stderr is a terminal, and at most once per invocation, so
   scripts capturing stderr will not see it.
-- **v2.0**: Envelope becomes the default. `BD_JSON_ENVELOPE=0` available as
+- **v2.0**: Envelope becomes the default. `ISSUEGRAPH_JSON_ENVELOPE=0` available as
   temporary escape hatch for one release cycle.
 
 ## Schema Version
@@ -78,7 +78,7 @@ Additive changes (new optional fields) do NOT bump the version.
 
 ## Output Formats
 
-### Envelope mode (BD_JSON_ENVELOPE=1)
+### Envelope mode (ISSUEGRAPH_JSON_ENVELOPE=1)
 
 All commands emit a uniform envelope:
 
@@ -86,7 +86,7 @@ All commands emit a uniform envelope:
 {
   "schema_version": 1,
   "data": {
-    "id": "beads-abc",
+    "id": "issuegraph-abc",
     "title": "Example issue",
     "status": "open"
   }
@@ -99,8 +99,8 @@ Arrays are wrapped the same way:
 {
   "schema_version": 1,
   "data": [
-    {"id": "beads-abc", "title": "First"},
-    {"id": "beads-def", "title": "Second"}
+    {"id": "issuegraph-abc", "title": "First"},
+    {"id": "issuegraph-def", "title": "Second"}
   ]
 }
 ```
@@ -115,7 +115,7 @@ Commands that return a single result emit a JSON object with
 ```json
 {
   "schema_version": 1,
-  "id": "beads-abc",
+  "id": "issuegraph-abc",
   "title": "Example issue",
   "status": "open",
   "priority": 1,
@@ -132,8 +132,8 @@ Array output carries no top-level `schema_version` field:
 
 ```json
 [
-  {"id": "beads-abc", "title": "First", ...},
-  {"id": "beads-def", "title": "Second", ...}
+  {"id": "issuegraph-abc", "title": "First", ...},
+  {"id": "issuegraph-def", "title": "Second", ...}
 ]
 ```
 
@@ -145,14 +145,14 @@ though some command-result error paths emit the same shape to stdout:
 ```json
 {
   "schema_version": 1,
-  "error": "issue not found: beads-xyz",
+  "error": "issue not found: issuegraph-xyz",
   "code": "not_found"
 }
 ```
 
 `code` and `hint` (a remediation suggestion) are both optional — only
 `error` and `schema_version` are always present. In envelope mode
-(`BD_JSON_ENVELOPE=1`) the error payload moves inside the envelope:
+(`ISSUEGRAPH_JSON_ENVELOPE=1`) the error payload moves inside the envelope:
 `{"schema_version": 1, "data": {"error": ..., "code": ..., "hint": ...}}`.
 JSON-mode errors exit with code 1.
 
@@ -161,7 +161,7 @@ JSON-mode errors exit with code 1.
 ### issuegraph list --json
 
 Required fields per item:
-- `id` (string): Issue ID (e.g., "beads-abc")
+- `id` (string): Issue ID (e.g., "issuegraph-abc")
 - `title` (string): Issue title
 - `status` (string): open, in_progress, closed, deferred
 - `priority` (number): 0-4
@@ -231,7 +231,7 @@ Each line is a self-contained issue or memory record, discriminated by
 `_type` (`"issue"` / `"memory"`). Export lines do **not** carry
 `schema_version` — that field belongs to the `--json` command envelope,
 not to the interchange stream. The interchange's own version marker is the
-optional `_schema` header record (`{"_schema":"beads-jsonl/1"}`), which
+optional `_schema` header record (`{"_schema":"issuegraph-jsonl/1"}`), which
 readers skip.
 
 Issue records carry an optional `wisp_plane` boolean: the explicit

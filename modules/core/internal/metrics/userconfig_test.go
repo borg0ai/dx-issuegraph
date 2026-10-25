@@ -20,7 +20,7 @@ func setupUserConfigHome(t *testing.T) string {
 }
 
 func userConfigPath(home string) string {
-	return filepath.Join(home, ".config", "bd", "config.yaml")
+	return filepath.Join(home, ".config", "issuegraph", "config.yaml")
 }
 
 func parseUserConfig(t *testing.T, path string) map[string]interface{} {

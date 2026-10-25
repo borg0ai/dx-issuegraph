@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The pure half of the tree walk: the request vocabulary, the ancestor-keeping
@@ -15,7 +15,7 @@ import (
 // asks for when a role's body has to live at transaction level.
 //
 // TestPruneTreeByStatus and the TestMergeBidirectionalTree_* family MOVED HERE
-// from modules/cli/dep_test.go with the functions they exercise.
+// from apps/cli/dep_test.go with the functions they exercise.
 
 func TestPruneTreeByStatus(t *testing.T) {
 	tree := []*types.TreeNode{

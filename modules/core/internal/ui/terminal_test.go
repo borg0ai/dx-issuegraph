@@ -107,7 +107,7 @@ func TestShouldUseColor(t *testing.T) {
 
 func TestShouldUseHyperlinks(t *testing.T) {
 	envKeys := []string{
-		"BD_GIT_HOOK",
+		"ISSUEGRAPH_GIT_HOOK",
 		"NO_COLOR",
 		"CLICOLOR",
 		"FORCE_HYPERLINK",
@@ -147,12 +147,12 @@ func TestShouldUseHyperlinks(t *testing.T) {
 	}
 
 	os.Setenv("TERM", "xterm-256color")
-	os.Setenv("BD_GIT_HOOK", "1")
+	os.Setenv("ISSUEGRAPH_GIT_HOOK", "1")
 	if ShouldUseHyperlinks() {
-		t.Fatal("BD_GIT_HOOK should disable hyperlinks")
+		t.Fatal("ISSUEGRAPH_GIT_HOOK should disable hyperlinks")
 	}
 
-	os.Unsetenv("BD_GIT_HOOK")
+	os.Unsetenv("ISSUEGRAPH_GIT_HOOK")
 	os.Unsetenv("FORCE_HYPERLINK")
 	os.Setenv("TERM", "xterm-256color")
 	os.Setenv("WT_SESSION", "windows-terminal-session")
@@ -175,8 +175,8 @@ func TestShouldUseHyperlinks(t *testing.T) {
 
 func TestShouldUseEmoji(t *testing.T) {
 	// Save original env var
-	origNoEmoji := os.Getenv("BD_NO_EMOJI")
-	defer setEnv("BD_NO_EMOJI", origNoEmoji)
+	origNoEmoji := os.Getenv("ISSUEGRAPH_NO_EMOJI")
+	defer setEnv("ISSUEGRAPH_NO_EMOJI", origNoEmoji)
 
 	tests := []struct {
 		name      string
@@ -184,12 +184,12 @@ func TestShouldUseEmoji(t *testing.T) {
 		wantEmoji bool
 	}{
 		{
-			name:      "BD_NO_EMOJI disables emoji",
+			name:      "ISSUEGRAPH_NO_EMOJI disables emoji",
 			noEmoji:   "1",
 			wantEmoji: false,
 		},
 		{
-			name:      "No BD_NO_EMOJI falls back to TTY check",
+			name:      "No ISSUEGRAPH_NO_EMOJI falls back to TTY check",
 			noEmoji:   "",
 			wantEmoji: false, // In test, stdout is not a TTY
 		},
@@ -197,9 +197,9 @@ func TestShouldUseEmoji(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Unsetenv("BD_NO_EMOJI")
+			os.Unsetenv("ISSUEGRAPH_NO_EMOJI")
 			if tt.noEmoji != "" {
-				os.Setenv("BD_NO_EMOJI", tt.noEmoji)
+				os.Setenv("ISSUEGRAPH_NO_EMOJI", tt.noEmoji)
 			}
 
 			got := ShouldUseEmoji()

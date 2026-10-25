@@ -4,8 +4,8 @@ description: Ephemeral molecules for operational work that has no audit value on
 ---
 
 Operational workflows — release checklists, health patrols, diagnostics —
-create beads that are worthless the moment they close. **Wisps** are
-molecules instantiated in the *vapor phase*: real beads you work through
+create issuegraph that are worthless the moment they close. **Wisps** are
+molecules instantiated in the *vapor phase*: real issuegraph you work through
 normally, flagged `Ephemeral=true` so they stay out of sync and can be
 deleted wholesale later.
 
@@ -23,7 +23,7 @@ deleted wholesale later.
 | Aspect | Molecule (`issuegraph mol pour`) | Wisp (`issuegraph mol wisp`) |
 |--------|--------------------------|----------------------|
 | Persistence | permanent, part of history | ephemeral, purged when done |
-| Sync | synced like any bead | excluded from federation push |
+| Sync | synced like any issue | excluded from federation push |
 | Use case | feature work, anything worth referencing later | release runs, operational loops, health checks |
 
 Formulas can declare `phase = "vapor"` to recommend wisp instantiation —
@@ -53,7 +53,7 @@ issuegraph mol burn <wisp-id>
 ```bash
 issuegraph mol wisp list      # list all wisps in the current context
 issuegraph mol wisp gc        # garbage collect old/abandoned wisps
-issuegraph purge --force      # delete all closed ephemeral beads
+issuegraph purge --force      # delete all closed ephemeral issuegraph
 ```
 
 ## Forcing a Phase

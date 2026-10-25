@@ -10,10 +10,10 @@ func TestLooksLikeIssueID(t *testing.T) {
 		// Valid issue IDs
 		{"bd-123", true},
 		{"hq-319", true},
-		{"bd-wisp-abc", true},
+		{"issuegraph-wisp-abc", true},
 		{"bd-a3f", true},
 		{"test-1", true},
-		{"beads-vscode-1", true},
+		{"issuegraph-vscode-1", true},
 		{"bd-123.1", true},     // child ID
 		{"bd-123.1.2", true},   // grandchild ID
 		{"hq-wisp-nmxy", true}, // wisp ID

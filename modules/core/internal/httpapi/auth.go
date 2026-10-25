@@ -191,7 +191,7 @@ func (a *TokenFileAuth) reload() error {
 // under so the caller's cache describes the bytes it actually holds.
 func readTokenFile(path string) (digests [][sha256.Size]byte, modTime time.Time, size int64, err error) {
 	// #nosec G304 -- opening an operator-named path IS the feature: the path
-	// comes from --auth-token-file (or its BEADS_SERVE_* alias), which only the
+	// comes from --auth-token-file (or its ISSUEGRAPH_SERVE_* alias), which only the
 	// person starting the process supplies. No request influences it.
 	f, err := os.Open(path)
 	if err != nil {

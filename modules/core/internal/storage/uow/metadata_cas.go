@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // MetadataCASSource is the capability accessor a unit-of-work provider offers
@@ -63,6 +63,6 @@ func (m *metadataCAS) CompareAndSetKey(ctx context.Context, req publicops.Compar
 		if err != nil || !wrote {
 			return result, "", err
 		}
-		return result, fmt.Sprintf("bd: compare-and-set metadata %s.%s", plan.IssueID, plan.Key), nil
+		return result, fmt.Sprintf("issuegraph: compare-and-set metadata %s.%s", plan.IssueID, plan.Key), nil
 	})
 }

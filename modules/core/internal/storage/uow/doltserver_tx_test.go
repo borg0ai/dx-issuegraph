@@ -125,12 +125,12 @@ func TestDoltServerTxCommitSkipsEmptyDoltCommit(t *testing.T) {
 	tx, err := p.BeginTx(context.Background())
 	require.NoError(t, err)
 
-	err = tx.Commit(context.Background(), "bd: noop")
+	err = tx.Commit(context.Background(), "issuegraph: noop")
 	require.NoError(t, err, "Commit on a clean working set must skip DOLT_COMMIT and succeed")
 	require.NoError(t, mock.ExpectationsWereMet(), "skip path must still close the SQL transaction with a plain COMMIT")
 	assert.Equal(t, 1, p.db.Stats().OpenConnections, "cleanly closed session may return to the pool")
 
-	err = tx.Commit(context.Background(), "bd: again")
+	err = tx.Commit(context.Background(), "issuegraph: again")
 	require.ErrorContains(t, err, "already done", "skip path must still mark the tx done")
 }
 
@@ -138,12 +138,12 @@ func TestDoltServerTxCommitIssuesDoltCommitWhenPending(t *testing.T) {
 	p, mock := newMockTxProvider(t)
 	mock.ExpectExec("START TRANSACTION").WillReturnResult(sqlmock.NewResult(0, 0))
 	expectPendingChanges(mock, 3)
-	mock.ExpectExec("DOLT_COMMIT").WithArgs("bd: real write").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("DOLT_COMMIT").WithArgs("issuegraph: real write").WillReturnResult(sqlmock.NewResult(0, 1))
 
 	tx, err := p.BeginTx(context.Background())
 	require.NoError(t, err)
 
-	err = tx.Commit(context.Background(), "bd: real write")
+	err = tx.Commit(context.Background(), "issuegraph: real write")
 	require.NoError(t, err)
 	require.NoError(t, mock.ExpectationsWereMet(), "a dirty working set must be committed via DOLT_COMMIT")
 }

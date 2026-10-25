@@ -83,8 +83,8 @@ var defaultSyncLockWindowsOps = syncLockWindowsOps{
 	},
 }
 
-func syncLockMetadataPath(beadsDir, _ string) string {
-	return filepath.Join(beadsDir, syncLockInfoFilename)
+func syncLockMetadataPath(issuegraphDir, _ string) string {
+	return filepath.Join(issuegraphDir, syncLockInfoFilename)
 }
 
 func publishSyncLockInfo(primary *os.File, path string) (syncLockMetadata, error) {
@@ -95,7 +95,7 @@ func publishSyncLockInfo(primary *os.File, path string) (syncLockMetadata, error
 }
 
 func publishSyncLockInfoWithOps(path string, ops syncLockWindowsOps) syncLockMetadata {
-	sidecar, err := ops.openFile(path, os.O_CREATE|os.O_RDWR, 0600) // #nosec G304 -- path is constrained to the beads directory.
+	sidecar, err := ops.openFile(path, os.O_CREATE|os.O_RDWR, 0600) // #nosec G304 -- path is constrained to the issuegraph directory.
 	if err != nil {
 		return syncLockMetadata{}
 	}
@@ -179,7 +179,7 @@ func clearSyncLockInfo(_ *os.File, _ string, metadata *syncLockMetadata) error {
 }
 
 func readContendedSyncLockInfo(path string) *SyncLockInfo {
-	sidecar, err := os.Open(path) // #nosec G304 -- path is constrained to the beads directory.
+	sidecar, err := os.Open(path) // #nosec G304 -- path is constrained to the issuegraph directory.
 	if err != nil {
 		return nil
 	}

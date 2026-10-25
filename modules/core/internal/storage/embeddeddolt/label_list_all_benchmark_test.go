@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// BenchmarkLabelListAllLabelCounting measures the two ways `bd label list-all`
+// BenchmarkLabelListAllLabelCounting measures the two ways `issuegraph label list-all`
 // can total every label in the database against a real embedded Dolt store.
 //
 //   - bulk_hydrated is what the command does now: one SearchIssues call, then
@@ -24,26 +24,26 @@ import (
 //     those opens a short-lived connector, starts a transaction, runs a wisp
 //     probe plus the label SELECT, and closes.
 //
-// Workload: BEADS_BENCH_ISSUES issues (default 200), each carrying two labels
+// Workload: ISSUEGRAPH_BENCH_ISSUES issues (default 200), each carrying two labels
 // drawn from a small shared vocabulary, so both arms return identical counts.
-// Set BEADS_TEST_EMBEDDED_DOLT=1 to run.
+// Set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run.
 func BenchmarkLabelListAllLabelCounting(b *testing.B) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		b.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt benchmarks")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		b.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt benchmarks")
 	}
 
 	issueCount := 200
-	if raw := os.Getenv("BEADS_BENCH_ISSUES"); raw != "" {
+	if raw := os.Getenv("ISSUEGRAPH_BENCH_ISSUES"); raw != "" {
 		parsed, err := strconv.Atoi(raw)
 		if err != nil || parsed <= 0 {
-			b.Fatalf("BEADS_BENCH_ISSUES=%q: want a positive integer", raw)
+			b.Fatalf("ISSUEGRAPH_BENCH_ISSUES=%q: want a positive integer", raw)
 		}
 		issueCount = parsed
 	}
 
 	ctx := b.Context()
-	beadsDir := filepath.Join(b.TempDir(), ".beads")
-	store, err := embeddeddolt.Open(ctx, beadsDir, "bench", "main")
+	issuegraphDir := filepath.Join(b.TempDir(), ".issuegraph")
+	store, err := embeddeddolt.Open(ctx, issuegraphDir, "bench", "main")
 	if err != nil {
 		b.Fatalf("open embedded Dolt store: %v", err)
 	}

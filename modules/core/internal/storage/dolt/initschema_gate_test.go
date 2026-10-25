@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 	mysql "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage/schema"
 )
 
 // TestInitSchemaOnDBWithRetryAndGate_GateErrorClassification verifies the gate
@@ -50,7 +50,7 @@ func TestInitSchemaOnDBWithRetryAndGate_GateErrorClassification(t *testing.T) {
 	}{
 		{
 			name: "typed unknown database",
-			err:  &mysql.MySQLError{Number: 1049, Message: "Unknown database 'beads_test'"},
+			err:  &mysql.MySQLError{Number: 1049, Message: "Unknown database 'issuegraph_test'"},
 		},
 		{
 			name: "typed missing session root",

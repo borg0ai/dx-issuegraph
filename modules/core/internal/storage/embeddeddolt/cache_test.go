@@ -7,24 +7,24 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
 )
 
 func TestOpenReturnsCachedStore(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 	ctx := t.Context()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
 
 	// First Open creates a new store.
-	store1, err := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	store1, err := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("first Open: %v", err)
 	}
 
-	// Second Open with same beadsDir returns the same pointer.
-	store2, err := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	// Second Open with same issuegraphDir returns the same pointer.
+	store2, err := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("second Open: %v", err)
 	}
@@ -51,20 +51,20 @@ func TestOpenReturnsCachedStore(t *testing.T) {
 }
 
 func TestOpenDifferentDirsReturnsDifferentStores(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 	ctx := t.Context()
-	beadsDir1 := filepath.Join(t.TempDir(), ".beads")
-	beadsDir2 := filepath.Join(t.TempDir(), ".beads")
+	issuegraphDir1 := filepath.Join(t.TempDir(), ".issuegraph")
+	issuegraphDir2 := filepath.Join(t.TempDir(), ".issuegraph")
 
-	store1, err := embeddeddolt.Open(ctx, beadsDir1, "testdb", "main")
+	store1, err := embeddeddolt.Open(ctx, issuegraphDir1, "testdb", "main")
 	if err != nil {
 		t.Fatalf("Open dir1: %v", err)
 	}
 	defer store1.Close()
 
-	store2, err := embeddeddolt.Open(ctx, beadsDir2, "testdb", "main")
+	store2, err := embeddeddolt.Open(ctx, issuegraphDir2, "testdb", "main")
 	if err != nil {
 		t.Fatalf("Open dir2: %v", err)
 	}
@@ -76,13 +76,13 @@ func TestOpenDifferentDirsReturnsDifferentStores(t *testing.T) {
 }
 
 func TestOpenAfterCloseCreatesNewStore(t *testing.T) {
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 	ctx := t.Context()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
 
-	store1, err := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	store1, err := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("first Open: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestOpenAfterCloseCreatesNewStore(t *testing.T) {
 	store1.Close()
 
 	// Re-opening should create a fresh store, not return the closed one.
-	store2, err := embeddeddolt.Open(ctx, beadsDir, "testdb", "main")
+	store2, err := embeddeddolt.Open(ctx, issuegraphDir, "testdb", "main")
 	if err != nil {
 		t.Fatalf("Open after Close: %v", err)
 	}

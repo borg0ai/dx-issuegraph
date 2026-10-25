@@ -9,7 +9,7 @@ import (
 // is TEXT holding a JSON array, and the embedded path (issueops.updateIssueInTx)
 // marshals the value unconditionally. Before bd-v50ru this repository passed
 // the raw []string to the SQL driver, which refused it — so every waiters
-// update through the proxied backend (e.g. `bd gate add-waiter`) failed.
+// update through the proxied backend (e.g. `issuegraph gate add-waiter`) failed.
 func TestNormalizeUpdateValueWaiters(t *testing.T) {
 	got := normalizeUpdateValue("waiters", []string{"a", "b"})
 	if got != `["a","b"]` {

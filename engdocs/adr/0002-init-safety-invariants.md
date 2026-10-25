@@ -7,14 +7,14 @@ Accepted — 2026-04-24.
 ## Context
 
 `issuegraph init --force` in a repo whose origin already has `refs/dolt/data`
-silently skipped the bootstrap-from-remote path at `modules/cli/init.go:511`
+silently skipped the bootstrap-from-remote path at `apps/cli/init.go:511`
 and then still wired origin as a Dolt remote (`init.go:643-650`). The
 next write auto-pushed an orphan Dolt history, failing with
 "no common ancestor." Recovery options were all destructive (force-push
-over the team's remote, or `rm -rf .beads/dolt`). The tool's own warning
+over the team's remote, or `rm -rf .issuegraph/dolt`). The tool's own warning
 text acknowledged the failure class as a well-known footgun.
 
-Historical pattern analysis (git log for `modules/cli/init.go`): at least
+Historical pattern analysis (git log for `apps/cli/init.go`): at least
 eight prior commits each patched one surface of this class without
 encoding the underlying invariant:
 
@@ -22,7 +22,7 @@ encoding the underlying invariant:
 - `af12d6f72` — server→embedded migration export ordering.
 - `9db6b56f2` — v0.63→v1.0 schema backfill multi-statement ALTER.
 - `63c7a2601` — `project_id` adoption in shared-server mode.
-- `401da9df7` — `project_id` backfill via `bd doctor --fix`.
+- `401da9df7` — `project_id` backfill via `issuegraph doctor --fix`.
 - `3a4840169` — introduced `--force` as a safety-bypass override.
 - `12dc4e075` — `--destroy-token` because `--force+--quiet` bypassed confirmation.
 - `83b0f099b` — remove `--quiet` bypass of the safety guard.
@@ -56,9 +56,9 @@ refuses unless `--discard-remote` is also passed.
 ### Invariant 3 — central chokepoint (executable, not advisory)
 
 Every flag on `issuegraph init` that can interact with remote history routes
-through `CheckRemoteSafety` in `modules/cli/init_safety.go`. Adding a new
+through `CheckRemoteSafety` in `apps/cli/init_safety.go`. Adding a new
 flag is a signal to extend the guard matrix test in
-`modules/cli/init_safety_test.go`; if the table doesn't exhaustively cover
+`apps/cli/init_safety_test.go`; if the table doesn't exhaustively cover
 `(dataSource × flagSet) → outcome`, this ADR has a gap.
 
 ### Invariant 4 — error-text-no-echo
@@ -133,7 +133,7 @@ subprocess test fail. If either stays green, coverage is theater.
 
 ### Review discipline
 
-`.github/CODEOWNERS` points `modules/cli/init*.go` at maintainers and
+`.github/CODEOWNERS` points `apps/cli/init*.go` at maintainers and
 references this ADR in the review-requirement comment. Future reviewers
 are reminded to walk the matrix when a new flag or data source lands.
 
@@ -158,8 +158,8 @@ are reminded to walk the matrix when a new flag or data source lands.
 ## References
 
 - Issue source: bd-q83 (local issuegraph tracker, merged from qa-engineer F1
-  and historian F3 findings in `council-2026-04-22-beads-resilience-audit`).
+  and historian F3 findings in `council-2026-04-22-issuegraph-resilience-audit`).
 - Decision log: `~/.claude/councils/2026-04-24-bd-q83-init-force-safety/log.md`.
-- Implementation chokepoint: `modules/cli/init_safety.go`.
-- Guard matrix: `modules/cli/init_safety_test.go`.
+- Implementation chokepoint: `apps/cli/init_safety.go`.
+- Guard matrix: `apps/cli/init_safety_test.go`.
 - Recovery playbooks: `docs/RECOVERY.md`.

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // DeferWakeActor is the actor recorded on the status_changed event when the
@@ -30,21 +30,21 @@ type WakeDefersResult struct {
 // permanent issues woken (len(result.Issues)); callers with n == 0 should not
 // commit at all.
 func WakeDefersCommitMessage(n int) string {
-	return fmt.Sprintf("bd: wake %d expired defer(s)", n)
+	return fmt.Sprintf("issuegraph: wake %d expired defer(s)", n)
 }
 
 // WakeExpiredDefersInTx returns every DATED defer whose date has passed to
 // open: status='deferred' AND defer_until <= now flips to status='open',
-// defer_until=NULL — byte-identical to what `bd undefer` writes, so a later
-// dateless `bd defer` cannot inherit a stale past date and instantly re-wake.
+// defer_until=NULL — byte-identical to what `issuegraph undefer` writes, so a later
+// dateless `issuegraph defer` cannot inherit a stale past date and instantly re-wake.
 // A DATELESS defer (defer_until IS NULL) is the indefinite icebox and is
-// deliberately never touched: `bd undefer` stays its only exit.
+// deliberately never touched: `issuegraph undefer` stays its only exit.
 //
-// This is the lazy half of the defer contract. `bd defer --until` and
-// `bd update --defer` promise "hidden until <date>", but nothing ever flipped
+// This is the lazy half of the defer contract. `issuegraph defer --until` and
+// `issuegraph update --defer` promise "hidden until <date>", but nothing ever flipped
 // the status back, so an expired defer stayed invisible to the ready front
 // forever. Callers run this sweep at the top of ready-work reads and claims;
-// the snapshot-then-recheck shape mirrors ReclaimExpiredLeasesInTx, so a bead
+// the snapshot-then-recheck shape mirrors ReclaimExpiredLeasesInTx, so a issue
 // re-deferred or claimed between the snapshot and its UPDATE is simply skipped.
 //
 // The caller owns Dolt versioning (commit iff len(result.Issues) > 0) and must
@@ -57,7 +57,7 @@ func WakeExpiredDefersInTx(ctx context.Context, tx DBTX) (WakeDefersResult, erro
 		return result, err
 	}
 	result.Issues = issues
-	// Wisps carry the same status/defer_until columns and `bd defer` reaches
+	// Wisps carry the same status/defer_until columns and `issuegraph defer` reaches
 	// them through the same UpdateIssue routing. The table is tolerated absent
 	// for pre-wisp databases, like every other wisp probe.
 	wisps, err := wakeExpiredDefersInTable(ctx, tx, "wisps", "wisp_events")
@@ -133,7 +133,7 @@ func wakeExpiredDefersInTable(ctx context.Context, tx DBTX, table, eventsTable s
 			return woken, fmt.Errorf("record wake event for %s: %w", id, err)
 		}
 		// A wake is a status change, so it journals as an update. Emitted past
-		// the rows-affected re-check, so a concurrently-rescued bead records
+		// the rows-affected re-check, so a concurrently-rescued issue records
 		// nothing.
 		if err := RecordEventInTx(ctx, tx, EventUpdate, id, DeferWakeActor); err != nil {
 			return woken, err

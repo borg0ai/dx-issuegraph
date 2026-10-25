@@ -5,14 +5,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 )
 
 func TestAutoStart_DisabledWithExternalMode(t *testing.T) {
 	t.Chdir(t.TempDir())
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	t.Setenv("GT_ROOT", "")
-	t.Setenv("BEADS_DOLT_AUTO_START", "")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", "")
 
 	got := resolveAutoStart(false, "", ServerModeExternal)
 	if got != false {
@@ -24,9 +24,9 @@ func TestAutoStart_DisabledWithExternalMode(t *testing.T) {
 // requesting AutoStart=true is overridden when the server is externally managed.
 func TestAutoStart_ExternalMode_CallerOverrideIgnored(t *testing.T) {
 	t.Chdir(t.TempDir())
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	t.Setenv("GT_ROOT", "")
-	t.Setenv("BEADS_DOLT_AUTO_START", "")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", "")
 
 	got := resolveAutoStart(true, "", ServerModeExternal)
 	if got != false {
@@ -40,9 +40,9 @@ func TestAutoStart_ExternalMode_CallerOverrideIgnored(t *testing.T) {
 // hardcoded current=true, ignoring the user's config.yaml opt-out.
 func TestAutoStart_ConfigFalse_OverridesCallerTrue(t *testing.T) {
 	t.Chdir(t.TempDir())
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	t.Setenv("GT_ROOT", "")
-	t.Setenv("BEADS_DOLT_AUTO_START", "")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", "")
 
 	for _, cfgVal := range []string{"false", "False", "FALSE", "0", "off", "Off", "OFF"} {
 		got := resolveAutoStart(true, cfgVal, ServerModeOwned)
@@ -56,9 +56,9 @@ func TestAutoStart_ConfigFalse_OverridesCallerTrue(t *testing.T) {
 // does not set dolt.auto-start, the caller's current=true is respected.
 func TestAutoStart_ConfigEmpty_CallerTrueWins(t *testing.T) {
 	t.Chdir(t.TempDir())
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	t.Setenv("GT_ROOT", "")
-	t.Setenv("BEADS_DOLT_AUTO_START", "")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", "")
 
 	got := resolveAutoStart(true, "", ServerModeOwned)
 	if got != true {
@@ -66,17 +66,17 @@ func TestAutoStart_ConfigEmpty_CallerTrueWins(t *testing.T) {
 	}
 }
 
-// TestAutoStart_EnvOverrideStillWins verifies that BEADS_DOLT_AUTO_START=0
+// TestAutoStart_EnvOverrideStillWins verifies that ISSUEGRAPH_DOLT_AUTO_START=0
 // still takes precedence even in Owned mode (defense-in-depth).
 func TestAutoStart_EnvOverrideStillWins(t *testing.T) {
 	t.Chdir(t.TempDir())
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	t.Setenv("GT_ROOT", "")
-	t.Setenv("BEADS_DOLT_AUTO_START", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", "0")
 
 	got := resolveAutoStart(true, "", ServerModeOwned) // owned mode, but env says no
 	if got != false {
-		t.Error("BEADS_DOLT_AUTO_START=0 should still disable auto-start in Owned mode")
+		t.Error("ISSUEGRAPH_DOLT_AUTO_START=0 should still disable auto-start in Owned mode")
 	}
 }
 

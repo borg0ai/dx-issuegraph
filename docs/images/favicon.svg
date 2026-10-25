@@ -1,4 +1,10 @@
-<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <rect width="32" height="32" rx="6" fill="#25c2a0"/>
-  <text x="16" y="23" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#ffffff">bd</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="IssueGraph">
+  <rect width="32" height="32" rx="7" fill="#17212B"/>
+  <rect x="5" y="4" width="22" height="16" rx="3" fill="#F4F0E8"/>
+  <rect x="7" y="7" width="6" height="2" rx="1" fill="#F08C68"/>
+  <path d="M7 12h11" stroke="#263746" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="22" cy="13" r="2" fill="#6BC8B5"/>
+  <path d="M16 20v2m-8 0h16" fill="none" stroke="#F4F0E8" stroke-width="2"/>
+  <rect x="4" y="24" width="11" height="5" rx="1.5" fill="#F08C68"/>
+  <rect x="17" y="24" width="11" height="5" rx="1.5" fill="#6BC8B5"/>
 </svg>

@@ -7,15 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The pins for POST /v0/beads/issues:sweep. What is asserted here is the WIRE
+// The pins for POST /v0/issuegraph/issues:sweep. What is asserted here is the WIRE
 // EDGE — that the handler decodes the document's six members into the role's
 // request faithfully, refuses what the document refuses, and does not
 // re-implement anything the role owns.
 
-const sweepPath = "/v0/beads/issues:sweep"
+const sweepPath = "/v0/issuegraph/issues:sweep"
 
 func (ts *testServer) sweep(t *testing.T, body string) *http.Response {
 	t.Helper()
@@ -23,7 +23,7 @@ func (ts *testServer) sweep(t *testing.T, body string) *http.Response {
 }
 
 // TestSweepPathReachesItsHandler: the sweep path is a LITERAL segment
-// registered beside the claim's wildcard `/v0/beads/issues/{idop}`, and ServeMux
+// registered beside the claim's wildcard `/v0/issuegraph/issues/{idop}`, and ServeMux
 // precedence is by specificity rather than by registration order. A 404 or a
 // claim-shaped refusal here would mean the sweep is being parsed as a claim of
 // an issue named ":sweep".
@@ -110,7 +110,7 @@ func TestSweepDefaultsTheOptionalMembers(t *testing.T) {
 	// default here that deliberately differs from the role's zero value. The
 	// endpoint is destructive and its optional bearer is shared and
 	// surface-wide, so an omitted member must not buy weaker protection than
-	// `bd prune` gives by default.
+	// `issuegraph prune` gives by default.
 	want := issueops.SweepRequest{Tier: issueops.SweepEphemeral, ProtectReferenced: true}
 	if reqs[0] != want {
 		t.Errorf("request = %+v, want %+v", reqs[0], want)

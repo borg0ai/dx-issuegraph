@@ -4,11 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// TestClaimIssue_CustomStatuses verifies that the bd update <id> --claim path
+// TestClaimIssue_CustomStatuses verifies that the issuegraph update <id> --claim path
 // (ClaimIssue) honors configured custom statuses (GH#4164): an issue sitting in
 // a custom "active"-category status is claimable, while issues in wip/done/
 // frozen custom statuses remain non-claimable so the anti-steal protection from

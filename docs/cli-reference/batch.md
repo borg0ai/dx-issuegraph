@@ -1,11 +1,11 @@
 ---
-title: "bd batch"
-description: "Run multiple write operations in a single database transaction."
+title: "issuegraph batch"
+description: "Run multiple write operations in a single database transaction"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc batch`.
+Generated from `issuegraph help --doc batch`.
 
 Run multiple write operations in a single database transaction.
 
@@ -13,7 +13,7 @@ Commands are read from stdin (one per line) or from a file via -f/--file.
 All operations execute inside a single dolt transaction: on any error the
 whole batch is rolled back, otherwise it is committed with one DOLT_COMMIT.
 
-This is intended for shell scripts that currently invoke 'bd' many times in
+This is intended for shell scripts that currently invoke 'issuegraph' many times in
 a loop, which causes severe write amplification on a dolt sql-server backed
 by btrfs+compression. Batching collapses N invocations into one transaction
 and one dolt commit.
@@ -26,31 +26,38 @@ Grammar (one command per line):
   dep remove &lt;from-id&gt; &lt;to-id&gt;
   #comment  (blank lines and '# ...' comments are ignored)
 
-Supported 'update' keys: status, priority, title, assignee
-Supported dependency types: see 'bd dep add --help' (default: blocks)
+Supported 'update' keys: status, priority, title, assignee, force
+Supported dependency types: see 'issuegraph dep add --help' (default: blocks)
+
+'force' is not a field. An update whose status moves the issue into closed
+(or a configured done status) is refused when it still has open children or
+a live blocker, the same as 'issuegraph close'; 'force=true' overrides that refusal.
+Because the batch is one transaction, an unforced refusal rolls back EVERY
+operation in the batch, not just the offending line. Note the asymmetry with
+'close &lt;id&gt;', which does not apply that policy at all.
 
 Tokens are whitespace-separated. Double-quoted strings ("like this") may
 contain spaces; use \" to embed a quote and \\ for a backslash.
 
 Examples:
   # From a pipe
-  bd list --status stale -q | awk '&#123;print "close",$1," stale"&#125;' | bd batch
+  issuegraph list --status stale -q | awk '&#123;print "close",$1," stale"&#125;' | issuegraph batch
 
   # From a file
-  bd batch -f operations.txt
+  issuegraph batch -f operations.txt
 
   # Inline
-  printf 'close bd-1 done\nupdate bd-2 status=in_progress\n' | bd batch
+  printf 'close bd-1 done\nupdate bd-2 status=in_progress\n' | issuegraph batch
 
 On success, exits 0 and prints a summary (or JSON with --json). On any error,
 rolls back the entire transaction and exits non-zero with the failing line.
 
 NOTE: This is a narrow subset. Commands like 'show', 'list', 'ready', 'sync',
 complex create flows, or any flag not listed above are NOT accepted. Use
-normal 'bd' subcommands for interactive/read operations.
+normal 'issuegraph' subcommands for interactive/read operations.
 
 ```
-bd batch [flags]
+issuegraph batch [flags]
 ```
 
 **Flags:**
@@ -58,5 +65,5 @@ bd batch [flags]
 ```
       --dry-run          Parse input and echo commands without executing
   -f, --file string      Read commands from file instead of stdin
-  -m, --message string   DOLT_COMMIT message (default: 'bd: batch N ops by <actor>')
+  -m, --message string   DOLT_COMMIT message (default: 'issuegraph: batch N ops by <actor>')
 ```

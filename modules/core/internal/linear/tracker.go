@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 var _ tracker.BatchPushTracker = (*Tracker)(nil)
@@ -55,7 +55,7 @@ func (t *Tracker) Init(ctx context.Context, store tracker.Store) error {
 			return fmt.Errorf("Linear authentication not configured\n" +
 				"Options:\n" +
 				"  OAuth (for CI):  export LINEAR_OAUTH_CLIENT_ID=... LINEAR_OAUTH_CLIENT_SECRET=...\n" +
-				"  API key (devs):  export LINEAR_API_KEY=... or bd config set linear.api_key \"YOUR_API_KEY\"")
+				"  API key (devs):  export LINEAR_API_KEY=... or issuegraph config set linear.api_key \"YOUR_API_KEY\"")
 		}
 	}
 
@@ -200,7 +200,7 @@ func (t *Tracker) CreateIssue(ctx context.Context, issue *types.Issue) (*tracker
 	}
 	labelIDs, unknown := ResolveLabelIDs(issue, labelCache, t.config)
 	for _, name := range unknown {
-		fmt.Fprintf(os.Stderr, "linear: bead %s: label %q not found on Linear team (skipped)\n", issue.ID, name)
+		fmt.Fprintf(os.Stderr, "linear: issue %s: label %q not found on Linear team (skipped)\n", issue.ID, name)
 	}
 
 	// Use issue.Description as-is: the sync engine's FormatDescription hook
@@ -209,7 +209,7 @@ func (t *Tracker) CreateIssue(ctx context.Context, issue *types.Issue) (*tracker
 	// here a second time would duplicate those sections for issues with structured fields.
 	description := issue.Description
 
-	// Use idempotent creation when we have enough bead metadata to generate
+	// Use idempotent creation when we have enough issue metadata to generate
 	// a stable marker. This prevents duplicate Linear issues when sync is
 	// interrupted between the API create call and the local external_ref
 	// write-back.
@@ -220,7 +220,7 @@ func (t *Tracker) CreateIssue(ctx context.Context, issue *types.Issue) (*tracker
 			return nil, err
 		}
 		if deduped {
-			fmt.Fprintf(os.Stderr, "linear: dedup — reusing existing issue %s for bead %s\n", created.Identifier, issue.ID)
+			fmt.Fprintf(os.Stderr, "linear: dedup — reusing existing issue %s for issue %s\n", created.Identifier, issue.ID)
 		}
 		ti := linearToTrackerIssue(created)
 		return &ti, nil
@@ -248,7 +248,7 @@ func (t *Tracker) UpdateIssue(ctx context.Context, externalID string, issue *typ
 	}
 	_, unknown := ResolveLabelIDs(issue, labelCache, t.config)
 	for _, name := range unknown {
-		fmt.Fprintf(os.Stderr, "linear: bead %s: label %q not found on Linear team (skipped)\n", issue.ID, name)
+		fmt.Fprintf(os.Stderr, "linear: issue %s: label %q not found on Linear team (skipped)\n", issue.ID, name)
 	}
 	mapper := &linearFieldMapper{config: t.config, labelCache: labelCache}
 	updates := mapper.IssueToTracker(issue)
@@ -367,7 +367,7 @@ func (t *Tracker) BatchPush(ctx context.Context, issues []*types.Issue, forceIDs
 		// Single-create path for duplicate-title issues using idempotency markers.
 		for _, issue := range singleIssues {
 			priority := PriorityToLinear(issue.Priority, t.config)
-			stateID, stateErr := ResolveStateIDForBeadsStatus(primaryCache, issue.Status, t.config)
+			stateID, stateErr := ResolveStateIDForIssueGraphStatus(primaryCache, issue.Status, t.config)
 			if stateErr != nil {
 				result.Errors = append(result.Errors, tracker.BatchPushError{
 					LocalID: issue.ID,
@@ -379,7 +379,7 @@ func (t *Tracker) BatchPush(ctx context.Context, issues []*types.Issue, forceIDs
 			marker := GenerateIdempotencyMarker(issue.ID, issue.CreatedBy, issue.CreatedAt.UnixNano())
 			labelIDs, unknown := ResolveLabelIDs(issue, primaryLabelCache, t.config)
 			for _, name := range unknown {
-				msg := fmt.Sprintf("linear: bead %s: label %q not found on Linear team (skipped)", issue.ID, name)
+				msg := fmt.Sprintf("linear: issue %s: label %q not found on Linear team (skipped)", issue.ID, name)
 				fmt.Fprintf(os.Stderr, "%s\n", msg)
 				result.Warnings = append(result.Warnings, msg)
 			}
@@ -402,7 +402,7 @@ func (t *Tracker) BatchPush(ctx context.Context, issues []*types.Issue, forceIDs
 		titleToIssue := make(map[string]*types.Issue, len(batchIssues))
 		for _, issue := range batchIssues {
 			priority := PriorityToLinear(issue.Priority, t.config)
-			stateID, stateErr := ResolveStateIDForBeadsStatus(primaryCache, issue.Status, t.config)
+			stateID, stateErr := ResolveStateIDForIssueGraphStatus(primaryCache, issue.Status, t.config)
 			if stateErr != nil {
 				result.Errors = append(result.Errors, tracker.BatchPushError{
 					LocalID: issue.ID,
@@ -416,7 +416,7 @@ func (t *Tracker) BatchPush(ctx context.Context, issues []*types.Issue, forceIDs
 
 			labelIDs, unknown := ResolveLabelIDs(issue, primaryLabelCache, t.config)
 			for _, name := range unknown {
-				msg := fmt.Sprintf("linear: bead %s: label %q not found on Linear team (skipped)", issue.ID, name)
+				msg := fmt.Sprintf("linear: issue %s: label %q not found on Linear team (skipped)", issue.ID, name)
 				fmt.Fprintf(os.Stderr, "%s\n", msg)
 				result.Warnings = append(result.Warnings, msg)
 			}
@@ -519,7 +519,7 @@ func (t *Tracker) BatchPush(ctx context.Context, issues []*types.Issue, forceIDs
 		mapper := &linearFieldMapper{config: t.config, labelCache: teamLabelCache}
 		updates := mapper.IssueToTracker(issue)
 
-		stateID, stateErr := ResolveStateIDForBeadsStatus(teamCache, issue.Status, t.config)
+		stateID, stateErr := ResolveStateIDForIssueGraphStatus(teamCache, issue.Status, t.config)
 		if stateErr != nil {
 			result.Errors = append(result.Errors, tracker.BatchPushError{
 				LocalID: issue.ID,
@@ -626,7 +626,7 @@ func (t *Tracker) ValidatePushStateMappings(ctx context.Context) error {
 			return fmt.Errorf("fetching workflow states for team %s: %w", teamID, err)
 		}
 		for _, status := range statuses {
-			if _, err := ResolveStateIDForBeadsStatus(cache, status, t.config); err != nil {
+			if _, err := ResolveStateIDForIssueGraphStatus(cache, status, t.config); err != nil {
 				if skipOptionalPushStateMapping(status, err, t.config.CustomStatuses) {
 					continue
 				}
@@ -635,7 +635,7 @@ func (t *Tracker) ValidatePushStateMappings(ctx context.Context) error {
 		}
 		for _, cs := range t.config.CustomStatuses {
 			st := types.Status(cs.Name)
-			if _, err := ResolveStateIDForBeadsStatus(cache, st, t.config); err != nil {
+			if _, err := ResolveStateIDForIssueGraphStatus(cache, st, t.config); err != nil {
 				if skipOptionalPushStateMapping(st, err, t.config.CustomStatuses) {
 					continue
 				}
@@ -646,14 +646,14 @@ func (t *Tracker) ValidatePushStateMappings(ctx context.Context) error {
 	return nil
 }
 
-// findStateID looks up the Linear workflow state ID for a beads status
+// findStateID looks up the Linear workflow state ID for a issuegraph status
 // using the given per-team client.
 func (t *Tracker) findStateID(ctx context.Context, client *Client, status types.Status) (string, error) {
 	cache, err := BuildStateCache(ctx, client)
 	if err != nil {
 		return "", err
 	}
-	return ResolveStateIDForBeadsStatus(cache, status, t.config)
+	return ResolveStateIDForIssueGraphStatus(cache, status, t.config)
 }
 
 // primaryClient returns the client for the first configured team.
@@ -699,7 +699,7 @@ func (t *Tracker) PrimaryClient() *Client {
 
 // getConfig reads a config value from storage, falling back to env var.
 // For yaml-only keys (e.g. linear.api_key), reads from config.yaml first
-// to match the behavior of modules/cli/linear.go:getLinearConfig().
+// to match the behavior of apps/cli/linear.go:getLinearConfig().
 func (t *Tracker) getConfig(ctx context.Context, key, envVar string) (string, error) {
 	// Secret keys are stored in config.yaml, not the Dolt database,
 	// to avoid leaking secrets when pushing to remotes.

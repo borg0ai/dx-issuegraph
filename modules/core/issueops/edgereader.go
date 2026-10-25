@@ -3,7 +3,7 @@ package issueops
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Dependency is one stored dependency edge, exactly as the database holds it:
@@ -26,7 +26,7 @@ type Dependency = types.Dependency
 // EdgeReadRequest describes one raw-edge read over several anchors at once.
 //
 // It is a BATCH request in the sense that batching is the question rather than
-// an optimization of it: `bd dep list a b c` asks what each of three named
+// an optimization of it: `issuegraph dep list a b c` asks what each of three named
 // issues depends on, and answers per source. Asking the same question three
 // times would give three answers a caller then has to key and merge, and would
 // cost three round trips where the storage seam offers one.
@@ -134,7 +134,7 @@ type EdgeReadResult struct {
 }
 
 // EdgeReader describes reading STORED DEPENDENCY EDGES for several anchors at
-// once: the answer `bd dep list a b c` gives, and — like Relations — a role
+// once: the answer `issuegraph dep list a b c` gives, and — like Relations — a role
 // with its own accessor. A new capability gets a new role interface and its own
 // accessor; never append a method here.
 //

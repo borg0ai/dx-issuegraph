@@ -1,11 +1,11 @@
 ---
-title: "bd defer"
-description: "Defer issues to put them on ice for later."
+title: "issuegraph defer"
+description: "Defer one or more issues for later"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc defer`.
+Generated from `issuegraph help --doc defer`.
 
 Defer issues to put them on ice for later.
 
@@ -14,16 +14,21 @@ just postponed for future consideration. Unlike blocked issues, there's no
 dependency keeping them from being worked. Unlike closed issues, they will
 be revisited.
 
-Deferred issues don't show in 'bd ready' but remain visible in 'bd list'.
+Deferred issues don't show in 'issuegraph ready' but remain visible in 'issuegraph list'.
+
+A defer WITH a date is a snooze: once --until passes, the next ready-front
+read returns the issue to open automatically (same shape as 'issuegraph undefer').
+A defer WITHOUT a date is the indefinite icebox: it stays deferred until
+someone runs 'issuegraph undefer'.
 
 Examples:
-  bd defer bd-abc                  # Defer a single issue (status-based)
-  bd defer bd-abc --until=tomorrow # Defer until specific time
-  bd defer bd-abc --reason="waiting on API access"
-  bd defer bd-abc bd-def           # Defer multiple issues
+  issuegraph defer bd-abc                  # Icebox indefinitely (until issuegraph undefer)
+  issuegraph defer bd-abc --until=tomorrow # Snooze: auto-wakes once the date passes
+  issuegraph defer bd-abc --reason="waiting on API access"
+  issuegraph defer bd-abc bd-def           # Defer multiple issues
 
 ```
-bd defer [id...] [flags]
+issuegraph defer [id...] [flags]
 ```
 
 **Flags:**

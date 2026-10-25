@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // WrapUOWProvider installs the external capability policy on the server UOW
@@ -34,7 +34,7 @@ var _ uow.MaintenanceProvider = (*uowProvider)(nil)
 var _ uow.ProviderUnwrapper = (*uowProvider)(nil)
 
 // Unwrap lets callers deliberately peel policy decorators. In particular,
-// bd serve must get beneath the notifying provider before handing a provider
+// issuegraph serve must get beneath the notifying provider before handing a provider
 // to HTTP handlers, which must never run workspace hooks.
 func (p *uowProvider) Unwrap() uow.UnitOfWorkProvider { return p.UnitOfWorkProvider }
 

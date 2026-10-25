@@ -7,8 +7,8 @@ import (
 )
 
 func TestDoltStoredGeneratedColumnStaleAfterFKCascade(t *testing.T) {
-	if os.Getenv("BEADS_RUN_DOLT_UPSTREAM_REPRO") == "" {
-		t.Skip("set BEADS_RUN_DOLT_UPSTREAM_REPRO=1 to reproduce the Dolt stored generated-column FK cascade bug")
+	if os.Getenv("ISSUEGRAPH_RUN_DOLT_UPSTREAM_REPRO") == "" {
+		t.Skip("set ISSUEGRAPH_RUN_DOLT_UPSTREAM_REPRO=1 to reproduce the Dolt stored generated-column FK cascade bug")
 	}
 
 	// MySQL rejects ON UPDATE CASCADE on a base column referenced by a stored

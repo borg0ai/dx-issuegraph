@@ -7,9 +7,9 @@ IssueGraph uses adaptive hash ID lengths that automatically scale based on datab
 
 ## Motivation
 
-- **Small databases** (0-500 issues): Very short, readable IDs like `bd-a3f2` (4 chars)
-- **Medium databases** (500-1500 issues): Slightly longer IDs like `bd-7f3a8` (5 chars)
-- **Large databases** (1500+ issues): Standard IDs like `bd-7f3a86` (6 chars)
+- **Small databases** (0-500 issues): Very short, readable IDs like `issuegraph-a3f2` (4 chars)
+- **Medium databases** (500-1500 issues): Slightly longer IDs like `issuegraph-7f3a8` (5 chars)
+- **Large databases** (1500+ issues): Standard IDs like `issuegraph-7f3a86` (6 chars)
 
 Users who actively archive old issues can keep their IDs shorter over time.
 
@@ -193,7 +193,7 @@ Potential improvements (not yet implemented):
 ## Alternative: Sequential Counter IDs
 
 Adaptive hash IDs are the default, but issuegraph also supports sequential integer IDs
-(`bd-1`, `bd-2`, ...) for projects that prefer human-readable numbering.
+(`issuegraph-1`, `issuegraph-2`, ...) for projects that prefer human-readable numbering.
 
 Counter mode is controlled by the `issue_id_mode` config key:
 
@@ -215,5 +215,5 @@ guidance and per-prefix counter isolation.
 
 ## Related
 
-- [Migration Guide](https://github.com/gastownhall/beads/blob/main/README.md#migration) - Converting from sequential to hash IDs
+- [Migration Guide](https://github.com/borg0ai/dx-issuegraph/blob/main/README.md#migration) - Converting from sequential to hash IDs
 - [Configuration](/reference/configuration) - All configuration options

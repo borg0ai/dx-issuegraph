@@ -26,14 +26,14 @@ func TestStorageKeyEncodesTheFullPrefix(t *testing.T) {
 //
 // The three failures it exists to catch are each one character of difference
 // and each produces a plausible-looking map: filtering on "kv." serves every
-// `bd kv set` value as a memory, trimming "kv." while matching "kv.memory."
+// `issuegraph kv set` value as a memory, trimming "kv." while matching "kv.memory."
 // re-keys every answer to "memory.<key>", and matching a settings row by
 // substring instead of prefix puts the workspace's own configuration in the
 // answer.
 func TestMemoriesFromConfigNarrowsToTheMemoryPlane(t *testing.T) {
 	all := map[string]string{
 		// Settings rows.
-		"issue_prefix":  "bd",
+		"issue_prefix":  "issuegraph",
 		"custom.limits": "10",
 		// Generic kv rows — the neighbours one prefix up.
 		"kv.deploy-target": "staging",
@@ -85,7 +85,7 @@ func TestMemoriesFromConfigRoundTripsTheEncode(t *testing.T) {
 // is an empty map rather than nil, so a caller can range over the answer
 // without a guard.
 func TestMemoriesFromConfigAnswersAnEmptyMap(t *testing.T) {
-	if got := MemoriesFromConfig(map[string]string{"issue_prefix": "bd"}); got == nil || len(got) != 0 {
+	if got := MemoriesFromConfig(map[string]string{"issue_prefix": "issuegraph"}); got == nil || len(got) != 0 {
 		t.Fatalf("MemoriesFromConfig with no memory rows = %v, want an empty non-nil map", got)
 	}
 	if got := MemoriesFromConfig(nil); got == nil || len(got) != 0 {

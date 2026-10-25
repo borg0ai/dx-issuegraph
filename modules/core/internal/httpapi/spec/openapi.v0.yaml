@@ -1,6 +1,6 @@
 openapi: 3.0.3
 
-# Hand-written. This document is the source of truth for the bd serve wire
+# Hand-written. This document is the source of truth for the issuegraph serve wire
 # contract: the Go types in internal/httpapi/apigen are generated FROM it
 # (`make api-gen`), never the other way round.
 #
@@ -17,13 +17,13 @@ openapi: 3.0.3
 x-bd-source: spec-first
 
 info:
-  title: bd serve HTTP API
+  title: issuegraph serve HTTP API
   version: 0.1.0
   license:
     name: MIT
   description: >-
-    Loopback HTTP surface over the same work contract the `bd` CLI serves, for
-    automation clients that would otherwise fork a `bd` subprocess per call.
+    Loopback HTTP surface over the same work contract the `issuegraph` CLI serves, for
+    automation clients that would otherwise fork a `issuegraph` subprocess per call.
 
 
     This document is spec-first and vendor-neutral: it names no product, no
@@ -64,23 +64,23 @@ info:
       `reason: "unknown_parameter"` and `param` naming the offending key.
       Operations that declare no QUERY parameter at all reject every query key
       the same way. Today that is twenty-five of the forty-one operations
-      here — `GET /healthz`, `GET /v0/beads/context`,
-      `GET /v0/beads/dependencies/cycles`, `POST /v0/beads/issues`,
-      `PATCH /v0/beads/issues/{id}`,
-      `POST /v0/beads/issues/{id}/comments`,
-      `POST /v0/beads/issues/{id}:claim`,
-      `POST /v0/beads/issues/{id}:release`,
-      `POST /v0/beads/issues/{id}:close`,
-      `POST /v0/beads/issues/{id}:reopen`,
-      `POST /v0/beads/issues/{id}:casMetadata`, `POST /v0/beads/issues:sweep`,
-      `POST /v0/beads/issues:delete`,
-      `POST /v0/beads/issues:batchCreate`,
-      `POST /v0/beads/issues:batchApply`,
-      `POST /v0/beads/issues:batchClose`, `GET /v0/beads/config`,
-      `GET /v0/beads/config/{key}`, `PUT /v0/beads/config/{key}`,
-      `DELETE /v0/beads/config/{key}`, `POST /v0/beads/dependencies:add`,
-      `POST /v0/beads/dependencies:remove`, `POST /v0/beads/memories`,
-      `GET /v0/beads/memories/{key}` and `DELETE /v0/beads/memories/{key}`.
+      here — `GET /healthz`, `GET /v0/issuegraph/context`,
+      `GET /v0/issuegraph/dependencies/cycles`, `POST /v0/issuegraph/issues`,
+      `PATCH /v0/issuegraph/issues/{id}`,
+      `POST /v0/issuegraph/issues/{id}/comments`,
+      `POST /v0/issuegraph/issues/{id}:claim`,
+      `POST /v0/issuegraph/issues/{id}:release`,
+      `POST /v0/issuegraph/issues/{id}:close`,
+      `POST /v0/issuegraph/issues/{id}:reopen`,
+      `POST /v0/issuegraph/issues/{id}:casMetadata`, `POST /v0/issuegraph/issues:sweep`,
+      `POST /v0/issuegraph/issues:delete`,
+      `POST /v0/issuegraph/issues:batchCreate`,
+      `POST /v0/issuegraph/issues:batchApply`,
+      `POST /v0/issuegraph/issues:batchClose`, `GET /v0/issuegraph/config`,
+      `GET /v0/issuegraph/config/{key}`, `PUT /v0/issuegraph/config/{key}`,
+      `DELETE /v0/issuegraph/config/{key}`, `POST /v0/issuegraph/dependencies:add`,
+      `POST /v0/issuegraph/dependencies:remove`, `POST /v0/issuegraph/memories`,
+      `GET /v0/issuegraph/memories/{key}` and `DELETE /v0/issuegraph/memories/{key}`.
       A path parameter is not a query parameter: several of those carry
       `{id}` or `{key}` and still take no query key. The authority is each
       operation's own `parameters` table, which is what a generated client
@@ -115,7 +115,7 @@ info:
       only when the header arrives — so this is additive wire surface, not a new
       precondition on requests already in the field. The refusal is raised after
       the Host gate and before any database work, so a misdirected request
-      mutates nothing. It is skipped on `GET /healthz` and `GET /v0/beads/context`
+      mutates nothing. It is skipped on `GET /healthz` and `GET /v0/issuegraph/context`
       alone: liveness must answer whatever workspace a caller believed it
       reached, and the identity handshake is where a client LEARNS the project
       id to stamp with. A client detects that a server performs this check by
@@ -141,7 +141,7 @@ info:
     `Authorization: Bearer <token>` on every operation that declares the
     `bearerToken` scheme below — which is all of them except `GET /healthz`, so
     that a liveness probe can answer with no credential. `GET
-    /v0/beads/context` is NOT exempt: it reveals the repository root, the beads
+    /v0/issuegraph/context` is NOT exempt: it reveals the repository root, the issuegraph
     directory and the database name.
 
 
@@ -184,7 +184,7 @@ info:
       BEHAVIOR tokens such as `project.enforce` (per-request `Bd-Project-Id`
       enforcement). It is derived from the server's implemented handlers plus the
       behaviors this build enforces; check the list, never the version string.
-    * `bd_version` gates BEHAVIORAL changes tied to a release, and is the only
+    * `issuegraph_version` gates BEHAVIORAL changes tied to a release, and is the only
       field a client may compare as a version.
     * `api_version` gates the path major, and changes only when `/v1` is cut.
     * Parameter presence is PROBED, not versioned: a 400 with
@@ -208,8 +208,8 @@ info:
 
     | Path | `operationId` | Capability token |
     |---|---|---|
-    | `POST /v0/beads/issues:batchApply` | `applyBatch` | `issues.batchApply` |
-    | `POST /v0/beads/issues/{id}:casMetadata` | `compareAndSetMetadata` | `issues.casMetadata` |
+    | `POST /v0/issuegraph/issues:batchApply` | `applyBatch` | `issues.batchApply` |
+    | `POST /v0/issuegraph/issues/{id}:casMetadata` | `compareAndSetMetadata` | `issues.casMetadata` |
 
 
     The capability token follows the PATH in both cases, not the
@@ -313,7 +313,7 @@ paths:
       description: >-
         Liveness only: it answers from the process itself and never touches the
         database, so it stays green while the database is unreachable. For
-        readiness, probe `GET /v0/beads/ready?limit=1` instead.
+        readiness, probe `GET /v0/issuegraph/ready?limit=1` instead.
       responses:
         '200':
           description: The process is running.
@@ -322,7 +322,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Health'
 
-  /v0/beads/context:
+  /v0/issuegraph/context:
     get:
       operationId: getContext
       summary: Workspace and API identity
@@ -346,13 +346,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /v0/beads/ready:
+  /v0/issuegraph/ready:
     get:
       operationId: listReadyWork
       summary: List ready work
       description: >-
         Unblocked, open work, ordered by the requested sort policy. Items are
-        `IssueWithCounts` — the same element type `bd ready --json` emits — so
+        `IssueWithCounts` — the same element type `issuegraph ready --json` emits — so
         dependency, dependent and comment counts are present from v0 onward.
 
 
@@ -361,7 +361,7 @@ paths:
         keyset predicate, and the intended usage is snapshot-and-requery.
 
 
-        SOME TYPES ARE EXCLUDED BY DEFAULT, exactly as `bd ready` excludes them:
+        SOME TYPES ARE EXCLUDED BY DEFAULT, exactly as `issuegraph ready` excludes them:
         `merge-request`, `gate`, `molecule`, `rig` and the workspace's
         configured infrastructure types, plus anything named in `exclude_type`.
         Setting `type` DROPS THAT ENTIRE EXCLUSION SET (also matching the CLI),
@@ -383,17 +383,17 @@ paths:
           in: query
           description: >-
             Issue type. The only normalization is shorthand ALIAS expansion,
-            exactly what `bd ready --type` does: `mr` → `merge-request`,
+            exactly what `issuegraph ready --type` does: `mr` → `merge-request`,
             `feat` → `feature`, `mol` → `molecule`, `enhancement` → `feature`,
             `dec`/`adr` → `decision`. Every other value is used as written —
             there is NO plural folding, so `bugs` is not `bug`.
 
 
             An unrecognized type is not an error here: the type vocabulary is
-            workspace-configurable, and `bd ready` does not validate it either,
+            workspace-configurable, and `issuegraph ready` does not validate it either,
             so it simply matches nothing and `items` comes back empty. (The
-            list operation differs — `bd list` DOES validate the type, so
-            `GET /v0/beads/issues?type=bugs` is a 400.)
+            list operation differs — `issuegraph list` DOES validate the type, so
+            `GET /v0/issuegraph/issues?type=bugs` is a 400.)
 
 
             When set, `exclude_type` is ignored, and so are the default type
@@ -494,8 +494,8 @@ paths:
             creation order. An unrecognized value is a 400.
 
 
-            The default is the one `bd ready --sort` registers, so a client
-            swapping `bd ready --json` for this operation gets the same items in
+            The default is the one `issuegraph ready --sort` registers, so a client
+            swapping `issuegraph ready --json` for this operation gets the same items in
             the same order. The storage layer treats an EMPTY policy as
             `hybrid`, but that fallback is unreachable from the CLI and is NOT
             this parameter's default: `hybrid` demotes older high-priority work,
@@ -510,13 +510,13 @@ paths:
           in: query
           description: >-
             Maximum number of items to return. `0` means unlimited, exactly as
-            `bd ready --limit 0` does — the two surfaces read the same shared
+            `issuegraph ready --limit 0` does — the two surfaces read the same shared
             default and the same zero semantics, so they cannot diverge. A
             negative value is a 400.
 
 
             The default below is the shared ready-work limit constant
-            (`workapi.DefaultReadyLimit`, the value `bd ready`'s `--limit` flag
+            (`workapi.DefaultReadyLimit`, the value `issuegraph ready`'s `--limit` flag
             registers).
 
 
@@ -547,7 +547,7 @@ paths:
             The response carries no marker for the omission, so an omitted
             field is indistinguishable from a genuinely empty one: only the
             client that sent this parameter knows the rows are partial. Fetch a
-            whole issue with `GET /v0/beads/issues/{id}`.
+            whole issue with `GET /v0/issuegraph/issues/{id}`.
           schema:
             type: boolean
             default: false
@@ -569,12 +569,12 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/stats:
+  /v0/issuegraph/stats:
     get:
       operationId: getStats
       summary: Workspace summary statistics
       description: >-
-        The counts `bd status` prints and its `bd stats` alias reprints: rows by
+        The counts `issuegraph status` prints and its `issuegraph stats` alias reprints: rows by
         status across the durable plane, plus the two DEPENDENCY-AWARE numbers —
         the blocked count and the readiness derived from it — that make this a
         different question from a filtered count.
@@ -619,7 +619,7 @@ paths:
           description: >-
             Ask for the answer WITHOUT the blocked-set scan, which is the
             expensive half of this query on a large workspace — the same request
-            `bd status --no-blocked` makes.
+            `issuegraph status --no-blocked` makes.
 
 
             IT IS A HINT. When it is honored, `blocked_issues` and
@@ -652,13 +652,13 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/dependencies/cycles:
+  /v0/issuegraph/dependencies/cycles:
     get:
       operationId: listDependencyCycles
       summary: List dependency cycles
       description: >-
         Every circular blocking dependency in the workspace, the same sweep
-        `bd dep cycles` performs. Items are `Cycle` — the element type that
+        `issuegraph dep cycles` performs. Items are `Cycle` — the element type that
         command's `--json` emits — so the two surfaces carry one shape.
 
 
@@ -701,13 +701,13 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/dependencies/tree:
+  /v0/issuegraph/dependencies/tree:
     get:
       operationId: getDependencyTree
       summary: Walk the dependency tree of one issue
       description: >-
         The dependency graph walked recursively from ONE root — the answer
-        `bd dep tree` renders, and the same `TreeNode` elements that command's
+        `issuegraph dep tree` renders, and the same `TreeNode` elements that command's
         `--json` emits.
 
 
@@ -719,7 +719,7 @@ paths:
         EVERY NODE APPEARS AT MOST ONCE PER WALK, at the depth and parent of the
         first path that reached it. That single rule is both the cycle policy
         and the diamond policy: a cycle TERMINATES rather than failing the call
-        or being reported (`GET /v0/beads/dependencies/cycles` is where a cycle
+        or being reported (`GET /v0/issuegraph/dependencies/cycles` is where a cycle
         is an answer), and a shared subtree is shown under one parent only, with
         no option to show it twice.
 
@@ -758,7 +758,7 @@ paths:
           description: >-
             The issue to walk from. It must be an EXACT canonical issue id:
             there is no fuzzy, prefix or substring resolution on this surface,
-            for the reason `GET /v0/beads/issues/{id}` gives. An empty value is a
+            for the reason `GET /v0/issuegraph/issues/{id}` gives. An empty value is a
             400 `invalid_argument`; a value that matches no issue and no wisp is
             a 404 `not_found`, because there is one anchor here and no other
             answer to preserve.
@@ -839,16 +839,16 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/ready:count:
+  /v0/issuegraph/ready:count:
     get:
       operationId: countReadyWork
       summary: Count ready work
       description: >-
-        How many items `GET /v0/beads/ready` would return for the same filters
+        How many items `GET /v0/issuegraph/ready` would return for the same filters
         with `limit=0`. That is an identity, not an estimate: the two
         operations answer from one role over one predicate
         (`issueops.ReadyCounter`), so a client may page the listing and print
-        this number beside it — which is exactly what `bd ready` does when it
+        this number beside it — which is exactly what `issuegraph ready` does when it
         reports "showing 100 of 412".
 
 
@@ -881,7 +881,7 @@ paths:
           in: query
           description: >-
             Issue type, with the shorthand alias expansion and the
-            match-nothing-rather-than-fail treatment `GET /v0/beads/ready`
+            match-nothing-rather-than-fail treatment `GET /v0/issuegraph/ready`
             documents. Setting it drops the default type exclusions and makes
             `exclude_type` ignored, there and here alike.
           schema:
@@ -992,12 +992,12 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues:
+  /v0/issuegraph/issues:
     get:
       operationId: listIssues
       summary: List issues
       description: >-
-        Issues under the same default exclusions `bd list` applies (closed and
+        Issues under the same default exclusions `issuegraph list` applies (closed and
         custom done/frozen statuses, templates, gates and configured infra
         types), each carrying dependency, dependent and comment counts.
 
@@ -1005,15 +1005,15 @@ paths:
         ORDERING IS NAMED BY `sort`, AND THE VOCABULARY IS CLOSED. Two orders
         are served: `created` — `(created_at DESC, id ASC)`, the default and
         the only order earlier revisions had — and `priority` —
-        `(priority ASC, created_at DESC, id ASC)`, which is `bd list`'s
-        flagless ordering and also what `bd list --sort priority` produces.
+        `(priority ASC, created_at DESC, id ASC)`, which is `issuegraph list`'s
+        flagless ordering and also what `issuegraph list --sort priority` produces.
         Absent `sort` means `created`, permanently: it is the compatibility
         contract for every client written before this parameter existed.
 
 
         THE ORDER AND THE CURSOR ARE ONE DECISION, which is why the vocabulary
-        is closed rather than the nine-value display vocabulary `bd list --sort`
-        and `GET /v0/beads/issues:query` take. A `cursor` is a keyset POSITION
+        is closed rather than the nine-value display vocabulary `issuegraph list --sort`
+        and `GET /v0/issuegraph/issues:query` take. A `cursor` is a keyset POSITION
         in a total order, so each served order needs its own strictly-after
         predicate and its own proof that its key is total. Both of these have
         one: `priority` and `created_at` are non-null and `id` is unique, so a
@@ -1036,7 +1036,7 @@ paths:
 
         `priority` IS A MUTABLE KEY, which `created_at` is not, and a paging
         client should know what that costs. Under `created` only new rows move
-        relative to a walk; under `priority` an `bd update --priority` moves an
+        relative to a walk; under `priority` an `issuegraph update --priority` moves an
         existing row too, so it can be seen twice or missed. That is the
         already-documented consequence of a cursor pinning a position rather
         than a snapshot, reached by updates as well as by creations — not a new
@@ -1044,10 +1044,10 @@ paths:
         order.
 
 
-        The item set, and each item's JSON, are identical to `bd list --json`.
+        The item set, and each item's JSON, are identical to `issuegraph list --json`.
         Under `sort=priority` so is the order, so a client that used to page
         this operation to exhaustion and re-sort client-side to reproduce
-        `bd list` can now ask for one page.
+        `issuegraph list` can now ask for one page.
 
 
         EPHEMERAL ROWS ARE OUT OF SCOPE BY DEFAULT and are admitted by
@@ -1063,17 +1063,17 @@ paths:
         rows of an infrastructure type therefore need `include_infra`.
 
 
-        The CLI has no `--include-ephemeral` flag for `bd list` yet, so this is
-        the one filter on this operation with no `bd list` spelling;
+        The CLI has no `--include-ephemeral` flag for `issuegraph list` yet, so this is
+        the one filter on this operation with no `issuegraph list` spelling;
         `--include-infra` is the nearest one and is wider.
 
 
         THE ROWS CARRY NO `revision`, AND THE DETAIL READ DOES. A list-then-guard
         loop is a real shape, and the reason the token stops at
-        `GET /v0/beads/issues/{id}` is not its size — measured against a 20k-row
+        `GET /v0/issuegraph/issues/{id}` is not its size — measured against a 20k-row
         production export the member is 28 bytes on a 1449-byte median row,
         under 2%. It is that `IssueWithCounts` is ALSO THE INTERCHANGE ROW: it
-        is the record `bd export` writes to JSONL and the auto-export flushes
+        is the record `issuegraph export` writes to JSONL and the auto-export flushes
         into a git-tracked `issues.jsonl`, and the token is re-minted by every
         write, so publishing it on this element would put a per-write-random
         value into a file whose whole value is that it diffs only when
@@ -1093,7 +1093,7 @@ paths:
         consequence of the two being ONE pinned Go struct, not a judgement that
         a per-row token is unwanted, so the way in is to separate them — and
         nothing short of that will do, because any member added to this element
-        ships in `bd export`'s JSONL by construction. Until then a client MUST
+        ships in `issuegraph export`'s JSONL by construction. Until then a client MUST
         model the absent member as ABSENT and never as `0`: zero is a real
         token here (a legacy row backfilled and not mutated since), so a client
         that defaulted a missing `revision` to 0 would compose guards that
@@ -1120,10 +1120,10 @@ paths:
           in: query
           description: >-
             Issue type. Shorthand aliases are expanded exactly as
-            `bd list --type` expands them (`mr`, `feat`, `mol`, `enhancement`,
+            `issuegraph list --type` expands them (`mr`, `feat`, `mol`, `enhancement`,
             `dec`, `adr`); there is no plural folding. Unlike on `ready`, an
             unknown type is a 400 `invalid_argument` with
-            `reason: "invalid_value"`, because `bd list` validates the type
+            `reason: "invalid_value"`, because `issuegraph list` validates the type
             against the workspace's configured vocabulary and this operation
             keeps that behavior.
           schema:
@@ -1245,8 +1245,8 @@ paths:
           description: >-
             Which of the two served total orders this page is in. `created` is
             `(created_at DESC, id ASC)`; `priority` is
-            `(priority ASC, created_at DESC, id ASC)` — `bd list`'s flagless
-            ordering, and the order `bd list --sort priority` produces.
+            `(priority ASC, created_at DESC, id ASC)` — `issuegraph list`'s flagless
+            ordering, and the order `issuegraph list --sort priority` produces.
 
 
             THE DEFAULT IS `created` AND WILL NOT CHANGE. It is what this
@@ -1256,7 +1256,7 @@ paths:
 
 
             THE VOCABULARY IS CLOSED, and deliberately smaller than the nine
-            values `bd list --sort` and `GET /v0/beads/issues:query` take. Each
+            values `issuegraph list --sort` and `GET /v0/issuegraph/issues:query` take. Each
             value here is a cursor contract, not a display preference: it needs
             a keyset predicate and a key proven total. See the operation
             description for why the other seven have neither.
@@ -1328,14 +1328,14 @@ paths:
           in: query
           description: >-
             Maximum number of items to return. `0` means unlimited, exactly as
-            `bd list --limit 0` does — the two surfaces read the same shared
+            `issuegraph list --limit 0` does — the two surfaces read the same shared
             default and the same zero semantics, so they cannot diverge. An
             unlimited page reports `has_more: false` and carries no
             `next_cursor`. A negative value is a 400.
 
 
             The default below is the shared list limit constant
-            (`workapi.DefaultListLimit`, the value `bd list`'s `--limit` flag
+            (`workapi.DefaultListLimit`, the value `issuegraph list`'s `--limit` flag
             registers).
 
 
@@ -1366,7 +1366,7 @@ paths:
             The response carries no marker for the omission, so an omitted
             field is indistinguishable from a genuinely empty one: only the
             client that sent this parameter knows the rows are partial. Fetch a
-            whole issue with `GET /v0/beads/issues/{id}`.
+            whole issue with `GET /v0/issuegraph/issues/{id}`.
           schema:
             type: boolean
             default: false
@@ -1410,7 +1410,7 @@ paths:
 
 
         Every member the role accepts and this surface publishes anywhere is
-        here, and that is deliberate: `POST /v0/beads/issues:batchCreate` spells
+        here, and that is deliberate: `POST /v0/issuegraph/issues:batchCreate` spells
         nine of them, which is what makes it unusable for a caller composing a
         real row — no `status`, no `sender`, no `metadata`, no `ephemeral`, no
         `no_history`, no `id`. This operation is the single-issue create with
@@ -1421,7 +1421,7 @@ paths:
         THE EDGES ARE HERE, unlike on `issues:batchApply`. That operation splits
         edges into their own `dep_add` items so a plan's edge order is total;
         one create has no ordering to express, so `parent_id`, `dependencies`
-        and `waits_for` ride on the request the way `bd create --parent`,
+        and `waits_for` ride on the request the way `issuegraph create --parent`,
         `--deps` and `--waits-for` do. Every edge lands in the same transaction
         as the row: an edge this request could not write is a `400` and the
         issue is not created either.
@@ -1432,8 +1432,8 @@ paths:
 
         `id` is CREATE-ONLY. An id that already names a stored row — on either
         plane — is a `409 already_exists` and nothing is written. It is never an
-        adoption and never an overwrite: `PATCH /v0/beads/issues/{id}` acts on a
-        row that already exists, and `bd import` is the upsert surface, which
+        adoption and never an overwrite: `PATCH /v0/issuegraph/issues/{id}` acts on a
+        row that already exists, and `issuegraph import` is the upsert surface, which
         this API does not publish. Absent is the ordinary case and the server
         mints one.
 
@@ -1452,12 +1452,12 @@ paths:
         `storage_class`, `source_*`, `pinned`, `is_template` and the event
         quartet (`event_kind`, `actor`, `target`, `payload`) — workflow and
         classification plumbing this surface publishes on no operation, read or
-        write. `PATCH /v0/beads/issues/{id}` says the same of `spec_id` and
+        write. `PATCH /v0/issuegraph/issues/{id}` says the same of `spec_id` and
         `await_id`.
 
 
         The per-type `storage-class.<type>` keys in `config.yaml` are CLI-door
-        policy that `bd create` resolves before it calls the role, so they do not
+        policy that `issuegraph create` resolves before it calls the role, so they do not
         reach any create on this surface — this operation, `issues:batchCreate`
         and `issues:batchApply` all mint the unset (versioned) class no matter
         what those keys say on the server's machine.
@@ -1482,7 +1482,7 @@ paths:
 
 
         Hooks do not fire and the per-command auto-commit machinery does not
-        run, exactly as for `POST /v0/beads/issues/{id}:claim`. The only durable
+        run, exactly as for `POST /v0/issuegraph/issues/{id}:claim`. The only durable
         effect is the single storage commit the role makes in its own
         transaction.
       requestBody:
@@ -1521,8 +1521,8 @@ paths:
 
 
             A DEPENDENCY TARGET THAT NAMES NOTHING IS A `400`, NOT A `404`,
-            conforming to `POST /v0/beads/dependencies:add` and
-            `POST /v0/beads/issues:batchCreate`: an edge describes a relation
+            conforming to `POST /v0/issuegraph/dependencies:add` and
+            `POST /v0/issuegraph/issues:batchCreate`: an edge describes a relation
             rather than a resource this request was asked to address, and this
             operation names no id in its path to have missed. Nothing is created
             in any of these cases.
@@ -1549,7 +1549,7 @@ paths:
 
 
             `dependency_cycle` is the graph refusing the edges this request
-            asked for, spelled exactly as `POST /v0/beads/dependencies:add`
+            asked for, spelled exactly as `POST /v0/issuegraph/dependencies:add`
             spells it and covering both of that operation's refusals: a
             scheduling cycle, and a blocking edge against the new issue's own
             ancestor or descendant. The hierarchy case — and only it —
@@ -1564,7 +1564,7 @@ paths:
             `dependencies[]` may name a blocking edge against that ancestry —
             while `dependencies[].reverse` writes an edge INTO the id being
             minted, which is the only way a create can close a scheduling cycle.
-            `PATCH /v0/beads/issues/{id}` publishes no blocking-edge member, so
+            `PATCH /v0/issuegraph/issues/{id}` publishes no blocking-edge member, so
             its `dependency_cycle` never carries the hierarchy members; the
             discriminator is meaningful here and absent there.
           x-bd-codes: [already_exists, dependency_cycle]
@@ -1577,22 +1577,22 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues:query:
+  /v0/issuegraph/issues:query:
     get:
       operationId: queryIssues
       summary: Query issues with a boolean expression
       description: >-
-        The `bd query` expression language over HTTP: field comparisons
+        The `issuegraph query` expression language over HTTP: field comparisons
         combined with `AND`, `OR`, `NOT` and parentheses. It is the one
         operation on this surface that takes a DISJUNCTION — every filter
-        parameter of `GET /v0/beads/issues` narrows the answer, and no
+        parameter of `GET /v0/issuegraph/issues` narrows the answer, and no
         combination of them expresses `type=bug OR label=urgent`.
 
 
         IT IS NOT A SQL PASSTHROUGH, and the shape of the language is what
         makes that true rather than a promise about validation: there are no
         table names, no joins and no way to name a column the vocabulary does
-        not publish. The vocabulary is the one `bd query --help` documents, and
+        not publish. The vocabulary is the one `issuegraph query --help` documents, and
         an expression outside it is a 400 rather than an empty page.
 
 
@@ -1642,7 +1642,7 @@ paths:
           in: query
           description: >-
             Display order for the page. Absent leaves the rows in the order the
-            query returned them, which is the same thing `bd query` without
+            query returned them, which is the same thing `issuegraph query` without
             `--sort` does.
 
 
@@ -1663,8 +1663,8 @@ paths:
           in: query
           description: >-
             Maximum number of items to return. `0` means unlimited, exactly as
-            `bd query --limit 0` does — the two surfaces read the same shared
-            default (`workapi.DefaultQueryLimit`, the value `bd query --limit`
+            `issuegraph query --limit 0` does — the two surfaces read the same shared
+            default (`workapi.DefaultQueryLimit`, the value `issuegraph query --limit`
             registers) and the same zero semantics. A negative value is a 400.
 
 
@@ -1700,17 +1700,17 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues:count:
+  /v0/issuegraph/issues:count:
     get:
       operationId: countIssues
       summary: Count issues matching a predicate
       description: >-
         How many issues match, and — with `group_by` — how many in each bucket.
-        It is the operation behind `bd count`, and it answers from
+        It is the operation behind `issuegraph count`, and it answers from
         `issueops.Counter` over the same predicate that command builds.
 
 
-        ## It is not `GET /v0/beads/issues` with the page taken off
+        ## It is not `GET /v0/issuegraph/issues` with the page taken off
 
 
         That is the difference to internalize before using it, because the two
@@ -1718,7 +1718,7 @@ paths:
         template and gate rows; a count hides NONE of them. An empty request
         here counts every durable row this workspace holds, closed rows
         included, and it is the ROLE that decides that — the same decision
-        `bd count` has always made — not a default this operation applies.
+        `issuegraph count` has always made — not a default this operation applies.
 
 
         Nor is it a listing with paging removed at the type level: there is no
@@ -1749,7 +1749,7 @@ paths:
         one id.
 
 
-        That is the opposite of `GET /v0/beads/events:watch`, which is a sibling
+        That is the opposite of `GET /v0/issuegraph/events:watch`, which is a sibling
         operation rather than a mode of the paged read: those two differ in media
         type, lifetime, limits and capacity, and one operation carrying both
         would have documented two of everything. Here nothing differs but one
@@ -1776,7 +1776,7 @@ paths:
 
 
         A count is DURABLE-PLANE ONLY unless `include_infra` is set. The wisps
-        tier — ephemeral wisps and the `no_history` beads that are durable work
+        tier — ephemeral wisps and the `no_history` issuegraph that are durable work
         stored in that tier — is not counted by default, and `include_infra`
         changes FOUR things at once rather than one. See that parameter; it is
         the one place on this operation where a single flag moves the set in
@@ -1791,7 +1791,7 @@ paths:
 
 
             IT IS ONE STATUS, NOT A COMMA-SEPARATED SET, and that is the one
-            parameter name this operation shares with `GET /v0/beads/issues`
+            parameter name this operation shares with `GET /v0/issuegraph/issues`
             while meaning something narrower — that one takes a comma-separated
             OR set. It is stated here rather than quietly reconciled, because a
             client that assumed otherwise would read a plausible number instead
@@ -1800,7 +1800,7 @@ paths:
 
             It is NOT validated against this workspace's configured vocabulary.
             An unrecognized name matches nothing and the answer is `0`, not a
-            refusal — the shipped behavior of `bd count`, published rather than
+            refusal — the shipped behavior of `issuegraph count`, published rather than
             tightened, because a scripted caller counting a status its workspace
             has since dropped currently reads 0 and would otherwise start
             reading an error.
@@ -1811,7 +1811,7 @@ paths:
           description: >-
             One issue type, with `status`'s match-nothing-rather-than-fail
             treatment and NO shorthand alias expansion at all — unlike
-            `GET /v0/beads/ready`'s `type`, which expands aliases.
+            `GET /v0/issuegraph/ready`'s `type`, which expands aliases.
 
 
             It has a SECOND effect under `include_infra`: a type this workspace
@@ -1881,7 +1881,7 @@ paths:
         - name: title_contains
           in: query
           description: >-
-            Substring match on the title, spelled as `GET /v0/beads/issues:query`
+            Substring match on the title, spelled as `GET /v0/issuegraph/issues:query`
             spells it. It overlaps `title` deliberately: both reach the filter,
             and the two names exist because the role carries both fields.
           schema:
@@ -1966,16 +1966,16 @@ paths:
         - name: include_infra
           in: query
           description: >-
-            Count the cardinality of `bd list --include-infra --all` instead of
+            Count the cardinality of `issuegraph list --include-infra --all` instead of
             the durable plane. IT CHANGES FOUR THINGS AT ONCE, and they are
             listed rather than summarized because a caller reading "include
             infra" would expect one:
 
 
             the ephemeral wisps tier is MERGED IN, picking up both wisps and the
-            `no_history` beads that are durable work stored in that tier;
+            `no_history` issuegraph that are durable work stored in that tier;
             template molecules are EXCLUDED, which a default count includes;
-            gate beads are EXCLUDED unless `type=gate` asks for them by name;
+            gate issuegraph are EXCLUDED unless `type=gate` asks for them by name;
             and a `type` this workspace calls infra ROUTES the count to the
             ephemeral tier instead of the durable one.
 
@@ -1986,7 +1986,7 @@ paths:
 
 
             Unset, the count is durable-plane only and applies none of the four:
-            the historical `bd count` answer, kept exactly so a scripted caller
+            the historical `issuegraph count` answer, kept exactly so a scripted caller
             reads the same number it read yesterday.
           schema:
             type: boolean
@@ -2051,7 +2051,7 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues/{id}:
+  /v0/issuegraph/issues/{id}:
     get:
       operationId: getIssue
       summary: Get one issue with its labels, dependencies and counts
@@ -2223,7 +2223,7 @@ paths:
         remains the operation to reach for when what you mean is "close this".
 
 
-        `created_at`, `created_by` — `POST /v0/beads/issues` withholds them for
+        `created_at`, `created_by` — `POST /v0/issuegraph/issues` withholds them for
         the same reason: a caller-chosen creation time makes the row disagree
         with the journal entry that recorded it, and re-dating history is what an
         import is for.
@@ -2245,7 +2245,7 @@ paths:
 
 
         Hooks do not fire and the per-command auto-commit machinery does not
-        run, exactly as for `POST /v0/beads/issues/{id}:claim`. The only
+        run, exactly as for `POST /v0/issuegraph/issues/{id}:claim`. The only
         durable effect is the single storage commit the role makes in its own
         transaction.
       parameters:
@@ -2284,7 +2284,7 @@ paths:
 
 
             A NEW PARENT THAT NAMES NOTHING IS A `400`, NOT A `404`, conforming
-            to `POST /v0/beads/dependencies:add`: an edge describes a relation
+            to `POST /v0/issuegraph/dependencies:add`: an edge describes a relation
             rather than the resource this request addresses, and the `404` below
             is reserved for the id in the PATH.
           x-bd-codes: [invalid_argument]
@@ -2341,7 +2341,7 @@ paths:
             — is raised only for a BLOCKING edge, and the only edge this
             operation writes is the `parent-child` one `patch.parent_id` names,
             so the discriminator cannot fire. That is the difference from
-            `POST /v0/beads/issues` and from `POST /v0/beads/dependencies:add`,
+            `POST /v0/issuegraph/issues` and from `POST /v0/issuegraph/dependencies:add`,
             both of which write blocking edges and do carry it: this operation
             publishes no member that writes one. What you get here is the plain
             scheduling cycle, every time.
@@ -2357,21 +2357,21 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues/{id}/related:
+  /v0/issuegraph/issues/{id}/related:
     get:
       operationId: listRelatedIssues
       summary: List one issue's neighbors in a named direction
       description: >-
         THE ISSUES ON THE FAR END of this issue's edges, in the direction the
         request names, each carrying the type of the edge that led to it. It is
-        the read behind `bd dep list`'s neighbor view, and its elements are the
+        the read behind `issuegraph dep list`'s neighbor view, and its elements are the
         same `IssueWithDependencyMetadata` the `dependencies` and `dependents`
-        members of `GET /v0/beads/issues/{id}` already carry.
+        members of `GET /v0/issuegraph/issues/{id}` already carry.
 
 
         IT IS A SUB-RESOURCE OF THE ISSUE, not a member of the dependency
         collection, and the two answer different things about the same edges.
-        `GET /v0/beads/dependencies` returns the stored edge ROWS — targets
+        `GET /v0/issuegraph/dependencies` returns the stored edge ROWS — targets
         spelled exactly as stored, nothing looked up — for many anchors at once;
         this one is anchored on ONE issue and answers with HYDRATED ISSUES, so
         an edge whose far end this database holds no row for is not a neighbor
@@ -2386,8 +2386,8 @@ paths:
         is this issue's NEIGHBOR count and not its EDGE count, and the two
         differ by however many of its edges point outside this database. A
         caller that needs the edges themselves reads
-        `GET /v0/beads/dependencies`; a caller that needs the number reads
-        `GET /v0/beads/dependencies:count`, which counts edges and not
+        `GET /v0/issuegraph/dependencies`; a caller that needs the number reads
+        `GET /v0/issuegraph/dependencies:count`, which counts edges and not
         neighbors.
 
 
@@ -2417,8 +2417,8 @@ paths:
         stable enough to look deliberate and not stable enough to rely on.
 
 
-        THE ROWS CARRY NO `revision`, on `GET /v0/beads/issues`'s terms. The
-        element here is the pinned Go struct `GET /v0/beads/issues/{id}` carries
+        THE ROWS CARRY NO `revision`, on `GET /v0/issuegraph/issues`'s terms. The
+        element here is the pinned Go struct `GET /v0/issuegraph/issues/{id}` carries
         under `dependencies` and `dependents`, so it publishes an issue's own
         serialized fields and nothing this operation invents; the
         optimistic-concurrency token stays on the detail read, which is where a
@@ -2429,7 +2429,7 @@ paths:
 
         THERE IS NO `limit` AND NO CURSOR. One issue's neighbors are unbounded
         here exactly as the `dependencies` member of
-        `GET /v0/beads/issues/{id}` already is, and this operation names ONE
+        `GET /v0/issuegraph/issues/{id}` already is, and this operation names ONE
         anchor, so there is no question to bound instead — which is what the
         dependency-collection reads bound at 100 `issue_id` values apiece. A
         limit with no cursor behind it would truncate with no way to fetch the
@@ -2437,7 +2437,7 @@ paths:
 
 
         THERE IS NO `both` DIRECTION, for the reason
-        `GET /v0/beads/dependencies:count` has none: a caller that wants the
+        `GET /v0/issuegraph/dependencies:count` has none: a caller that wants the
         pair asks twice, and one call answering both would have to say which
         direction each row came from — which is a second member on an element
         this document deliberately shares with the detail read.
@@ -2449,12 +2449,12 @@ paths:
           description: >-
             Which way this issue's edges are walked. `out` answers the issues it
             DEPENDS ON — the `dependencies` member of
-            `GET /v0/beads/issues/{id}`. `in` answers the issues that depend on
+            `GET /v0/issuegraph/issues/{id}`. `in` answers the issues that depend on
             it — that read's `dependents` member.
 
 
             IT IS REQUIRED AND HAS NO DEFAULT, on
-            `GET /v0/beads/dependencies:count`'s terms and for the reason
+            `GET /v0/issuegraph/dependencies:count`'s terms and for the reason
             `issueops.RelationDirection` gives: the two answers have the same
             shape and the same member names, so a caller handed the inverse graph
             has nothing to notice. An absent or unrecognized value is a 400
@@ -2475,7 +2475,7 @@ paths:
             type.
 
 
-            `GET /v0/beads/dependencies`'s `type` exactly: the vocabulary is
+            `GET /v0/issuegraph/dependencies`'s `type` exactly: the vocabulary is
             OPEN, so an unrecognized value is not an error and simply matches no
             edge, while a value no edge could ever carry — empty, or longer than
             the column — is a 400 `invalid_argument` with `param: "type"`.
@@ -2510,25 +2510,25 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues/{id}/comments:
+  /v0/issuegraph/issues/{id}/comments:
     post:
       operationId: addComment
       summary: Append one comment to an issue's thread
       description: >-
         Appends ONE comment to the thread the issue owns, as one atomic
-        mutation — the write behind `bd comment`. It leaves every field of the
+        mutation — the write behind `issuegraph comment`. It leaves every field of the
         issue untouched: a comment is not a patch, which is why it is not a
-        member of `PATCH /v0/beads/issues/{id}` and why `issueops.Commenter` is
+        member of `PATCH /v0/issuegraph/issues/{id}` and why `issueops.Commenter` is
         its own role rather than a lifecycle verb.
 
 
         IT IS A SUB-RESOURCE COLLECTION OF THE ISSUE, and the argument is the
-        one `GET /v0/beads/issues/{id}/related` makes, applied to a write: the
+        one `GET /v0/issuegraph/issues/{id}/related` makes, applied to a write: the
         row this creates is the SAME pinned `Comment`
-        `GET /v0/beads/issues/{id}?include_comments=true` already carries under
+        `GET /v0/issuegraph/issues/{id}?include_comments=true` already carries under
         `comments`, so the operation that appends one belongs on the resource
         whose members it publishes. A PLAIN collection `POST` rather than a
-        custom method, for `POST /v0/beads/issues`' reason: creating one member
+        custom method, for `POST /v0/issuegraph/issues`' reason: creating one member
         of the collection a path names is what `POST` already means, and a
         `{id}:addComment` spelling would in addition need the claim route's
         wildcard contortion for no gain. It collides with nothing — the
@@ -2538,7 +2538,7 @@ paths:
 
         THIS COLLECTION PUBLISHES NO `GET`, and the absence is a statement
         rather than a gap. No role answers a comment PAGE: reading the thread is
-        `GET /v0/beads/issues/{id}?include_comments=true`, which returns the
+        `GET /v0/issuegraph/issues/{id}?include_comments=true`, which returns the
         bodies in full, and a paged walk is a second question with a cursor of
         its own — `issueops.Commenter` says exactly that, and a `GET` here would
         be this surface inventing the role that does not exist. A `GET` on this
@@ -2550,7 +2550,7 @@ paths:
 
 
         The caller always names the author and the server never infers one, for
-        `POST /v0/beads/issues/{id}:claim`'s reason. IT IS NOT THE AUTHENTICATED
+        `POST /v0/issuegraph/issues/{id}:claim`'s reason. IT IS NOT THE AUTHENTICATED
         PRINCIPAL even where a bearer is required: the token a deployment
         configures admits a client to the whole surface and names nobody, so it
         can neither confirm nor contradict the name in `author`. A reader of the
@@ -2570,8 +2570,8 @@ paths:
 
 
         The id resolves across BOTH planes, as `POST
-        /v0/beads/issues/{id}:close` does and unlike
-        `POST /v0/beads/issues/{id}:claim`: A WISP IS A LEGAL TARGET. The
+        /v0/issuegraph/issues/{id}:close` does and unlike
+        `POST /v0/issuegraph/issues/{id}:claim`: A WISP IS A LEGAL TARGET. The
         comment lands on the ephemeral thread and reads back from it, and only
         the DURABLE trace is missing — a comment on an ephemeral row records NO
         history entry, none rather than one, because the wisp tables are
@@ -2643,7 +2643,7 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues/{id}:claim:
+  /v0/issuegraph/issues/{id}:claim:
     post:
       operationId: claimIssue
       summary: Claim an issue for an actor
@@ -2706,12 +2706,12 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues/{id}:release:
+  /v0/issuegraph/issues/{id}:release:
     post:
       operationId: releaseIssue
       summary: Give back the claim on an issue
       description: >-
-        The claim's inverse, and what `bd unclaim` spells. It ends the
+        The claim's inverse, and what `issuegraph unclaim` spells. It ends the
         OWNERSHIP and leaves the work open for the next taker: assignee
         cleared, status the literal `open`, `started_at` cleared, the lease
         dropped, and `revision` reminted so a concurrent reclaim or close
@@ -2719,14 +2719,14 @@ paths:
 
 
         It is a named lifecycle action rather than a `patch`, for
-        `POST /v0/beads/issues/{id}:close`'s reason: an update spells a release
+        `POST /v0/issuegraph/issues/{id}:close`'s reason: an update spells a release
         as three fields at a time, which puts the transition's definition in
         the CALLER, and the lease it drops is the part a patch cannot express
         at all.
 
 
         The caller always names the actor, for
-        `POST /v0/beads/issues/{id}:claim`'s reason. HERE IT IS ALSO THE
+        `POST /v0/issuegraph/issues/{id}:claim`'s reason. HERE IT IS ALSO THE
         OWNERSHIP FENCE'S SUBJECT: a release carrying neither
         `expected_assignee` nor `force` succeeds only while `actor` is the
         current holder. That is not authentication — `actor` is caller-asserted
@@ -2800,8 +2800,8 @@ paths:
 
 
         The id resolves across BOTH planes, unlike
-        `POST /v0/beads/issues/{id}:claim` and like
-        `POST /v0/beads/issues/{id}:close`. The asymmetry is about which
+        `POST /v0/issuegraph/issues/{id}:claim` and like
+        `POST /v0/issuegraph/issues/{id}:close`. The asymmetry is about which
         direction strands work: a wisp can hold a claim, so an operation that
         refused to release one would leave an ephemeral row owned by an agent
         that is gone with no verb able to free it. A release whose target is a
@@ -2812,7 +2812,7 @@ paths:
 
 
         Hooks do not fire and the per-command auto-commit machinery does not
-        run, exactly as for `POST /v0/beads/issues/{id}:claim`. The only
+        run, exactly as for `POST /v0/issuegraph/issues/{id}:claim`. The only
         durable effect is the single storage commit the role makes inside its
         own transaction, which is what a proxied CLI write does today.
       parameters:
@@ -2947,7 +2947,7 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues/{id}:close:
+  /v0/issuegraph/issues/{id}:close:
     post:
       operationId: closeIssue
       summary: Close one issue
@@ -3001,7 +3001,7 @@ paths:
         The token travels back on `revision`, so a read-modify-write chain that
         ends in a close composes its expectation from the value the previous
         write answered with — or, where the chain STARTS with a read, from
-        `GET /v0/beads/issues/{id}`'s `revision`, which is the same token and
+        `GET /v0/issuegraph/issues/{id}`'s `revision`, which is the same token and
         agrees with this one.
 
 
@@ -3009,7 +3009,7 @@ paths:
 
 
         The id resolves across BOTH planes, unlike
-        `POST /v0/beads/issues/{id}:claim`. A close whose target is a wisp lands
+        `POST /v0/issuegraph/issues/{id}:claim`. A close whose target is a wisp lands
         on the unversioned plane and records no durable history entry.
 
 
@@ -3017,7 +3017,7 @@ paths:
 
 
         Hooks do not fire and the per-command auto-commit machinery does not
-        run, exactly as for `POST /v0/beads/issues/{id}:claim`. The only durable
+        run, exactly as for `POST /v0/issuegraph/issues/{id}:claim`. The only durable
         effect is the single storage commit the role makes in its own
         transaction.
       parameters:
@@ -3084,13 +3084,13 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues/{id}:reopen:
+  /v0/issuegraph/issues/{id}:reopen:
     post:
       operationId: reopenIssue
       summary: Reopen one issue
       description: >-
         Moves the literal `closed` status and every configured done status back
-        to `open`. It is `POST /v0/beads/issues/{id}:close`'s mirror, and it
+        to `open`. It is `POST /v0/issuegraph/issues/{id}:close`'s mirror, and it
         completes the lifecycle pair so a recovery flow works end to end over
         this surface.
 
@@ -3138,7 +3138,7 @@ paths:
         The token travels back on `revision`, so a reopen-then-re-close recovery
         composes its next expectation from the value this operation answered
         with, and a recovery that starts by reading composes its first from
-        `GET /v0/beads/issues/{id}`'s `revision`.
+        `GET /v0/issuegraph/issues/{id}`'s `revision`.
 
 
         ## Planes
@@ -3153,7 +3153,7 @@ paths:
 
 
         Hooks do not fire and the per-command auto-commit machinery does not
-        run, exactly as for `POST /v0/beads/issues/{id}:claim`. The only
+        run, exactly as for `POST /v0/issuegraph/issues/{id}:claim`. The only
         durable effect is the single storage commit the role makes in its own
         transaction.
       parameters:
@@ -3196,7 +3196,7 @@ paths:
             (`precondition_failed`). `param` is `expected_version` and the
             refusal echoes the value the REQUEST guarded on, with no
             `actual_version` beside it for the reason
-            `POST /v0/beads/issues/{id}:close` gives. Nothing was written.
+            `POST /v0/issuegraph/issues/{id}:close` gives. Nothing was written.
 
 
             This operation's ONLY conflict, and it is a precondition rather than
@@ -3211,7 +3211,7 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues/{id}:casMetadata:
+  /v0/issuegraph/issues/{id}:casMetadata:
     post:
       operationId: compareAndSetMetadata
       summary: Conditionally set one metadata key on an issue
@@ -3331,19 +3331,19 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues:sweep:
+  /v0/issuegraph/issues:sweep:
     post:
       operationId: sweepIssues
-      summary: Delete closed beads in bulk
+      summary: Delete closed issuegraph in bulk
       description: >-
-        Bulk clearance of CLOSED beads from ONE tier: the operation behind
-        `bd purge` (`tier: ephemeral`) and `bd prune` (`tier: durable`). It is
+        Bulk clearance of CLOSED issuegraph from ONE tier: the operation behind
+        `issuegraph purge` (`tier: ephemeral`) and `issuegraph prune` (`tier: durable`). It is
         one of the two DESTRUCTIVE operations on this surface — the other is
         `issues:delete` — and nothing it deletes comes back.
 
 
         A collection-level custom method rather than `DELETE
-        /v0/beads/issues?...`: this describes a SET and acts on it, and a
+        /v0/issuegraph/issues?...`: this describes a SET and acts on it, and a
         `DELETE` with a filtering query string is the shape where a dropped
         parameter widens what is erased. Sending a body makes every narrowing
         term a member the server refuses by name if it does not know it.
@@ -3353,9 +3353,9 @@ paths:
 
 
         The closed rows of `tier`, then `pattern`, then the two protections —
-        pinned beads are never swept and `protect_referenced` holds back beads
-        another live bead cites. The ORDER is part of the answer: `skipped`
-        counts what the request actually reached, so a pinned bead the pattern
+        pinned issuegraph are never swept and `protect_referenced` holds back issuegraph
+        another live issue cites. The ORDER is part of the answer: `skipped`
+        counts what the request actually reached, so a pinned issue the pattern
         excluded is not counted as protected.
 
 
@@ -3364,9 +3364,9 @@ paths:
 
         A `durable` sweep with neither `closed_before` nor `pattern` is
         refused with `400` / `invalid_argument`. That refusal comes from the
-        same library surface `bd prune` calls, not from a check written here,
+        same library surface `issuegraph prune` calls, not from a check written here,
         which is what makes this endpoint incapable of erasing every closed
-        bead in a workspace by omission. A caller that really means everything
+        issue in a workspace by omission. A caller that really means everything
         closed sends `pattern: "*"`.
 
 
@@ -3395,7 +3395,7 @@ paths:
           description: >-
             The sweep ran (or, under `dry_run`, was costed). A request that
             matched nothing is a 200 with `swept: 0`, not a 404 — an empty set
-            of closed beads is the steady state of a swept workspace.
+            of closed issuegraph is the steady state of a swept workspace.
           content:
             application/json:
               schema:
@@ -3420,18 +3420,18 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues:delete:
+  /v0/issuegraph/issues:delete:
     post:
       operationId: deleteIssues
-      summary: Delete named beads
+      summary: Delete named issuegraph
       description: >-
-        Erases the beads this request NAMES, and — under `cascade` — everything
-        that depends on them. It is the operation behind `bd delete`, the other
+        Erases the issuegraph this request NAMES, and — under `cascade` — everything
+        that depends on them. It is the operation behind `issuegraph delete`, the other
         DESTRUCTIVE operation on this surface alongside `issues:sweep`, and
         nothing it deletes comes back.
 
 
-        It is a different operation from `POST /v0/beads/issues:sweep`, not a
+        It is a different operation from `POST /v0/issuegraph/issues:sweep`, not a
         narrower spelling of it. A sweep DESCRIBES a set and lets the server
         resolve it; this one is handed ids. That difference is what decides
         where each one's safety lives: a description can be accidentally too
@@ -3440,7 +3440,7 @@ paths:
 
 
         A collection-level custom method rather than `DELETE
-        /v0/beads/issues/{id}`: this acts on a SET, its behavior turns on
+        /v0/issuegraph/issues/{id}`: this acts on a SET, its behavior turns on
         three flags, and a `DELETE` carrying those in a query string is the
         shape where a dropped parameter changes what is erased. Sending a body
         makes every one of them a member the server refuses by name if it does
@@ -3450,9 +3450,9 @@ paths:
         ## The three modes
 
 
-        With neither `cascade` nor `force`, a named bead that some bead OUTSIDE
+        With neither `cascade` nor `force`, a named issue that some issue OUTSIDE
         the request depends on is REFUSED with `400` / `invalid_argument`, and
-        nothing is deleted. `force` deletes the named beads and leaves those
+        nothing is deleted. `force` deletes the named issuegraph and leaves those
         dependents ORPHANED — they keep their rows, lose their edges, and come
         back in `orphaned`. `cascade` deletes the transitive closure instead,
         so nothing is left outside it to orphan; a request carrying both
@@ -3460,16 +3460,16 @@ paths:
 
 
         The refusal is the LIBRARY's, not this handler's — the same surface
-        `bd delete` calls — which is what makes this endpoint incapable of
+        `issuegraph delete` calls — which is what makes this endpoint incapable of
         orphaning a workspace's graph by omission.
 
 
         ## Every id must resolve
 
 
-        An id naming no stored bead is a `404` and NOTHING is deleted, not even
+        An id naming no stored issue is a `404` and NOTHING is deleted, not even
         the ids beside it that did resolve. There is no prefix matching here:
-        ids are exact, because resolving an ambiguous prefix to a bead and then
+        ids are exact, because resolving an ambiguous prefix to a issue and then
         deleting it is the one place that convenience is not one.
 
 
@@ -3477,16 +3477,16 @@ paths:
 
 
         `expected_version` is a compare-and-set precondition on the row this
-        request NAMES: the deletion proceeds only if that bead's revision still
+        request NAMES: the deletion proceeds only if that issue's revision still
         equals it, and otherwise the request is `409 precondition_failed` and
         nothing is deleted. It is the guard that matters most on this operation,
-        because being wrong about which bead you are looking at is the one
+        because being wrong about which issue you are looking at is the one
         mistake here that cannot be undone.
 
 
         IT REQUIRES A SINGLE-ID REQUEST, and that is a `400` naming
         `expected_version` rather than a fudge: one token cannot describe two
-        rows. Duplicates collapse first, so repeating one id is still one bead.
+        rows. Duplicates collapse first, so repeating one id is still one issue.
 
 
         THE ORDER THE REFUSALS HAPPEN IN IS PART OF THE ANSWER. Request shape
@@ -3499,7 +3499,7 @@ paths:
 
 
         NEITHER `cascade` NOR `force` BYPASSES IT. They bypass POLICY. Under
-        `cascade` the guard covers the named bead alone — the closure is
+        `cascade` the guard covers the named issue alone — the closure is
         resolved inside the deleting transaction, so it may have grown since the
         caller's read.
 
@@ -3507,9 +3507,9 @@ paths:
         ## One transaction
 
 
-        The guard, the deletion and the rewrite of surviving beads' text
+        The guard, the deletion and the rewrite of surviving issuegraph' text
         references all share one transaction, so the set the response describes
-        IS the set that was deleted and no bead is left citing an id that no
+        IS the set that was deleted and no issue is left citing an id that no
         longer exists. The cost is that a delete is all-or-nothing: one whose
         neighbourhood is large enough to exceed the backend's write timeout
         fails whole. Split the request rather than expecting progress.
@@ -3529,7 +3529,7 @@ paths:
       responses:
         '200':
           description: >-
-            The beads were deleted (or, under `dry_run`, costed).
+            The issuegraph were deleted (or, under `dry_run`, costed).
           content:
             application/json:
               schema:
@@ -3540,7 +3540,7 @@ paths:
             member, an empty or over-long `ids`, a blank id, an `actor` that is
             empty after trimming or carries control characters, an
             `expected_version` beside more than one distinct id — or a named
-            bead with a dependent the request did not name and neither
+            issue with a dependent the request did not name and neither
             `cascade` nor `force` to say what to do about it, which the library
             surface refuses as a safety invariant.
           x-bd-codes: [invalid_argument]
@@ -3552,10 +3552,10 @@ paths:
           $ref: '#/components/responses/Unauthenticated'
         '404':
           description: >-
-            At least one id named no stored bead, and nothing was deleted.
+            At least one id named no stored issue, and nothing was deleted.
             `detail` is this surface's fixed not-found sentence and does NOT
             name which ids missed: a client able to tell a well-formed miss
-            from a malformed id would be probing the id space. `bd delete`
+            from a malformed id would be probing the id space. `issuegraph delete`
             names them, because it is answering the person who typed them.
           x-bd-codes: [not_found]
           content:
@@ -3564,11 +3564,11 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '409':
           description: >-
-            `expected_version` did not match the named bead's current revision
+            `expected_version` did not match the named issue's current revision
             (`precondition_failed`), and NOTHING was deleted. `param` is
             `expected_version` and the refusal echoes the value the REQUEST
             guarded on, with no `actual_version` beside it for the reason
-            `POST /v0/beads/issues/{id}:close` gives.
+            `POST /v0/issuegraph/issues/{id}:close` gives.
 
 
             It outranks the dependents refusal and is outranked by the `404`:
@@ -3583,7 +3583,7 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues:batchCreate:
+  /v0/issuegraph/issues:batchCreate:
     post:
       operationId: batchCreateIssues
       summary: Create many issues as one act
@@ -3601,7 +3601,7 @@ paths:
 
 
         THE SERVER ASSIGNS EVERY ID. There is no `id` member on an item, so this
-        operation can never adopt or overwrite a stored row — `bd import` is the
+        operation can never adopt or overwrite a stored row — `issuegraph import` is the
         upsert surface and it is not published here. The generated ids come back
         in `items`, in request order, which is the only place a client can learn
         them.
@@ -3619,12 +3619,12 @@ paths:
         it needs to be. The server assigns every id, an item has no name a later
         item could spell, and only an id a caller already held could ever have
         addressed a row — so a plan whose edges point at its own new issues is
-        `POST /v0/beads/issues:batchApply`, where a create item may NAME itself
+        `POST /v0/issuegraph/issues:batchApply`, where a create item may NAME itself
         and later items address it by that name.
 
 
         Hooks do not fire and the per-command auto-commit machinery does not
-        run, exactly as for `POST /v0/beads/issues/{id}:claim`. The only durable
+        run, exactly as for `POST /v0/issuegraph/issues/{id}:claim`. The only durable
         effect is the single storage commit the role makes in its own
         transaction.
       requestBody:
@@ -3665,7 +3665,7 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues:batchApply:
+  /v0/issuegraph/issues:batchApply:
     post:
       operationId: applyBatch
       summary: Apply an ordered, heterogeneous plan as one act
@@ -3687,7 +3687,7 @@ paths:
 
 
         Items apply in declaration order and are NEVER reordered. That is the
-        difference from `POST /v0/beads/dependencies:add`, which applies
+        difference from `POST /v0/issuegraph/dependencies:add`, which applies
         parent-child edges first so the planned hierarchy is visible before any
         blocking edge is validated against it. Reordering is not available here
         because the items are not all edges: "clear the old blockers, then set
@@ -3739,7 +3739,7 @@ paths:
 
 
         THAT IS WHY A PRECONDITION MISS IS A `409` HERE and not an answer.
-        `POST /v0/beads/issues/{id}:casMetadata` reports a lost compare-and-set
+        `POST /v0/issuegraph/issues/{id}:casMetadata` reports a lost compare-and-set
         as a 200, because a retry loop is its designed caller and a miss is the
         ordinary path. Here the guarded item is one step of a graph the caller
         meant to land as a unit, so committing the rest would leave a shape
@@ -3782,7 +3782,7 @@ paths:
 
 
         EPHEMERALITY IS PER ITEM, exactly as it is for
-        `POST /v0/beads/issues:batchCreate`: one request may create durable
+        `POST /v0/issuegraph/issues:batchCreate`: one request may create durable
         issues and ephemeral ones together. The two planes hold their edges in
         different tables, so a `dep_add` BETWEEN two rows this request creates
         on opposite planes is refused with everything else the request asked
@@ -3798,7 +3798,7 @@ paths:
 
 
         Hooks do not fire and the per-command auto-commit machinery does not
-        run, exactly as for `POST /v0/beads/issues/{id}:claim`. The only durable
+        run, exactly as for `POST /v0/issuegraph/issues/{id}:claim`. The only durable
         effect is the single storage commit the role makes in its own
         transaction.
       requestBody:
@@ -3854,7 +3854,7 @@ paths:
 
 
             An explicit `create.id` that is already taken is a `400` naming that
-            member for `POST /v0/beads/dependencies:add`'s reason: the refusal is
+            member for `POST /v0/issuegraph/dependencies:add`'s reason: the refusal is
             about the request BODY, and there is no id in the path to have
             missed. The same applies to an edge endpoint this database can see
             the absence of.
@@ -3876,11 +3876,11 @@ paths:
             nothing was written.
 
 
-            It is a `404` rather than a `400` on `POST /v0/beads/issues:delete`'s
+            It is a `404` rather than a `400` on `POST /v0/issuegraph/issues:delete`'s
             precedent: those refs NAME rows this request acts on, exactly as
             that operation's `ids` do, so a miss is a resource this request
             failed to address. An EDGE endpoint is the other case and stays a
-            `400`, conforming to `POST /v0/beads/dependencies:add` — an edge
+            `400`, conforming to `POST /v0/issuegraph/dependencies:add` — an edge
             describes a relation rather than acting on a row, and its target may
             legitimately be an `external:` reference or an id in another
             repository.
@@ -3931,7 +3931,7 @@ paths:
 
 
             `dependency_cycle` and `dependency_exists` are the graph's own two
-            refusals, spelled exactly as `POST /v0/beads/dependencies:add`
+            refusals, spelled exactly as `POST /v0/issuegraph/dependencies:add`
             spells them, including the hierarchy discriminator: the hierarchy
             case — and only it — additionally carries `issue_id`, `blocker_id`
             and `blocker_is_ancestor`. They may come from the per-edge probe or
@@ -3962,19 +3962,19 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues:batchClose:
+  /v0/issuegraph/issues:batchClose:
     post:
       operationId: batchCloseIssues
       summary: Close many issues as one act
       description: >-
         Closes every item it can and commits them together. It is the write side
-        of `bd close a b c`, and it is the operation `POST /v0/beads/issues:batchCreate`
+        of `issuegraph close a b c`, and it is the operation `POST /v0/issuegraph/issues:batchCreate`
         already names as its own opposite.
 
 
         THE REQUEST IS THE TRANSACTION BOUNDARY, which is the whole reason this
         is one operation rather than a loop over
-        `POST /v0/beads/issues/{id}:close`: closing N issues one call at a time
+        `POST /v0/issuegraph/issues/{id}:close`: closing N issues one call at a time
         is N transactions and N history entries, and a caller that wants them to
         land together has no way to say so.
 
@@ -4014,7 +4014,7 @@ paths:
         ## Duplicates and planes
 
 
-        A DUPLICATED id is not a request error: `bd close a b a` is a plausible
+        A DUPLICATED id is not a request error: `issuegraph close a b a` is a plausible
         typo, not a failure. Items are closed in the order given, so the second
         occurrence finds what the first one did and reports an idempotent
         re-close at ITS OWN index — a success with `already_closed: true`. The
@@ -4023,7 +4023,7 @@ paths:
 
 
         A WISP ID IS AN ADMISSIBLE ITEM, resolved across both planes exactly as
-        `POST /v0/beads/issues/{id}:close` resolves one. What it does not do is
+        `POST /v0/issuegraph/issues/{id}:close` resolves one. What it does not do is
         reach the durable history entry: the entry a mixed batch records is
         composed from its DURABLE landings alone.
 
@@ -4035,7 +4035,7 @@ paths:
         transaction once the closes land, and that member is deliberately not
         published here — expressing it would require a second, BODY-shaped
         spelling of the ready-filter vocabulary that
-        `GET /v0/beads/ready` and `POST /v0/beads/issues:claimNext` both express
+        `GET /v0/issuegraph/ready` and `POST /v0/issuegraph/issues:claimNext` both express
         as query parameters, and two spellings of one predicate eventually
         disagree. A client that wants both sends the two requests; what it loses
         is the single transaction, which is a real loss and is named here rather
@@ -4053,7 +4053,7 @@ paths:
 
 
         Hooks do not fire and the per-command auto-commit machinery does not
-        run, exactly as for `POST /v0/beads/issues/{id}:close`.
+        run, exactly as for `POST /v0/issuegraph/issues/{id}:close`.
       requestBody:
         required: true
         content:
@@ -4090,15 +4090,15 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/issues:claimNext:
+  /v0/issuegraph/issues:claimNext:
     post:
       operationId: claimNextIssue
       summary: Claim the next ready issue
       description: >-
         Takes ONE ready issue and hands it back claimed, in a single
-        transaction. It is `bd ready --claim`, and it is the operation this
+        transaction. It is `issuegraph ready --claim`, and it is the operation this
         surface's polling clients have been composing by hand out of
-        `GET /v0/beads/ready` and `POST /v0/beads/issues/{id}:claim`.
+        `GET /v0/issuegraph/ready` and `POST /v0/issuegraph/issues/{id}:claim`.
 
 
         THAT COMPOSITION IS A RACE, and retiring it is why this exists. Between
@@ -4127,7 +4127,7 @@ paths:
 
 
         This is the one place this operation deliberately differs from
-        `POST /v0/beads/issues/{id}:claim`, which 404s an id that names nothing
+        `POST /v0/issuegraph/issues/{id}:claim`, which 404s an id that names nothing
         — that operation was asked about a ROW, and this one was asked a
         question whose honest answer can be "none".
 
@@ -4135,7 +4135,7 @@ paths:
         ## The filters are the listing's, exactly
 
 
-        Every parameter below is `GET /v0/beads/ready`'s, means what it means
+        Every parameter below is `GET /v0/issuegraph/ready`'s, means what it means
         there, and is decoded by the same function — including the default type
         exclusions and the way `type` drops them. That is not tidiness: a claim
         that answered a different question than the listing shows would hand an
@@ -4152,7 +4152,7 @@ paths:
         plenty of other ready work remained.
 
 
-        `sort` IS published, unlike on `GET /v0/beads/ready:count`, because
+        `sort` IS published, unlike on `GET /v0/issuegraph/ready:count`, because
         order decides WHICH row a claim wins where it cannot change a
         cardinality.
 
@@ -4183,7 +4183,7 @@ paths:
 
 
         Hooks do not fire and the per-command auto-commit machinery does not
-        run, exactly as for `POST /v0/beads/issues/{id}:claim`.
+        run, exactly as for `POST /v0/issuegraph/issues/{id}:claim`.
       parameters:
         - name: assignee
           in: query
@@ -4199,17 +4199,17 @@ paths:
           in: query
           description: >-
             Issue type. The only normalization is shorthand ALIAS expansion,
-            exactly what `bd ready --type` does: `mr` → `merge-request`,
+            exactly what `issuegraph ready --type` does: `mr` → `merge-request`,
             `feat` → `feature`, `mol` → `molecule`, `enhancement` → `feature`,
             `dec`/`adr` → `decision`. Every other value is used as written —
             there is NO plural folding, so `bugs` is not `bug`.
 
 
             An unrecognized type is not an error here: the type vocabulary is
-            workspace-configurable, and `bd ready` does not validate it either,
+            workspace-configurable, and `issuegraph ready` does not validate it either,
             so it simply matches nothing and `items` comes back empty. (The
-            list operation differs — `bd list` DOES validate the type, so
-            `GET /v0/beads/issues?type=bugs` is a 400.)
+            list operation differs — `issuegraph list` DOES validate the type, so
+            `GET /v0/issuegraph/issues?type=bugs` is a 400.)
 
 
             When set, `exclude_type` is ignored, and so are the default type
@@ -4310,8 +4310,8 @@ paths:
             creation order. An unrecognized value is a 400.
 
 
-            The default is the one `bd ready --sort` registers, so a client
-            swapping `bd ready --json` for this operation gets the same items in
+            The default is the one `issuegraph ready --sort` registers, so a client
+            swapping `issuegraph ready --json` for this operation gets the same items in
             the same order. The storage layer treats an EMPTY policy as
             `hybrid`, but that fallback is unreachable from the CLI and is NOT
             this parameter's default: `hybrid` demotes older high-priority work,
@@ -4357,26 +4357,26 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/config:
+  /v0/issuegraph/config:
     get:
       operationId: listSettings
       summary: List the workspace's stored settings
       description: >-
         The SETTINGS stored in the workspace database, which is the plane
-        `bd config list` reads. It is not the effective configuration: values
-        that reach a running `bd` from `config.yaml`, from environment
+        `issuegraph config list` reads. It is not the effective configuration: values
+        that reach a running `issuegraph` from `config.yaml`, from environment
         variables or from git config are absent and cannot be here, because
         they are files and variables on the CLIENT's machine and this server
-        answers for the database. `bd config show` is the multi-source view and
+        answers for the database. `issuegraph config show` is the multi-source view and
         has no HTTP operation for the same reason.
 
 
         IT IS NOT EVERY ROW OF THAT TABLE. Keys under `kv.` are omitted — the
-        generic `bd kv` namespace and the `bd remember` memories nested under
+        generic `issuegraph kv` namespace and the `issuegraph remember` memories nested under
         it. Those rows are USER DATA that rides in the settings table because
         there is one table, not because they are settings, and enumerating them
         here published a workspace's memories, key and value, to anything that
-        could reach this port. `bd config list` omits them too: the exclusion is
+        could reach this port. `issuegraph config list` omits them too: the exclusion is
         in the shared role both doors call, so the two cannot drift.
 
         `getSetting` still answers a `kv.` key NAMED EXACTLY, and this
@@ -4417,7 +4417,7 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/config/{key}:
+  /v0/issuegraph/config/{key}:
     get:
       operationId: getSetting
       summary: Get one stored setting
@@ -4429,7 +4429,7 @@ paths:
         THERE IS NO 404 ON THIS OPERATION, deliberately. A key nothing stored
         and a key stored as the empty string are the same answer here — 200
         with `value` absent — because the storage seam behind it cannot tell
-        them apart and neither can `bd config get`, which prints "(not set)"
+        them apart and neither can `issuegraph config get`, which prints "(not set)"
         for both. Answering 404 for one of them would publish a distinction
         this server would have to invent.
       parameters:
@@ -4464,7 +4464,7 @@ paths:
       summary: Store one setting
       description: >-
         Stores one setting, REPLACING any value already there — the write
-        `bd config set` spells, on the durable settings plane this document's
+        `issuegraph config set` spells, on the durable settings plane this document's
         reads already publish.
 
 
@@ -4473,7 +4473,7 @@ paths:
         request carries the value that becomes its whole state. That is what
         `PUT` already means, and it is idempotent in the strict sense — the same
         request sent twice leaves the same row.
-        `POST /v0/beads/memories` is the operation this is NOT: that one posts to
+        `POST /v0/issuegraph/memories` is the operation this is NOT: that one posts to
         the COLLECTION because its key may be derived from the content, so the
         caller cannot always name the resource it is creating. Here the caller
         always can.
@@ -4491,10 +4491,10 @@ paths:
 
 
         `issue_prefix` — in either spelling — is a `400` and NOTHING is written.
-        The prefix is owned by `bd init --prefix`, `bd bootstrap` and
-        `bd rename-prefix`, each of which does work this plane cannot: rewriting
+        The prefix is owned by `issuegraph init --prefix`, `issuegraph bootstrap` and
+        `issuegraph rename-prefix`, each of which does work this plane cannot: rewriting
         existing ids, or seeding a workspace that has none. Storing a new one
-        here would leave the beads created before the write and the beads created
+        here would leave the issuegraph created before the write and the issuegraph created
         after it disagreeing about their own namespace with nothing to reconcile
         them.
 
@@ -4516,14 +4516,14 @@ paths:
         the value, so refusing the write protects nothing that is not already in
         the caller's hand — and it would leave a workspace whose credentials can
         be seen to EXIST and never configured. The role refuses no such key
-        either; `bd config set`'s own secret guard is about writing a credential
+        either; `issuegraph config set`'s own secret guard is about writing a credential
         into a git-tracked `config.yaml`, which is a different plane with a
         different hazard, and it returns clean for every key this operation
         reaches.
 
 
         THE RESPONSE THEREFORE WITHHOLDS IT ANYWAY. The body is a `Setting`
-        projected by the same rule `GET /v0/beads/config/{key}` projects with, so
+        projected by the same rule `GET /v0/issuegraph/config/{key}` projects with, so
         a `redacted: true` key comes back with no `value` — the response to a
         write is byte-identical to the read that follows it. It costs the caller
         nothing: the role promises the stored value equals the value sent for
@@ -4535,9 +4535,9 @@ paths:
         A key belonging to another SOURCE is not refused here and is worth
         knowing about: `export.*`, `dolt.*`, `federation.*`, `storage-class.*`
         and the rest of the yaml-only list live in `config.yaml`, and
-        `beads.role` lives in git config. Written through this operation they
+        `issuegraph.role` lives in git config. Written through this operation they
         land a row no reader consults. The role does not police that routing and
-        neither can this server — three of the five sources `bd config show`
+        neither can this server — three of the five sources `issuegraph config show`
         reads are files on the CLIENT's machine, which is the same reason that
         command has no operation here.
 
@@ -4598,8 +4598,8 @@ paths:
       operationId: unsetSetting
       summary: Remove one stored setting
       description: >-
-        Removes the setting stored under one key — the write `bd config unset`
-        spells. `DELETE` for `DELETE /v0/beads/memories/{key}`'s reason: it names
+        Removes the setting stored under one key — the write `issuegraph config unset`
+        spells. `DELETE` for `DELETE /v0/issuegraph/memories/{key}`'s reason: it names
         ONE resource by path, carries no body and takes no flags, which is what
         the method already means.
 
@@ -4607,11 +4607,11 @@ paths:
         REMOVING A KEY NOTHING SET SUCCEEDS, and this is where the operation
         parts company with the memory delete beside it. That one answers `404`
         for a key it held nothing under, because its role reports whether a row
-        was found and `bd recall` already has an exit-code contract for the
+        was found and `issuegraph recall` already has an exit-code contract for the
         miss. THIS role reports no such thing: the storage seam discards the
         affected-row count on all three implementations, and an absent key and a
         key stored as the empty string are one answer on this plane — the same
-        conflation `GET /v0/beads/config/{key}` has no `404` for. So this
+        conflation `GET /v0/issuegraph/config/{key}` has no `404` for. So this
         operation states an INTENDED END STATE rather than an act performed, and
         a caller clearing configuration it is not sure was ever written does not
         have to classify an error to learn it was already absent.
@@ -4676,18 +4676,18 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/dependencies:
+  /v0/issuegraph/dependencies:
     get:
       operationId: listDependencies
       summary: List the stored dependency edges of several issues
       description: >-
         The STORED EDGE ROWS whose source is each named issue — the answer
-        `bd dep list a b c` gives, and the same `Dependency` elements that
+        `issuegraph dep list a b c` gives, and the same `Dependency` elements that
         command's `--json` emits.
 
 
         THESE ARE ROWS, NOT NEIGHBORS, and that is the difference from the
-        `dependencies` member of `GET /v0/beads/issues/{id}`'s issue body. A
+        `dependencies` member of `GET /v0/issuegraph/issues/{id}`'s issue body. A
         dependency target may be an `external:` reference or an id belonging to
         another repository, and this database holds no issue for either; such
         an edge is returned here with its target spelled exactly as stored, and
@@ -4713,12 +4713,12 @@ paths:
         the common case.
 
 
-        THERE IS NO `limit` AND NO CURSOR. `bd dep list` has no limit either,
+        THERE IS NO `limit` AND NO CURSOR. `issuegraph dep list` has no limit either,
         so one here would make the two surfaces answer differently by default;
         instead the QUESTION is bounded — at most 100 `issue_id` values per
         call — which bounds the answer without truncating it. Each issue's
         edges are unbounded, exactly as the `dependencies` member of
-        `GET /v0/beads/issues/{id}` already is.
+        `GET /v0/issuegraph/issues/{id}` already is.
       parameters:
         - name: issue_id
           in: query
@@ -4731,7 +4731,7 @@ paths:
 
             Each value must be an EXACT canonical issue id: there is no fuzzy,
             prefix or substring resolution on this surface, for the reason
-            `GET /v0/beads/issues/{id}` gives. A value that matches nothing is
+            `GET /v0/issuegraph/issues/{id}` gives. A value that matches nothing is
             reported in `missing` rather than refused. An empty value is a 400.
 
 
@@ -4785,14 +4785,14 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/dependencies:count:
+  /v0/issuegraph/dependencies:count:
     get:
       operationId: countDependencyEdges
       summary: Count the dependency edges around several issues
       description: >-
         HOW MANY EDGES each named issue has in ONE named direction, after the
         type and status filters — the cardinality behind
-        `GET /v0/beads/dependencies`, plus the direction that read does not
+        `GET /v0/issuegraph/dependencies`, plus the direction that read does not
         take. Nothing is materialized: this is the operation for a caller that
         wants the numbers for issues whose edges it will never print.
 
@@ -4816,7 +4816,7 @@ paths:
 
 
         A NAMED ISSUE THAT DOES NOT EXIST IS NOT A 404, on
-        `GET /v0/beads/dependencies`'s terms and one sharper: its entry reports
+        `GET /v0/issuegraph/dependencies`'s terms and one sharper: its entry reports
         `missing: true` with `count: 0`, and 0 is the COMMON answer here —
         most issues have no edges in at least one direction — so without that
         flag a typo would be indistinguishable from a real zero and would never
@@ -4834,7 +4834,7 @@ paths:
 
 
         THERE IS NO `limit` AND NO CURSOR, for the reason
-        `GET /v0/beads/dependencies` has none and `GET /v0/beads/issues:count`
+        `GET /v0/issuegraph/dependencies` has none and `GET /v0/issuegraph/issues:count`
         gives: a cardinality has no page, and bounding the scan would answer
         "how many of the first N". The QUESTION is bounded instead, at 100
         `issue_id` values per call — the same bound, the same number and the
@@ -4859,7 +4859,7 @@ paths:
 
 
             Each value must be an EXACT canonical issue id, for the reason
-            `GET /v0/beads/dependencies` gives. A value that matches nothing is
+            `GET /v0/issuegraph/dependencies` gives. A value that matches nothing is
             reported on its own anchor rather than refused. An EMPTY value is a
             400: the empty string names nothing a caller can have meant, and
             reporting it as a missing anchor would put a nameless row in an
@@ -4883,8 +4883,8 @@ paths:
           required: true
           description: >-
             Which end of the edge the anchors sit on. `out` counts what each
-            anchor DEPENDS ON — the direction `bd dep list` reads and the number
-            `bd show` prints as the dependency count. `in` counts what depends
+            anchor DEPENDS ON — the direction `issuegraph dep list` reads and the number
+            `issuegraph show` prints as the dependency count. `in` counts what depends
             on it.
 
 
@@ -4910,7 +4910,7 @@ paths:
             type.
 
 
-            `GET /v0/beads/dependencies`'s `type` exactly: the vocabulary is
+            `GET /v0/issuegraph/dependencies`'s `type` exactly: the vocabulary is
             OPEN, so an unrecognized value is not an error and simply matches no
             edge, while a value no edge could ever carry — empty, or longer than
             the column — is a 400 `invalid_argument`.
@@ -4947,7 +4947,7 @@ paths:
             It is ONE status, not a comma-separated OR set, and it is NOT
             validated against the workspace vocabulary: an unrecognized name
             matches nothing and counts 0 rather than failing, exactly as
-            `GET /v0/beads/issues:count`'s `status` does. A scripted caller
+            `GET /v0/issuegraph/issues:count`'s `status` does. A scripted caller
             counting a status its workspace has since dropped reads 0 and
             should keep reading 0.
           schema:
@@ -4970,17 +4970,17 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/dependencies/blocking:
+  /v0/issuegraph/dependencies/blocking:
     get:
       operationId: listBlockingAnnotations
       summary: Read the blocking decoration of several issues
       description: >-
-        The DERIVED blocking summary `bd list` prints beside each row —
+        The DERIVED blocking summary `issuegraph list` prints beside each row —
         `(parent: X, blocked by: Y, blocks: Z)` — for the issues named here.
 
 
         IT IS DERIVED, NOT STORED, and that is the whole difference from
-        `GET /v0/beads/dependencies` next door. That operation returns the edge
+        `GET /v0/issuegraph/dependencies` next door. That operation returns the edge
         ROWS: every edge type, targets spelled exactly as stored, nothing looked
         up. This one answers a summary over TWO of those types with a rule
         applied: a `blocks` edge counts only while its blocker is open, and a
@@ -5003,16 +5003,16 @@ paths:
         never found, so it is reported.
 
 
-        THERE IS NO `missing` MEMBER, unlike `GET /v0/beads/dependencies`. This
+        THERE IS NO `missing` MEMBER, unlike `GET /v0/issuegraph/dependencies`. This
         operation runs no existence probe: an id that names nothing and an id
         with no live blocking edges decorate identically, so the probe would be
         a read whose answer no client could act on. A client that needs to know
-        whether an id exists calls `GET /v0/beads/issues/{id}`, which answers
+        whether an id exists calls `GET /v0/issuegraph/issues/{id}`, which answers
         `404`. Every requested id gets an entry here either way.
 
 
         THERE IS NO `limit` AND NO CURSOR, for the reason
-        `GET /v0/beads/dependencies` has none: the QUESTION is bounded instead,
+        `GET /v0/issuegraph/dependencies` has none: the QUESTION is bounded instead,
         at 100 `issue_id` values per call, which bounds the answer without
         truncating it.
       parameters:
@@ -5027,7 +5027,7 @@ paths:
 
             Each value must be an EXACT canonical issue id: there is no fuzzy,
             prefix or substring resolution on this surface, for the reason
-            `GET /v0/beads/issues/{id}` gives. A value that matches nothing gets
+            `GET /v0/issuegraph/issues/{id}` gives. A value that matches nothing gets
             a bare entry rather than being refused. An empty value is a 400.
 
 
@@ -5060,7 +5060,7 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/dependencies:add:
+  /v0/issuegraph/dependencies:add:
     post:
       operationId: addDependencies
       summary: Assert dependency edges as one act
@@ -5109,7 +5109,7 @@ paths:
 
 
         Hooks do not fire and the per-command auto-commit machinery does not
-        run, exactly as for `POST /v0/beads/issues/{id}:claim`. The only durable
+        run, exactly as for `POST /v0/issuegraph/issues/{id}:claim`. The only durable
         effect is the single storage commit the role makes in its own
         transaction.
       requestBody:
@@ -5144,7 +5144,7 @@ paths:
             request-intrinsic: it is invalid whatever the graph holds, so it is
             a refusal of a VALUE and not a statement about state. An endpoint
             that names nothing is a `400` rather than a `404` for
-            `POST /v0/beads/issues:batchCreate`'s reason: the refusal is about
+            `POST /v0/issuegraph/issues:batchCreate`'s reason: the refusal is about
             the request BODY, and there is no id in the path to have missed.
           x-bd-codes: [invalid_argument]
           content:
@@ -5184,7 +5184,7 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/dependencies:remove:
+  /v0/issuegraph/dependencies:remove:
     post:
       operationId: removeDependency
       summary: Remove one dependency edge
@@ -5209,7 +5209,7 @@ paths:
         It is a collection-level custom method rather than a `DELETE`: an edge
         is named by TWO endpoints, so there is no single-segment resource path
         for a `DELETE` to address, and a `DELETE` carrying a body is the shape
-        proxies mangle. `DELETE /v0/beads/memories/{key}` is a `DELETE` for the
+        proxies mangle. `DELETE /v0/issuegraph/memories/{key}` is a `DELETE` for the
         opposite reason — one named resource, no body.
 
 
@@ -5220,7 +5220,7 @@ paths:
 
 
         Hooks do not fire and the per-command auto-commit machinery does not
-        run, exactly as for `POST /v0/beads/issues/{id}:claim`. The only
+        run, exactly as for `POST /v0/issuegraph/issues/{id}:claim`. The only
         durable effect is the single storage commit the role makes in its own
         transaction.
       requestBody:
@@ -5259,17 +5259,17 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/memories:
+  /v0/issuegraph/memories:
     get:
       operationId: listMemories
       summary: List the workspace's stored memories
       description: >-
         Every memory this workspace holds, optionally narrowed by `search`. It
-        is the plane `bd memories` reads.
+        is the plane `issuegraph memories` reads.
 
 
         ONLY THE MEMORY PLANE. Memories ride in the same database table as the
-        workspace's settings and as the generic `bd kv` namespace, and neither
+        workspace's settings and as the generic `issuegraph kv` namespace, and neither
         of those appears here, whatever it contains — including a memory whose
         key SHADOWS a settings name: a memory called `issue_prefix` is a memory,
         and the workspace's real issue prefix is not one. That separation is the
@@ -5282,7 +5282,7 @@ paths:
         member and nothing is withheld. A bearer decides WHO may call, not what
         a caller who is let in may read, so a token-protected server serves
         every memory to every holder of the token. See
-        `POST /v0/beads/memories` for why a key-name heuristic would be worse
+        `POST /v0/issuegraph/memories` for why a key-name heuristic would be worse
         here than no promise at all. This is the operation that makes stored
         memories DISCOVERABLE rather than merely readable by a caller who
         already knows a key — an operator binding beyond loopback is accepting
@@ -5290,7 +5290,7 @@ paths:
 
 
         A memory stored as the EMPTY STRING is enumerated here, because its key
-        exists, while `GET /v0/beads/memories/{key}` answers `404` for it. That
+        exists, while `GET /v0/issuegraph/memories/{key}` answers `404` for it. That
         asymmetry is the one way a client can tell a row stored empty from a row
         that is not there, and it is the storage seam's conflation showing
         through rather than a rule this surface invented.
@@ -5314,7 +5314,7 @@ paths:
 
             IT IS A SUBSTRING MATCH, NOT THE `issues:query` EXPRESSION LANGUAGE,
             and it is spelled `search` rather than `q` FOR THAT REASON. On `GET
-            /v0/beads/issues:query`, `q` is a boolean expression over issue
+            /v0/issuegraph/issues:query`, `q` is a boolean expression over issue
             fields that is refused when it does not parse; here there is nothing
             to parse, no vocabulary and no refusal — every string is a legal
             search term, `status=open` included, and it is matched literally.
@@ -5324,7 +5324,7 @@ paths:
 
 
             The term reaches the role UNFOLDED. Case folding is the role's, so
-            that this surface and `bd memories` cannot come to disagree about
+            that this surface and `issuegraph memories` cannot come to disagree about
             what matching means; a client sends what its user typed.
           schema:
             type: string
@@ -5359,13 +5359,13 @@ paths:
       summary: Store one memory
       description: >-
         Stores one memory in the workspace's persistent memory plane — the
-        operation behind `bd remember`. It is an UPSERT: a key that already
+        operation behind `issuegraph remember`. It is an UPSERT: a key that already
         holds a memory is overwritten, and `replaced` in the response reports
         which of the two happened.
 
 
         `key` is OPTIONAL, and omitting it is the normal case. The server then
-        derives the key from `content` using the one derivation `bd remember`
+        derives the key from `content` using the one derivation `issuegraph remember`
         has used since it shipped, and the response's `key` is where the caller
         learns what to recall. A `key` that IS supplied is used verbatim: no
         trimming, no slugging, no charset restriction, because a stored key has
@@ -5430,22 +5430,22 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/memories/{key}:
+  /v0/issuegraph/memories/{key}:
     get:
       operationId: getMemory
       summary: Get one stored memory
       description: >-
         The memory stored under one key, used verbatim: no namespace completion,
         no case folding, no dash/underscore equivalence. It is the operation
-        behind `bd recall`.
+        behind `issuegraph recall`.
 
 
         THIS OPERATION HAS A REAL 404, and it is the one place this surface
-        diverges from `GET /v0/beads/config/{key}`, which deliberately has none.
+        diverges from `GET /v0/issuegraph/config/{key}`, which deliberately has none.
         The planes genuinely differ. On the settings plane a key nothing stored
-        and a key stored empty are one answer that `bd config get` prints
+        and a key stored empty are one answer that `issuegraph config get` prints
         identically, so a 404 would publish a distinction the server would have
-        to invent. On this plane `bd recall` ALREADY distinguishes a miss, by
+        to invent. On this plane `issuegraph recall` ALREADY distinguishes a miss, by
         exit code, and the role answers a miss as a result rather than a value
         — so a 404 reports a distinction that exists rather than minting one.
 
@@ -5453,25 +5453,25 @@ paths:
         A MEMORY STORED AS THE EMPTY STRING IS A 404 TOO. No front door can
         create one — storing empty content is refused — but an out-of-band write
         to the config table can, and the role does not invent a distinction the
-        storage seam beneath it cannot see. `GET /v0/beads/memories` DOES
+        storage seam beneath it cannot see. `GET /v0/issuegraph/memories` DOES
         enumerate such a row, because its key exists, and that asymmetry is the
         one way a client can tell the two apart.
 
 
         MEMORY CONTENT IS SERVED IN FULL, and a configured bearer does not
         narrow it: `Memory` carries no `redacted` member and withholds nothing
-        from any caller the token admits. See `POST /v0/beads/memories` for why
+        from any caller the token admits. See `POST /v0/issuegraph/memories` for why
         a key-name heuristic would be worse than no promise at all.
 
 
-        KEYS THIS OPERATION CANNOT REACH. `bd remember --key` accepts any
+        KEYS THIS OPERATION CANNOT REACH. `issuegraph remember --key` accepts any
         string, so a stored key may carry a control character — and `key` is one
         path segment, percent-decoded once, so such a key would arrive here as a
         decoded control character in a path. This operation refuses it with a
         `400` rather than looking it up, exactly as `getSetting` does. The ROLE
-        stays verbatim: breaking `bd recall` of an odd key someone already
+        stays verbatim: breaking `issuegraph recall` of an odd key someone already
         stored, to tidy a wire rule, would be the tail wagging the dog. Such a
-        memory is reachable from the CLI and from `GET /v0/beads/memories`, and
+        memory is reachable from the CLI and from `GET /v0/issuegraph/memories`, and
         not by path.
       parameters:
         - $ref: '#/components/parameters/MemoryKey'
@@ -5514,10 +5514,10 @@ paths:
       summary: Forget one stored memory
       description: >-
         Removes the memory stored under one key and answers with what it held —
-        the operation behind `bd forget`. IT IS DESTRUCTIVE and nothing it
+        the operation behind `issuegraph forget`. IT IS DESTRUCTIVE and nothing it
         removes comes back, on a surface that has NO AUTHENTICATION: every
         process that can reach the port can erase any memory whose key it knows,
-        exactly as `issues:sweep` and `issues:delete` state for beads. The
+        exactly as `issues:sweep` and `issues:delete` state for issuegraph. The
         recovery is the workspace's version control, not this API.
 
 
@@ -5527,14 +5527,14 @@ paths:
         is erased — a query string is exactly where a dropped parameter widens a
         deletion. This one names ONE resource by path, carries no body and takes
         no flags, which is what the `DELETE` method already means. The
-        alternative spelling `POST /v0/beads/memories/{key}:forget` would in
+        alternative spelling `POST /v0/issuegraph/memories/{key}:forget` would in
         addition recreate the claim route's wildcard contortion, since
         `{key}:forget` is not a router pattern, for no gain.
 
 
         REMOVING EXACTLY THE NAMED ROW is the ROLE's promise, pinned by its
         conformance contract rather than restated here: the memory plane shares
-        one table with the workspace's settings and with the generic `bd kv`
+        one table with the workspace's settings and with the generic `issuegraph kv`
         namespace, and a memory called `issue_prefix` is not the workspace's
         issue prefix.
 
@@ -5594,20 +5594,20 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/events:
+  /v0/issuegraph/events:
     get:
       operationId: listEvents
       summary: Read the durable events journal
       description: >-
         The workspace's append-only record of every committed issue mutation,
         paged from a caller-held checkpoint. It is the HTTP form of
-        `bd events tail --since`, and it exists so a hosted consumer can mirror
+        `issuegraph events tail --since`, and it exists so a hosted consumer can mirror
         or replay a workspace without shelling out to the CLI.
 
 
         THE RECORDS ARE THE CLI'S RECORDS, byte for byte. `records[]` elements
-        are the same `EventRecord` objects `bd events tail` and
-        `bd events export` print one per line, produced by the same projection
+        are the same `EventRecord` objects `issuegraph events tail` and
+        `issuegraph events export` print one per line, produced by the same projection
         and covered by the same committed golden fixture. A consumer may
         reconcile an HTTP mirror against a CLI export without a translation
         layer.
@@ -5631,7 +5631,7 @@ paths:
 
 
         FOR A PUSH FEED USE `watchEvents`, the sibling operation at
-        `GET /v0/beads/events:watch`, which streams the same records from the
+        `GET /v0/issuegraph/events:watch`, which streams the same records from the
         same `since` as `text/event-stream`. It is a separate operation rather
         than a mode of this one because the two differ in media type, lifetime
         and capacity; a client that streams still needs this operation, because
@@ -5642,7 +5642,7 @@ paths:
         SCOPE IS PER REPLICA AND PER BRANCH, and this is the part that most
         often surprises. The journal records what THIS clone mutated on the
         branch its writer commits to. Rows arrive by direct write, never by
-        merge, so `bd dolt pull` and the changes a merge settles into this
+        merge, so `issuegraph dolt pull` and the changes a merge settles into this
         workspace are NOT journaled — they arrived as data, and nothing here
         wrote them through the mutation seam. Each replica also has its OWN seq
         space, counted from its own first mutation: a checkpoint taken against
@@ -5653,10 +5653,10 @@ paths:
         carrying one across.
 
 
-        NOT EVERY MUTATION IS COVERED. Raw DML through `bd sql` bypasses the
+        NOT EVERY MUTATION IS COVERED. Raw DML through `issuegraph sql` bypasses the
         mutation seam and is not journaled; nor are the schema migrations and
         version reconciliation that run while a store is being opened, which
-        touch no bead. Dependency records are not symmetric either: `dep_add` is
+        touch no issue. Dependency records are not symmetric either: `dep_add` is
         emitted for an idempotent same-type re-add that only refreshes edge
         metadata, so treat it as an upsert of the edge rather than proof the
         edge is new, and a `dep_remove` naming an edge that is already gone
@@ -5664,7 +5664,7 @@ paths:
 
 
         THIS OPERATION NEVER DELETES. Retention is the workspace's decision,
-        made by `bd events prune` and by the automatic bounding that keeps an
+        made by `issuegraph events prune` and by the automatic bounding that keeps an
         enabled journal inside its floors; no prune is reachable over HTTP, and
         reading a record does not acknowledge or release it.
 
@@ -5680,7 +5680,7 @@ paths:
 
 
         A workspace that HAS enabled the journal on a storage backend with no
-        journal seam does not reach this operation at all: `bd serve` refuses to
+        journal seam does not reach this operation at all: `issuegraph serve` refuses to
         start, matching the refusal that opening such a workspace already
         produces. Either the server is running and this operation can answer, or
         the operator saw the failure at startup.
@@ -5697,7 +5697,7 @@ paths:
             omitted its checkpoint by mistake would be served the whole retained
             window, which reads as a flood of duplicate records rather than as
             an error. A negative value is a 400 `invalid_argument` for the same
-            reason `bd events tail --since` refuses one: it is almost always
+            reason `issuegraph events tail --since` refuses one: it is almost always
             arithmetic on an empty cursor, and `seq > -5` would quietly serve
             everything as though it were a legitimate resume.
 
@@ -5716,7 +5716,7 @@ paths:
 
 
             THERE IS NO UNLIMITED READ HERE, and `0` does NOT mean unlimited as
-            it does on `GET /v0/beads/issues`. A caller resuming from an old
+            it does on `GET /v0/issuegraph/issues`. A caller resuming from an old
             checkpoint would otherwise ask one process to buffer the entire
             retained window — a hundred thousand records under the shipped
             `events-journal-retain-rows` floor — and encode it into a single
@@ -5765,7 +5765,7 @@ paths:
           description: >-
             The durable events journal is NOT ENABLED on this workspace, so it
             records nothing and never will until an operator turns it on
-            (`events-journal true`, or `BD_EVENTS_JOURNAL=1` in the server's
+            (`events-journal true`, or `ISSUEGRAPH_EVENTS_JOURNAL=1` in the server's
             environment) and restarts the server.
 
 
@@ -5813,7 +5813,7 @@ paths:
             `since` IN THE RESPONSE IS NOT ALWAYS THE VALUE YOU SENT, and the
             case where it differs has a third recovery. On an interior hole in
             the retained window — a restored, hand-edited or half-copied journal
-            table; nothing bd does produces one — the response `since` is the
+            table; nothing issuegraph does produces one — the response `since` is the
             last seq that could be served CONTIGUOUSLY from your checkpoint, and
             everything between your checkpoint and it is intact and servable.
             This refusal does not hand it over, because a read that returned rows
@@ -5844,7 +5844,7 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v0/beads/events:watch:
+  /v0/issuegraph/events:watch:
     get:
       operationId: watchEvents
       summary: Stream the durable events journal
@@ -5860,7 +5860,7 @@ paths:
         connections and cannot redeliver. A stream is the reads you would have
         performed yourself, performed on your behalf, and every event carries
         `id:` set to the record's `seq`: the same number `since` takes, the same
-        number `bd events tail --since` takes. Advance your own checkpoint only
+        number `issuegraph events tail --since` takes. Advance your own checkpoint only
         after your write lands, exactly as on the paged read.
 
 
@@ -5895,7 +5895,7 @@ paths:
         EVERYTHING THE PAGED READ SAYS ABOUT THE RECORDS APPLIES UNCHANGED —
         they are the same `EventRecord` objects from the same projection; scope
         is per replica and per branch, so a checkpoint is meaningful only
-        against the server that issued it; merges and `bd sql` are not
+        against the server that issued it; merges and `issuegraph sql` are not
         journaled; and `events.watch` in `ContextResponse.capabilities` says
         this BUILD serves the operation, not that this workspace has a journal.
       parameters:
@@ -6019,7 +6019,7 @@ paths:
           description: >-
             The durable events journal is NOT ENABLED on this workspace, so
             there is nothing to stream and never will be until an operator turns
-            it on (`events-journal true`, or `BD_EVENTS_JOURNAL=1` in the
+            it on (`events-journal true`, or `ISSUEGRAPH_EVENTS_JOURNAL=1` in the
             server's environment) and restarts the server. Identical in every
             respect to `listEvents`'s 409, and refused before the stream opens.
           x-bd-codes: [events_journal_disabled]
@@ -6055,7 +6055,7 @@ paths:
 
             `events_watch_saturated` is the one code here that is about
             CONNECTIONS rather than data, and the one with a recovery that is
-            not waiting: `GET /v0/beads/events` answers the same records from
+            not waiting: `GET /v0/issuegraph/events` answers the same records from
             the same checkpoint and is never refused for this reason. The cap
             exists because a stream is the only request on this server that can
             last hours, and streams are held until their consumers leave — so
@@ -6101,7 +6101,7 @@ components:
       description: >-
         Exact memory key, used verbatim. It occupies one path segment and is
         percent-decoded once. Keys may contain spaces, dots and unicode — the
-        plane stores what `bd remember --key` was given — and a key carrying a
+        plane stores what `issuegraph remember --key` was given — and a key carrying a
         CONTROL character is refused here rather than looked up; see the
         operation description.
       schema:
@@ -6212,7 +6212,7 @@ components:
       x-go-type: types.Issue
       x-go-type-import:
         name: types
-        path: github.com/steveyegge/beads/internal/types
+        path: github.com/borg0ai/dx-issuegraph/internal/types
       required: [id, title, priority, created_at, updated_at]
       properties:
         id:
@@ -6255,7 +6255,7 @@ components:
             NOT POPULATED by the /v0 read endpoints today: they hydrate issues
             without it, so the field is absent from their responses and its
             absence says nothing about whether an issue is blocked. Use
-            `/v0/beads/ready` or the dependency endpoints to answer that. The
+            `/v0/issuegraph/ready` or the dependency endpoints to answer that. The
             field is carried by events-journal snapshots, which is where it is
             read back, and it is documented here because those snapshots
             serialize the same type this schema is pinned to.
@@ -6325,7 +6325,7 @@ components:
             every metadata filter (`metadata_field`, `has_metadata_key`)
             assumes, but be aware the store validates only that the value is
             WELL-FORMED JSON: a row created with a non-object (e.g.
-            `bd create --metadata '[1,2]'`) can carry an array or a scalar
+            `issuegraph create --metadata '[1,2]'`) can carry an array or a scalar
             here. That is a storage-side gap, not licence for a producer to
             emit one — but a tolerant client should skip such a row rather than
             fail the whole response.
@@ -6415,13 +6415,13 @@ components:
       type: object
       description: >-
         An `Issue` plus relationship cardinalities. This is the element type of
-        both `/v0/beads/ready` and `/v0/beads/issues`, matching what
-        `bd ready --json` and `bd list --json` emit. Property semantics are
+        both `/v0/issuegraph/ready` and `/v0/issuegraph/issues`, matching what
+        `issuegraph ready --json` and `issuegraph list --json` emit. Property semantics are
         documented on `Issue`.
       x-go-type: types.IssueWithCounts
       x-go-type-import:
         name: types
-        path: github.com/steveyegge/beads/internal/types
+        path: github.com/borg0ai/dx-issuegraph/internal/types
       required:
         [id, title, priority, created_at, updated_at, dependency_count, dependent_count, comment_count]
       properties:
@@ -6505,13 +6505,13 @@ components:
       type: object
       description: >-
         An `Issue` with its labels, dependency edges and cardinalities — the
-        body of `GET /v0/beads/issues/{id}`. `dependencies` and `dependents`
+        body of `GET /v0/issuegraph/issues/{id}`. `dependencies` and `dependents`
         carry FULL issue objects plus the edge type, not bare edges. Property
         semantics are documented on `Issue`.
       x-go-type: types.IssueDetails
       x-go-type-import:
         name: types
-        path: github.com/steveyegge/beads/internal/types
+        path: github.com/borg0ai/dx-issuegraph/internal/types
       required: [id, title, priority, created_at, updated_at, revision]
       properties:
         # --- repeated from Issue (see the pinned-schema note above) ---
@@ -6655,13 +6655,13 @@ components:
             IT IS THE ANCHOR ROW'S ALONE. The issues nested under
             `dependencies` and `dependents` are `IssueWithDependencyMetadata`
             and carry no token: a caller that means to guard a NEIGHBOUR reads
-            that neighbour with its own `GET /v0/beads/issues/{id}`, and a
+            that neighbour with its own `GET /v0/issuegraph/issues/{id}`, and a
             token lifted off an embedded relation would be one the response
             never promised was fresh.
 
 
             IT IS NOT ON THE LIST ROWS, and that is a decision rather than an
-            oversight — see `GET /v0/beads/issues`.
+            oversight — see `GET /v0/issuegraph/issues`.
 
 
             IT IS A STRING, the token's decimal spelling — `"-3819021935081927"`, or
@@ -6680,7 +6680,7 @@ components:
       x-go-type: types.IssueWithDependencyMetadata
       x-go-type-import:
         name: types
-        path: github.com/steveyegge/beads/internal/types
+        path: github.com/borg0ai/dx-issuegraph/internal/types
       required: [id, title, priority, created_at, updated_at, dependency_type]
       properties:
         # --- repeated from Issue (see the pinned-schema note above) ---
@@ -6766,7 +6766,7 @@ components:
       x-go-type: types.TreeNode
       x-go-type-import:
         name: types
-        path: github.com/steveyegge/beads/internal/types
+        path: github.com/borg0ai/dx-issuegraph/internal/types
       required: [id, title, priority, created_at, updated_at, depth, parent_id, truncated]
       properties:
         # --- repeated from Issue (see the pinned-schema note above) ---
@@ -6870,7 +6870,7 @@ components:
       x-go-type: types.Dependency
       x-go-type-import:
         name: types
-        path: github.com/steveyegge/beads/internal/types
+        path: github.com/borg0ai/dx-issuegraph/internal/types
       required: [issue_id, depends_on_id, type, created_at]
       properties:
         id: { type: string }
@@ -6891,7 +6891,7 @@ components:
       x-go-type: types.Comment
       x-go-type-import:
         name: types
-        path: github.com/steveyegge/beads/internal/types
+        path: github.com/borg0ai/dx-issuegraph/internal/types
       required: [id, issue_id, author, text, created_at]
       properties:
         id: { type: string }
@@ -6962,7 +6962,7 @@ components:
       x-go-type: types.BondRef
       x-go-type-import:
         name: types
-        path: github.com/steveyegge/beads/internal/types
+        path: github.com/borg0ai/dx-issuegraph/internal/types
       required: [source_id, bond_type]
       properties:
         source_id: { type: string }
@@ -6978,12 +6978,12 @@ components:
         else on the wire distinguishes them.
 
 
-        This is the struct `bd status --json` marshals under `summary`, pinned
+        This is the struct `issuegraph status --json` marshals under `summary`, pinned
         so the two surfaces are one compatibility domain.
       x-go-type: types.Statistics
       x-go-type-import:
         name: types
-        path: github.com/steveyegge/beads/internal/types
+        path: github.com/borg0ai/dx-issuegraph/internal/types
       required:
         - total_issues
         - open_issues
@@ -7032,7 +7032,7 @@ components:
           nullable: true
           description: >-
             ARITHMETIC, not a query: `open_issues` minus `blocked_issues`,
-            clamped at zero. It is NOT the cardinality of `GET /v0/beads/ready`,
+            clamped at zero. It is NOT the cardinality of `GET /v0/issuegraph/ready`,
             which applies type exclusions, the deferral window and a limit that
             none of this touches.
 
@@ -7060,7 +7060,7 @@ components:
           description: ALWAYS 0, for the reason above.
     # The two cycle schemas are pinned like the seven above, and to the same end,
     # but to the canonical types in `issueops` rather than in `internal/types`:
-    # the role's own result IS the CLI's `--json` element, so `bd dep cycles`
+    # the role's own result IS the CLI's `--json` element, so `issuegraph dep cycles`
     # and this operation cannot drift apart. TestWireTagBijection covers them on
     # the same terms and reads each schema's declared import path.
 
@@ -7083,7 +7083,7 @@ components:
       x-go-type: issueops.CycleMember
       x-go-type-import:
         name: issueops
-        path: github.com/steveyegge/beads/issueops
+        path: github.com/borg0ai/dx-issuegraph/issueops
       required: [id]
       properties:
         id:
@@ -7104,7 +7104,7 @@ components:
       x-go-type: issueops.Cycle
       x-go-type-import:
         name: issueops
-        path: github.com/steveyegge/beads/issueops
+        path: github.com/borg0ai/dx-issuegraph/issueops
       required: [members, partial]
       properties:
         members:
@@ -7124,7 +7124,7 @@ components:
             beside the ids are not.
 
     # Pinned to `issueops` for the reason the cycle pair is: the role's own
-    # result IS what the CLI renders, so `bd list`'s decoration and this
+    # result IS what the CLI renders, so `issuegraph list`'s decoration and this
     # operation cannot drift apart. TestWireTagBijection covers it on the same
     # terms and reads this schema's declared import path.
     IssueBlocking:
@@ -7141,7 +7141,7 @@ components:
       x-go-type: issueops.IssueBlocking
       x-go-type-import:
         name: issueops
-        path: github.com/steveyegge/beads/issueops
+        path: github.com/borg0ai/dx-issuegraph/issueops
       required: [id, blocked_by, blocks]
       properties:
         id:
@@ -7167,7 +7167,7 @@ components:
             This issue's parent id. AT MOST ONE is reported; where an issue
             carries several `parent-child` edges, which one appears here is not
             specified. A client that needs every structural edge reads them from
-            `GET /v0/beads/dependencies`.
+            `GET /v0/issuegraph/dependencies`.
 
     # ---------------------------------------------------------------------
     # Envelope schemas. Almost all of these have no canonical Go type behind
@@ -7177,7 +7177,7 @@ components:
     #
     # `EventRecord`, further down this region, is the exception and is pinned
     # to `eventsjournal.Record`: the journal's published envelope is shared with
-    # `bd events tail`, so it HAS a canonical implementation to drift against.
+    # `issuegraph events tail`, so it HAS a canonical implementation to drift against.
     # TestWireTagBijection's `pinnedSchemas` is the authority on which schemas
     # are pinned; do not read this region's position as the answer.
     # ---------------------------------------------------------------------
@@ -7206,23 +7206,23 @@ components:
 
         TWO MEMBERS ARE OPTIONAL, and they are the only two that describe the
         SERVER's filesystem rather than the workspace's logical identity:
-        `beads_dir` and `repo_root`. A client must be able to read them as
+        `issuegraph_dir` and `repo_root`. A client must be able to read them as
         absent. Everything a remote caller identifies a workspace by is
         elsewhere and stays required — `project_id`, `database`, `backend`,
         `dolt_mode` — and an absolute host path is not something a remote
-        caller can act on in any case: it cannot open it. `bd serve` publishes
-        both, so a client reading a `bd serve` today sees no change; what the
+        caller can act on in any case: it cannot open it. `issuegraph serve` publishes
+        both, so a client reading a `issuegraph serve` today sees no change; what the
         relaxation buys is that a deployment which does not want to disclose
         its filesystem layout can withhold them and still serve a body that
         conforms to this document.
       required:
-        [api_version, bd_version, schema_version, backend, dolt_mode, database,
+        [api_version, issuegraph_version, schema_version, backend, dolt_mode, database,
          project_id, capabilities]
       properties:
         api_version:
           type: string
           description: The path major this server serves. `v0` for this document.
-        bd_version:
+        issuegraph_version:
           type: string
           description: >-
             The release version of the serving binary. The only field a client
@@ -7243,11 +7243,11 @@ components:
         database:
           type: string
           description: Logical database name (not a host or a DSN).
-        beads_dir:
+        issuegraph_dir:
           type: string
           description: >-
-            Absolute path of the served workspace's `.beads` directory, when
-            the server discloses it. A host path: `bd serve` publishes it
+            Absolute path of the served workspace's `.issuegraph` directory, when
+            the server discloses it. A host path: `issuegraph serve` publishes it
             because it is a single-workspace server's most legible
             workspace-identity handshake for the operator reading it, and
             disclosing it to network peers is part of what that operator
@@ -7264,7 +7264,7 @@ components:
           type: string
           description: >-
             Absolute path of the served repository root, when the server
-            discloses it. OPTIONAL on the same terms as `beads_dir`; see it.
+            discloses it. OPTIONAL on the same terms as `issuegraph_dir`; see it.
         project_id:
           type: string
           description: Logical project identifier.
@@ -7315,8 +7315,8 @@ components:
       description: >-
         The size of a matching set, and its buckets when `group_by` asked for
         them. It carries no items and no cursor: this is a number about a set,
-        and the operations that return rows are `GET /v0/beads/issues` and
-        `GET /v0/beads/issues:query`.
+        and the operations that return rows are `GET /v0/issuegraph/issues` and
+        `GET /v0/issuegraph/issues:query`.
 
 
         ONE SCHEMA FOR BOTH SHAPES, because the grouped answer is the scalar
@@ -7367,14 +7367,14 @@ components:
           type: integer
           format: int64
           description: >-
-            How many items `GET /v0/beads/ready` would return for these filters
+            How many items `GET /v0/issuegraph/ready` would return for these filters
             with `limit=0`. Never negative; 0 when nothing is ready, which is a
             200 rather than a 404 — a question about a set has an answer even
             when the set is empty.
       description: >-
         The size of a ready set. It carries no items, no `has_more` and no
         cursor: this is a number about a set, and the operation that returns
-        rows is `GET /v0/beads/ready`.
+        rows is `GET /v0/issuegraph/ready`.
 
 
         It is NOT `x-go-type`-pinned, unlike the seven schemas above, and that
@@ -7391,7 +7391,7 @@ components:
       additionalProperties: false
       required: [ids]
       description: >-
-        Which beads to erase, and what to do about the beads that point at
+        Which issuegraph to erase, and what to do about the issuegraph that point at
         them. There is no predicate here — no status, no cutoff, no glob — and
         that absence is the reason this operation needs no require-a-filter
         gate: a caller cannot spell "everything" without typing every id.
@@ -7406,7 +7406,7 @@ components:
           minItems: 1
           maxItems: 1000
           description: >-
-            The beads to delete, exact ids, in either plane. DUPLICATES
+            The issuegraph to delete, exact ids, in either plane. DUPLICATES
             COLLAPSE. An empty array is a `400` rather than a no-op — a caller
             whose id list came out empty because its own construction broke
             would read "deleted 0" and conclude the workspace was already
@@ -7427,8 +7427,8 @@ components:
             Caller-asserted attribution, under the same rules as
             `SweepRequest`'s `actor`: trimmed, refused when empty after
             trimming, over 256 BYTES, or carrying any control character.
-            Optional — a deleted bead leaves no row to attribute the deletion
-            on — but it does reach the SURVIVING beads whose text this
+            Optional — a deleted issue leaves no row to attribute the deletion
+            on — but it does reach the SURVIVING issuegraph whose text this
             operation rewrites, so a workspace that cares who rewrote a
             description sends one.
         cascade:
@@ -7436,7 +7436,7 @@ components:
           default: false
           description: >-
             Also delete the transitive closure of everything that depends on
-            the named beads. With `cascade` there is nothing left outside the
+            the named issuegraph. With `cascade` there is nothing left outside the
             set to orphan, so it makes `force` moot rather than conflicting
             with it: a request carrying both behaves as `cascade` and
             `orphaned` comes back empty.
@@ -7444,9 +7444,9 @@ components:
           type: boolean
           default: false
           description: >-
-            Delete the named beads and leave their dependents ORPHANED,
+            Delete the named issuegraph and leave their dependents ORPHANED,
             reported in `orphaned`. Without it and without `cascade`, a named
-            bead with a dependent the request did not name is refused.
+            issue with a dependent the request did not name is refused.
 
 
             It defaults FALSE, which is the guarded mode, and the default is
@@ -7454,7 +7454,7 @@ components:
             where it is configured it is a single shared bearer that admits a
             client to the WHOLE surface — it names no principal this operation
             could weigh and grants no narrower right — so an omitted member
-            must not silently choose the answer that changes another bead's
+            must not silently choose the answer that changes another issue's
             graph.
         dry_run:
           type: boolean
@@ -7467,7 +7467,7 @@ components:
         expected_version:
           type: string
           description: >-
-            Requires the named bead's revision to equal this value before
+            Requires the named issue's revision to equal this value before
             anything is erased. A miss refuses the whole request with
             `409 precondition_failed` and deletes NOTHING —
             `UpdateIssueRequest.expected_version`'s contract, on the operation
@@ -7482,20 +7482,20 @@ components:
             coincidence for a list of never-written rows — every one of them
             holds 0 — and fail forever for a list whose rows have since
             diverged. A guard that passes by coincidence and a guard nobody can
-            satisfy are one defect seen from two sides. Delete one bead per
+            satisfy are one defect seen from two sides. Delete one issue per
             guarded request; the per-id shape a batch would need is a token PER
             id, which is a different request type.
 
 
             DUPLICATES COLLAPSE FIRST, so `{"ids":["be-1","be-1"],
-            "expected_version":N}` names one bead and is legal. The refusal
+            "expected_version":N}` names one issue and is legal. The refusal
             counts DISTINCT ids, not mentions, exactly as the library surface
             does.
 
 
             NEITHER `cascade` NOR `force` BYPASSES IT. Both bypass POLICY — the
             dependents guard — and never a precondition. Under `cascade` the
-            guard still covers only the NAMED bead: the closure is resolved
+            guard still covers only the NAMED issue: the closure is resolved
             inside the deleting transaction, so a matching token promises the
             row is the one you read and promises nothing about how far the
             closure has grown since. A caller that needs the closure itself
@@ -7505,13 +7505,13 @@ components:
             IT GUARDS LIFECYCLE STATE, NOT THE GRAPH. The token is reminted by
             status, assignee and started-at writes and deliberately not by
             label, dependency or rename writes, so a match does not promise the
-            bead's edges are the ones you saw.
+            issue's edges are the ones you saw.
 
 
             The token is the `revision` a lifecycle write answers with, and the
-            one `GET /v0/beads/issues/{id}` publishes — which is where a delete
-            guard should seed itself, since reading the bead before erasing it
-            is the only way to be sure it is the bead you meant.
+            one `GET /v0/issuegraph/issues/{id}` publishes — which is where a delete
+            guard should seed itself, since reading the issue before erasing it
+            is the only way to be sure it is the issue you meant.
 
 
             IT IS A STRING, and it must be the `revision` string a response carried,
@@ -7530,7 +7530,7 @@ components:
 
         It is NOT `x-go-type`-pinned, for the reason `SweepResult` is not:
         there is no canonical Go struct whose JSON encoding is this contract.
-        `bd delete --json` publishes these numbers under its own per-shape keys
+        `issuegraph delete --json` publishes these numbers under its own per-shape keys
         (`deleted_count`, `dependencies_removed`, and a scalar `deleted` on the
         single-id form), which are a stdout presentation rather than a wire
         type, so pinning would weld this body to one of them.
@@ -7539,11 +7539,11 @@ components:
           type: boolean
           description: >-
             Echoes the request, so a result carries whether its numbers
-            describe beads that are gone or beads that would go.
+            describe issuegraph that are gone or issuegraph that would go.
         deleted:
           type: integer
           description: >-
-            How many beads were deleted, or under `dry_run` would be. Under
+            How many issuegraph were deleted, or under `dry_run` would be. Under
             `cascade` this counts the whole closure, so it is normally larger
             than `ids` and it — not the request length — is the number to show.
         dependencies:
@@ -7551,29 +7551,29 @@ components:
           description: >-
             Dependency edge rows removed with them, in either direction.
             Reported because a delete's visible effect is much larger than its
-            bead count.
+            issue count.
         labels:
           type: integer
-          description: Label rows removed with the deleted beads.
+          description: Label rows removed with the deleted issuegraph.
         events:
           type: integer
-          description: Event rows removed with the deleted beads.
+          description: Event rows removed with the deleted issuegraph.
         references_updated:
           type: integer
           description: >-
-            How many SURVIVING beads had their text rewritten — beads, not
+            How many SURVIVING issuegraph had their text rewritten — issuegraph, not
             occurrences. Always 0 under `dry_run`, because a preview rewrites
             nothing.
         orphaned:
           type: array
           description: >-
-            The surviving beads that depended on something this request
+            The surviving issuegraph that depended on something this request
             deleted, in ascending id order. Present exactly when the request
             carried `force` without `cascade`, which is the only mode in which
             orphaning is possible; absent otherwise.
 
 
-            DIRECT dependents only. A bead two edges away lost no edge.
+            DIRECT dependents only. A issue two edges away lost no edge.
           items:
             type: string
 
@@ -7582,7 +7582,7 @@ components:
       additionalProperties: false
       required: [tier]
       description: >-
-        Which closed beads to clear. The predicate is FIXED at "closed beads of
+        Which closed issuegraph to clear. The predicate is FIXED at "closed issuegraph of
         one tier" and the two narrowing members only narrow it: there is no
         status, no assignee, no label and no free-text query here, because
         every one of those would be another way to spell a destructive
@@ -7598,11 +7598,11 @@ components:
           type: string
           enum: [ephemeral, durable]
           description: >-
-            Which plane to clear. `ephemeral` is the wisp tier (`bd purge`) and
-            `durable` is the issue tier (`bd prune`). The two are DISJOINT: a
-            sweep of one can never touch a bead of the other. Required, with no
+            Which plane to clear. `ephemeral` is the wisp tier (`issuegraph purge`) and
+            `durable` is the issue tier (`issuegraph prune`). The two are DISJOINT: a
+            sweep of one can never touch a issue of the other. Required, with no
             default — a caller handed the wrong tier has nothing to notice
-            until the beads are gone.
+            until the issuegraph are gone.
         actor:
           type: string
           minLength: 1
@@ -7612,31 +7612,31 @@ components:
             Caller-asserted attribution for wherever the backend records it,
             under the same rules and for the same reasons as `ClaimRequest`'s
             `actor`: trimmed, refused when empty after trimming, over 256
-            BYTES, or carrying any control character. Optional — a deleted bead
+            BYTES, or carrying any control character. Optional — a deleted issue
             leaves no row to attribute the deletion on.
         closed_before:
           type: string
           format: date-time
           description: >-
-            Keep only beads closed STRICTLY BEFORE this instant (RFC 3339). A
-            bead closed exactly at it is kept, which is the half-open interval
-            every other time bound on this surface uses. `bd prune
+            Keep only issuegraph closed STRICTLY BEFORE this instant (RFC 3339). A
+            issue closed exactly at it is kept, which is the half-open interval
+            every other time bound on this surface uses. `issuegraph prune
             --older-than 30d` resolves the duration itself and sends the
             resulting instant.
         pattern:
           type: string
           description: >-
-            Keep only beads whose id matches this shell glob (`*`, `?`,
+            Keep only issuegraph whose id matches this shell glob (`*`, `?`,
             `[...]`, `\` escapes; `*` also crosses `-` and `.`, since an id is
-            not a path). Absent matches every bead in the tier. A MALFORMED
+            not a path). Absent matches every issue in the tier. A MALFORMED
             glob is a `400`, never a pattern that matches nothing.
         protect_referenced:
           type: boolean
           default: true
           description: >-
             Skip candidates whose id is CITED — as a literal, at word
-            boundaries — in the description, notes or comments of any bead that
-            is not done, so a decision trail a live bead still points at is not
+            boundaries — in the description, notes or comments of any issue that
+            is not done, so a decision trail a live issue still points at is not
             deleted out from under it.
 
 
@@ -7646,7 +7646,7 @@ components:
             right: one shared token admits a client to everything published
             here, so being authenticated says nothing about whether this
             particular deletion was meant. A caller that omits the member must
-            therefore not get weaker protection than the operator typing `bd
+            therefore not get weaker protection than the operator typing `issuegraph
             prune`, which protects unless `--ignore-references`. The inverse —
             opt OUT locally, opt IN remotely — is the shape that lets a stray
             request delete a decision trail nothing brings back.
@@ -7683,21 +7683,21 @@ components:
           type: boolean
           description: >-
             Echoes the request, so a result carries whether its numbers
-            describe beads that are gone or beads that would go.
+            describe issuegraph that are gone or issuegraph that would go.
         swept:
           type: integer
-          description: How many beads were deleted, or under `dry_run` would be.
+          description: How many issuegraph were deleted, or under `dry_run` would be.
         dependencies:
           type: integer
           description: >-
             Dependency edge rows removed with them. Reported because a sweep's
-            visible effect is much larger than its bead count.
+            visible effect is much larger than its issue count.
         labels:
           type: integer
-          description: Label rows removed with the swept beads.
+          description: Label rows removed with the swept issuegraph.
         events:
           type: integer
-          description: Event rows removed with the swept beads.
+          description: Event rows removed with the swept issuegraph.
         skipped:
           $ref: '#/components/schemas/SweepSkips'
         referenced_ids:
@@ -7730,20 +7730,20 @@ components:
           type: integer
           description: >-
             Candidates protected by the pinned flag. No request member
-            overrides it — a caller who wants a pinned bead gone unpins it
+            overrides it — a caller who wants a pinned issue gone unpins it
             first.
         referenced:
           type: integer
           description: >-
             Candidates protected by `protect_referenced`. Always 0 when that
             member is false or absent, so a 0 read without having asked says
-            nothing about whether beads are cited.
+            nothing about whether issuegraph are cited.
         not_closed:
           type: integer
           description: >-
             Candidates the tier query returned that the recheck found were not
             closed. A NON-ZERO VALUE HERE IS A DEFENSE FIRING, not a normal
-            outcome: the query asked for exactly the beads this excludes.
+            outcome: the query asked for exactly the issuegraph this excludes.
         unknown_closed_at:
           type: integer
           description: Closed candidates carrying no close timestamp. See `not_closed`.
@@ -7842,7 +7842,7 @@ components:
 
 
         THIS IS THE CLI'S RECORD. It is pinned to the same Go struct
-        `bd events tail` and `bd events export` marshal one per line, so the
+        `issuegraph events tail` and `issuegraph events export` marshal one per line, so the
         JSONL a consumer reads from stdout and the elements of an
         `EventsPage.records` array are the same bytes for the same row. A
         committed golden fixture pins that encoding field by field.
@@ -7860,7 +7860,7 @@ components:
       x-go-type: eventsjournal.Record
       x-go-type-import:
         name: eventsjournal
-        path: github.com/steveyegge/beads/internal/eventsjournal
+        path: github.com/borg0ai/dx-issuegraph/internal/eventsjournal
       required: [seq, ts, op, issue_id, issue]
       properties:
         seq:
@@ -8006,10 +8006,10 @@ components:
         implementation. `TestWireTagBijection`'s `pinnedSchemas` is the
         authority on what is pinned.) The thirteen pinned schemas above are
         pinned because a canonical Go struct already IS the contract —
-        `types.Issue`'s JSON encoding is what `bd show --json` emits. A setting
+        `types.Issue`'s JSON encoding is what `issuegraph show --json` emits. A setting
         has no such struct: the CLI marshals an ad-hoc
         `map[string]string` per verb, so there is nothing to pin TO, and
-        minting a type to pin to would mean changing what `bd config get
+        minting a type to pin to would mean changing what `issuegraph config get
         --json` prints in order to satisfy a rule about not changing it.
 
 
@@ -8064,7 +8064,7 @@ components:
         NOT `x-go-type`-PINNED, for the reason `Setting` is not: the CLI
         marshals an ad-hoc map per verb, so there is no canonical Go struct
         whose JSON encoding is this contract, and minting one to pin to would
-        mean changing what `bd recall --json` prints in order to satisfy a rule
+        mean changing what `issuegraph recall --json` prints in order to satisfy a rule
         about not changing it.
 
 
@@ -8089,8 +8089,8 @@ components:
 
             Always present. It is the empty string only where a row was written
             out of band with an empty value, which
-            `GET /v0/beads/memories/{key}` answers as a `404` and
-            `GET /v0/beads/memories` enumerates.
+            `GET /v0/issuegraph/memories/{key}` answers as a `404` and
+            `GET /v0/issuegraph/memories` enumerates.
 
     MemoriesPage:
       type: object
@@ -8142,8 +8142,8 @@ components:
 
             Supplied, it is used verbatim — no trimming, no slugging, no charset
             restriction. A key carrying a control character is storable this way
-            and by `bd remember --key`, and is then unreachable through
-            `GET`/`DELETE /v0/beads/memories/{key}`, which refuse one: see those
+            and by `issuegraph remember --key`, and is then unreachable through
+            `GET`/`DELETE /v0/issuegraph/memories/{key}`, which refuse one: see those
             operations.
 
     RememberedMemory:
@@ -8178,7 +8178,7 @@ components:
 
 
             A previous value that was the EMPTY STRING reports true: the ROW
-            existed, even though `GET /v0/beads/memories/{key}` would have
+            existed, even though `GET /v0/issuegraph/memories/{key}` would have
             answered `404` for it. That divergence is the storage seam's
             conflation showing through, and it is stated rather than smoothed
             over, because smoothing it would mean this member reporting
@@ -8250,7 +8250,7 @@ components:
         storage seam discards the affected-row count on every implementation, so
         the member would be a value one of them had to invent — and no `value`,
         because reporting what was there would publish, on the one operation that
-        withholds nothing, exactly the credential `GET /v0/beads/config/{key}`
+        withholds nothing, exactly the credential `GET /v0/issuegraph/config/{key}`
         redacts.
       properties:
         key:
@@ -8282,7 +8282,7 @@ components:
       type: object
       required: [summary, blocked_count_skipped]
       description: >-
-        The same envelope `bd status --json` prints, minus one member: the CLI
+        The same envelope `issuegraph status --json` prints, minus one member: the CLI
         also carries `recent_activity`, which every shipped code path leaves
         absent, so it is not published here.
       properties:
@@ -8308,7 +8308,7 @@ components:
           type: array
           description: >-
             Every matching edge, flattened across the named issues rather than
-            keyed by source — the same flat array `bd dep list a b c --json`
+            keyed by source — the same flat array `issuegraph dep list a b c --json`
             emits, so the two surfaces are one compatibility domain. Group by
             `issue_id` to recover the per-source view. Empty array (never null)
             when nothing matches.
@@ -8336,7 +8336,7 @@ components:
       type: object
       description: >-
         Each anchor's edge cardinality — the body of
-        `GET /v0/beads/dependencies:count`. It is NOT a page and carries no
+        `GET /v0/issuegraph/dependencies:count`. It is NOT a page and carries no
         total: the answer is per anchor, and a sum across anchors would
         double-count every edge whose two ends were both named.
 
@@ -8447,7 +8447,7 @@ components:
       type: object
       description: >-
         One issue's neighbors — the body of
-        `GET /v0/beads/issues/{id}/related`. It is NOT a page: this operation
+        `GET /v0/issuegraph/issues/{id}/related`. It is NOT a page: this operation
         has no limit and no cursor, and it names ONE anchor, so there is nothing
         for a `has_more` to be about.
 
@@ -8474,7 +8474,7 @@ components:
 
             Each element is a full issue plus `dependency_type`, the type of the
             edge that led to it — the same element
-            `GET /v0/beads/issues/{id}` carries under `dependencies` and
+            `GET /v0/issuegraph/issues/{id}` carries under `dependencies` and
             `dependents`, so the two surfaces are one compatibility domain.
 
 
@@ -8672,7 +8672,7 @@ components:
           default: false
           description: >-
             Drops the PER-EDGE cycle probe for a caller wiring a large graph,
-            exactly as it does on `POST /v0/beads/dependencies:add`.
+            exactly as it does on `POST /v0/issuegraph/dependencies:add`.
 
 
             IT NEVER DROPS THE END GATE, which runs once after every item and
@@ -8774,7 +8774,7 @@ components:
 
 
         It publishes the whole create vocabulary rather than
-        `POST /v0/beads/issues:batchCreate`'s narrow one, and the additions are
+        `POST /v0/issuegraph/issues:batchCreate`'s narrow one, and the additions are
         the point: `status`, `sender`, `metadata`, `ephemeral` and `no_history`
         are the members whose absence there makes that operation unusable for a
         caller composing a real plan.
@@ -8815,7 +8815,7 @@ components:
 
 
             Absent is the ordinary case and the server mints one. This is the
-            member `POST /v0/beads/issues:batchCreate` deliberately does not
+            member `POST /v0/issuegraph/issues:batchCreate` deliberately does not
             publish, which is why that operation can never adopt or overwrite a
             stored row and this one can be refused for trying.
         title:
@@ -8896,7 +8896,7 @@ components:
           description: >-
             Creates the issue on the EPHEMERAL plane rather than the durable
             one. Per item, exactly as it is for
-            `POST /v0/beads/issues:batchCreate`, so one request may create
+            `POST /v0/issuegraph/issues:batchCreate`, so one request may create
             durable issues and ephemeral ones together.
 
 
@@ -8941,7 +8941,7 @@ components:
       additionalProperties: false
       required: [target, patch]
       description: >-
-        Patches one existing issue, under `PATCH /v0/beads/issues/{id}`'s rules.
+        Patches one existing issue, under `PATCH /v0/issuegraph/issues/{id}`'s rules.
 
 
         The two carry the same preconditions and the same force flags; what is
@@ -9025,7 +9025,7 @@ components:
 
 
         It mirrors `IssuePatchBody` member for member and diverges in exactly
-        two places now that `PATCH /v0/beads/issues/{id}` publishes `status`,
+        two places now that `PATCH /v0/issuegraph/issues/{id}` publishes `status`,
         `assignee` and the same `metadata` algebra.
 
 
@@ -9210,7 +9210,7 @@ components:
       additionalProperties: false
       required: [target]
       description: >-
-        Closes one existing issue, under `POST /v0/beads/issues/{id}:close`'s
+        Closes one existing issue, under `POST /v0/issuegraph/issues/{id}:close`'s
         rules including first-close-wins.
       properties:
         target:
@@ -9267,7 +9267,7 @@ components:
       additionalProperties: false
       required: [source, target, type]
       description: >-
-        Asserts ONE dependency edge, under `POST /v0/beads/dependencies:add`'s
+        Asserts ONE dependency edge, under `POST /v0/issuegraph/dependencies:add`'s
         rules. An edge from a row to itself is a `400`.
 
 
@@ -9465,7 +9465,7 @@ components:
       required: [issue_id, depends_on_id, type]
       description: >-
         One directed edge, as a REQUEST names it. It is not `Dependency`, which
-        is the stored row `GET /v0/beads/dependencies` returns and carries the
+        is the stored row `GET /v0/issuegraph/dependencies` returns and carries the
         columns storage assigned; this is the three members a caller supplies.
       properties:
         issue_id:
@@ -9673,7 +9673,7 @@ components:
           default: false
           description: >-
             Bypass the ownership fence, so an actor that is not the holder may
-            release the claim. It is the escape hatch `bd unclaim --force`
+            release the claim. It is the escape hatch `issuegraph unclaim --force`
             spells, for an abandoned claim whose holder crashed.
 
 
@@ -9749,7 +9749,7 @@ components:
 
             IT IS THE ONLY BODY MEMBER, and the FILTER travels in the query
             string instead. That split is deliberate: the filter vocabulary is
-            `GET /v0/beads/ready`'s and is decoded by the same function, so
+            `GET /v0/issuegraph/ready`'s and is decoded by the same function, so
             re-spelling it as a body object would create a second expression of
             one predicate — and two spellings of one predicate eventually
             disagree. The actor cannot go the same way: it is provenance that
@@ -9777,8 +9777,8 @@ components:
         the claim.
 
 
-        The row is `IssueWithCounts` — the element type `GET /v0/beads/ready`
-        returns and `bd ready --json` emits — hydrated INSIDE the transaction
+        The row is `IssueWithCounts` — the element type `GET /v0/issuegraph/ready`
+        returns and `issuegraph ready --json` emits — hydrated INSIDE the transaction
         that committed the claim, so its counts describe the state the claim
         produced rather than a later one. It is not an `Issue` because the
         listing this replaces answers with counts, and a client swapping the
@@ -9847,7 +9847,7 @@ components:
           maxLength: 255
           description: >-
             Why THIS issue is closed. It is per item rather than per request
-            because `bd close a b c --reason x --reason y --reason z` has always
+            because `issuegraph close a b c --reason x --reason y --reason z` has always
             mapped them positionally, and one request-wide reason could not
             express it. `CloseIssueRequest.reason`'s rules and first-close-wins.
 
@@ -10002,9 +10002,9 @@ components:
             never from one the client composed itself: the token is
             OPAQUE and compared for equality alone, so it has no predecessor a
             client can compute. A first guarded close seeds itself from
-            `GET /v0/beads/issues/{id}`'s `revision` — the read that sources a
+            `GET /v0/issuegraph/issues/{id}`'s `revision` — the read that sources a
             guard — or, for a chain already mid-flight, from an unguarded
-            lifecycle write or `POST /v0/beads/issues:batchApply`'s
+            lifecycle write or `POST /v0/issuegraph/issues:batchApply`'s
             `ApplyItemResult.revision`.
 
 
@@ -10258,9 +10258,9 @@ components:
 
 
             The token is the `revision` this operation's own response carries,
-            and the same one `GET /v0/beads/issues/{id}` publishes — which is
+            and the same one `GET /v0/issuegraph/issues/{id}` publishes — which is
             where a first guarded write seeds itself, rather than from an
-            unguarded one or from `POST /v0/beads/issues:batchApply`'s
+            unguarded one or from `POST /v0/issuegraph/issues:batchApply`'s
             `ApplyItemResult.revision`.
             Compose the next expectation from the value the write ANSWERED with,
             never from one the client composed itself: the token is
@@ -10470,7 +10470,7 @@ components:
 
             IT IS WHY THIS PAIR EXISTS. A caller that reads a row, adds one
             label and writes the whole set back silently drops any label another
-            writer added in between — and `bd label add` and every agent that
+            writer added in between — and `issuegraph label add` and every agent that
             tags work concurrently are exactly that caller. A replacement can
             only be composed safely by a writer that knows it is alone.
 
@@ -10546,7 +10546,7 @@ components:
             loop composes its next expectation from THIS value and never from a
             number it incremented itself, for the reason
             `compareAndSetMetadata` gives about a value the store renormalizes.
-            `GET /v0/beads/issues/{id}`'s `revision` is the read that publishes
+            `GET /v0/issuegraph/issues/{id}`'s `revision` is the read that publishes
             the same token, and this member agrees with it.
 
 
@@ -10640,7 +10640,7 @@ components:
             It stays optional because the vocabulary belongs to the workspace and
             a deployment may configure a default this server cannot read, but it
             is not optional in practice on any workspace shipped today.
-            `POST /v0/beads/issues:batchCreate` has the same property and does
+            `POST /v0/issuegraph/issues:batchCreate` has the same property and does
             not say so, which is why this member does.
         status:
           type: string
@@ -10707,7 +10707,7 @@ components:
           default: false
           description: >-
             Creates the issue on the EPHEMERAL plane rather than the durable one,
-            exactly as it does for `POST /v0/beads/issues:batchApply`. Mutually
+            exactly as it does for `POST /v0/issuegraph/issues:batchApply`. Mutually
             exclusive with `no_history`.
         no_history:
           type: boolean
@@ -10731,7 +10731,7 @@ components:
             `labels`. It has no effect without `parent_id`.
 
 
-            The DEFAULT IS FALSE and diverges from `bd create --parent`, whose
+            The DEFAULT IS FALSE and diverges from `issuegraph create --parent`, whose
             default is to inherit. A wire caller sends what it means: this
             operation has no `--no-inherit-labels` to turn off, and a create that
             silently acquired labels the request never named would be a set the
@@ -10807,7 +10807,7 @@ components:
 
 
         IT IS A TYPED MEMBER HERE AND A METADATA BLOB ON
-        `POST /v0/beads/issues:batchApply`, and the difference follows the ROLE
+        `POST /v0/issuegraph/issues:batchApply`, and the difference follows the ROLE
         rather than taste: `CreateRequest.WaitsFor` is a typed field that gets
         the gate defaulted and the "must not duplicate an explicit edge" check,
         while that operation's `dep_add` item is one generic edge with no typed
@@ -10919,11 +10919,11 @@ components:
 
 
             IT IS OPTIONAL ON EVERY OPERATION BUT THE CLAIM. `POST
-            /v0/beads/issues/{id}:claim` always carries it, because its
+            /v0/issuegraph/issues/{id}:claim` always carries it, because its
             conflict path reads the row it lost to. `PATCH
-            /v0/beads/issues/{id}` and `POST /v0/beads/issues:batchApply` carry
+            /v0/issuegraph/issues/{id}` and `POST /v0/issuegraph/issues:batchApply` carry
             it only when the refusing transaction reported a holder, and `POST
-            /v0/beads/issues/{id}:release` never does — the ownership fence
+            /v0/issuegraph/issues/{id}:release` never does — the ownership fence
             refuses without naming anyone. An absent member means "this refusal
             could not name the holder", never "nobody holds it"; re-read the
             row.

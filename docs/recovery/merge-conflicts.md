@@ -24,7 +24,7 @@ issuegraph doctor --dry-run
 
 **Step 1:** Back up current state
 ```bash
-cp -r .beads .beads.backup
+cp -r .issuegraph .issuegraph.backup
 ```
 
 **Step 2:** Check for conflicts

@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	gmssql "github.com/dolthub/go-mysql-server/sql"
 	"github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 // BatchContext holds per-batch state read once and reused for every issue.
@@ -74,7 +74,7 @@ type CreateIssueResult struct {
 	persistedDependencies []persistedDependency
 	// persistedComments are the comments this create actually inserted, carried
 	// up to the entry point so their journal rows land AFTER the create's. A
-	// consumer must never see a comment for a bead it has not been told about.
+	// consumer must never see a comment for a issue it has not been told about.
 	persistedComments []EventComment
 }
 
@@ -174,10 +174,10 @@ func CreateIssueInTxWithResult(ctx context.Context, tx DBTX, bc *BatchContext, i
 	result.persistedComments = append(result.persistedComments, commentResult.persistedComments...)
 
 	// Advance child_counters when a singular create materializes a hierarchical
-	// ID (e.g. bd create --id P.8). The batch path already calls
+	// ID (e.g. issuegraph create --id P.8). The batch path already calls
 	// ReconcileChildCounters after CreateIssuesInTx; without this, explicit --id
 	// creates leave last_child behind the live suffix high-water mark and the
-	// next bd create --parent can recycle lower suffixes (GH#4750).
+	// next issuegraph create --parent can recycle lower suffixes (GH#4750).
 	if isNew && !bc.SkipChildCounterReconcile {
 		if _, childNum, ok := ParseHierarchicalID(issue.ID); ok && childNum > 0 {
 			changedCounters, err := ReconcileChildCounters(ctx, tx, []*types.Issue{issue})
@@ -188,7 +188,7 @@ func CreateIssueInTxWithResult(ctx context.Context, tx DBTX, bc *BatchContext, i
 		}
 	}
 	// Journal the create once, after labels and comments are in the row's
-	// transaction, so the snapshot is the complete bead. The early returns above
+	// transaction, so the snapshot is the complete issue. The early returns above
 	// (collision skip, stale reject) wrote nothing and journal nothing.
 	if err := RecordEventInTx(ctx, tx, EventCreate, issue.ID, actor); err != nil {
 		return result, err
@@ -197,7 +197,7 @@ func CreateIssueInTxWithResult(ctx context.Context, tx DBTX, bc *BatchContext, i
 	// replayable content the create snapshot does NOT contain — issue hydration
 	// joins labels but not comments — so each inserted comment gets its own op,
 	// emitted after the create so a consumer is never told about a comment on a
-	// bead it has not seen created. Dedup hits above inserted nothing and emit
+	// issue it has not seen created. Dedup hits above inserted nothing and emit
 	// nothing.
 	for i := range result.persistedComments {
 		if err := RecordCommentEventInTx(ctx, tx, issue.ID, &result.persistedComments[i]); err != nil {
@@ -586,7 +586,7 @@ func AllWisps(issues []*types.Issue) bool {
 // checkCrossTableIDCollision rejects a create whose ID already lives in the
 // sibling table (GH#4455). Issues and wisps share one ID space but live in
 // separate tables; an ID present in both makes the merge-based lookups
-// (bd ready/search) hard-error for the whole store. The target-table
+// (issuegraph ready/search) hard-error for the whole store. The target-table
 // existence check in InsertIssueIfNew only sees one table, so nothing else in
 // the create path closes this hole.
 //
@@ -629,7 +629,7 @@ func checkCrossTableIDCollision(ctx context.Context, tx DBTX, id, issueTable str
 // auto-import upgrade-recovery guarantee (GH#3955): even if the emptiness
 // guard in maybeAutoImportJSONL regresses, a stale issues.jsonl can never
 // overwrite live rows — worst case is a no-op. Otherwise the INSERT … ON
-// DUPLICATE KEY UPDATE runs, so explicit `bd import` keeps UPSERT semantics;
+// DUPLICATE KEY UPDATE runs, so explicit `issuegraph import` keeps UPSERT semantics;
 // with opts.RejectStaleUpserts the update half is conditional on the incoming
 // row being strictly newer than the stored one (bd-pkim8, bd-hj85c).
 // Staleness is decided by an explicit in-transaction read (stored updated_at
@@ -718,7 +718,7 @@ func PersistLabels(ctx context.Context, tx DBTX, issue *types.Issue, actor, even
 		seen[label] = struct{}{}
 		// Reject an over-length label before the INSERT IGNORE, which would
 		// otherwise silently truncate it to VARCHAR(255). This is the create and
-		// import chokepoint (AddLabelInTx guards the bd label-add path). The whole
+		// import chokepoint (AddLabelInTx guards the issuegraph label-add path). The whole
 		// create runs in one transaction, so returning here rolls it back — the
 		// issue and its labels are not persisted.
 		if err := types.CheckFieldLen("label", label); err != nil {

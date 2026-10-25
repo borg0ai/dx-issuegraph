@@ -4,17 +4,17 @@ import (
 	"context"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/beads"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 )
 
 // gitExec is a function hook for executing git commands.
 // In production, it uses RepoContext. In tests, it can be swapped for mocking.
 var gitExec = defaultGitExec
 
-// defaultGitExec uses RepoContext to execute git commands in the beads repository.
+// defaultGitExec uses RepoContext to execute git commands in the issuegraph repository.
 func defaultGitExec(name string, args ...string) ([]byte, error) {
 	// name is always "git" when called from GetCurrentCommitHash
-	rc, err := beads.GetRepoContext()
+	rc, err := issuegraph.GetRepoContext()
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +23,7 @@ func defaultGitExec(name string, args ...string) ([]byte, error) {
 	return cmd.Output()
 }
 
-// GetCurrentCommitHash returns the current git HEAD commit hash for the beads repository.
+// GetCurrentCommitHash returns the current git HEAD commit hash for the issuegraph repository.
 // Returns empty string if not in a git repository or if git command fails.
 func GetCurrentCommitHash() string {
 	output, err := gitExec("git", "rev-parse", "HEAD")

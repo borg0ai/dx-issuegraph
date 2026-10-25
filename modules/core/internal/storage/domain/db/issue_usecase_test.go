@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func (s *testSuite) TestIssueUseCase_MintTopLevelID() {
@@ -48,7 +48,7 @@ func (s *testSuite) resetMintConfig(prefix, idMode string) {
 }
 
 func (s *testSuite) useCaseMintHashMode() {
-	s.resetMintConfig("bd", "")
+	s.resetMintConfig("issuegraph", "")
 	uc := s.issueUseCase()
 
 	res, err := uc.CreateIssue(s.Ctx(), domain.CreateIssueParams{
@@ -101,7 +101,7 @@ func (s *testSuite) useCaseMintWispIgnoresCounterMode() {
 }
 
 func (s *testSuite) useCaseMintRespectsPrefixOverride() {
-	s.resetMintConfig("bd", "")
+	s.resetMintConfig("issuegraph", "")
 	uc := s.issueUseCase()
 
 	res, err := uc.CreateIssue(s.Ctx(), domain.CreateIssueParams{
@@ -117,7 +117,7 @@ func (s *testSuite) useCaseMintRespectsPrefixOverride() {
 }
 
 func (s *testSuite) useCaseMintRespectsIDPrefix() {
-	s.resetMintConfig("bd", "")
+	s.resetMintConfig("issuegraph", "")
 	uc := s.issueUseCase()
 
 	res, err := uc.CreateIssue(s.Ctx(), domain.CreateIssueParams{
@@ -133,7 +133,7 @@ func (s *testSuite) useCaseMintRespectsIDPrefix() {
 }
 
 func (s *testSuite) useCaseMintWispPrefix() {
-	s.resetMintConfig("bd", "")
+	s.resetMintConfig("issuegraph", "")
 	uc := s.issueUseCase()
 
 	res, err := uc.CreateWisp(s.Ctx(), domain.CreateIssueParams{
@@ -145,7 +145,7 @@ func (s *testSuite) useCaseMintWispPrefix() {
 		},
 	}, "tester")
 	s.Require().NoError(err)
-	s.True(strings.HasPrefix(res.Issue.ID, "bd-wisp-"), "expected bd-wisp- prefix, got %q", res.Issue.ID)
+	s.True(strings.HasPrefix(res.Issue.ID, "issuegraph-wisp-"), "expected issuegraph-wisp- prefix, got %q", res.Issue.ID)
 }
 
 func (s *testSuite) useCaseMintMissingPrefix() {

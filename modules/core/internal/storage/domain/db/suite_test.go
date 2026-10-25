@@ -9,10 +9,10 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 type testSuite struct {
@@ -37,7 +37,7 @@ func (s *testSuite) SetupSuite() {
 	s.Require().NoError(err)
 	defer root.Close()
 
-	s.dbName = "beads_domain_db_test_" + randomSuffix(8)
+	s.dbName = "issuegraph_domain_db_test_" + randomSuffix(8)
 	_, err = root.ExecContext(ctx, "CREATE DATABASE `"+s.dbName+"`")
 	s.Require().NoError(err)
 
@@ -48,11 +48,11 @@ func (s *testSuite) SetupSuite() {
 	s.db = db
 
 	_, err = schema.MigrateUp(ctx, db)
-	s.Require().NoError(err, "applying beads schema")
+	s.Require().NoError(err, "applying issuegraph schema")
 
 	_, err = db.ExecContext(ctx, "CALL DOLT_ADD('-A')")
 	s.Require().NoError(err, "dolt add baseline")
-	_, err = db.ExecContext(ctx, "CALL DOLT_COMMIT('-m', ?, '--allow-empty')", "beads domain/db test baseline")
+	_, err = db.ExecContext(ctx, "CALL DOLT_COMMIT('-m', ?, '--allow-empty')", "issuegraph domain/db test baseline")
 	s.Require().NoError(err, "dolt commit baseline")
 	s.Require().NoError(
 		db.QueryRowContext(ctx, "SELECT HASHOF('HEAD')").Scan(&s.baselineCommit),

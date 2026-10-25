@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
 )
 
 // expectConvergedFastPathMiss walks the REAL pre-lock probe on the shape the
@@ -680,7 +680,7 @@ func TestAlreadyConvergedAcceptsOverriddenIgnorePattern(t *testing.T) {
 // itself treats "cursor >= my latest" as nothing to do and returns (0, nil)
 // without ever consulting the lock, so the fast path returning converged is
 // the same answer for the same reason. Forward drift is a separate question,
-// asked by CheckForwardDrift at the caller (modules/cli/main.go), and this probe
+// asked by CheckForwardDrift at the caller (apps/cli/main.go), and this probe
 // must not start answering it: doing so here would turn a diagnosable skew
 // error into an unexplained lock acquisition on every invocation.
 func TestAlreadyConvergedOnForwardSkew(t *testing.T) {
@@ -771,7 +771,7 @@ func TestAlreadyConvergedFailsClosedOnUnreadableState(t *testing.T) {
 // probe that correctly declined — and the symptom (every seat back on the
 // saturated GET_LOCK) shows up nowhere near the cause. Discarding the error
 // without a word is what made the unreachable-fast-path defect survive
-// review; say so where BD_DEBUG and -v can see it.
+// review; say so where ISSUEGRAPH_DEBUG and -v can see it.
 func TestMigrateUpWithLockLogsAnUnavailableFastPath(t *testing.T) {
 	conn, mock, cleanup := newMockConn(t)
 	defer cleanup()

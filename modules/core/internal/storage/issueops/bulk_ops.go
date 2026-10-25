@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // GetIssueByExternalRefInTx looks up an issue by its external_ref field.
-// Checks both issues and wisps tables so that pushed ephemeral beads are
+// Checks both issues and wisps tables so that pushed ephemeral issuegraph are
 // found during pull dedup.
 // Returns the issue ID if found. Returns storage.ErrNotFound (wrapped) if not found.
 func GetIssueByExternalRefInTx(ctx context.Context, tx *sql.Tx, externalRef string) (string, error) {
@@ -206,7 +206,7 @@ func DeleteIssuesBySourceRepoInTx(ctx context.Context, tx *sql.Tx, sourceRepo st
 
 	// Edges are journaled before the rows go, while their source snapshots can
 	// still be read. The source-repo wipe surface (storage.DeleteIssuesBySourceRepo,
-	// behind `bd repo remove`) carries no actor, so these record none.
+	// behind `issuegraph repo remove`) carries no actor, so these record none.
 	if err := RecordDependencyRemovalsForIssuesInTx(ctx, tx, issueIDs, ""); err != nil {
 		return 0, fmt.Errorf("journal dependency removals for source-repo delete: %w", err)
 	}
@@ -263,7 +263,7 @@ func UpdateIssueIDInTx(ctx context.Context, tx *sql.Tx, oldID, newID string, iss
 
 // recordRenameInJournal replays a rename as the operations a consumer can apply
 // without understanding identity changes: drop the old edges, delete the old
-// bead, create the new one, re-add the edges under the new id.
+// issue, create the new one, re-add the edges under the new id.
 func recordRenameInJournal(ctx context.Context, tx DBTX, oldID, newID, actor string, edges []journalDependencyEdge) error {
 	for _, edge := range edges {
 		if err := RecordDepEventInTx(ctx, tx, EventDepRemove, edge.source, edge.kind, edge.target, edge.metadata, actor); err != nil {

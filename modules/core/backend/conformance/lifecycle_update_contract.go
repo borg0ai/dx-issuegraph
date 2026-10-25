@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the semantic contract for publicops.Lifecycle.Update as the
@@ -264,7 +264,7 @@ func RunLifecycleUpdatePersistsThePatchAndHydratesTheResult(t *testing.T, ctx co
 // contract case, and every backend builds the update's column set itself: the
 // two stores through issueops.UpdateFields, the unit-of-work backend through its
 // own updateSpec and the allow-list in domain/db. Two implementations, two
-// chances to add a column that should not be there — and `bd show`'s "created by
+// chances to add a column that should not be there — and `issuegraph show`'s "created by
 // X on Y" and every provenance report downstream of it read exactly these two.
 //
 // THE SEEDED STAMP IS DISTANT ON PURPOSE, and this is the case's fixture, not
@@ -739,7 +739,7 @@ func RunLifecycleUpdateRefusalWritesNoMemberOfThePatch(t *testing.T, ctx context
 
 // RunLifecycleUpdateConditionalGuardsGateOrdinaryEdits pins the three
 // compare-and-set preconditions as PRECONDITIONS ON A PLAIN EDIT — the way
-// `bd update --if-status` / `--if-assignee` / `--if-version` reach the
+// `issuegraph update --if-status` / `--if-assignee` / `--if-version` reach the
 // contract. The assignee-transfer case below pins the ORDER two of them resolve
 // in beside a fenced transfer; here they gate an ordinary field update that no
 // fence would touch.
@@ -1065,7 +1065,7 @@ func RunLifecycleUpdateMetadataPatchOrdersMergeSetUnset(t *testing.T, ctx contex
 
 // RunLifecycleUpdateClosePolicy pins what a generic status update does when it
 // crosses from a non-done status into the done category: it answers to the same
-// policy `bd close` does — the open-children refusal and the live-direct-blocker
+// policy `issuegraph close` does — the open-children refusal and the live-direct-blocker
 // refusal — and ForceClosePolicy is how a caller overrides them. Until this case
 // existed the contract had no boundary-crossing case at all, and that gap is
 // exactly how two earlier attempts at a shared policy check reached a backend

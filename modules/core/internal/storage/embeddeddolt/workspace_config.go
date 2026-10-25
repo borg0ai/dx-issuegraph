@@ -3,9 +3,9 @@
 package embeddeddolt
 
 import (
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/workapi/storeworkspaceconfig"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi/storeworkspaceconfig"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // WorkspaceConfig returns the guarded workspace-settings surface for this

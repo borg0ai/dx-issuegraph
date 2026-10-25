@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Compile-time interface check.
@@ -33,7 +33,7 @@ var adoShorthandPattern = regexp.MustCompile(`^ado:([1-9]\d*)$`)
 
 // Tracker implements tracker.IssueTracker for Azure DevOps. It is registered
 // under the name "ado" and supports bidirectional sync of work items between
-// ADO and the local beads database.
+// ADO and the local issuegraph database.
 type Tracker struct {
 	client   *Client
 	store    tracker.Store
@@ -72,7 +72,7 @@ func (t *Tracker) DisplayName() string { return "Azure DevOps" }
 // ConfigPrefix returns the config key prefix for this tracker.
 func (t *Tracker) ConfigPrefix() string { return "ado" }
 
-// Init initializes the tracker with configuration from the beads config store.
+// Init initializes the tracker with configuration from the issuegraph config store.
 // No network calls are made during initialization.
 func (t *Tracker) Init(ctx context.Context, store tracker.Store) error {
 	t.store = store
@@ -272,7 +272,7 @@ func (t *Tracker) UpdateIssue(ctx context.Context, externalID string, issue *typ
 }
 
 // FieldMapper returns the bidirectional field mapper used to convert priorities,
-// statuses, types, and issue data between ADO and beads representations.
+// statuses, types, and issue data between ADO and issuegraph representations.
 func (t *Tracker) FieldMapper() tracker.FieldMapper {
 	return t.mapper
 }

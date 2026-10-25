@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
 )
 
 func NewChildCounterSQLRepository(runner Runner) domain.ChildCounterSQLRepository {

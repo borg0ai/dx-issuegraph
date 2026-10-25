@@ -12,22 +12,22 @@ import (
 const CentralConfigFileName = "server.json"
 
 // DefaultCentralConfigPath returns the platform-appropriate path for the
-// central beads server config.
-// Linux/macOS: ~/.config/beads/server.json
-// Windows: %APPDATA%\beads\server.json
+// central issuegraph server config.
+// Linux/macOS: ~/.config/issuegraph/server.json
+// Windows: %APPDATA%\issuegraph\server.json
 //
 // This follows the same convention as DefaultCredentialsPath.
 func DefaultCentralConfigPath() string {
 	if runtime.GOOS == "windows" {
 		if appdata := os.Getenv("APPDATA"); appdata != "" {
-			return filepath.Join(appdata, "beads", CentralConfigFileName)
+			return filepath.Join(appdata, "issuegraph", CentralConfigFileName)
 		}
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(home, ".config", "beads", CentralConfigFileName)
+	return filepath.Join(home, ".config", "issuegraph", CentralConfigFileName)
 }
 
 // LoadCentralConfig reads the central server config from the given path.
@@ -79,7 +79,7 @@ func ApplyCentralDefaults(project *Config, central *Config) {
 	// from "not set". We only apply central TLS=true when project has TLS=false,
 	// which means central can enable TLS but project cannot explicitly disable it
 	// via the zero value. To disable TLS when central enables it, use the
-	// BEADS_DOLT_SERVER_TLS=0 env var.
+	// ISSUEGRAPH_DOLT_SERVER_TLS=0 env var.
 	if !project.DoltServerTLS && central.DoltServerTLS {
 		project.DoltServerTLS = central.DoltServerTLS
 	}

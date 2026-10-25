@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// pinNoOverride neutralizes an inherited BD_MIGRATION_FREEZE_FILE without
+// pinNoOverride neutralizes an inherited ISSUEGRAPH_MIGRATION_FREEZE_FILE without
 // making it authoritative. Find/FindFrom short-circuit on a set variable, so a
 // developer who exported the documented opt-out would otherwise see every
 // walk-based test in this file fail on a healthy checkout.
@@ -116,14 +116,14 @@ func TestFindFromWalksUpToGrandparent(t *testing.T) {
 
 // TestFindWalksExtraRootsNotJustCwd is the target-workspace contract: a caller
 // whose working directory is nowhere near the frozen tree must still be
-// stopped when it names that tree. This is the `BEADS_DIR=... bd create` and
-// `bd -C <dir>` shape, neither of which chdirs.
+// stopped when it names that tree. This is the `ISSUEGRAPH_DIR=... issuegraph create` and
+// `issuegraph -C <dir>` shape, neither of which chdirs.
 func TestFindWalksExtraRootsNotJustCwd(t *testing.T) {
 	pinNoOverride(t)
 	unrelated := t.TempDir()
 	frozenRoot := t.TempDir()
 	want := writeMarker(t, frozenRoot, "operator\t\treason\n")
-	workspace := filepath.Join(frozenRoot, "repo", ".beads")
+	workspace := filepath.Join(frozenRoot, "repo", ".issuegraph")
 	if err := os.MkdirAll(workspace, 0755); err != nil {
 		t.Fatalf("creating %s: %v", workspace, err)
 	}
@@ -193,7 +193,7 @@ func TestFindEnvOverrideAuthoritative(t *testing.T) {
 	})
 }
 
-// TestLookupFailureIsFrozen is the fail-closed contract: a marker path bd
+// TestLookupFailureIsFrozen is the fail-closed contract: a marker path issuegraph
 // cannot resolve is not the same as a marker that is absent, and the ambiguity
 // must not silently disarm the gate.
 func TestLookupFailureIsFrozen(t *testing.T) {
@@ -273,7 +273,7 @@ func TestNonRegularMarkerIsNotAFreeze(t *testing.T) {
 }
 
 // TestEnvOverrideFollowsSymlink is the fail-open regression on the authoritative
-// path: an operator who points BD_MIGRATION_FREEZE_FILE through an indirection
+// path: an operator who points ISSUEGRAPH_MIGRATION_FREEZE_FILE through an indirection
 // symlink (the `current -> releases/N` pattern the variable exists for) must
 // still be frozen when the link resolves to a real marker. os.Lstat alone would
 // see the link, not the regular file it targets, and wave the write through.

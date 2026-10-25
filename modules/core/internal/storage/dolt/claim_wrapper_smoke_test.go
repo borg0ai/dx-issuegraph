@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // The wrapper-routing residue of the issueops.Claimer contract, and the THIRD
@@ -127,7 +127,7 @@ func TestClaimIssueWrapperRoutesItsOwnBranches(t *testing.T) {
 	// is already pinned (empty_commit_test.go); what is not is the MESSAGE,
 	// which this wrapper composes itself and which differs from the role's —
 	// issueops.ClaimCommitMessage names the claimant, this one names only the
-	// issue. `bd dolt log` is the audit trail for a claim, so a wrapper that
+	// issue. `issuegraph dolt log` is the audit trail for a claim, so a wrapper that
 	// stopped naming the issue would leave a reader unable to tell which claim
 	// a commit was, with every other test in the tree green.
 	t.Run("VersionsADurableClaimUnderItsOwnCommitMessage", func(t *testing.T) {
@@ -141,11 +141,11 @@ func TestClaimIssueWrapperRoutesItsOwnBranches(t *testing.T) {
 		}
 		var commits int
 		if err := store.db.QueryRowContext(ctx,
-			"SELECT COUNT(*) FROM dolt_log WHERE message = ?", "bd: claim clwrap-durable").Scan(&commits); err != nil {
+			"SELECT COUNT(*) FROM dolt_log WHERE message = ?", "issuegraph: claim clwrap-durable").Scan(&commits); err != nil {
 			t.Fatalf("count dolt_log by message: %v", err)
 		}
 		if commits != 1 {
-			t.Errorf("dolt_log holds %d commit(s) named %q, want 1", commits, "bd: claim clwrap-durable")
+			t.Errorf("dolt_log holds %d commit(s) named %q, want 1", commits, "issuegraph: claim clwrap-durable")
 		}
 	})
 }

@@ -60,7 +60,7 @@ scan() {
     while IFS= read -r path; do
         analyzer_paths+=("${path#"$root/"}")
     done < <(find "$root" -maxdepth 1 -type f -name '*.go' -print)
-    for path in cmd internal backend beadserrors format issueops journalops memoryops schema plugins integrations release-gates; do
+    for path in cmd internal backend issuegrapherrors format issueops journalops memoryops schema plugins integrations release-gates; do
         [[ -d "$root/$path" ]] && analyzer_paths+=("$path")
     done
     (cd "$root" && "$TOOL" -ignore '(_test\.go$|\.gen\.go$|generated|(^|/)conformance/)' "${analyzer_paths[@]}") >"$raw"
@@ -121,7 +121,7 @@ fi
 echo
 echo "Changed functions relative to $BASE_REF (advisory; file-level scope)"
 if git rev-parse --verify "$BASE_REF" >/dev/null 2>&1; then
-    git diff --name-only "$BASE_REF"...HEAD -- '*.go' | awk '!/_test\.go$/ && !/\.gen\.go$/ && !/generated/ && (index($0, "/") == 0 || $0 ~ /^(cmd|internal|backend|beadserrors|format|issueops|journalops|memoryops|schema|plugins|integrations|release-gates)\//) && $0 !~ /^backend\/conformance\//' >"$changed"
+    git diff --name-only "$BASE_REF"...HEAD -- '*.go' | awk '!/_test\.go$/ && !/\.gen\.go$/ && !/generated/ && (index($0, "/") == 0 || $0 ~ /^(cmd|internal|backend|issuegrapherrors|format|issueops|journalops|memoryops|schema|plugins|integrations|release-gates)\//) && $0 !~ /^backend\/conformance\//' >"$changed"
     if [[ -s "$changed" ]]; then
         awk -v top="$TOP" 'FILENAME == ARGV[1] { files[$0] = 1; next } { file = $4; sub(/:[0-9]+:[0-9]+$/, "", file); if (file in files && ++n <= top) print }' "$changed" "$filtered"
     else

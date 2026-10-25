@@ -3,14 +3,14 @@ package dolt
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	rootissueops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	rootissueops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // bd-4wamg: a context carrying WithDeferredVersionCommit must leave writes in
 // the Dolt working set — no per-write version commit — until an explicit
-// commit point flushes them (CommitPending / bd dolt commit). This is the
+// commit point flushes them (CommitPending / issuegraph dolt commit). This is the
 // server-mode half of --dolt-auto-commit batch/off; the CLI sets the context
 // in issueOpsContext, and this store honors it in doltAddAndCommitInTx.
 func TestDeferredVersionCommitLeavesWritesForCommitPending(t *testing.T) {

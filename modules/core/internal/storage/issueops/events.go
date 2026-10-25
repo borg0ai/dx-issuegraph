@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // GetEventsInTx retrieves events for an issue. If limit <= 0, all events are returned.
@@ -67,7 +67,7 @@ const (
 
 // EventsSinceInTx returns durable events strictly after the (createdAt, id)
 // keyset cursor, ordered by (created_at ASC, id ASC) and bounded by limit.
-// issueID != "" scopes the feed to one bead's history; "" returns all issues'.
+// issueID != "" scopes the feed to one issue's history; "" returns all issues'.
 //
 // The cursor predicate is written as
 //
@@ -83,7 +83,7 @@ const (
 //
 // With issueID set an additional `issue_id = ?` is ANDed in. There is no
 // composite (issue_id, created_at, id) index, so that arm is a single-column
-// index seek (idx_events_issue) plus a filter; acceptable for a per-bead drawer,
+// index seek (idx_events_issue) plus a filter; acceptable for a per-issue drawer,
 // which is small.
 //
 // Scope is the durable `events` table only — wisp_events are deliberately not

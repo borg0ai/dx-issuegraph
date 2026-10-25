@@ -7,15 +7,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// The pins for POST /v0/beads/issues:delete. As with the sweep, what is
+// The pins for POST /v0/issuegraph/issues:delete. As with the sweep, what is
 // asserted here is the WIRE EDGE — that the handler decodes the document's
 // members into the role's request faithfully, refuses what the document
 // refuses, and does not re-implement anything the role owns.
 
-const deletePath = "/v0/beads/issues:delete"
+const deletePath = "/v0/issuegraph/issues:delete"
 
 func (ts *testServer) delete(t *testing.T, body string) *http.Response {
 	t.Helper()
@@ -23,7 +23,7 @@ func (ts *testServer) delete(t *testing.T, body string) *http.Response {
 }
 
 // TestDeletePathReachesItsHandler is the sweep row's twin: a LITERAL segment
-// registered beside the claim's wildcard `/v0/beads/issues/{idop}`, where
+// registered beside the claim's wildcard `/v0/issuegraph/issues/{idop}`, where
 // ServeMux precedence is by specificity rather than by registration order. A
 // 404 or a claim-shaped refusal here would mean the delete is being parsed as a
 // claim of an issue named ":delete".
@@ -48,7 +48,7 @@ func TestDeletePathReachesItsHandler(t *testing.T) {
 // by design.
 //
 // It is asserted on the REQUEST the role received rather than on the response,
-// because a body carrying the right numbers says nothing about which beads went
+// because a body carrying the right numbers says nothing about which issuegraph went
 // — this is the operation where the handler dropping `cascade` deletes a
 // subtree the caller did not ask for.
 func TestDeleteForwardsEveryDocumentedMember(t *testing.T) {
@@ -221,7 +221,7 @@ func TestDeletePublishesTheRolesGuardAsA400(t *testing.T) {
 		t.Errorf("code = %v, want %s", body["code"], CodeInvalidArgument)
 	}
 	if detail, _ := body["detail"].(string); !strings.Contains(detail, "bd-blocker") {
-		t.Errorf("detail = %q, want the role's own sentence naming the blocked bead", detail)
+		t.Errorf("detail = %q, want the role's own sentence naming the blocked issue", detail)
 	}
 	// No `param`: the refusal is about the absence of a CHOICE between two
 	// members, and the document declares `param` absent on that case.
@@ -234,7 +234,7 @@ func TestDeletePublishesTheRolesGuardAsA400(t *testing.T) {
 // detail does NOT name the ids.
 //
 // NotFound's fixed sentence is what keeps a handler that decided a miss without
-// reading storage indistinguishable from one that read and missed. `bd delete`
+// reading storage indistinguishable from one that read and missed. `issuegraph delete`
 // still names them, because it is answering the person who typed them.
 func TestDeletePublishesAnAbsentIDAsA404(t *testing.T) {
 	deleter := &roleDeleter{err: &issueops.NotFoundError{IDs: []string{"bd-nosuch"}}}
@@ -256,7 +256,7 @@ func TestDeletePublishesAnAbsentIDAsA404(t *testing.T) {
 // TestDeleteRefusesAForeignMediaType: the CSRF control the claim documents, for
 // the reason the sweep gives — accepting text/plain would let an attacker's
 // page drive a delete from any browser on the host, and this one does not even
-// need the beads to be closed.
+// need the issuegraph to be closed.
 func TestDeleteRefusesAForeignMediaType(t *testing.T) {
 	deleter := &roleDeleter{}
 	ts := newTestServer(t, rolesConfig(Config{Deleter: deleter}))
@@ -306,7 +306,7 @@ func TestDeleteResponseCarriesEveryRoleField(t *testing.T) {
 //
 // The nil half is what stops the handler inventing a guard. On this operation
 // that matters more than anywhere else on the surface: a delete that took &0 by
-// default would refuse every bead that has ever been written to, and one that
+// default would refuse every issue that has ever been written to, and one that
 // dropped a real guard would erase a row the caller no longer recognizes.
 func TestDeleteForwardsTheVersionGuard(t *testing.T) {
 	for _, tc := range []struct {
@@ -353,7 +353,7 @@ func TestDeleteForwardsTheVersionGuard(t *testing.T) {
 // It is refused here rather than left to the role — which refuses the same pair
 // as ErrValidation — because that route reaches the wire through failDeleteErr
 // with NO `param` at all, and the member name is the whole recovery: send one
-// guarded request per bead.
+// guarded request per issue.
 func TestDeleteRefusesAGuardBesideSeveralIDs(t *testing.T) {
 	deleter := &roleDeleter{}
 	ts := newTestServer(t, rolesConfig(Config{Deleter: deleter}))
@@ -382,8 +382,8 @@ func TestDeleteRefusesAGuardBesideSeveralIDs(t *testing.T) {
 // TestDeleteCountsDistinctIDsForTheGuard is the ANTI-DRIFT pin, and it is the
 // case that earns the local counting helper its place.
 //
-// The role's rule is DUPLICATES COLLAPSE FIRST — `bd delete a a` with a token
-// names one bead and is legal — and it collapses after TRIMMING
+// The role's rule is DUPLICATES COLLAPSE FIRST — `issuegraph delete a a` with a token
+// names one issue and is legal — and it collapses after TRIMMING
 // (workapi.NormalizeDeleteIDs). The transport boundary keeps that package out
 // of the handler, so the rule is respelled there; an edge that counted mentions
 // instead, or counted untrimmed, would refuse a request the library calls fine
@@ -393,9 +393,9 @@ func TestDeleteCountsDistinctIDsForTheGuard(t *testing.T) {
 		name string
 		ids  string
 	}{
-		{"a repeated id is one bead", `["bd-1","bd-1"]`},
-		{"a repeated id is one bead after trimming", `["bd-1"," bd-1"]`},
-		{"three mentions of one bead", `["bd-1","bd-1","bd-1"]`},
+		{"a repeated id is one issue", `["bd-1","bd-1"]`},
+		{"a repeated id is one issue after trimming", `["bd-1"," bd-1"]`},
+		{"three mentions of one issue", `["bd-1","bd-1","bd-1"]`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			deleter := &roleDeleter{}
@@ -428,7 +428,7 @@ func TestDeleteCountsDistinctIDsForTheGuard(t *testing.T) {
 // A blank entry is the ROLE's refusal too, and ValidateDeleteRequest puts it
 // AHEAD of the arity rule. The edge has to agree, because it counts trimmed
 // distinct ids: a request of `["", "bd-1"]` with a guard would otherwise be
-// told its guard names two beads, when what is actually wrong is that its id
+// told its guard names two issuegraph, when what is actually wrong is that its id
 // list came out broken.
 func TestDeleteRefusesABlankID(t *testing.T) {
 	for _, body := range []string{

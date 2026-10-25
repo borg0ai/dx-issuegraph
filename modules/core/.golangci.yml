@@ -32,7 +32,7 @@ linters:
             # Exception: the proxied-server surface needs Dolt server config
             # (servercfg, filesys) to launch/manage a real `dolt sql-server`
             # process. Candidate for migration behind the storage adapter.
-            - "!**/modules/cli/proxied_server.go"
+            - "!**/apps/cli/proxied_server.go"
             # Exception: eventkit is DoltHub's analytics/telemetry client,
             # not the Dolt storage engine - dropped here so the narrower
             # dolt-storage-boundary-metrics-exception rule below can allow
@@ -61,7 +61,7 @@ linters:
           deny:
             - pkg: github.com/dolthub
               desc: "Dolt engine access is restricted to the storage adapter packages (internal/storage, internal/doltserver) - see engdocs/PROJECT_CHARTER.md 'Storage Boundary'"
-        # internal/workapi is the work-query contract shared by every bd
+        # internal/workapi is the work-query contract shared by every issuegraph
         # frontend, so it must be callable from a cobra command and from an
         # HTTP handler alike - which means it can depend on neither. Same
         # allowlist shape as the metrics exception above: no "$all", because
@@ -94,7 +94,7 @@ linters:
             - "**/internal/httpapi/**"
             - "!$test"
           deny:
-            - pkg: github.com/steveyegge/beads/internal/workapi
+            - pkg: github.com/borg0ai/dx-issuegraph/internal/workapi
               desc: "internal/httpapi is transport only: a read handler asks the provider for issueops.Reader and passes the whole request - it never builds a filter - see internal/httpapi/reads.go"
         # The OTHER way past the roles, and the one the rule above does not
         # close. Denying internal/workapi stops a handler BUILDING a filter; it
@@ -114,7 +114,7 @@ linters:
         #                 no workspace state of its own; this is the type of the
         #                 thing it is given.
         #   handlers.go   contextResponse projects that snapshot with
-        #                 domain.PublishedContext - the SAME projection `bd
+        #                 domain.PublishedContext - the SAME projection `issuegraph
         #                 context` publishes, which is where the credential and
         #                 host-path exclusions live. Reimplementing it here to
         #                 satisfy a lint rule would be the field-by-field copy
@@ -132,26 +132,26 @@ linters:
             - "!**/internal/httpapi/server.go"
             - "!**/internal/httpapi/handlers.go"
           deny:
-            - pkg: github.com/steveyegge/beads/internal/storage/domain
+            - pkg: github.com/borg0ai/dx-issuegraph/internal/storage/domain
               desc: "internal/httpapi is transport only: a handler reaches storage through an issueops role accessor on the provider, never through the domain use cases - see internal/httpapi/claim.go"
         # The same boundary, transposed onto the front door that was last past
-        # it. modules/cli cannot be closed to the domain wholesale — thirty of its
+        # it. apps/cli cannot be closed to the domain wholesale — thirty of its
         # non-test files import internal/storage/domain today and unpicking
         # them is a program, not a rule — so this closes it ONE COMMAND AT A
-        # TIME, and `bd label` is the first entry.
+        # TIME, and `issuegraph label` is the first entry.
         #
         # It denies internal/storage/uow as well as internal/storage/domain,
         # and the second package is the one that does the work here. depguard
         # matches IMPORTS, and a file can call uw.LabelUseCase().AddLabel(...)
         # without importing domain at all — the method call needs no import for
-        # the inferred type. That is exactly what modules/cli/label_proxied_server.go
+        # the inferred type. That is exactly what apps/cli/label_proxied_server.go
         # did, so a domain-only deny would have been a rule that could not see
         # the bypass it was written for. Reaching a use case requires a unit of
         # work, opening one requires uow.RunTx, and THAT is an import.
         #
         # THIS RULE COVERS THE IMPORT SPELLING AND ONLY THE IMPORT SPELLING, and
-        # by itself it is NOT sufficient. modules/cli is one package, so
-        # proxiedOpenReadUOW (modules/cli/show_proxied_server.go) hands any file in
+        # by itself it is NOT sufficient. apps/cli is one package, so
+        # proxiedOpenReadUOW (apps/cli/show_proxied_server.go) hands any file in
         # it a uow.UnitOfWork with no import of its own — measured: a label.go
         # calling proxiedOpenReadUOW(ctx) and then uw.LabelUseCase().AddLabel()
         # compiles and passes this rule. An import-scoped guard cannot see a
@@ -160,12 +160,12 @@ linters:
         # guard, finds one, and stops looking.
         #
         # What closes that route is the forbidigo `LabelUseCase` rule below,
-        # and since ga-2ltro.12 that rule is PACKAGE-WIDE across modules/cli while
+        # and since ga-2ltro.12 that rule is PACKAGE-WIDE across apps/cli while
         # this one still names one file. The asymmetry is the design, not a
         # gap: forbidigo denies the CALL, which is what a front door has to
         # stop doing, and every file may be held to that today. depguard denies
         # the PACKAGE, which a file cannot stop importing until its whole
-        # command has moved — fifty-eight non-test files in modules/cli open a unit
+        # command has moved — fifty-eight non-test files in apps/cli open a unit
         # of work for verbs no role serves yet. So the pair covers a caller who
         # reached the domain through some third spelling (a helper returning a
         # use case directly, say) in the one file that has fully migrated, and
@@ -173,38 +173,38 @@ linters:
         # by mutation, one bypass each; ga-2ltro.12 re-verified the forbidigo
         # half from a file the depguard half does not name.
         #
-        # modules/cli/label.go holds every label decision now — the arg split, the
+        # apps/cli/label.go holds every label decision now — the arg split, the
         # reserved-prefix refusal, the patch, the report — and reaches storage
         # only through issueops.Lifecycle and issueops.Reader.
-        # modules/cli/label_proxied_server.go is NOT on this list and legitimately
+        # apps/cli/label_proxied_server.go is NOT on this list and legitimately
         # imports uow: it is where the route's capability accessors live, and
         # it still holds `list-all` and `propagate`, whose questions no role
         # answers yet. It joins the list when they move.
         #
         # The list grows by one file per command whose front doors reach the
         # roles, the way cmd-bd-role-constructors grows by one package per
-        # shared body. modules/cli/state.go is the second entry: ga-2ltro.12 moved
-        # `bd state`, `bd state list` and `bd set-state` onto Reader.Get and
+        # shared body. apps/cli/state.go is the second entry: ga-2ltro.12 moved
+        # `issuegraph state`, `issuegraph state list` and `issuegraph set-state` onto Reader.Get and
         # Lifecycle, deleted their proxied twin outright, and left the file
         # importing neither package — so the rule pins a migration that has
         # happened rather than asking for one that has not.
         cmd-bd-domain-boundary:
           list-mode: lax
           files:
-            - "**/modules/cli/label.go"
-            - "**/modules/cli/state.go"
+            - "**/apps/cli/label.go"
+            - "**/apps/cli/state.go"
             - "!$test"
           deny:
-            - pkg: github.com/steveyegge/beads/internal/storage/domain
-              desc: "bd label and bd state reach storage through an issueops role accessor, never through the domain use cases - see openIssueLifecycle in modules/cli/label.go"
-            - pkg: github.com/steveyegge/beads/internal/storage/uow
-              desc: "these commands do not open a unit of work: the route fork is the accessor (openIssueLifecycle/openIssueReader), and a unit of work here is how a use-case call gets back in - see modules/cli/label.go"
+            - pkg: github.com/borg0ai/dx-issuegraph/internal/storage/domain
+              desc: "issuegraph label and issuegraph state reach storage through an issueops role accessor, never through the domain use cases - see openIssueLifecycle in apps/cli/label.go"
+            - pkg: github.com/borg0ai/dx-issuegraph/internal/storage/uow
+              desc: "these commands do not open a unit of work: the route fork is the accessor (openIssueLifecycle/openIssueReader), and a unit of work here is how a use-case call gets back in - see apps/cli/label.go"
         # store.IssueReader() is the door to the reader role, and a store wears
         # decorators (telemetry spans, hook firing) that each add their layer in
         # their OWN accessor. A command holding the storage.DoltStorage
         # interface that called the shared constructor directly would get a
         # bare, unspanned reader - and would look like perfectly ordinary code.
-        # That constructor used to live in internal/workapi, which 22 modules/cli
+        # That constructor used to live in internal/workapi, which 22 apps/cli
         # files already import for the builders, so it was one line away at all
         # times. It now lives in internal/workapi/storereader and this is what
         # keeps it there.
@@ -220,23 +220,23 @@ linters:
         cmd-bd-role-constructors:
           list-mode: lax
           files:
-            - "**/modules/cli/**"
+            - "**/apps/cli/**"
           deny:
-            - pkg: github.com/steveyegge/beads/internal/workapi/storereader
+            - pkg: github.com/borg0ai/dx-issuegraph/internal/workapi/storereader
               desc: "a command reaches the reader role through store.IssueReader(), never through the constructor: the accessor is where each storage decorator adds its layer - see internal/workapi/storereader/reader.go"
-            - pkg: github.com/steveyegge/beads/internal/workapi/storecounter
+            - pkg: github.com/borg0ai/dx-issuegraph/internal/workapi/storecounter
               desc: "a command reaches the count role through store.Counter(), never through the constructor: the accessor is where each storage decorator adds its layer - see internal/workapi/storecounter/counter.go"
-            - pkg: github.com/steveyegge/beads/internal/workapi/storeworkspaceconfig
+            - pkg: github.com/borg0ai/dx-issuegraph/internal/workapi/storeworkspaceconfig
               desc: "a command reaches the workspace-settings role through store.WorkspaceConfig(), never through the constructor: the accessor is where each storage decorator adds its layer - see internal/workapi/storeworkspaceconfig/workspaceconfig.go"
-            - pkg: github.com/steveyegge/beads/internal/workapi/storeversionreconciler
+            - pkg: github.com/borg0ai/dx-issuegraph/internal/workapi/storeversionreconciler
               desc: "a command reaches the version-marker role through store.VersionReconciler(), never through the constructor: the accessor is where each storage decorator adds its layer - see internal/workapi/storeversionreconciler/versionreconciler.go"
-            - pkg: github.com/steveyegge/beads/internal/workapi/storestats
+            - pkg: github.com/borg0ai/dx-issuegraph/internal/workapi/storestats
               desc: "a command reaches the summary role through store.StatsReporter(), never through the constructor: the accessor is where each storage decorator adds its layer - see internal/workapi/storestats/reporter.go"
-            - pkg: github.com/steveyegge/beads/internal/workapi/storereadycounter
+            - pkg: github.com/borg0ai/dx-issuegraph/internal/workapi/storereadycounter
               desc: "a command reaches the ready-count role through store.ReadyCounter(), never through the constructor: the accessor is where each storage decorator adds its layer - see internal/workapi/storereadycounter/counter.go"
-            - pkg: github.com/steveyegge/beads/internal/workapi/storequerier
+            - pkg: github.com/borg0ai/dx-issuegraph/internal/workapi/storequerier
               desc: "a command reaches the boolean-query role through store.Querier(), never through the constructor: the accessor is where each storage decorator adds its layer - see internal/workapi/storequerier/querier.go"
-        # beadserrors sits BENEATH every role leaf, so whatever it imports is
+        # issuegrapherrors sits BENEATH every role leaf, so whatever it imports is
         # imported by all of them - which is the reason it exists. The second
         # leaf reached into issueops for one sentinel and pulled internal/types
         # along behind it, and that import claimed the memory plane sits
@@ -246,10 +246,10 @@ linters:
         #
         # strict, not lax: this is an allowlist of the whole world, so a rule
         # that named packages to deny would have to predict them.
-        beadserrors-leaf:
+        issuegrapherrors-leaf:
           list-mode: strict
           files:
-            - "**/beadserrors/**"
+            - "**/issuegrapherrors/**"
           allow:
             - "$gostd"
     # The CONSTRUCTION half of that same boundary, and the half that actually
@@ -259,7 +259,7 @@ linters:
     # types.IssueWithCounts). A hand-rolled `types.IssueFilter{}` would skip the
     # builders entirely and still lint clean - which is EXACTLY what the hosted
     # viewer shipped: a bare IssueFilter that leaked gates, wisps, templates and
-    # closed beads that `bd list` hides.
+    # closed issuegraph that `issuegraph list` hides.
     #
     # analyze-types resolves the selector to the type it actually denotes, so
     # an aliased import of internal/types is caught and an unrelated package
@@ -282,9 +282,9 @@ linters:
     #                        the whole request to issueops.Reader and the
     #                        surface has no other job, so a file added here
     #                        tomorrow is covered the moment it exists.
-    #   modules/cli/**            DENY BY DEFAULT, with the files that legitimately
+    #   apps/cli/**            DENY BY DEFAULT, with the files that legitimately
     #                        build a filter named as exceptions below. This is
-    #                        the way round that survives a rename: `bd list`
+    #                        the way round that survives a rename: `issuegraph list`
     #                        split into a new helper, or show.go renamed, stays
     #                        guarded. An inclusion list of five filenames -
     #                        which is what this was - stops applying the moment
@@ -297,10 +297,10 @@ linters:
       analyze-types: true
       forbid:
         - pattern: 'LabelUseCase$'
-          msg: "reach the label plane through issueops.Lifecycle (Patch.Labels) and issueops.Reader, never the domain use case - see openIssueLifecycle in modules/cli/label.go"
+          msg: "reach the label plane through issueops.Lifecycle (Patch.Labels) and issueops.Reader, never the domain use case - see openIssueLifecycle in apps/cli/label.go"
         - pattern: '^types\.(IssueFilter|WorkFilter)$'
-          pkg: '^github\.com/steveyegge/beads/internal/types$'
-          msg: "do not write a filter here: take one back from a builder in internal/workapi, or pass the whole request to issueops.Reader. internal/httpapi may never name these types; modules/cli denies them by default and lists the files that legitimately build their own, with the reason for each, in .golangci.yml - see issueops/reader.go"
+          pkg: '^github\.com/borg0ai/issuegraph/internal/types$'
+          msg: "do not write a filter here: take one back from a builder in internal/workapi, or pass the whole request to issueops.Reader. internal/httpapi may never name these types; apps/cli denies them by default and lists the files that legitimately build their own, with the reason for each, in .golangci.yml - see issueops/reader.go"
     errcheck:
       exclude-functions:
         - (*database/sql.DB).Close
@@ -340,12 +340,12 @@ linters:
       # both. That is fine wherever the file never reaches a label use case, and
       # it is not fine for the files that do - see the three `text:`-scoped
       # entries below.
-      - path-except: '^(internal/httpapi/|modules/cli/)'
+      - path-except: '^(internal/httpapi/|apps/cli/)'
         linters:
           - forbidigo
       #
-      # THE LABEL-PLANE RULE IS NOW PACKAGE-WIDE ACROSS modules/cli (ga-2ltro.12).
-      # It used to be narrowed by a `path-except` to modules/cli/label.go, the one
+      # THE LABEL-PLANE RULE IS NOW PACKAGE-WIDE ACROSS apps/cli (ga-2ltro.12).
+      # It used to be narrowed by a `path-except` to apps/cli/label.go, the one
       # file ga-26w10 had migrated, on the argument that holding an unmigrated
       # command to a rule written for a migration it had not had would be a lint
       # waived on sight. What that reasoning missed is that the waiver was
@@ -357,29 +357,29 @@ linters:
       # //nolint:forbidigo with the reason that site is not a role's question,
       # and a reviewer can count them.
       #
-      # Inside modules/cli the rule is deny-by-default, so each entry below is a
+      # Inside apps/cli the rule is deny-by-default, so each entry below is a
       # HOLE in it and carries the reason that hole exists. 59 of the 389
-      # non-test files under modules/cli are on this list; widening it is an edit
+      # non-test files under apps/cli are on this list; widening it is an edit
       # here and a diff a reviewer sees. internal/httpapi has no entry and is
       # meant not to.
       #
-      # The modes of `bd list` and `bd show` that consume the filter as a
+      # The modes of `issuegraph list` and `issuegraph show` that consume the filter as a
       # VALUE: the recursive --parent tree walk (it re-parents a copy at every
       # level), the --watch poll loop, the proxied route's builder call (it has
       # to name the type to hand the filter back), and --current (which
       # resolves an id from a deliberately BARE filter that must not pick up
       # the default listing's exclusions).
       #
-      # `bd list`'s PAGE left this hole when issueops.Reader took it on both
-      # routes: modules/cli/list.go and modules/cli/list_proxied_server.go were never on
+      # `issuegraph list`'s PAGE left this hole when issueops.Reader took it on both
+      # routes: apps/cli/list.go and apps/cli/list_proxied_server.go were never on
       # this list and still are not, and the modes above are all that keeps this
       # file on it. The entry therefore stays and the count is unchanged — a
       # role commit that could not remove one says so rather than implying it.
-      - path: '^modules/cli/list_show_filter_modes\.go$'
+      - path: '^apps/cli/list_show_filter_modes\.go$'
         text: 'do not write a filter here'
         linters:
           - forbidigo
-      # `bd ready` hands its filter to the plain listing and to --claim, and
+      # `issuegraph ready` hands its filter to the plain listing and to --claim, and
       # readyInput carries it as a field for them. Routing only the listing
       # through the role would fork the command in two, so the filter stays
       # nameable here. The other modes take no filter from readyInput: --gated
@@ -390,13 +390,13 @@ linters:
       # than inlining a third copy of the default - bd-3fs.3. The blocked-issue
       # views in these files name the type directly for an empty filter or one
       # carrying only a --parent id, which is the absence of a filter rather
-      # than one this command built. `bd ready`'s LISTING is on the shared
+      # than one this command built. `issuegraph ready`'s LISTING is on the shared
       # BUILDER and, on the proxied route, the shared EPILOGUE; it is not on a
       # role, and this rule does not pretend otherwise. Its other two questions
       # are: --claim goes to ReadyClaimer and the published total to
       # ReadyCounter, both over the request rather than the filter, on both
       # routes - which is why this hole keeps shrinking rather than growing.
-      - path: '^modules/cli/ready(_input|_proxied_server)?\.go$'
+      - path: '^apps/cli/ready(_input|_proxied_server)?\.go$'
         text: 'do not write a filter here'
         linters:
           - forbidigo
@@ -411,16 +411,16 @@ linters:
       #
       # `status` LEFT this list when the StatsReporter role took the assignee
       # filter, the ready-work filter and the status fold off both its routes:
-      # modules/cli/status.go and modules/cli/status_proxied_server.go now build an
+      # apps/cli/status.go and apps/cli/status_proxied_server.go now build an
       # issueops request and name no filter type, so the hole they needed is
       # closed rather than merely unused. Removing an entry here is how a role
       # commit proves its front doors reached the role.
       #
       # `purge` left it the same way when the Sweeper role took the candidate
-      # filter off both `bd purge` and `bd prune`: modules/cli/purge.go now builds an
-      # issueops.SweepRequest, and modules/cli/purge_proxied_server.go is down to the
+      # filter off both `issuegraph purge` and `issuegraph prune`: apps/cli/purge.go now builds an
+      # issueops.SweepRequest, and apps/cli/purge_proxied_server.go is down to the
       # provider's capability accessor. `gc` stays — it is a different command
-      # that still selects its own closed beads, and it now shares only the pure
+      # that still selects its own closed issuegraph, and it now shares only the pure
       # recheck (workapi.FilterSweepCandidates) with the role.
       # `text:` ON EVERY HOLE IN THIS FAMILY, this one included, and the
       # completeness is the point rather than the tidiness. A hole naming only a
@@ -444,17 +444,17 @@ linters:
       # tests: false` means forbidigo never analyzes a test file at all, so that
       # entry asserts nothing either way and scoping it would be the churn this
       # comment just refused to write.
-      - path: '^modules/cli/(close|duplicates|find_duplicates|gate|gc|graph|info|label|orphans|purge|search|todo|wisp|human)(_proxied_server)?\.go$'
+      - path: '^apps/cli/(close|duplicates|find_duplicates|gate|gc|graph|info|label|orphans|purge|search|todo|wisp|human)(_proxied_server)?\.go$'
         text: 'do not write a filter here'
         linters:
           - forbidigo
       # Molecule reporting: each selects the members of one molecule.
-      - path: '^modules/cli/mol_(current|port|progress|ready_gated|stale)\.go$'
+      - path: '^apps/cli/mol_(current|port|progress|ready_gated|stale)\.go$'
         text: 'do not write a filter here'
         linters:
           - forbidigo
-      # External-tracker sync: each selects the beads to push to its tracker.
-      - path: '^modules/cli/(ado|gitlab|jira|linear)\.go$'
+      # External-tracker sync: each selects the issuegraph to push to its tracker.
+      - path: '^apps/cli/(ado|gitlab|jira|linear)\.go$'
         text: 'do not write a filter here'
         linters:
           - forbidigo
@@ -462,24 +462,24 @@ linters:
       # export's storage seam (classic store vs proxied unit of work): it does
       # not build a filter, it carries the one export.go builds through to
       # whichever stack is live.
-      - path: '^modules/cli/(export|export_auto|export_source|import|migrate|migrate_issues|migrate_personal|rename|rename_prefix)\.go$'
+      - path: '^apps/cli/(export|export_auto|export_source|import|migrate|migrate_issues|migrate_personal|rename|rename_prefix)\.go$'
         text: 'do not write a filter here'
         linters:
           - forbidigo
       # doctor's diagnostics and the fixes that follow them.
-      - path: '^modules/cli/doctor_(conventions|pollution)\.go$|^modules/cli/doctor/(maintenance|fix/maintenance|fix/migrate)\.go$'
+      - path: '^apps/cli/doctor_(conventions|pollution)\.go$|^apps/cli/doctor/(maintenance|fix/maintenance|fix/migrate)\.go$'
         text: 'do not write a filter here'
         linters:
           - forbidigo
       # One command each, no family to join.
       #
       # `count` LEFT this list when the Counter role took the filter off both
-      # its routes: modules/cli/count.go now builds an issueops.CountRequest and
+      # its routes: apps/cli/count.go now builds an issueops.CountRequest and
       # names no filter type, so the hole it needed is closed rather than
       # merely unused. Removing an entry here is how a role commit proves its
       # front door reached the role.
       
-      - path: '^modules/cli/(cleanup|completions|gate_discover|lint|ping|repo|swarm|template)\.go$'
+      - path: '^apps/cli/(cleanup|completions|gate_discover|lint|ping|repo|swarm|template)\.go$'
         text: 'do not write a filter here'
         linters:
           - forbidigo
@@ -503,7 +503,7 @@ linters:
           - gosec
         text: "G306"
       # G304: Safe file reads from known JSONL and error paths
-      - path: 'modules/cli/doctor/fix/sync_branch\.go|modules/cli/doctor/git\.go|modules/cli/doctor/sync_branch_jsonl\.go|modules/cli/dolt\.go|modules/cli/rename_prefix\.go|internal/beads/beads\.go|internal/syncbranch/worktree\.go'
+      - path: 'apps/cli/doctor/fix/sync_branch\.go|apps/cli/doctor/git\.go|apps/cli/doctor/sync_branch_jsonl\.go|apps/cli/dolt\.go|apps/cli/rename_prefix\.go|internal/issuegraph/issuegraph\.go|internal/syncbranch/worktree\.go'
         linters:
           - gosec
         text: "G304"
@@ -512,12 +512,12 @@ linters:
           - gosec
         text: "G302.*0700|G301.*0750"
       # G302/G306: JSONL files and error logs need 0644 for debugging/sharing
-      - path: 'modules/cli/setup\.go|internal/git/worktree\.go'
+      - path: 'apps/cli/setup\.go|internal/git/worktree\.go'
         linters:
           - gosec
         text: "G306"
       # G306: Git hooks must be executable (0700)
-      - path: 'modules/cli/init\.go'
+      - path: 'apps/cli/init\.go'
         linters:
           - gosec
         text: "G306.*0700"
@@ -527,7 +527,7 @@ linters:
           - gosec
         text: 'G204'
       # G104: Deferred file/db closes - errors are non-critical
-      - path: 'modules/cli/show\.go|modules/cli/doctor/dolt\.go'
+      - path: 'apps/cli/show\.go|apps/cli/doctor/dolt\.go'
         linters:
           - gosec
         text: "G104"
@@ -555,12 +555,12 @@ linters:
           - gosec
         text: "G703"
       # G704: SSRF via taint in API clients with user-configured URLs
-      - path: 'modules/cli/doctor/(claude|version)\.go|internal/github/client\.go|internal/gitlab/client\.go|internal/jira/client\.go|internal/linear/client\.go|internal/linear/oauth\.go'
+      - path: 'apps/cli/doctor/(claude|version)\.go|internal/github/client\.go|internal/gitlab/client\.go|internal/jira/client\.go|internal/linear/client\.go|internal/linear/oauth\.go'
         linters:
           - gosec
         text: "G704"
       # G705: XSS via taint in CLI template rendering (no browser context)
-      - path: 'modules/cli/compact\.go|internal/linear/client\.go'
+      - path: 'apps/cli/compact\.go|internal/linear/client\.go'
         linters:
           - gosec
         text: "G705"
@@ -568,12 +568,12 @@ linters:
       # sink is fmt.Fprint* to the terminal (os.Stderr or cobra's stdout/stderr
       # writers), never a browser context (surfaced by the gosec bundled with
       # golangci-lint v2.10)
-      - path: 'modules/cli/(ado|doctor|errors|github|gitlab|hooks|jira|linear|main|notion|sync_push_pull)\.go'
+      - path: 'apps/cli/(ado|doctor|errors|github|gitlab|hooks|jira|linear|main|notion|sync_push_pull)\.go'
         linters:
           - gosec
         text: "G705"
       # errcheck: fmt.Fprintf errors are noise in CLI help text generation
-      - path: 'modules/cli/help_all\.go'
+      - path: 'apps/cli/help_all\.go'
         linters:
           - errcheck
         text: "fmt.Fprintf"
@@ -584,17 +584,17 @@ linters:
         text: "Error return value of .*(Close|Rollback|RemoveAll|Setenv|Unsetenv|Chdir|MkdirAll|Remove|Write|SetReadDeadline|SetDeadline|Start|Stop).* is not checked"
 
       # unparam: Placeholder functions that may return errors in future implementation
-      - path: 'modules/cli/jira\.go'
+      - path: 'apps/cli/jira\.go'
         linters:
           - unparam
         text: 'reimportConflicts|resolveConflictsByTimestamp'
       # unparam: childrenMap return computed for future parent-child display
-      - path: 'modules/cli/list\.go'
+      - path: 'apps/cli/list\.go'
         linters:
           - unparam
         text: 'buildBlockingMaps.*childrenMap'
       # unparam: truncateID maxLen kept for readability
-      - path: 'modules/cli/migrate\.go'
+      - path: 'apps/cli/migrate\.go'
         linters:
           - unparam
         text: 'truncateID.*maxLen'
@@ -604,12 +604,12 @@ linters:
           - unparam
         text: 'getConfig'
       # unparam: ctx kept for context propagation; callers currently all pass rootCtx
-      - path: 'modules/cli/linear\.go'
+      - path: 'apps/cli/linear\.go'
         linters:
           - unparam
         text: 'getLinearConfig'
       # misspell: "cancelled" is intentional - matching GitHub API response values
-      - path: 'modules/cli/gate\.go'
+      - path: 'apps/cli/gate\.go'
         linters:
           - misspell
         text: 'cancelled'

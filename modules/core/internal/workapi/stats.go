@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The shared half of issueops.StatsReporter: the assignee-scoped question,
@@ -53,7 +53,7 @@ func BuildStatsAssigneeWorkFilter(assignee string) types.WorkFilter {
 // FoldStatsAssigneeSummary turns one actor's rows and their ready-work count
 // into the summary both front doors print.
 //
-// It is the single definition of what `bd status --assigned` means. What it
+// It is the single definition of what `issuegraph status --assigned` means. What it
 // does NOT set is part of that definition: PinnedIssues,
 // EpicsEligibleForClosure and AverageLeadTime stay zero.
 //

@@ -6,7 +6,7 @@ ADRs in `adr/` document key decisions. These are NOT loaded during skill invocat
 
 | ADR | Decision |
 |-----|----------|
-| [ADR-0001](adr/0001-bd-prime-as-source-of-truth.md) | Use `issuegraph prime` as CLI reference source of truth |
+| [ADR-0001](adr/0001-issuegraph-prime-as-source-of-truth.md) | Use `issuegraph prime` as CLI reference source of truth |
 
 ## Key Principle: DRY via issuegraph prime
 
@@ -66,7 +66,7 @@ After skill updates:
 
 ```bash
 # Verify SKILL.md is within token budget
-wc -w plugins/issuegraph/skills/issuegraph/SKILL.md  # Target: 400-600 words
+wc -w issuegraph/skills/issuegraph/SKILL.md  # Target: 400-600 words
 
 # Verify links resolve
 # (Manual check: ensure all resource links in SKILL.md exist)

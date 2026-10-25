@@ -1,4 +1,4 @@
-// Package creds resolves the credential bd uses to open a protected database at
+// Package creds resolves the credential issuegraph uses to open a protected database at
 // command time. It is backend- and issuer-neutral: a Source yields a typed
 // Credential — a secret that lands in the password slot of a direct connection, or
 // an identity presented as the connection username to an authenticating gateway

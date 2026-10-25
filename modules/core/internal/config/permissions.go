@@ -9,20 +9,20 @@ import (
 )
 
 const (
-	// BeadsDirPerm is the permission mode for .beads/ directories (owner-only).
-	BeadsDirPerm fs.FileMode = 0700
-	// BeadsFilePerm is the permission mode for state files inside .beads/ (owner-only).
-	BeadsFilePerm fs.FileMode = 0600
+	// IssueGraphDirPerm is the permission mode for .issuegraph/ directories (owner-only).
+	IssueGraphDirPerm fs.FileMode = 0700
+	// IssueGraphFilePerm is the permission mode for state files inside .issuegraph/ (owner-only).
+	IssueGraphFilePerm fs.FileMode = 0600
 )
 
-// EnsureBeadsDir creates the .beads directory with secure permissions.
-func EnsureBeadsDir(path string) error {
-	return os.MkdirAll(path, BeadsDirPerm)
+// EnsureIssueGraphDir creates the .issuegraph directory with secure permissions.
+func EnsureIssueGraphDir(path string) error {
+	return os.MkdirAll(path, IssueGraphDirPerm)
 }
 
-// CheckBeadsDirPermissions warns to stderr if the .beads directory has
+// CheckIssueGraphDirPermissions warns to stderr if the .issuegraph directory has
 // group or world-accessible permissions. The check is non-fatal.
-func CheckBeadsDirPermissions(path string) {
+func CheckIssueGraphDirPermissions(path string) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return // directory doesn't exist yet
@@ -33,19 +33,19 @@ func CheckBeadsDirPermissions(path string) {
 	}
 }
 
-// FixBeadsDirPermissions sets the .beads directory to BeadsDirPerm when it
+// FixIssueGraphDirPermissions sets the .issuegraph directory to IssueGraphDirPerm when it
 // has group or world-accessible bits. Returns true if permissions changed.
-func FixBeadsDirPermissions(path string) (bool, error) {
-	return fixBeadsDirPermissions(path, openBeadsDirHandle)
+func FixIssueGraphDirPermissions(path string) (bool, error) {
+	return fixIssueGraphDirPermissions(path, openIssueGraphDirHandle)
 }
 
-type beadsDirHandle interface {
+type issuegraphDirHandle interface {
 	Stat() (os.FileInfo, error)
 	Chmod(os.FileMode) error
 	Close() error
 }
 
-func fixBeadsDirPermissions(path string, openDir func(string) (beadsDirHandle, error)) (bool, error) {
+func fixIssueGraphDirPermissions(path string, openDir func(string) (issuegraphDirHandle, error)) (bool, error) {
 	info, err := os.Lstat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -77,8 +77,8 @@ func fixBeadsDirPermissions(path string, openDir func(string) (beadsDirHandle, e
 	if !openedInfo.IsDir() || !os.SameFile(info, openedInfo) {
 		return false, fmt.Errorf("refusing to chmod %s: path changed during permission repair", path)
 	}
-	if err := dir.Chmod(BeadsDirPerm); err != nil {
-		return false, fmt.Errorf("failed to chmod %s to %04o: %w", path, BeadsDirPerm, err)
+	if err := dir.Chmod(IssueGraphDirPerm); err != nil {
+		return false, fmt.Errorf("failed to chmod %s to %04o: %w", path, IssueGraphDirPerm, err)
 	}
 	return true, nil
 }

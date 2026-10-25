@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // DeleteInTx is the store-backed body behind issueops.Deleter: the whole of
-// `bd delete` from the existence probe to the reference rewrite, inside ONE
+// `issuegraph delete` from the existence probe to the reference rewrite, inside ONE
 // transaction.
 //
 // It lives here rather than in an importable internal/workapi/store<role>
@@ -31,7 +31,7 @@ func DeleteInTx(ctx context.Context, tx *sql.Tx, req publicops.DeleteRequest) (p
 	ids := req.IDs
 	result := publicops.DeleteResult{DryRun: req.DryRun}
 
-	// The existence probe comes FIRST, so `bd delete typo real` reports the
+	// The existence probe comes FIRST, so `issuegraph delete typo real` reports the
 	// typo rather than whatever the graph says about the id that resolved.
 	wispSet, err := WispIDSetInTx(ctx, tx, ids)
 	if err != nil {

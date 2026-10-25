@@ -1,4 +1,4 @@
-// Package uimd provides markdown rendering for beads CLI output.
+// Package uimd provides markdown rendering for issuegraph CLI output.
 // Keep this separate from internal/ui so non-markdown ui consumers do not
 // inherit the glamour/chroma dependency graph.
 // This package may depend on internal/ui for terminal policy checks, but
@@ -12,8 +12,8 @@ import (
 
 	"charm.land/glamour/v2"
 	"charm.land/glamour/v2/styles"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	xansi "github.com/charmbracelet/x/ansi"
-	"github.com/steveyegge/beads/internal/ui"
 	"golang.org/x/term"
 )
 
@@ -72,7 +72,7 @@ func RenderMarkdown(markdown string) string {
 		return markdown
 	}
 
-	// Bead bodies are plain text, not HTML. Goldmark (glamour's parser) treats any
+	// Issue bodies are plain text, not HTML. Goldmark (glamour's parser) treats any
 	// "<" that looks like the start of an HTML tag as inline/block raw HTML, and
 	// glamour's renderer sanitizes those raw-HTML nodes down to nothing — silently
 	// deleting the tag-shaped span (and, for an unclosed tag, everything up to the
@@ -134,7 +134,7 @@ var emphasisRestorer = strings.NewReplacer(
 // neutralizeAmbiguousEmphasis hides "*" and "_" delimiter runs that CommonMark
 // would let act as BOTH an opener and a closer.
 //
-// Bead bodies are plain text, not markdown authored for emphasis. A delimiter
+// Issue bodies are plain text, not markdown authored for emphasis. A delimiter
 // run is simultaneously left- and right-flanking -- able to pair with any other
 // such run in the same paragraph, including one on a different line, since
 // goldmark joins consecutive lines into one paragraph -- exactly when the
@@ -144,8 +144,8 @@ var emphasisRestorer = strings.NewReplacer(
 // emphasis. When color is available the delimiters are consumed and the
 // asterisks silently VANISH from the command; when it is not, glamour's notty
 // style writes literal "**" into the middle of the text. Either way what is on
-// screen is no longer the command that was stored -- and agents read bead bodies
-// through bd show.
+// screen is no longer the command that was stored -- and agents read issue bodies
+// through issuegraph show.
 //
 // Only both-flanking runs are hidden. A run that can only open or only close
 // ("**bold**", "*italic*", "SELECT * FROM t", "-name *.log") is left alone, so
@@ -164,7 +164,7 @@ var emphasisRestorer = strings.NewReplacer(
 //     An escape whose delimiter is not both-flanking ('a \*literal\* b') is
 //     unaffected.
 //
-// Both are shapes CommonMark itself treats as ambiguous, and for bead bodies --
+// Both are shapes CommonMark itself treats as ambiguous, and for issue bodies --
 // which are stored plain text, not authored markdown -- showing the stored
 // characters is the better failure. TestRenderMarkdownKnownEmphasisTrades pins
 // both so a future change to the predicate cannot widen them unnoticed.
@@ -207,7 +207,7 @@ func neutralizeAmbiguousEmphasis(s string) string {
 }
 
 // restoreAmbiguousEmphasis turns the sentinels back into the literal delimiters
-// the bead body actually contained.
+// the issue body actually contained.
 func restoreAmbiguousEmphasis(s string) string {
 	return emphasisRestorer.Replace(s)
 }

@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/domain/db"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain/db"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // seedDeferredParentPlane puts a future-deferred parent, a child hanging off it
@@ -84,7 +84,7 @@ func readyWorkIDs(t *testing.T, te *testEnv) ([]string, error) {
 // PR that separates base from fix against a real database.
 //
 // The walk joins a dependency table to an issue table over four pairs, and
-// three of the four name a table every beads database must have. The gate
+// three of the four name a table every issuegraph database must have. The gate
 // tolerated any table-not-exist error and continued, so renaming `dependencies`
 // away, holding the other three tables present, swallows edges 1 and 2 while
 // edges 3 and 4 answer. Ready work came back with a nil error and the child of

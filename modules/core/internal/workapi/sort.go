@@ -4,11 +4,11 @@ import (
 	"cmp"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/utils"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
-// CompareIssuesBy orders two issues by one of `bd list --sort`'s fields.
+// CompareIssuesBy orders two issues by one of `issuegraph list --sort`'s fields.
 // An unknown field compares equal, which leaves the underlying order intact.
 func CompareIssuesBy(a, b *types.Issue, sortBy string) int {
 	switch sortBy {
@@ -65,7 +65,7 @@ func ReadyFilterFromIssueFilter(filter types.IssueFilter) types.WorkFilter {
 		MaxRowsSource:  filter.MaxRowsSource,
 		// Carried, where SkipLabels and SkipCounts are dropped: those two hide
 		// a number the ready renderings print, and this bounds a body no
-		// listing prints. Dropping it here would answer `bd list --ready
+		// listing prints. Dropping it here would answer `issuegraph list --ready
 		// --brief` with full rows and nothing to say why.
 		Lite: filter.Lite,
 	}
@@ -165,8 +165,8 @@ func WithFetchOneExtra(filter types.IssueFilter) types.IssueFilter {
 // which sizes the probe row against the bound this leaves.
 //
 // The builders still write Offset onto the filter, for the callers that consume
-// it as a VALUE and run their own query — `bd list --watch`, the proxied
-// hierarchical --parent walk, proxied `bd ready` — where there is no shared
+// it as a VALUE and run their own query — `issuegraph list --watch`, the proxied
+// hierarchical --parent walk, proxied `issuegraph ready` — where there is no shared
 // epilogue to move it to. Those callers get the same cap boundary anyway: the
 // seam beneath them widens its own bound by the offset and keeps the skip
 // whenever a cap is set, for the reason stated above (internal/storage/domain/db,

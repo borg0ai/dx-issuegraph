@@ -16,7 +16,7 @@ Configure the mail delegate (one-time):
 
 ```bash
 # Environment variable (recommended for agents)
-export BEADS_MAIL_DELEGATE="gt mail"
+export ISSUEGRAPH_MAIL_DELEGATE="gt mail"
 
 # Or per-project config
 issuegraph config set mail.delegate "gt mail"
@@ -93,15 +93,15 @@ Ephemeral messages are:
 The actor identity (used for `sender` on messages) is resolved in order:
 
 1. `--actor` flag on the command
-2. `BEADS_ACTOR` environment variable
-3. `BD_ACTOR` environment variable (deprecated alias)
+2. `ISSUEGRAPH_ACTOR` environment variable
+3. `ISSUEGRAPH_ACTOR` environment variable (deprecated alias)
 4. `git config user.name`
 5. `$USER` environment variable
 6. `"unknown"`
 
 ## IssueGraph Event Hooks
 
-Scripts in `.beads/hooks/` run after certain events:
+Scripts in `.issuegraph/hooks/` run after certain events:
 
 | Hook | Trigger |
 |------|---------|

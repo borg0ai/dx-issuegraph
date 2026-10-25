@@ -7,9 +7,9 @@ import (
 
 func TestDoltServerDSN_TLS(t *testing.T) {
 	t.Run("config name takes precedence", func(t *testing.T) {
-		dsn := DoltServerDSN{Host: "127.0.0.1", Port: 3306, User: "root", TLSConfigName: "beads-external-abc", TLSRequired: true}.String()
-		if !strings.Contains(dsn, "tls=beads-external-abc") {
-			t.Fatalf("dsn %q missing tls=beads-external-abc", dsn)
+		dsn := DoltServerDSN{Host: "127.0.0.1", Port: 3306, User: "root", TLSConfigName: "issuegraph-external-abc", TLSRequired: true}.String()
+		if !strings.Contains(dsn, "tls=issuegraph-external-abc") {
+			t.Fatalf("dsn %q missing tls=issuegraph-external-abc", dsn)
 		}
 	})
 

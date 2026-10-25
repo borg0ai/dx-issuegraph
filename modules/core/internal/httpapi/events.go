@@ -6,14 +6,14 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/steveyegge/beads/internal/eventsjournal"
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/eventsjournal"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // The durable events journal, published as a read.
 //
 // This is the operation that lets a hosted consumer stop shelling out to
-// `bd events tail`. The records it serves are the SAME records that command
+// `issuegraph events tail`. The records it serves are the SAME records that command
 // prints — literally, through eventsjournal.NewRecord, which is the one
 // projection from a stored row onto the published envelope and is byte-pinned
 // by the CLI's golden fixture. There is no wire struct in this package for a
@@ -58,7 +58,7 @@ const (
 	maxEventsLimit     = 10000
 )
 
-// handleListEvents answers GET /v0/beads/events.
+// handleListEvents answers GET /v0/issuegraph/events.
 func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 	q := newQuery(r.URL.Query())
 
@@ -77,7 +77,7 @@ func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 	// to a consumer that meant to resume, which reads as a flood of duplicate
 	// records rather than as an error.
 	//
-	// A NEGATIVE checkpoint is refused for the reason `bd events tail --since`
+	// A NEGATIVE checkpoint is refused for the reason `issuegraph events tail --since`
 	// refuses one: it is almost always arithmetic on an empty cursor, and
 	// `seq > -5` would quietly serve everything as though it were a legitimate
 	// resume. q.integer64 has already refused a value that is not an integer at

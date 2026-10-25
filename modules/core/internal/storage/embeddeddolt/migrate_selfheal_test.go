@@ -15,13 +15,13 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // These tests cover the migrate/bootstrap self-heal that finishes
-// gastownhall/beads#4566. #4567 made the hand-commit recovery path
-// (OpenForWorkingSetReconcile + bd dolt commit) able to open a store whose
+// borg0ai/dx-issuegraph#4566. #4567 made the hand-commit recovery path
+// (OpenForWorkingSetReconcile + issuegraph dolt commit) able to open a store whose
 // pending migration touches a dirty table. This suite proves the automatic
 // path: when a migration pass is killed mid-flight, a plain retry converges to
 // the latest schema with a clean working set and NO manual commit, because each
@@ -45,8 +45,8 @@ const selfHealSeedVersion = 48 // migrations 49..LatestVersion() form the killed
 
 func requireEmbedded(t *testing.T) {
 	t.Helper()
-	if os.Getenv("BEADS_TEST_EMBEDDED_DOLT") != "1" {
-		t.Skip("set BEADS_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
+	if os.Getenv("ISSUEGRAPH_TEST_EMBEDDED_DOLT") != "1" {
+		t.Skip("set ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 to run embedded dolt tests")
 	}
 }
 
@@ -285,7 +285,7 @@ func runSupervisorLoop(ctx context.Context, dataDir string, maxAttempts int) err
 // runs migrations at+1..latest as a real multi-step jump. Returns the dataDir.
 func seedMainSchemaAt(t *testing.T, ctx context.Context, at int) string {
 	t.Helper()
-	dataDir := filepath.Join(t.TempDir(), ".beads", "embeddeddolt")
+	dataDir := filepath.Join(t.TempDir(), ".issuegraph", "embeddeddolt")
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}

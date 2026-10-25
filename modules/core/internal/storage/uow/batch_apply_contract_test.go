@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
 )
 
 // TestBatchApplyContract runs the BatchApplier contract against the
@@ -176,7 +176,7 @@ func newUOWBatchApplyFixture(t *testing.T, ctx context.Context, prefix string) c
 		// working set — which is what a settle hook has to promise.
 		CommitPending: func(ctx context.Context) error {
 			return RunTx(ctx, provider, func(ctx context.Context, uw UnitOfWork) (string, error) {
-				return "bd: settle the batch-apply contract's seeds", nil
+				return "issuegraph: settle the batch-apply contract's seeds", nil
 			})
 		},
 	}

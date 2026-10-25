@@ -1,14 +1,14 @@
 # Repository Context
 
 This document explains how issuegraph resolves repository context when commands run from
-different directories than where `.beads/` lives.
+different directories than where `.issuegraph/` lives.
 
 ## Problem
 
 Git commands must run in the correct repository, but users may invoke `issuegraph` from:
 
-- A different repository (using `BEADS_DIR` environment variable)
-- A git worktree (separate working directory, shared `.beads/`)
+- A different repository (using `ISSUEGRAPH_DIR` environment variable)
+- A git worktree (separate working directory, shared `.issuegraph/`)
 - A subdirectory within the repository
 
 Without centralized handling, each command must implement its own path resolution,
@@ -19,14 +19,14 @@ leading to bugs when assumptions don't match reality.
 The `RepoContext` API provides a single source of truth for repository resolution:
 
 ```go
-import "github.com/steveyegge/beads/internal/beads"
+import "github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 
-rc, err := beads.GetRepoContext()
+rc, err := issuegraph.GetRepoContext()
 if err != nil {
     return err
 }
 
-// Run git in beads repository (not CWD)
+// Run git in issuegraph repository (not CWD)
 cmd := rc.GitCmd(ctx, "status")
 output, err := cmd.Output()
 ```
@@ -35,20 +35,20 @@ output, err := cmd.Output()
 
 | Method | Use Case | Example |
 |--------|----------|---------|
-| `GitCmd()` | Git commands for beads operations | `git add .beads/`, `git push` |
+| `GitCmd()` | Git commands for issuegraph operations | `git add .issuegraph/`, `git push` |
 | `GitCmdCWD()` | Git commands for user's working repo | `git status` (show user's changes) |
 | `RelPath()` | Convert absolute path to repo-relative | Display paths in output |
 
 ### GitCmd() vs GitCmdCWD()
 
-The distinction matters when `BEADS_DIR` points to a different repository:
+The distinction matters when `ISSUEGRAPH_DIR` points to a different repository:
 
 ```go
-rc, _ := beads.GetRepoContext()
+rc, _ := issuegraph.GetRepoContext()
 
-// GitCmd: runs in the beads repository
-// Use for: committing .beads/, pushing/pulling beads data
-cmd := rc.GitCmd(ctx, "add", ".beads/issues.jsonl")
+// GitCmd: runs in the issuegraph repository
+// Use for: committing .issuegraph/, pushing/pulling issuegraph data
+cmd := rc.GitCmd(ctx, "add", ".issuegraph/issues.jsonl")
 
 // GitCmdCWD: runs in user's current repository
 // Use for: checking user's uncommitted changes, status display
@@ -59,11 +59,11 @@ cmd := rc.GitCmdCWD(ctx, "status", "--porcelain")
 
 ### Normal Repository
 
-CWD is inside the repository containing `.beads/`:
+CWD is inside the repository containing `.issuegraph/`:
 
 ```
 /project/
-├── .beads/
+├── .issuegraph/
 ├── src/
 └── README.md
 
@@ -72,13 +72,13 @@ $ issuegraph dolt push
 # GitCmd() runs in /project (correct)
 ```
 
-### BEADS_DIR Redirect
+### ISSUEGRAPH_DIR Redirect
 
-User is in one repository but managing beads in another:
+User is in one repository but managing issuegraph in another:
 
 ```
 $ cd /repo-a          # Has uncommitted changes
-$ export BEADS_DIR=/repo-b/.beads
+$ export ISSUEGRAPH_DIR=/repo-b/.issuegraph
 $ issuegraph dolt push
 # GitCmd() runs in /repo-b (correct, not /repo-a)
 ```
@@ -90,39 +90,39 @@ This pattern is common for:
 
 ### Git Worktree
 
-User is in a worktree but `.beads/` lives in main repository:
+User is in a worktree but `.issuegraph/` lives in main repository:
 
 ```
 /project/                    # Main repo
-├── .beads/
+├── .issuegraph/
 ├── .worktrees/
 │   └── feature-branch/      # Worktree (CWD)
 └── src/
 
 $ cd /project/.worktrees/feature-branch
 $ issuegraph dolt push
-# GitCmd() runs in /project (main repo, where .beads lives)
+# GitCmd() runs in /project (main repo, where .issuegraph lives)
 ```
 
 ### Combined: Worktree + Redirect
 
-Both worktree and BEADS_DIR can be active simultaneously:
+Both worktree and ISSUEGRAPH_DIR can be active simultaneously:
 
 ```
 $ cd /repo-a/.worktrees/branch-x
-$ export BEADS_DIR=/repo-b/.beads
+$ export ISSUEGRAPH_DIR=/repo-b/.issuegraph
 $ issuegraph dolt push
-# GitCmd() runs in /repo-b (BEADS_DIR takes precedence)
+# GitCmd() runs in /repo-b (ISSUEGRAPH_DIR takes precedence)
 ```
 
 ## RepoContext Fields
 
 | Field | Description |
 |-------|-------------|
-| `BeadsDir` | Actual `.beads/` directory (after following redirects) |
-| `RepoRoot` | Repository root containing `BeadsDir` |
+| `IssueGraphDir` | Actual `.issuegraph/` directory (after following redirects) |
+| `RepoRoot` | Repository root containing `IssueGraphDir` |
 | `CWDRepoRoot` | Repository root containing user's CWD (may differ) |
-| `IsRedirected` | True if BEADS_DIR points to different repo than CWD |
+| `IsRedirected` | True if ISSUEGRAPH_DIR points to different repo than CWD |
 | `IsWorktree` | True if CWD is in a git worktree |
 
 ## Security
@@ -139,12 +139,12 @@ cmd.Env = append(os.Environ(),
 )
 ```
 
-This protects against scenarios where `BEADS_DIR` points to an untrusted
+This protects against scenarios where `ISSUEGRAPH_DIR` points to an untrusted
 repository that contains malicious `.git/hooks/` scripts.
 
 ### Path Boundary Validation
 
-`GetRepoContext()` validates that `BEADS_DIR` does not point to sensitive
+`GetRepoContext()` validates that `ISSUEGRAPH_DIR` does not point to sensitive
 system directories:
 
 - `/etc`, `/usr`, `/var`, `/root` (Unix system directories)
@@ -160,12 +160,12 @@ for test environments.
 
 For CLI commands, `GetRepoContext()` caches the result via `sync.Once` because:
 - CWD doesn't change during command execution
-- BEADS_DIR doesn't change during command execution
+- ISSUEGRAPH_DIR doesn't change during command execution
 - Repeated filesystem access would be wasteful
 
 For the Dolt server (long-running process), this caching is inappropriate:
 - User may create new worktrees
-- BEADS_DIR may change via direnv
+- ISSUEGRAPH_DIR may change via direnv
 - Multiple workspaces may be active simultaneously
 
 ### Workspace-Specific API
@@ -174,7 +174,7 @@ The server uses `GetRepoContextForWorkspace()` for fresh resolution:
 
 ```go
 // For server mode: fresh resolution per-operation (no caching)
-rc, err := beads.GetRepoContextForWorkspace(workspacePath)
+rc, err := issuegraph.GetRepoContextForWorkspace(workspacePath)
 
 // Validation hook for detecting stale contexts
 if err := rc.Validate(); err != nil {
@@ -184,7 +184,7 @@ if err := rc.Validate(); err != nil {
 
 This function:
 - Does NOT cache results
-- Does NOT respect BEADS_DIR (workspace path is explicit)
+- Does NOT respect ISSUEGRAPH_DIR (workspace path is explicit)
 - Resolves worktree relationships correctly
 - Validates that paths still exist
 
@@ -195,11 +195,11 @@ This function:
 ```go
 func doGitOperation(ctx context.Context) error {
     // Each function resolved paths differently
-    beadsDir := beads.FindBeadsDir()
-    redirectInfo := beads.GetRedirectInfo()
+    issuegraphDir := issuegraph.FindIssueGraphDir()
+    redirectInfo := issuegraph.GetRedirectInfo()
     var repoRoot string
     if redirectInfo.IsRedirected {
-        repoRoot = filepath.Dir(beadsDir)
+        repoRoot = filepath.Dir(issuegraphDir)
     } else {
         repoRoot = getRepoRootForWorktree(ctx)
     }
@@ -212,7 +212,7 @@ func doGitOperation(ctx context.Context) error {
 
 ```go
 func doGitOperation(ctx context.Context) error {
-    rc, err := beads.GetRepoContext()
+    rc, err := issuegraph.GetRepoContext()
     if err != nil {
         return err
     }
@@ -225,16 +225,16 @@ func doGitOperation(ctx context.Context) error {
 
 1. **Replace direct exec.Command**: Use `rc.GitCmd()` or `rc.GitCmdCWD()`
 2. **Remove manual path resolution**: RepoContext handles all scenarios
-3. **Clear caches in tests**: Call `beads.ResetCaches()` in test cleanup
+3. **Clear caches in tests**: Call `issuegraph.ResetCaches()` in test cleanup
 
 ## Testing
 
-Tests use `beads.ResetCaches()` to clear cached context between test cases:
+Tests use `issuegraph.ResetCaches()` to clear cached context between test cases:
 
 ```go
 func TestSomething(t *testing.T) {
     t.Cleanup(func() {
-        beads.ResetCaches()
+        issuegraph.ResetCaches()
         git.ResetCaches()
     })
     // Test code...
@@ -245,11 +245,11 @@ func TestSomething(t *testing.T) {
 
 - [WORKTREES.md](../docs/reference/worktrees.md) - Git worktree integration
 - [ROUTING.md](../docs/multi-agent/routing.md) - Multi-repository routing
-- [CONFIG.md](../docs/reference/configuration.md) - BEADS_DIR and environment variables
+- [CONFIG.md](../docs/reference/configuration.md) - ISSUEGRAPH_DIR and environment variables
 
 ## Implementation Notes
 
 - Result is cached via `sync.Once` for CLI efficiency
-- CWD and BEADS_DIR don't change during command execution
+- CWD and ISSUEGRAPH_DIR don't change during command execution
 - Uses `cmd.Dir` pattern (not `-C` flag) for Go-idiomatic execution
 - Security mitigations implemented for git hooks and path traversal

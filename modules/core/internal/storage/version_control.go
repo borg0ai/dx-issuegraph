@@ -66,7 +66,7 @@ func (f ConflictFieldValue) Differs() bool {
 }
 
 // ConflictInspector is the optional, issue-oriented conflict surface behind
-// `bd conflicts` (GH federation ask #3). It is implemented by the Dolt-backed
+// `issuegraph conflicts` (GH federation ask #3). It is implemented by the Dolt-backed
 // stores only; callers must type-assert.
 type ConflictInspector interface {
 	// GetConflictRows returns the live conflicted rows of table, per field.
@@ -113,7 +113,7 @@ type MergeBlockerInspector interface {
 }
 
 // StrategicMerger is the optional companion to VersionControl.Merge for
-// `bd vc merge --strategy` (#4992): merging and resolving conflicts with an
+// `issuegraph vc merge --strategy` (#4992): merging and resolving conflicts with an
 // explicit "ours"/"theirs" strategy in one call, on a pinned session with
 // Dolt's conflict-tolerant flags set, so real conflicts are resolved and
 // committed instead of rejecting the implicit autocommit transaction before
@@ -130,7 +130,7 @@ type StrategicMerger interface {
 }
 
 // StrategicPuller is the optional companion to VersionControl's Pull/
-// PullRemote for `bd dolt pull --strategy` (#4992 part 2): when a pull's
+// PullRemote for `issuegraph dolt pull --strategy` (#4992 part 2): when a pull's
 // merge hits conflicts the auto-resolver (TryAutoResolveMergeConflicts)
 // declines — the concurrent-edit narrowing from GH#4698, most commonly —
 // resolving them with an explicit "ours"/"theirs" strategy instead of
@@ -158,11 +158,11 @@ type VersionControl interface {
 	ListBranches(ctx context.Context) ([]string, error)
 	Commit(ctx context.Context, message string) error
 	// CommitWithConfig is like Commit but includes the config table.
-	// Use after intentional config writes (bd init, bd config set, bd rename-prefix).
+	// Use after intentional config writes (issuegraph init, issuegraph config set, issuegraph rename-prefix).
 	// GH#3216: bootstrap paths must use this to commit issue_prefix.
 	CommitWithConfig(ctx context.Context, message string) error
 	// CommitMergeResolution concludes a merge whose conflicts the operator
-	// resolved with an explicit --strategy (bd vc merge / bd federation sync),
+	// resolved with an explicit --strategy (issuegraph vc merge / issuegraph federation sync),
 	// committing the resolved working set INCLUDING config. Plain Commit excludes
 	// config (GH#2455), so a config-only resolution — routine now that kv.* user
 	// data syncs through config — would be dropped, leaving the merge unconcluded
@@ -170,9 +170,9 @@ type VersionControl interface {
 	CommitMergeResolution(ctx context.Context, message string) error
 	// CommitAll commits the ENTIRE working set — every dirty non-ignored table,
 	// config included — with the given message. It is the storage entry point
-	// for the explicit operator commands (bd vc commit, bd dolt commit), which
+	// for the explicit operator commands (issuegraph vc commit, issuegraph dolt commit), which
 	// promise "all current changes": out-of-band writes (tables modified outside
-	// a tracked bd transaction, config above all) must be swept in here, or the
+	// a tracked issuegraph transaction, config above all) must be swept in here, or the
 	// doctor's dirty-working-set warning can never be cleared by its own
 	// recommended remedy. Unlike Commit, it reports honestly whether a commit
 	// was created: (false, nil) means nothing was committable (clean working
@@ -183,7 +183,7 @@ type VersionControl interface {
 	// asking to commit everything is the same trust level as CommitPending.
 	// The committed bool is the atomic signal whose absence forced the CLI's
 	// racy HEAD-before/HEAD-after comparison (the interface threading tracked
-	// as bd mybd-z9h7j; CommitPending already had the shape).
+	// as issuegraph mybd-z9h7j; CommitPending already had the shape).
 	CommitAll(ctx context.Context, message string) (bool, error)
 	CommitPending(ctx context.Context, actor string) (bool, error)
 	CommitExists(ctx context.Context, commitHash string) (bool, error)

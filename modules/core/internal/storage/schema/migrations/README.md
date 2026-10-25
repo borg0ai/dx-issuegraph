@@ -89,7 +89,7 @@ normally. See `internal/storage/embeddeddolt/migrate_frozen_guard_convergence_te
 `sqlmock` statement-echo tests cannot exercise any of the above; they assert the
 statements you wrote, not what Dolt does with them. Anything touching generated
 columns, constraint validation, or key rebuilds needs a real-Dolt test in
-`internal/storage/embeddeddolt` (`BEADS_TEST_EMBEDDED_DOLT=1`, `-tags cgo`).
+`internal/storage/embeddeddolt` (`ISSUEGRAPH_TEST_EMBEDDED_DOLT=1`, `-tags cgo`).
 
 Assert the resulting **shape**, not `SHOW CREATE TABLE` text. A legacy table
 healed by the shipped chain keeps its original column order and its original

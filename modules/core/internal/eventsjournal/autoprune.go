@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // Bounded-by-default retention.
@@ -34,16 +34,16 @@ import (
 //     after the write has committed.
 //   - Nothing here can fail a command. Every error is reported to the caller,
 //     which logs it and continues; a workspace whose maintenance is broken must
-//     still be a workspace whose `bd create` works.
+//     still be a workspace whose `issuegraph create` works.
 //
 // SCOPE, stated because "automatic" invites a broader reading than it earns: a
 // pass maintains the workspace whose command triggered it. A routed write
-// (`bd create --repo ../other`) journals into the TARGET, but the trigger runs
+// (`issuegraph create --repo ../other`) journals into the TARGET, but the trigger runs
 // against the launcher's own workspace and its own plumbing — deliberately, so
 // one command cannot open maintenance transactions on an arbitrary number of
 // databases it merely wrote to in passing. A workspace that is only ever
 // written from elsewhere therefore relies on commands run in it, or on its own
-// `bd serve`, for retention. Documented in docs/reference/events-journal.md.
+// `issuegraph serve`, for retention. Documented in docs/reference/events-journal.md.
 type autoPruneState struct {
 	// TS is when auto-prune last ran here.
 	TS time.Time `json:"ts"`
@@ -61,8 +61,8 @@ const (
 	AutoPruneConfigKey = "events-journal-auto-prune"
 
 	// AutoPruneEnvVar is the environment override for AutoPruneConfigKey,
-	// matching viper's BD_ prefix and hyphen-to-underscore mapping.
-	AutoPruneEnvVar = "BD_EVENTS_JOURNAL_AUTO_PRUNE"
+	// matching viper's ISSUEGRAPH_ prefix and hyphen-to-underscore mapping.
+	AutoPruneEnvVar = "ISSUEGRAPH_EVENTS_JOURNAL_AUTO_PRUNE"
 
 	// AutoPruneSlotKey names the throttle watermark in local_metadata — the
 	// clone-local, dolt_ignored metadata table. It belongs on the ignored plane
@@ -87,10 +87,10 @@ const (
 )
 
 // AutoPruneEnabledFor reports whether automatic retention is on for the
-// workspace rooted at beadsDir, with the same precedence as journal activation
+// workspace rooted at issuegraphDir, with the same precedence as journal activation
 // (env, then that workspace's own config.yaml) but defaulting to TRUE.
-func AutoPruneEnabledFor(beadsDir string) bool {
-	return resolveEnabledFor(AutoPruneEnvVar, AutoPruneConfigKey, beadsDir, true)
+func AutoPruneEnabledFor(issuegraphDir string) bool {
+	return resolveEnabledFor(AutoPruneEnvVar, AutoPruneConfigKey, issuegraphDir, true)
 }
 
 // AutoPruneOptions is what a pass needs beyond the plumbing. The zero value is
@@ -246,7 +246,7 @@ func AutoPrune(ctx context.Context, runner issueops.EventsMaintenanceRunner, opt
 	return deleted, nil
 }
 
-// DefaultAutoPruneTickInterval is how often a long-lived process (bd serve)
+// DefaultAutoPruneTickInterval is how often a long-lived process (issuegraph serve)
 // ASKS whether a pass is due. It is deliberately shorter than
 // DefaultAutoPruneInterval: the tick is a poll, the persisted watermark is the
 // schedule. Polling more often than the interval is what lets the volume

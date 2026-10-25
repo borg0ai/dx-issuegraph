@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // TestValidateStatsAssignee pins the one refusal on the summary role, and pins
@@ -37,7 +37,7 @@ func TestValidateStatsAssignee(t *testing.T) {
 // TestBuildStatsAssigneeFiltersCarryOnlyTheAssignee pins what the two
 // assignee-scoped predicates deliberately leave out. A status restriction, a
 // limit or a wisp suppression appearing in either of them would change what
-// `bd status --assigned` counts without changing a line of either front door.
+// `issuegraph status --assigned` counts without changing a line of either front door.
 func TestBuildStatsAssigneeFiltersCarryOnlyTheAssignee(t *testing.T) {
 	issueFilter := BuildStatsAssigneeIssueFilter("alice")
 	if issueFilter.Assignee == nil || *issueFilter.Assignee != "alice" {
@@ -59,7 +59,7 @@ func TestBuildStatsAssigneeFiltersCarryOnlyTheAssignee(t *testing.T) {
 	}
 }
 
-// TestFoldStatsAssigneeSummary is the definition of what `bd status --assigned`
+// TestFoldStatsAssigneeSummary is the definition of what `issuegraph status --assigned`
 // means, checked without a database. Both routes read it from this one function,
 // so a change to any number below is a change to both surfaces at once.
 func TestFoldStatsAssigneeSummary(t *testing.T) {

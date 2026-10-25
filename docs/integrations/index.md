@@ -21,16 +21,16 @@ issuegraph setup --list
 | `aider` | [Aider](/integrations/aider) | `.aider.conf.yml` and `.aider/` instructions |
 | `claude` | [Claude Code](/integrations/claude-code) | Claude hooks and `CLAUDE.md` |
 | `codex` | [Codex](/integrations/codex) | IssueGraph skill, `AGENTS.md`, and Codex hooks |
-| `cody` | [Sourcegraph Cody](/integrations/cody) | `.cody/rules/beads.md` |
-| `cursor` | [Cursor](/integrations/cursor) | `.cursor/rules/beads.mdc` + `.cursor/hooks.json` |
+| `cody` | [Sourcegraph Cody](/integrations/cody) | `.cody/rules/issuegraph.md` |
+| `cursor` | [Cursor](/integrations/cursor) | `.cursor/rules/issuegraph.mdc` + `.cursor/hooks.json` |
 | `factory` | [Factory.ai Droid](/integrations/factory) | `AGENTS.md` |
 | `gemini` | [Gemini CLI](/integrations/gemini) | Gemini hooks and `GEMINI.md` |
 | `junie` | [Junie](/integrations/junie) | `.junie/guidelines.md` and MCP config |
-| `kilocode` | [Kilo Code](/integrations/kilocode) | `.kilocode/rules/beads.md` |
-| `kiro` | [Kiro CLI](/integrations/kiro) | `.kiro/steering/beads.md` |
+| `kilocode` | [Kilo Code](/integrations/kilocode) | `.kilocode/rules/issuegraph.md` |
+| `kiro` | [Kiro CLI](/integrations/kiro) | `.kiro/steering/issuegraph.md` |
 | `mux` | [Mux](/integrations/mux) | `AGENTS.md`, optional `.mux/AGENTS.md`, and Mux hooks |
 | `opencode` | [OpenCode](/integrations/opencode) | `AGENTS.md` |
-| `windsurf` | [Windsurf](/integrations/windsurf) | `.windsurf/rules/beads.md` |
+| `windsurf` | [Windsurf](/integrations/windsurf) | `.windsurf/rules/issuegraph.md` |
 
 ## MCP-Based Integrations
 
@@ -46,6 +46,6 @@ These integrations use the IssueGraph MCP server rather than a dedicated `issueg
 ## Other Integration Surfaces
 
 - [Claude Code Plugin](/integrations/claude-code-plugin) — the packaged
-  plugin with slash commands and MCP tools (`/plugin install beads`).
+  plugin with slash commands and MCP tools (`/plugin install issuegraph`).
 - [Azure DevOps](/integrations/azure-devops) — configuration reference for
   syncing issuegraph with ADO work items.

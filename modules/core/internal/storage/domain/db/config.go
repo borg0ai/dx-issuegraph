@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func NewConfigSQLRepository(runner Runner) domain.ConfigSQLRepository {
@@ -87,8 +87,8 @@ func (r *configSQLRepositoryImpl) SetConfig(ctx context.Context, key, value stri
 	// consults custom_types and falls back to the string only when the table is
 	// empty, and GetCustomStatuses reads custom_statuses outright — so a write
 	// that updated only the string left the table holding the previous set,
-	// forever: `bd config set types.custom` on a proxied deployment reported
-	// success and `bd create -t <the new type>` kept answering "invalid issue
+	// forever: `issuegraph config set types.custom` on a proxied deployment reported
+	// success and `issuegraph create -t <the new type>` kept answering "invalid issue
 	// type", with doctor re-verifying against the string and reporting all-OK.
 	//
 	// The caller supplies a transactional runner, so the row and its projection

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/schema"
+	"github.com/borg0ai/dx-issuegraph/schema"
 )
 
 func TestLatestVersionIsPositive(t *testing.T) {

@@ -13,11 +13,11 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/uow"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/uow"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // Every non-2xx byte this server emits is an RFC 9457 problem+json document
@@ -195,7 +195,7 @@ const (
 	CodeEventsJournalDisabled Code = "events_journal_disabled"
 	// CodeEventsJournalTruncated is a journal read whose checkpoint has fallen
 	// below the retained window. The value is storage's own constant, so the
-	// code a `bd events tail --json` failure carries and the code this surface
+	// code a `issuegraph events tail --json` failure carries and the code this surface
 	// emits cannot drift to two spellings of one condition.
 	//
 	// A 410 Gone, and the only one in the vocabulary: the records the caller
@@ -371,7 +371,7 @@ const (
 	// correctly offered.
 	OpClaimNextIssue = "claimNextIssue"
 	// OpReleaseIssue gives a claim back — the claim's inverse, and what
-	// `bd unclaim` spells. It is a named lifecycle action rather than a status
+	// `issuegraph unclaim` spells. It is a named lifecycle action rather than a status
 	// patch for OpCloseIssue's reason: an update spells the release three
 	// fields at a time, which puts the transition's definition in the caller,
 	// and the lease it drops is the part a patch cannot express at all.
@@ -492,11 +492,11 @@ const (
 	// requested edge set would produce.
 	OpAddDependencies = "addDependencies"
 	// OpSweepIssues is one of the two DESTRUCTIVE operations on this surface:
-	// bulk clearance of closed beads from one tier, behind issueops.Sweeper.
+	// bulk clearance of closed issuegraph from one tier, behind issueops.Sweeper.
 	OpSweepIssues = "sweepIssues"
-	// OpDeleteIssues is the other DESTRUCTIVE operation: erasure of beads the
+	// OpDeleteIssues is the other DESTRUCTIVE operation: erasure of issuegraph the
 	// request NAMES, behind issueops.Deleter. It is the one operation here whose
-	// refusals include a question about the GRAPH — a named bead with a
+	// refusals include a question about the GRAPH — a named issue with a
 	// dependent the request did not name.
 	OpDeleteIssues = "deleteIssues"
 	// OpCreateIssue creates ONE issue, with its parent, its explicit edges and
@@ -557,7 +557,7 @@ const (
 	// checkpoint. It is the first operation on this surface whose paging is not
 	// a cursor this server minted: `since` is a sequence number the journal
 	// itself assigned, so a consumer's position survives a restart on either
-	// side and is meaningful to `bd events tail` as well.
+	// side and is meaningful to `issuegraph events tail` as well.
 	//
 	// It is a READ of a log, not a subscription: the paged form has no follow
 	// mode and never will. The retention contract is what makes that safe to
@@ -675,7 +675,7 @@ var operationCodes = map[string][]Code{
 	// ErrNotFound at all, which its doc states.
 	//
 	// Its 400 is BOTH the transport's and the ROLE's, which is what separates
-	// this row from GET /v0/beads/issues:count beside it. That operation
+	// this row from GET /v0/issuegraph/issues:count beside it. That operation
 	// refuses its one enum at the edge and reaches no role refusal; here
 	// ValidateEdgeCountRequest runs inside the single shared body — the role
 	// has one body on all three legs, so the check could not belong to an
@@ -732,19 +732,19 @@ var operationCodes = map[string][]Code{
 	// The 400 here is the widest on this surface, and most of it is not this
 	// handler's: the unfiltered durable sweep, the unrecognized tier and the
 	// malformed glob are all the ROLE's ErrValidation reaching the wire through
-	// failSweepErr. No 404 — this operation names no id — and no 409: a bead
+	// failSweepErr. No 404 — this operation names no id — and no 409: a issue
 	// another sweep already took is simply not in the set.
 	OpSweepIssues: {CodeInvalidArgument, CodeUnauthenticated, CodeBusy, CodeDBUnavailable, CodeInternal},
 	// CodeNotFound is the one this operation has and the sweep does not: a
 	// sweep describes a set that can legitimately be empty, while a delete
-	// names beads and an id that resolves to nothing is a caller mistake.
+	// names issuegraph and an id that resolves to nothing is a caller mistake.
 	//
 	// precondition_failed is `expected_version`'s, and it is the 409 form for
 	// the reason that code documents: a miss refuses the whole request and
 	// leaves nothing to report but the refusal. It ranks BELOW the 404 — a
 	// request that named no row has nothing to be stale about — and ABOVE the
 	// dependents refusal, which is the role's own order and is what makes the
-	// wire's answer the same one `bd delete` gives.
+	// wire's answer the same one `issuegraph delete` gives.
 	//
 	// The ARITY refusal is a 400 rather than a second conflict: a token beside
 	// two distinct ids is a malformed request, not a statement about state.
@@ -936,7 +936,7 @@ var operationCodes = map[string][]Code{
 	// THE 404 IS THE DIVERGENCE, and it is deliberate. OpGetSetting has none
 	// because on that plane an absent key and a key stored empty are one answer
 	// the CLI itself prints identically, so a 404 would publish an invented
-	// distinction. Here the CLI already distinguishes a miss — `bd recall` has
+	// distinction. Here the CLI already distinguishes a miss — `issuegraph recall` has
 	// an exit-code contract for it — and the role answers Found rather than a
 	// value, so the 404 reports a distinction that exists. The stored-empty row
 	// falls on the miss side of it, which the document states.
@@ -956,7 +956,7 @@ var operationCodes = map[string][]Code{
 	// LOG. The 400 is its own too: `since` is required, and a negative or
 	// unparseable checkpoint is refused rather than treated as zero — `seq > -5`
 	// would quietly serve the whole journal as if it were a legitimate resume,
-	// which is the same refusal `bd events tail --since` makes.
+	// which is the same refusal `issuegraph events tail --since` makes.
 	//
 	// No 404. A checkpoint at or past the head is a caught-up 200 with an empty
 	// list, because "nothing new yet" is an answer about a log rather than a
@@ -1293,7 +1293,7 @@ func EventsJournalDisabled() Result {
 // EventsJournalTruncated builds the 410 for a checkpoint below the retained
 // window, carrying the window the server can still serve.
 //
-// The detail is the storage error's OWN sentence, which is the one `bd events
+// The detail is the storage error's OWN sentence, which is the one `issuegraph events
 // tail` prints. A consumer that reads both surfaces sees one description of one
 // condition, and this is a 4xx, so reflecting the server's own state here is
 // within what staticDetail allows.
@@ -1309,7 +1309,7 @@ func EventsJournalTruncated(err *storage.EventsJournalTruncatedError) Result {
 // answers the same records from the same checkpoint and is not capped this way.
 func EventsWatchSaturated() Result {
 	res := newResult(CodeEventsWatchSaturated,
-		"this server is already holding as many journal streams as it will; retry later, or read the same records from the same checkpoint with GET /v0/beads/events")
+		"this server is already holding as many journal streams as it will; retry later, or read the same records from the same checkpoint with GET /v0/issuegraph/events")
 	res.RetryAfterSeconds = retryAfterWatchSaturation
 	return res
 }

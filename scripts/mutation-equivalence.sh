@@ -57,7 +57,7 @@ usage() {
 [ $# -eq 6 ] || usage
 
 REPO="${REPO:-$(cd "$(dirname "$0")/.." && pwd)}"
-WT="${MUTEQ_WT:-${TMPDIR:-/tmp}/beads-mutation-worktree}"
+WT="${MUTEQ_WT:-${TMPDIR:-/tmp}/issuegraph-mutation-worktree}"
 TIMEOUT="${MUTEQ_TIMEOUT:-1200}"
 
 PROD="$1"; MUT="$2"; APKG="$3"; ARUN="$4"; BPKG="$5"; BRUN="$6"
@@ -147,7 +147,7 @@ fi
 cd "$WT" || exit 2
 # shellcheck disable=SC1091
 [ -f modules/core/.buildflags ] && source modules/core/.buildflags
-export BEADS_TEST_EMBEDDED_DOLT="${BEADS_TEST_EMBEDDED_DOLT:-1}"
+export ISSUEGRAPH_TEST_EMBEDDED_DOLT="${ISSUEGRAPH_TEST_EMBEDDED_DOLT:-1}"
 
 restore() { git -C "$WT" checkout -q -- . 2>/dev/null; }
 trap restore EXIT INT TERM

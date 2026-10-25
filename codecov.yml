@@ -1,4 +1,4 @@
-# Codecov configuration for beads (bd) CLI
+# Codecov configuration for issuegraph (issuegraph) CLI
 # https://docs.codecov.com/docs/codecovyml-reference
 #
 # Strategy: single upload, no flags. Domain-level views via components.
@@ -79,7 +79,7 @@ component_management:
         - internal/types/**
         - internal/idgen/**
         - internal/utils/**
-        - internal/beads/**
+        - internal/issuegraph/**
         - internal/config/**
 
 # Files and paths to ignore from coverage

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // These are pure: the claimNext path runs end to end over a real listener
@@ -21,7 +21,7 @@ import (
 // internal/storage/uow). This slice cites that rather than pretending a fake
 // can race itself.
 
-const claimNextPath = "/v0/beads/issues:claimNext"
+const claimNextPath = "/v0/issuegraph/issues:claimNext"
 
 func (ts *testServer) claimNext(t *testing.T, path, body string) *http.Response {
 	t.Helper()

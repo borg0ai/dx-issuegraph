@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func NewLabelSQLRepository(runner Runner) domain.LabelSQLRepository {
@@ -82,7 +82,7 @@ func (r *labelSQLRepositoryImpl) Insert(ctx context.Context, issueID, label, act
 	}, domain.RecordEventOpts{UseWispsTable: opts.UseWispsTable}); err != nil {
 		return err
 	}
-	// A label is part of the bead snapshot; the idempotent no-op path above
+	// A label is part of the issue snapshot; the idempotent no-op path above
 	// returns without writing and journals nothing.
 	return issueops.RecordEventInTx(ctx, r.runner, issueops.EventUpdate, issueID, actor)
 }

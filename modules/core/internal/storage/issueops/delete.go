@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // deleteBatchSize controls the maximum number of IDs per IN-clause query
@@ -95,7 +95,7 @@ func deleteIssueRowInTx(ctx context.Context, tx *sql.Tx, id string, isWisp bool,
 // each row lives in.
 //
 // IT EXISTS BECAUSE THE SET USED TO BE COMPUTED TWICE, from different roots, so
-// `bd delete <wisp> --cascade` left a durable row reachable only through that
+// `issuegraph delete <wisp> --cascade` left a durable row reachable only through that
 // wisp alive and then rewrote its neighbors' text to say `[deleted:<id>]` about
 // it. The neighborhood read, the deletion and the reference rewrite all take
 // THIS value.
@@ -115,7 +115,7 @@ type DeletionSet struct {
 // them, in BOTH planes.
 //
 // THE CASCADE IS ROOTED AT EVERY NAMED ID, WISPS INCLUDED. Rooting it at the
-// durable half is what made `bd wisp gc` (which hardcodes cascade) silently
+// durable half is what made `issuegraph wisp gc` (which hardcodes cascade) silently
 // under-delete. It does not read the caller's slice destructively either: the
 // non-cascade set is a copy, because DeleteRequest promises IDs is never
 // sorted in place.
@@ -298,7 +298,7 @@ func DeleteResolvedSetInTx(ctx context.Context, tx *sql.Tx, set DeletionSet, dry
 	// Resolve WHICH regular ids this delete actually removes before the batched
 	// DELETE runs: afterwards the rows are gone, and RowsAffected reports a
 	// count, not a set. A journal record for an id that was already absent would
-	// tell a consumer to drop a bead this transaction never touched.
+	// tell a consumer to drop a issue this transaction never touched.
 	journaledDeletes, err := journalableDeletesInTx(ctx, tx, "issues", set.RegularIDs)
 	if err != nil {
 		return nil, err

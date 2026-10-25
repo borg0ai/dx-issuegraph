@@ -105,7 +105,7 @@ func TestIndeterminateCommitIsSurfacedNotRetried(t *testing.T) {
 }
 
 func TestWithRetryTxIndeterminateCommitFailuresTripCircuitWithoutReplay(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	breaker := newTestCircuitBreaker(t)
 	driver := &failureDriver{commitErr: testConnectionLoss}
 	store := newFailureStore(driver)
@@ -165,7 +165,7 @@ func TestWithRetryTxIndeterminateCommitFailuresTripCircuitWithoutReplay(t *testi
 }
 
 func TestWithRetryTxPreCallbackConnectionFailureTripsCircuit(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	breaker := newTestCircuitBreaker(t)
 	for range circuitFailureThreshold - 1 {
 		breaker.RecordFailure()
@@ -196,7 +196,7 @@ func TestWithRetryTxPreCallbackConnectionFailureTripsCircuit(t *testing.T) {
 }
 
 func TestWithRetryTxSuccessResetsCircuitFailures(t *testing.T) {
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 	breaker := newTestCircuitBreaker(t)
 	for range circuitFailureThreshold - 1 {
 		breaker.RecordFailure()

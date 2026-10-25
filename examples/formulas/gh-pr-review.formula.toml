@@ -25,16 +25,16 @@
 #   - No auto-merge or auto-close — approve + flag only.
 #
 # Usage:
-#   bd mol wisp gh-pr-review --var pr_number=123
-#   bd mol wisp gh-pr-review --var pr_number=123 --var repo=myorg/myrepo
+#   issuegraph mol wisp gh-pr-review --var pr_number=123
+#   issuegraph mol wisp gh-pr-review --var pr_number=123 --var repo=myorg/myrepo
 #
 # Environment assumptions:
 #   - `gh` CLI authenticated with sufficient scopes (issues:read,
 #     contents:write, pull_requests:write)
 #   - Git configured with remotes for upstream and (if fork) push target
-#   - `bd` (beads) installed with molecule/wisp support
+#   - `issuegraph` (issuegraph) installed with molecule/wisp support
 #   - The target repository's documented quality-gate tools are available
-#     (`make` and the CI-pinned `golangci-lint` for Beads' fix-merge path)
+#     (`make` and the CI-pinned `golangci-lint` for IssueGraph' fix-merge path)
 #
 # Pager safety (CRITICAL for non-interactive execution):
 #   - ALL `gh` commands MUST use: GH_PAGER=cat gh ...
@@ -150,7 +150,7 @@ The PR fits this group if ALL of:
 - CI is green (all status checks pass)
 - Diff is focused — one concern, no piggybacking
 - No merge conflicts
-- No local tracker metadata files in the diff (for beads, this includes `.beads/`)
+- No local tracker metadata files in the diff (for issuegraph, this includes `.issuegraph/`)
 - No generated or garbage files
 - Author is not on any ban list
 - No unresolved review threads requesting substantive changes
@@ -266,7 +266,7 @@ Quick validation that the PR meets easy-win criteria:
    ```
    GH_PAGER=cat gh pr diff {{pr_number}} --repo {{repo}} | head -500
    ```
-   - No local tracker metadata files (for beads, this includes `.beads/`)
+   - No local tracker metadata files (for issuegraph, this includes `.issuegraph/`)
    - No generated/garbage files
    - Focused on one concern
    - No piggybacking unrelated changes
@@ -360,13 +360,13 @@ Based on the classification, fix the identified blockers:
 - Keep changes minimal — fix the blocker, don't refactor
 
 ### Run quality gates (on the clean-base transplant)
-Use the target repository's documented required gates. For Beads:
+Use the target repository's documented required gates. For IssueGraph:
 ```
 make test
 make ci-pr-lint
 make build
 ```
-The Beads lint wrapper must pass with zero issues. For a non-Beads repository,
+The IssueGraph lint wrapper must pass with zero issues. For a non-IssueGraph repository,
 use its documented lint gate instead and require a clean pass.
 
 ### Commit with attribution
@@ -412,7 +412,7 @@ Deep review requiring human judgment.
    - Are there security implications?
 
 3. Check for common issues:
-   - Local tracker metadata files in diff (for beads, this includes `.beads/`)
+   - Local tracker metadata files in diff (for issuegraph, this includes `.issuegraph/`)
    - Generated or garbage files
    - Piggybacking unrelated changes
    - Missing tests for behavioral changes
@@ -645,5 +645,5 @@ WORKING DIRECTORY: Return to the main repo root for this step.
    If the workflow aborted at any point after worktree creation, this step
    should still be called to avoid leaking worktrees.
 
-5. Burn the wisp (the ephemeral tracking bead for this workflow run)."""
+5. Burn the wisp (the ephemeral tracking issue for this workflow run)."""
 acceptance = "Worktree removed (if created), temp branches deleted, wisp burned, no leaked artifacts"

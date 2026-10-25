@@ -26,7 +26,7 @@ func TestMissingTableName(t *testing.T) {
 		},
 		{
 			name:     "mysql wording strips the schema qualifier",
-			err:      &mysql.MySQLError{Number: 1146, Message: "Table 'beads.leases' doesn't exist"},
+			err:      &mysql.MySQLError{Number: 1146, Message: "Table 'issuegraph.leases' doesn't exist"},
 			wantName: "leases",
 			wantOK:   true,
 		},
@@ -93,7 +93,7 @@ func TestIsMissingTable(t *testing.T) {
 	if IsMissingTable(nil, "leases") {
 		t.Error("IsMissingTable(nil, \"leases\") = true, want false")
 	}
-	if !IsMissingTable(&mysql.MySQLError{Number: 1146, Message: "Table 'beads.WISPS' doesn't exist"}, "wisps") {
+	if !IsMissingTable(&mysql.MySQLError{Number: 1146, Message: "Table 'issuegraph.WISPS' doesn't exist"}, "wisps") {
 		t.Error("IsMissingTable should match table names case-insensitively")
 	}
 }

@@ -8,7 +8,7 @@ type ClaimNextRequest struct {
 	Actor string
 	// Filter selects the candidate set in Reader.Ready's EXACT vocabulary —
 	// the same type, not a parallel one shaped like it. A claim that answered
-	// a different question than `bd ready` shows would hand an agent work the
+	// a different question than `issuegraph ready` shows would hand an agent work the
 	// listing never offered it, and two predicates that are allowed to differ
 	// eventually do.
 	//
@@ -43,7 +43,7 @@ type ClaimNextResult struct {
 	Claimed *IssueWithCounts
 }
 
-// ReadyClaimer describes the atomic take of ready work: the operation `bd
+// ReadyClaimer describes the atomic take of ready work: the operation `issuegraph
 // ready --claim` performs, and — like Lifecycle and Reader — a role with its
 // own accessor. A new capability gets a new role interface and its own
 // accessor; never append a method here.

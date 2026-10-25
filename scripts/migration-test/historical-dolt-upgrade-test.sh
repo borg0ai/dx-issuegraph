@@ -126,17 +126,17 @@ stop_sqlite_writer() {
 trap cleanup EXIT
 
 isolated_env() {
-    local auto_start="${BEADS_DOLT_AUTO_START:-0}"
+    local auto_start="${ISSUEGRAPH_DOLT_AUTO_START:-0}"
     if [ "${ISOLATED_ENV_EXEC:-0}" = 1 ]; then
         exec env -i PATH="$PATH" HOME="$workspace/home" XDG_CONFIG_HOME="$workspace/home/config" \
             XDG_CACHE_HOME="$workspace/home/cache" GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null \
-            GIT_TERMINAL_PROMPT=0 BD_DISABLE_METRICS=1 BD_DISABLE_EVENT_FLUSH=1 \
-            BD_NON_INTERACTIVE=1 BEADS_NO_DAEMON=1 BEADS_DOLT_AUTO_START="$auto_start" BD_AUTHOR="${BD_AUTHOR:-}" "$@"
+            GIT_TERMINAL_PROMPT=0 ISSUEGRAPH_DISABLE_METRICS=1 ISSUEGRAPH_DISABLE_EVENT_FLUSH=1 \
+            ISSUEGRAPH_NON_INTERACTIVE=1 ISSUEGRAPH_NO_DAEMON=1 ISSUEGRAPH_DOLT_AUTO_START="$auto_start" ISSUEGRAPH_AUTHOR="${ISSUEGRAPH_AUTHOR:-}" "$@"
     fi
     env -i PATH="$PATH" HOME="$workspace/home" XDG_CONFIG_HOME="$workspace/home/config" \
         XDG_CACHE_HOME="$workspace/home/cache" GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null \
-        GIT_TERMINAL_PROMPT=0 BD_DISABLE_METRICS=1 BD_DISABLE_EVENT_FLUSH=1 \
-        BD_NON_INTERACTIVE=1 BEADS_NO_DAEMON=1 BEADS_DOLT_AUTO_START="$auto_start" BD_AUTHOR="${BD_AUTHOR:-}" "$@"
+        GIT_TERMINAL_PROMPT=0 ISSUEGRAPH_DISABLE_METRICS=1 ISSUEGRAPH_DISABLE_EVENT_FLUSH=1 \
+        ISSUEGRAPH_NON_INTERACTIVE=1 ISSUEGRAPH_NO_DAEMON=1 ISSUEGRAPH_DOLT_AUTO_START="$auto_start" ISSUEGRAPH_AUTHOR="${ISSUEGRAPH_AUTHOR:-}" "$@"
 }
 
 run_in_workspace() {
@@ -253,31 +253,31 @@ is_classic_sqlite_version() {
 
 record_retained_legacy() {
     local version="$1"
-    find "$workspace/.beads" -maxdepth 1 -type f -name "legacy-$version-*" -print0
+    find "$workspace/.issuegraph" -maxdepth 1 -type f -name "legacy-$version-*" -print0
     # Dolt may finish writing derived query statistics after sql-server exits.
     # Retain that directory, but byte-check the user database and configuration
     # rather than the disposable .dolt/stats cache.
-    find "$workspace/.beads/legacy-dolt-$version" \
+    find "$workspace/.issuegraph/legacy-dolt-$version" \
         -path '*/.dolt/stats' -prune -o -type f -print0
-    printf '%s\0' "$workspace/.beads/historical-$version-export.jsonl"
-    [ ! -f "$workspace/.beads/historical-$version-comments.jsonl" ] ||
-        printf '%s\0' "$workspace/.beads/historical-$version-comments.jsonl"
+    printf '%s\0' "$workspace/.issuegraph/historical-$version-export.jsonl"
+    [ ! -f "$workspace/.issuegraph/historical-$version-comments.jsonl" ] ||
+        printf '%s\0' "$workspace/.issuegraph/historical-$version-comments.jsonl"
 }
 
 record_retained_classic() {
     local version="$1"
-    find "$workspace/.beads" -maxdepth 1 -type f -name '*.pre-migration' -print0
+    find "$workspace/.issuegraph" -maxdepth 1 -type f -name '*.pre-migration' -print0
     printf '%s\0' "$workspace/classic-$version-current-reader.jsonl"
 }
 
 record_retained_v017() {
     find "$workspace/v0.17.0-source" -type f -print0
-    printf '%s\0' "$workspace/.beads/v0.17.0-bridge-export.jsonl"
+    printf '%s\0' "$workspace/.issuegraph/v0.17.0-bridge-export.jsonl"
 }
 
 record_retained_v091() {
     find "$workspace/v0.9.1-source" -type f -print0
-    printf '%s\0' "$workspace/.beads/v0.9.1-bridge-export.jsonl"
+    printf '%s\0' "$workspace/.issuegraph/v0.9.1-bridge-export.jsonl"
 }
 
 save_retained_digest() {
@@ -292,7 +292,7 @@ verify_retained_digest() {
 }
 
 seed_legacy_issues_jsonl_sentinel() {
-    local version="$1" sentinel="$workspace/.beads/issues.jsonl"
+    local version="$1" sentinel="$workspace/.issuegraph/issues.jsonl"
     [ "$version" = v0.55.4 ] || return 0
     [ ! -e "$sentinel" ] && [ ! -L "$sentinel" ] ||
         die "$version: authentic fixture unexpectedly contains issues.jsonl; refusing to overwrite source evidence"
@@ -303,14 +303,14 @@ seed_legacy_issues_jsonl_sentinel() {
 
 verify_legacy_issues_jsonl_sentinel() {
     local version="$1"
-    local retained="$workspace/.beads/legacy-$version-issues.jsonl"
+    local retained="$workspace/.issuegraph/legacy-$version-issues.jsonl"
     [ "$version" = v0.55.4 ] || return 0
     cmp -s "$workspace/legacy-v0.55.4-issues.jsonl.expected" "$retained" ||
         die "$version: residual issues.jsonl was not retained byte-for-byte as legacy-$version-issues.jsonl"
 }
 
 classic_source_fingerprint() {
-    beads_dir_fingerprint "$workspace/.beads"
+    issuegraph_dir_fingerprint "$workspace/.issuegraph"
 }
 
 export_classic_sqlite_with_candidate() {
@@ -318,7 +318,7 @@ export_classic_sqlite_with_candidate() {
     task=$(sed -n '1p' "$workspace/fixture-ids")
     ready="$workspace/sqlite-wal-ready"
     sqlite_writer_stop="$workspace/sqlite-wal-stop"
-    python3 - "$workspace/.beads/beads.db" "$task" "$ready" "$sqlite_writer_stop" <<'PY' &
+    python3 - "$workspace/.issuegraph/issuegraph.db" "$task" "$ready" "$sqlite_writer_stop" <<'PY' &
 import pathlib
 import sqlite3
 import sys
@@ -350,13 +350,13 @@ PY
             die "$version: SQLite WAL writer exited before becoming ready"
         sleep 0.05
     done
-    [ -e "$ready" ] && [ -s "$workspace/.beads/beads.db-wal" ] ||
+    [ -e "$ready" ] && [ -s "$workspace/.issuegraph/issuegraph.db-wal" ] ||
         die "$version: committed WAL fixture was not created"
 
     before=$(classic_source_fingerprint) ||
         die "$version: could not fingerprint committed WAL source"
     run_in_workspace "$candidate" migrate legacy-sqlite \
-        --source-db "$workspace/.beads/beads.db" --output "$output" ||
+        --source-db "$workspace/.issuegraph/issuegraph.db" --output "$output" ||
         die "$version: current legacy SQLite reader failed"
     after=$(classic_source_fingerprint) ||
         die "$version: could not resnapshot committed WAL source"
@@ -398,10 +398,10 @@ describe_entry_portable() {
     printf '%s\0%s\0%s\0' "$entry" "$type" "$target"
 }
 
-beads_dir_fingerprint() {
-    local beads_dir="$1"
+issuegraph_dir_fingerprint() {
+    local issuegraph_dir="$1"
     (
-        cd "$beads_dir" || return 1
+        cd "$issuegraph_dir" || return 1
         while IFS= read -r -d '' entry; do
             if [ "$OS" = linux ]; then
                 find "$entry" -maxdepth 0 -printf '%p\0%y\0%l\0'
@@ -463,7 +463,7 @@ create_v017_fixture() {
     run_v017_source "$source" dep add "$blocker" "$task" >/dev/null || die 'v0.17.0: could not create source dependency'
     run_v017_source "$source" dep add "$blocker" "$closed" --type related >/dev/null || die 'v0.17.0: could not create source related dependency'
     run_v017_source "$source" label add "$task" historical-upgrade >/dev/null || die 'v0.17.0: could not label source fixture issue'
-    BD_AUTHOR=historical-upgrade run_v017_source "$source" comments add "$task" 'Historical comment must survive the upgrade.' >/dev/null || die 'v0.17.0: could not comment on source fixture issue'
+    ISSUEGRAPH_AUTHOR=historical-upgrade run_v017_source "$source" comments add "$task" 'Historical comment must survive the upgrade.' >/dev/null || die 'v0.17.0: could not comment on source fixture issue'
     run_v017_source "$source" close "$closed" >/dev/null || die 'v0.17.0: could not close source fixture issue'
     snapshot=$(run_v017_source "$source" list --json -n 0) || die 'v0.17.0: could not read source fixture'
     jq -e --arg task "$task" --arg blocker "$blocker" --arg closed "$closed" '
@@ -479,15 +479,15 @@ create_v017_fixture() {
 }
 
 legacy_server_source_fingerprint() {
-    legacy_server_source_fingerprint_at "$workspace/.beads"
+    legacy_server_source_fingerprint_at "$workspace/.issuegraph"
 }
 
 legacy_server_source_fingerprint_at() {
-    local beads_dir="$1"
+    local issuegraph_dir="$1"
     # The server may update its derived query statistics while stopping. Every
     # other source and metadata byte must remain unchanged after refusal.
     (
-        cd "$beads_dir" || return 1
+        cd "$issuegraph_dir" || return 1
         find . -path './dolt/.dolt/stats' -prune -o -type f -print0 |
             LC_ALL=C sort -z | xargs -r -0 sha256sum
     ) | sha256sum | awk '{print $1}'
@@ -496,8 +496,8 @@ legacy_server_source_fingerprint_at() {
 legacy_server_runtime_artifact_inventory() {
     local artifact
     (
-        cd "$workspace/.beads" || return 1
-        for artifact in dolt-server.pid dolt-server.port dolt-server.lock dolt-server.log daemon.pid daemon.log daemon.lock bd.sock embeddeddolt; do
+        cd "$workspace/.issuegraph" || return 1
+        for artifact in dolt-server.pid dolt-server.port dolt-server.lock dolt-server.log daemon.pid daemon.log daemon.lock issuegraph.sock embeddeddolt; do
             [ ! -e "$artifact" ] && [ ! -L "$artifact" ] || find "$artifact" -print0
         done | LC_ALL=C sort -z
     ) | sha256sum | awk '{print $1}'
@@ -516,7 +516,7 @@ verify_legacy_server_refusal_before_bridge() {
     output="$workspace/candidate-legacy-refusal.out"
     if (
         cd "$workspace"
-        export BEADS_DOLT_AUTO_START=1
+        export ISSUEGRAPH_DOLT_AUTO_START=1
         isolated_env timeout --kill-after=5s "$OP_TIMEOUT" "$candidate" list
     ) > "$output" 2>&1; then
         die "$version: candidate list accepted a historical server-Dolt workspace"
@@ -527,7 +527,7 @@ verify_legacy_server_refusal_before_bridge() {
     [ "$after" = "$before" ] || die "$version: candidate list changed historical server-Dolt source before refusal"
     runtime_after=$(legacy_server_runtime_artifact_inventory) || die "$version: could not resnapshot historical runtime artifacts"
     [ "$runtime_after" = "$runtime_before" ] || die "$version: candidate list created or changed a runtime artifact before refusal"
-    start_historical_server "$workspace/.beads/dolt" "$restart_port"
+    start_historical_server "$workspace/.issuegraph/dolt" "$restart_port"
 }
 
 export_source_jsonl() {
@@ -544,7 +544,7 @@ export_source_jsonl() {
             # These releases export JSONL by default and no longer accept the
             # earlier --format flag. Their exporter also records only comment
             # counts, so capture the comment rows through the stable comments
-            # command and add them to the issue records accepted by bd import.
+            # command and add them to the issue records accepted by issuegraph import.
             run_in_workspace "$source" export > "$output" ||
                 die "$version: historical export failed"
             supplement_historical_comments "$version" "$source" "$output"
@@ -573,26 +573,26 @@ export_v0561_with_v0620() {
         die 'v0.56.1: could not snapshot original source before exporter bridge'
     bridge="$workspace/v0.56.1-export-bridge"
     mkdir -p "$bridge" || die 'v0.56.1: could not create disposable exporter workspace'
-    cp -af -- "$workspace/.beads" "$bridge/.beads" ||
+    cp -af -- "$workspace/.issuegraph" "$bridge/.issuegraph" ||
         die 'v0.56.1: could not copy source into disposable exporter workspace'
     bridge_output="$bridge/historical-v0.56.1-export.jsonl"
     canonicalizer=$(download_verified_release_binary v0.62.0) ||
         die 'v0.56.1: verified v0.62.0 canonicalizer is unavailable'
-    start_historical_server "$bridge/.beads/dolt" "$restart_port"
+    start_historical_server "$bridge/.issuegraph/dolt" "$restart_port"
     run_in_directory "$bridge" "$canonicalizer" export --all > "$bridge_output" ||
         die 'v0.56.1: v0.62.0 canonicalizer bridge failed'
-    supplement_historical_comments v0.56.1 "$canonicalizer" "$bridge_output" "$bridge" "$bridge/.beads"
+    supplement_historical_comments v0.56.1 "$canonicalizer" "$bridge_output" "$bridge" "$bridge/.issuegraph"
     stop_historical_server
     [ "$(legacy_server_source_fingerprint)" = "$original_fingerprint" ] ||
         die 'v0.56.1: exporter bridge changed original historical source'
     cp -f "$bridge_output" "$output" || die 'v0.56.1: could not retain bridged export'
-    cp -f "$bridge/.beads/historical-v0.56.1-comments.jsonl" \
-        "$workspace/.beads/historical-v0.56.1-comments.jsonl" ||
+    cp -f "$bridge/.issuegraph/historical-v0.56.1-comments.jsonl" \
+        "$workspace/.issuegraph/historical-v0.56.1-comments.jsonl" ||
         die 'v0.56.1: could not retain bridged comment audit'
 }
 
 supplement_historical_comments() {
-    local version="$1" source="$2" output="$3" directory="${4:-$workspace}" scratch="${5:-$workspace/.beads}"
+    local version="$1" source="$2" output="$3" directory="${4:-$workspace}" scratch="${5:-$workspace/.issuegraph}"
     local records="$scratch/historical-$version-comments.jsonl"
     local id comments map enriched
     : > "$records"
@@ -637,7 +637,7 @@ verify_empty_public_sqlite_bridge() {
     if ! timeout --kill-after=5s "$((OP_TIMEOUT * 4))" \
         "$PROJECT_ROOT/scripts/migrate-legacy-to-current.sh" \
         --source "$workspace" --destination "$public_bridge_destination" \
-        --source-version "$version" --old-bd "$source" --new-bd "$candidate" \
+        --source-version "$version" --old-issuegraph "$source" --new-issuegraph "$candidate" \
         --prefix histclassic > "$workspace/empty-public-bridge.out" \
         2> "$workspace/empty-public-bridge.err"; then
         die "$version: empty public sealed-copy bridge failed"
@@ -647,9 +647,9 @@ verify_empty_public_sqlite_bridge() {
     [ "$after" = "$before" ] ||
         die "$version: empty public bridge changed the historical source"
     jq -e '.backend == "dolt" and .dolt_mode == "embedded"' \
-        "$public_bridge_destination/cutover/.beads/metadata.json" >/dev/null ||
+        "$public_bridge_destination/cutover/.issuegraph/metadata.json" >/dev/null ||
         die "$version: empty public bridge did not create an embedded cutover"
-    [ -d "$public_bridge_destination/cutover/.beads/embeddeddolt" ] ||
+    [ -d "$public_bridge_destination/cutover/.issuegraph/embeddeddolt" ] ||
         die "$version: empty public bridge did not create embedded storage"
     for export_file in export.jsonl candidate-export.jsonl; do
         [ -f "$public_bridge_destination/$export_file" ] &&
@@ -680,15 +680,15 @@ verify_public_sqlite_bridge() {
         --source "$workspace"
         --destination "$public_bridge_destination"
         --source-version "$version"
-        --old-bd "$source"
-        --new-bd "$candidate"
+        --old-issuegraph "$source"
+        --new-issuegraph "$candidate"
         --prefix "$prefix"
     )
     case "$version" in
         "$SOURCE_TAG_SQLITE_VERSION"|"$PRE_CANONICAL_SQLITE_VERSION")
             canonicalizer=$(download_verified_release_binary "$CLASSIC_SQLITE_VERSION") ||
                 die "$version: verified v0.49.6 public-bridge canonicalizer is unavailable"
-            args+=(--canonicalizer-bd "$canonicalizer")
+            args+=(--canonicalizer-issuegraph "$canonicalizer")
             ;;
     esac
 
@@ -712,15 +712,15 @@ verify_public_sqlite_bridge() {
 
 explicit_dolt_upgrade() {
     local version="$1" source="$2"
-    local export_file="$workspace/.beads/historical-$version-export.jsonl"
+    local export_file="$workspace/.issuegraph/historical-$version-export.jsonl"
     export_source_jsonl "$version" "$source" "$export_file"
     stop_historical_server
-    mv -f "$workspace/.beads/dolt" "$workspace/.beads/legacy-dolt-$version" || die "$version: could not retain legacy Dolt data"
+    mv -f "$workspace/.issuegraph/dolt" "$workspace/.issuegraph/legacy-dolt-$version" || die "$version: could not retain legacy Dolt data"
     for file in "${LEGACY_DOLT_ROLLBACK_FILES[@]}"; do
-        [ ! -e "$workspace/.beads/$file" ] || mv -f "$workspace/.beads/$file" "$workspace/.beads/legacy-$version-$file"
+        [ ! -e "$workspace/.issuegraph/$file" ] || mv -f "$workspace/.issuegraph/$file" "$workspace/.issuegraph/legacy-$version-$file"
     done
     save_retained_digest legacy "$version"
-    cp -f "$export_file" "$workspace/.beads/issues.jsonl"
+    cp -f "$export_file" "$workspace/.issuegraph/issues.jsonl"
     run_in_workspace "$candidate" init --from-jsonl --quiet --skip-hooks --skip-agents --prefix "hist${version//[^0-9]/}" ||
         die "$version: candidate could not initialize from historical export"
     migrate_schema_current "$version" first
@@ -729,7 +729,7 @@ explicit_dolt_upgrade() {
 preserve_classic_rollback() {
     local version="$1" file source backup
     for file in "${CLASSIC_SQLITE_ROLLBACK_FILES[@]}"; do
-        source="$workspace/.beads/$file"
+        source="$workspace/.issuegraph/$file"
         backup="$source.pre-migration"
         [ ! -L "$source" ] && [ ! -L "$backup" ] || die "$version: classic rollback artifacts may not be symlinks"
         [ ! -e "$source" ] || { [ ! -e "$backup" ] || cmp -s "$source" "$backup" || die "$version: conflicting rollback artifact $backup"; cp -pf "$source" "$backup"; }
@@ -747,10 +747,10 @@ run_classic_sqlite_upgrade() {
     source=$(download_verified_release_binary "$version") || die "$version: verified release is unavailable"
     if [ "$version" = "$CONFIGURED_SQLITE_VERSION" ]; then
         run_in_workspace "$source" init --backend sqlite --quiet --prefix histclassic --skip-hooks || die "$version: source init failed"
-        [ -s "$workspace/.beads/beads.db" ] || die "$version: source did not create a nonempty beads.db"
-        jq -e '.database == "beads.db" and .jsonl_export == "issues.jsonl" and .backend == "sqlite"' "$workspace/.beads/metadata.json" >/dev/null ||
+        [ -s "$workspace/.issuegraph/issuegraph.db" ] || die "$version: source did not create a nonempty issuegraph.db"
+        jq -e '.database == "issuegraph.db" and .jsonl_export == "issues.jsonl" and .backend == "sqlite"' "$workspace/.issuegraph/metadata.json" >/dev/null ||
             die "$version: source metadata is not the reviewed configured-SQLite shape"
-        [ "$(tr -d '[:space:]' < "$workspace/.beads/.local_version")" = "0.50.3" ] || die "$version: source version witness is not stable"
+        [ "$(tr -d '[:space:]' < "$workspace/.issuegraph/.local_version")" = "0.50.3" ] || die "$version: source version witness is not stable"
     else
         # v0.49.6 predates --non-interactive; its quiet init is non-prompting in
         # this isolated workspace. The candidate bridge remains noninteractive.
@@ -766,8 +766,8 @@ run_classic_sqlite_upgrade() {
     fi
     after=$(classic_source_fingerprint) || die "$version: could not resnapshot historical SQLite source"
     [ "$after" = "$before" ] || die "$version: candidate list changed historical SQLite source before refusal"
-    if grep -Fq 'no beads database found' "$output"; then
-        die "$version: candidate list misclassified historical SQLite as no beads database found"
+    if grep -Fq 'no issuegraph database found' "$output"; then
+        die "$version: candidate list misclassified historical SQLite as no issuegraph database found"
     fi
     grep -Fq 'historical SQLite' "$output" ||
         die "$version: candidate list did not identify historical SQLite"
@@ -785,8 +785,8 @@ run_classic_sqlite_upgrade() {
     verify_public_sqlite_bridge "$version" "$source" histclassic
     preserve_classic_rollback "$version"
     save_retained_digest classic "$version"
-    for file in "${CLASSIC_SQLITE_ROLLBACK_FILES[@]}"; do rm -f -- "$workspace/.beads/$file"; done
-    cp -f "$export_file" "$workspace/.beads/issues.jsonl"
+    for file in "${CLASSIC_SQLITE_ROLLBACK_FILES[@]}"; do rm -f -- "$workspace/.issuegraph/$file"; done
+    cp -f "$export_file" "$workspace/.issuegraph/issues.jsonl"
     run_in_workspace "$candidate" init --from-jsonl --quiet --skip-hooks --skip-agents --prefix histclassic ||
         die "$version: candidate could not import classic export"
     reexport="$workspace/classic-$version-current-reexport.jsonl"
@@ -830,8 +830,8 @@ run_v017_upgrade() {
     verify_public_sqlite_bridge "$version" "$source" hist017
     bridge="$workspace/v0.17.0-bridge"
     mkdir -p "$bridge"
-    cp -af -- "$workspace/.beads" "$bridge/.beads" || die "$version: could not copy complete source into bridge"
-    [ "$(beads_dir_fingerprint "$bridge/.beads")" = "$before" ] || die "$version: bridge copy differs from source"
+    cp -af -- "$workspace/.issuegraph" "$bridge/.issuegraph" || die "$version: could not copy complete source into bridge"
+    [ "$(issuegraph_dir_fingerprint "$bridge/.issuegraph")" = "$before" ] || die "$version: bridge copy differs from source"
     git -C "$bridge" init --quiet
     git -C "$bridge" config user.name historical-upgrade-test
     git -C "$bridge" config user.email historical-upgrade@test.invalid
@@ -847,10 +847,10 @@ run_v017_upgrade() {
         any(.[]; (.dependencies // []) | any(.[]; .type == "related"))' "$bridge_export" >/dev/null ||
         die "$version: v0.49.6 bridge did not preserve source data"
     [ "$(classic_source_fingerprint)" = "$before" ] || die "$version: bridge changed original source"
-    mv -f "$workspace/.beads" "$workspace/v0.17.0-source" || die "$version: could not retain source rollback copy"
-    mkdir -p "$workspace/.beads"
-    cp -f "$bridge_export" "$workspace/.beads/v0.17.0-bridge-export.jsonl"
-    cp -f "$bridge_export" "$workspace/.beads/issues.jsonl"
+    mv -f "$workspace/.issuegraph" "$workspace/v0.17.0-source" || die "$version: could not retain source rollback copy"
+    mkdir -p "$workspace/.issuegraph"
+    cp -f "$bridge_export" "$workspace/.issuegraph/v0.17.0-bridge-export.jsonl"
+    cp -f "$bridge_export" "$workspace/.issuegraph/issues.jsonl"
     save_retained_digest v017 "$version"
     run_in_workspace "$candidate" init --from-jsonl --quiet --skip-hooks --skip-agents --prefix hist017 ||
         die "$version: candidate could not import bridge export"
@@ -869,12 +869,12 @@ run_v091_upgrade() {
     source=$(build_verified_v091_source_binary) || die "$version: verified source build is unavailable"
     run_v091_source "$source" init --prefix vc || die "$version: source init failed"
     create_v091_fixture "$source"
-    [ "$(find "$workspace/.beads" -mindepth 1 -maxdepth 1 -exec basename {} \; | LC_ALL=C sort)" = vc.db ] ||
-        die "$version: source did not produce sole .beads/vc.db"
-    [ ! -e "$workspace/.beads/issues.jsonl" ] && [ ! -L "$workspace/.beads/issues.jsonl" ] ||
-        die "$version: source unexpectedly auto-flushed .beads/issues.jsonl"
-    [ ! -e "$workspace/.beads/metadata.json" ] && [ ! -L "$workspace/.beads/metadata.json" ] ||
-        die "$version: source unexpectedly wrote .beads/metadata.json"
+    [ "$(find "$workspace/.issuegraph" -mindepth 1 -maxdepth 1 -exec basename {} \; | LC_ALL=C sort)" = vc.db ] ||
+        die "$version: source did not produce sole .issuegraph/vc.db"
+    [ ! -e "$workspace/.issuegraph/issues.jsonl" ] && [ ! -L "$workspace/.issuegraph/issues.jsonl" ] ||
+        die "$version: source unexpectedly auto-flushed .issuegraph/issues.jsonl"
+    [ ! -e "$workspace/.issuegraph/metadata.json" ] && [ ! -L "$workspace/.issuegraph/metadata.json" ] ||
+        die "$version: source unexpectedly wrote .issuegraph/metadata.json"
     before=$(classic_source_fingerprint) || die "$version: could not snapshot source"
     output="$workspace/candidate-v091-refusal.out"
     if run_in_workspace "$candidate" list > "$output" 2>&1; then
@@ -893,32 +893,32 @@ run_v091_upgrade() {
     [ "$(classic_source_fingerprint)" = "$before" ] || die "$version: candidate doctor changed source before bridge"
     verify_public_sqlite_bridge "$version" "$source" hist091
     # v0.9.1 documents this explicit export; its default flush did not materialize it.
-    run_v091_source "$source" export --format jsonl --output .beads/issues.jsonl >/dev/null ||
-        die "$version: source could not explicitly export .beads/issues.jsonl"
-    [ -f "$workspace/.beads/issues.jsonl" ] && [ ! -L "$workspace/.beads/issues.jsonl" ] ||
-        die "$version: source export did not produce .beads/issues.jsonl"
+    run_v091_source "$source" export --format jsonl --output .issuegraph/issues.jsonl >/dev/null ||
+        die "$version: source could not explicitly export .issuegraph/issues.jsonl"
+    [ -f "$workspace/.issuegraph/issues.jsonl" ] && [ ! -L "$workspace/.issuegraph/issues.jsonl" ] ||
+        die "$version: source export did not produce .issuegraph/issues.jsonl"
     jq -s -e 'length == 3 and ([.[].id] | sort) == ["hist091-1", "hist091-2", "hist091-3"]' \
-        "$workspace/.beads/issues.jsonl" >/dev/null || die "$version: source export is incomplete"
+        "$workspace/.issuegraph/issues.jsonl" >/dev/null || die "$version: source export is incomplete"
     before=$(classic_source_fingerprint) || die "$version: could not snapshot explicitly exported source"
     bridge="$workspace/v0.9.1-bridge"
     mkdir -p "$bridge"
-    cp -af -- "$workspace/.beads" "$bridge/.beads" || die "$version: could not copy complete source into bridge"
-    [ "$(beads_dir_fingerprint "$bridge/.beads")" = "$before" ] || die "$version: bridge copy differs from source"
+    cp -af -- "$workspace/.issuegraph" "$bridge/.issuegraph" || die "$version: could not copy complete source into bridge"
+    [ "$(issuegraph_dir_fingerprint "$bridge/.issuegraph")" = "$before" ] || die "$version: bridge copy differs from source"
     git -C "$bridge" init --quiet
     git -C "$bridge" config user.name historical-upgrade-test
     git -C "$bridge" config user.email historical-upgrade@test.invalid
     bridge_bin=$(download_verified_release_binary "$CLASSIC_SQLITE_VERSION") || die "$version: verified v0.49.6 bridge is unavailable"
     run_in_directory "$bridge" "$bridge_bin" --no-daemon --no-auto-import init --force --prefix hist091 >/dev/null || die "$version: v0.49.6 bridge init failed"
-    [ -f "$bridge/.beads/beads.db" ] && [ ! -e "$bridge/.beads/vc.db" ] ||
+    [ -f "$bridge/.issuegraph/issuegraph.db" ] && [ ! -e "$bridge/.issuegraph/vc.db" ] ||
         die "$version: v0.49.6 bridge did not canonicalize the sole source database"
     bridge_export="$bridge/v0.9.1-bridge-export.jsonl"
     run_in_directory "$bridge" "$bridge_bin" --no-daemon --no-auto-import export --format jsonl > "$bridge_export" || die "$version: v0.49.6 bridge export failed"
     jq -s -e 'length == 3 and any(.[]; .id == "hist091-1" and .description == "v0.9.1 source description" and .design == "v0.9.1 source design" and .acceptance_criteria == "v0.9.1 source acceptance" and ((.labels | sort) == ["historical-upgrade", "v091-source"])) and any(.[]; .id == "hist091-3" and .status == "closed" and .closed_at != null) and any(.[]; .id == "hist091-2" and (.dependencies | any(.[]; .type == "blocks")) and (.dependencies | any(.[]; .type == "related")))' "$bridge_export" >/dev/null || die "$version: v0.49.6 bridge did not preserve source data"
     [ "$(classic_source_fingerprint)" = "$before" ] || die "$version: bridge changed original source"
-    mv -f "$workspace/.beads" "$workspace/v0.9.1-source" || die "$version: could not retain source rollback copy"
-    mkdir -p "$workspace/.beads"
-    cp -f "$bridge_export" "$workspace/.beads/v0.9.1-bridge-export.jsonl"
-    cp -f "$bridge_export" "$workspace/.beads/issues.jsonl"
+    mv -f "$workspace/.issuegraph" "$workspace/v0.9.1-source" || die "$version: could not retain source rollback copy"
+    mkdir -p "$workspace/.issuegraph"
+    cp -f "$bridge_export" "$workspace/.issuegraph/v0.9.1-bridge-export.jsonl"
+    cp -f "$bridge_export" "$workspace/.issuegraph/issues.jsonl"
     save_retained_digest v091 "$version"
     run_in_workspace "$candidate" init --from-jsonl --quiet --skip-hooks --skip-agents --prefix hist091 || die "$version: candidate could not import bridge export"
     migrate_schema_current "$version" first
@@ -1030,9 +1030,9 @@ run_embedded_dolt_upgrade() {
     source=$(download_verified_release_binary "$version") || die "$version: verified release is unavailable"
     run_in_workspace "$source" init --quiet --prefix "hist${version//[^0-9]/}" || die "$version: embedded source init failed"
     create_historical_fixture "$version" "$source"
-    metadata="$workspace/.beads/metadata.json"
-    [ -d "$workspace/.beads/embeddeddolt" ] || die "$version: source did not create embedded Dolt data"
-    [ ! -e "$workspace/.beads/dolt" ] || die "$version: source created a phantom server-Dolt directory"
+    metadata="$workspace/.issuegraph/metadata.json"
+    [ -d "$workspace/.issuegraph/embeddeddolt" ] || die "$version: source did not create embedded Dolt data"
+    [ ! -e "$workspace/.issuegraph/dolt" ] || die "$version: source created a phantom server-Dolt directory"
     jq -e '.backend == "dolt" and .dolt_mode == "embedded"' "$metadata" >/dev/null ||
         die "$version: source metadata does not select embedded Dolt"
     metadata_sha=$(sha256_file "$metadata") || die "$version: could not fingerprint source metadata"
@@ -1068,22 +1068,22 @@ run_embedded_dolt_upgrade() {
     ready=$(run_in_workspace "$candidate" ready --json) || die "$version: candidate ready recheck failed"
     jq -e --arg blocker "$blocker" 'type == "array" and any(.[]; .id == $blocker)' <<< "$ready" >/dev/null ||
         die "$version: dependent did not become ready after its blocker closed"
-    [ ! -e "$workspace/.beads/dolt" ] || die "$version: candidate created a phantom server-Dolt directory"
+    [ ! -e "$workspace/.issuegraph/dolt" ] || die "$version: candidate created a phantom server-Dolt directory"
 }
 
 run_dolt_upgrade() {
     local version="$1" source init_port
     printf '\n● Historical Dolt upgrade: %s → candidate\n' "$version"
     source=$(download_verified_release_binary "$version") || die "$version: verified release is unavailable"
-    mkdir -p "$workspace/.beads/dolt"
-    start_historical_server "$workspace/.beads/dolt"
+    mkdir -p "$workspace/.issuegraph/dolt"
+    start_historical_server "$workspace/.issuegraph/dolt"
     init_port="$server_port"
     # v0.55.4 bootstraps the database in-process even with --server, then
     # persists server metadata for subsequent commands. Avoid opening the same
     # directory through the external server until that bootstrap is complete.
     [ "$version" != v0.55.4 ] || stop_historical_server
     run_in_workspace "$source" init --quiet --prefix "hist${version//[^0-9]/}" --server --server-host 127.0.0.1 --server-port "$init_port" || die "$version: source init failed against isolated server"
-    [ "$version" != v0.55.4 ] || start_historical_server "$workspace/.beads/dolt" "$init_port"
+    [ "$version" != v0.55.4 ] || start_historical_server "$workspace/.issuegraph/dolt" "$init_port"
     create_historical_fixture "$version" "$source"
     seed_legacy_issues_jsonl_sentinel "$version"
     verify_legacy_server_refusal_before_bridge "$version"
@@ -1102,11 +1102,11 @@ run_v0554_default_embedded_dolt_upgrade() {
     run_in_workspace "$source" init --quiet --prefix hist055default --skip-hooks ||
         die "$version: default embedded source init failed"
     create_historical_fixture "$version" "$source"
-    [ -d "$workspace/.beads/dolt" ] || die "$version: default source did not create .beads/dolt"
-    [ ! -e "$workspace/.beads/embeddeddolt" ] || die "$version: default source created a current embedded-Dolt directory"
+    [ -d "$workspace/.issuegraph/dolt" ] || die "$version: default source did not create .issuegraph/dolt"
+    [ ! -e "$workspace/.issuegraph/embeddeddolt" ] || die "$version: default source created a current embedded-Dolt directory"
     jq -e '.database == "dolt" and .jsonl_export == "issues.jsonl" and .backend == "dolt" and
-        (.dolt_mode | not) and (.dolt_database | type == "string" and startswith("beads_"))' \
-        "$workspace/.beads/metadata.json" >/dev/null || die "$version: default source metadata is not the reviewed embedded-in-dolt shape"
+        (.dolt_mode | not) and (.dolt_database | type == "string" and startswith("issuegraph_"))' \
+        "$workspace/.issuegraph/metadata.json" >/dev/null || die "$version: default source metadata is not the reviewed embedded-in-dolt shape"
     before=$(classic_source_fingerprint) || die "$version: could not fingerprint default embedded source"
     output="$workspace/candidate-legacy-embedded-refusal.out"
     if run_in_workspace "$candidate" list > "$output" 2>&1; then
@@ -1114,7 +1114,7 @@ run_v0554_default_embedded_dolt_upgrade() {
     fi
     grep -Fq 'explicit migration is required' "$output" ||
         die "$version: candidate list did not refuse with explicit migration is required"
-    grep -Fq 'legacy Dolt workspace from bd 0.55.4' "$output" ||
+    grep -Fq 'legacy Dolt workspace from issuegraph 0.55.4' "$output" ||
         die "$version: candidate list did not identify the legacy embedded-in-dolt layout"
     after=$(classic_source_fingerprint) || die "$version: could not refingerprint default embedded source"
     [ "$after" = "$before" ] || die "$version: candidate list changed default embedded source before refusal"
@@ -1136,7 +1136,7 @@ run_v0554_default_embedded_dolt_upgrade() {
 # wisp_dependencies, wisp_comments, leases and events over rows no existing
 # upgrade test creates.
 #
-# There is no `bd dolt sql`, so plane state (updated_at, is_blocked,
+# There is no `issuegraph dolt sql`, so plane state (updated_at, is_blocked,
 # leases.granted_node, dolt_ignore, dolt_status, row counts) is read with the
 # pinned external Dolt CLI as a read-only oracle, the way #5816's field repro
 # inspected a real store. `dolt sql -q` can exit 0 on failure
@@ -1147,12 +1147,12 @@ run_v0554_default_embedded_dolt_upgrade() {
 # assumed, so the lane can stay one shape across both regimes:
 #
 #   v1.0.1  v1.1.0  v1.1.2
-#     yes     yes     yes    bd create --ephemeral
+#     yes     yes     yes    issuegraph create --ephemeral
 #     yes     yes     yes    dep add: wisp->issue, wisp->wisp, conditional-blocks
 #     yes     yes     yes    dep add: issue->wisp (main dependencies table)
 #     yes     yes     yes    comments add / label add on a wisp
-#     yes     yes     yes    bd mol wisp list --all --json
-#     yes     yes     yes    bd dolt remote add / push over file://
+#     yes     yes     yes    issuegraph mol wisp list --all --json
+#     yes     yes     yes    issuegraph dolt remote add / push over file://
 #      no     yes     yes    a pre-upgrade remote the candidate will still migrate
 #      no     yes     yes    wisps.is_blocked column
 #      no     yes     yes    post-split wisp_dependencies target columns
@@ -1178,7 +1178,7 @@ is_embedded_dolt_version() {
 # A pre-upgrade Dolt remote is authentic input only where the candidate will
 # still migrate the clone. Probed at implementation time: at v1.0.1 a configured
 # remote trips the #4259 designated-migrator refusal (main cursor 32 -> 66 is
-# not a same-version first mover), so `bd list` refuses and nothing migrates. At
+# not a same-version first mover), so `issuegraph list` refuses and nothing migrates. At
 # v1.1.x the smart gate admits the upgrade as a safe first mover (#4516), so the
 # remote is seeded there and the version-control checks run against it.
 wisp_lane_has_remote() {
@@ -1186,7 +1186,7 @@ wisp_lane_has_remote() {
 }
 
 wisp_embedded_db_dir() {
-    local version="$1" root="$workspace/.beads/embeddeddolt" dir
+    local version="$1" root="$workspace/.issuegraph/embeddeddolt" dir
     dir=$(find "$root" -mindepth 2 -maxdepth 2 -type d -name .dolt -printf '%h\n' 2>/dev/null | head -1)
     [ -n "$dir" ] || die "$version: could not locate the embedded Dolt database under $root"
     printf '%s\n' "$dir"
@@ -1452,7 +1452,7 @@ wisp_moved_rows() {
 # all be blocked; the plain and closed wisps must not be. I2 carries the
 # issue-blocked-by-wisp edge through dependencies.depends_on_wisp_id.
 #
-# `bd ready` never lists wisps, so the CLI cross-check is `bd blocked`, which
+# `issuegraph ready` never lists wisps, so the CLI cross-check is `issuegraph blocked`, which
 # does cover them (probed at implementation time).
 verify_is_blocked() {
     local version="$1" actual expected blocked w1 w2 w3 w4 w5 i1 i2
@@ -1474,7 +1474,7 @@ verify_is_blocked() {
     jq -e --arg w3 "$w3" --arg i2 "$i2" '
         type == "array" and any(.[]; .id == $w3) and any(.[]; .id == $i2)
     ' <<< "$blocked" >/dev/null ||
-        die "$version: bd blocked did not report the blocked wisp and the wisp-gated issue"
+        die "$version: issuegraph blocked did not report the blocked wisp and the wisp-gated issue"
 }
 
 # 0055, 0062 and 0064 each register new ignored tables. Registration reads the
@@ -1490,7 +1490,7 @@ verify_ignore_superset_and_clean_status() {
     [ -z "$missing" ] ||
         die "$version: upgrade clobbered pre-existing dolt_ignore patterns:$missing"
 
-    for pattern in leases events bd_events_journal bd_events_seq; do
+    for pattern in leases events issuegraph_events_journal issuegraph_events_seq; do
         grep -Fxq "$pattern" <(tail -n +2 "$workspace/oracle-ignore-after.csv") ||
             die "$version: upgrade did not register '$pattern' in dolt_ignore"
     done
@@ -1499,7 +1499,7 @@ verify_ignore_superset_and_clean_status() {
     [ "$dirty" = 0 ] ||
         die "$version: upgrade left $dirty dirty tracked table(s): $(oracle_rows "$version" 'SELECT table_name FROM dolt_status' | tr '\n' ' ')"
     run_in_workspace "$candidate" dolt status >/dev/null ||
-        die "$version: bd dolt status failed after the upgrade"
+        die "$version: issuegraph dolt status failed after the upgrade"
 }
 
 # 0062 drops, commits and recreates events as an ignored table. Every row has to
@@ -1537,8 +1537,8 @@ verify_lease_plane() {
         die "$version: the lease row does not belong to the claimed issue"
     [ -n "$(tr -d '[:space:]"' <<< "$holder")" ] ||
         die "$version: the lease row has an empty holder"
-    # TODO(lease-granted-node): `bd update --claim` currently leaves
-    # granted_node empty and `bd show --json` exposes no lease_granted_node
+    # TODO(lease-granted-node): `issuegraph update --claim` currently leaves
+    # granted_node empty and `issuegraph show --json` exposes no lease_granted_node
     # field, so the column's presence is asserted above and its population is
     # not yet gated. Tighten once the claim path writes the node identity.
     detail=$(run_in_workspace "$candidate" show "$i1" --json) ||
@@ -1606,12 +1606,12 @@ verify_wisp_dependency_split() {
 verify_events_journal_and_wisp_write() {
     local version="$1" w1 detail
     w1=$(wisp_id 3)
-    oracle_table_exists "$version" bd_events_journal ||
-        die "$version: the upgrade did not create bd_events_journal"
-    oracle_column_exists "$version" bd_events_journal actor ||
-        die "$version: bd_events_journal has no actor column after the upgrade (0066/ignored-0025)"
-    oracle_table_exists "$version" bd_events_seq ||
-        die "$version: the upgrade did not create bd_events_seq"
+    oracle_table_exists "$version" issuegraph_events_journal ||
+        die "$version: the upgrade did not create issuegraph_events_journal"
+    oracle_column_exists "$version" issuegraph_events_journal actor ||
+        die "$version: issuegraph_events_journal has no actor column after the upgrade (0066/ignored-0025)"
+    oracle_table_exists "$version" issuegraph_events_seq ||
+        die "$version: the upgrade did not create issuegraph_events_seq"
 
     run_in_workspace "$candidate" update "$w1" --notes 'post-upgrade wisp mutation' >/dev/null ||
         die "$version: candidate could not mutate a wisp after the upgrade"
@@ -1625,9 +1625,9 @@ verify_events_journal_and_wisp_write() {
     # no-daemon isolation, so the shape is gated here and the row-level actor
     # assertion is not. These must still run clean on a migrated store.
     run_in_workspace "$candidate" events export >/dev/null ||
-        die "$version: bd events export failed on the migrated store"
+        die "$version: issuegraph events export failed on the migrated store"
     run_in_workspace "$candidate" events tail >/dev/null ||
-        die "$version: bd events tail failed on the migrated store"
+        die "$version: issuegraph events tail failed on the migrated store"
 }
 
 # Push before pull: the 0062 flip leaves the local events table diverged from
@@ -1682,7 +1682,7 @@ run_wisp_plane_upgrade() {
     source=$(download_verified_release_binary "$version") || die "$version: verified release is unavailable"
     run_in_workspace "$source" init --quiet --prefix histwisp --skip-hooks --skip-agents ||
         die "$version: wisp-plane source init failed"
-    [ -d "$workspace/.beads/embeddeddolt" ] ||
+    [ -d "$workspace/.issuegraph/embeddeddolt" ] ||
         die "$version: wisp-plane source did not create embedded Dolt data"
     create_wisp_fixture "$version" "$source"
     snapshot_wisp_plane "$version" before
@@ -1709,10 +1709,10 @@ run_wisp_plane_upgrade() {
     verify_events_journal_and_wisp_write "$version"
     verify_ignored_track_idempotence "$version"
     verify_wisp_vc_ops "$version"
-    # 'bd doctor' has no embedded-mode JSON report; quick is the supported
+    # 'issuegraph doctor' has no embedded-mode JSON report; quick is the supported
     # health surface here (probed at implementation time).
     run_in_workspace "$candidate" doctor quick >/dev/null ||
-        die "$version: bd doctor quick failed after the upgrade"
+        die "$version: issuegraph doctor quick failed after the upgrade"
 }
 
 # #5816: an ignored-named table that is tracked at HEAD *and* dirty, with
@@ -1731,7 +1731,7 @@ run_wisp_plane_upgrade() {
 # the dirty tables rather than failing opaquely.
 #
 # TODO(#5816): once the fix lands, tighten this to "the open must succeed and
-# `bd dolt commit` must clear the dirty state".
+# `issuegraph dolt commit` must clear the dirty state".
 run_dirty_tracked_wisp_scenario() {
     local version="$1" source i1 w1 w2 before after output table
     printf '\n● Dirty tracked wisp tables (#5816): %s → candidate\n' "$version"
@@ -1782,7 +1782,7 @@ run_dirty_tracked_wisp_scenario() {
 }
 
 prepare_workspace() {
-    workspace=$(mktemp -d "$RUN_ROOT/bd-historical-upgrade.XXXXXX") || die 'could not create isolated workspace'
+    workspace=$(mktemp -d "$RUN_ROOT/issuegraph-historical-upgrade.XXXXXX") || die 'could not create isolated workspace'
     public_bridge_destination=""
     mkdir -p "$workspace/home" "$workspace/home/config" "$workspace/home/cache"
     chmod 700 "$workspace/home" "$workspace/home/config" "$workspace/home/cache"

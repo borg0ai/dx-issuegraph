@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // BuildReclaimScopeClauses renders the WHERE fragments that scope a reclaim to
@@ -25,7 +25,7 @@ import (
 //
 // FAIL-CLOSED on a degenerate field: a field that carries entries which are ALL
 // empty strings renders "1=0" (match nothing) rather than dropping out. Dropping
-// out is how `bd reclaim --label "$LANE"` with LANE unset would silently become
+// out is how `issuegraph reclaim --label "$LANE"` with LANE unset would silently become
 // a GLOBAL sweep — the precise accident scoping exists to prevent. Reclaiming
 // nothing is recoverable; reclaiming the whole federation is not. (The CLI
 // rejects such a flag outright; this is the belt to that suspenders, covering

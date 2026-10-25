@@ -38,7 +38,7 @@ one capability split in two — and the split is only worth it if each half is
 reachable, contract-pinned and named on its own terms afterwards.
 
 `issueops.BatchCreator` and `issueops.BatchApplier` are the worked example.
-Both write many beads in one transaction, and the tempting reading is that the
+Both write many issuegraph in one transaction, and the tempting reading is that the
 second subsumes the first: an apply plan of N create items is a batch create.
 It is not, and the reason is what to copy:
 
@@ -47,7 +47,7 @@ It is not, and the reason is what to copy:
   request order; `batchApply` takes a heterogeneous plan of creates, updates
   and closes over rows that may not exist yet, with intra-plan references and a
   per-item guard vocabulary. Folding the first into the second would make every
-  caller of "create these ten beads" compose a plan.
+  caller of "create these ten issuegraph" compose a plan.
 - **The REFUSALS differ, and a caller dispatches on them.** `batchApply`'s 409
   vocabulary carries `item_index`, `item_kind`, `item_key` and
   `item_issue_id`, because an item is the unit that failed. `batchCreate` has
@@ -93,8 +93,8 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
 1. **The leaf contract.** `issueops/<role>.go`. Request and result types plus
    the interface, with the doc comment written as a SPECIFICATION — every
    promise a conformance case will cite by line. The package imports
-   `internal/types`, `beadserrors` and stdlib only, and exports no
-   constructors. A leaf in some OTHER namespace imports `beadserrors` and
+   `internal/types`, `issuegrapherrors` and stdlib only, and exports no
+   constructors. A leaf in some OTHER namespace imports `issuegrapherrors` and
    stdlib, and reaches for `internal/types` only if its plane actually holds
    issue-shaped things — `memoryops` does not, and says so.
    Template: `issueops/readyclaimer.go`, `issueops/commenter.go`.
@@ -107,7 +107,7 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
 
 3. **The store-backed body**, shared by dolt and embeddeddolt:
    `internal/workapi/store<role>/`. Its own package, not a file in
-   `internal/workapi` — 22 `modules/cli` files already import workapi, so a
+   `internal/workapi` — 22 `apps/cli` files already import workapi, so a
    constructor there is one line away from any front door, and a front door
    that constructed the role directly would get one stripped of its decorators.
 
@@ -344,8 +344,8 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
     | `routes.go` | The `routeTable` row, carrying the `capability` token |
     | `server.go` | A required `Config` field, its entry in `sourceRoles`, its name in `roleSourceNames`, the `Server` field, the `Listen` assignment, and the per-request accessor |
     | `claim.go` | The `timedProvider` accessor, plus the `uow.<Role>Source` compile-time assertion beside its siblings |
-    | `modules/cli/serve.go` | The `serveRoleSource` method, the `serveIssueRoles` row, the `serveRoles` field, and the `httpapi.Config` literal |
-    | `modules/cli/serve_source_test.go`, `modules/cli/serve_store_identity_test.go` | The two serve stubs — a COMPILE ERROR since #5539 if you forget, see "the step with no number" |
+    | `apps/cli/serve.go` | The `serveRoleSource` method, the `serveIssueRoles` row, the `serveRoles` field, and the `httpapi.Config` literal |
+    | `apps/cli/serve_source_test.go`, `apps/cli/serve_store_identity_test.go` | The two serve stubs — a COMPILE ERROR since #5539 if you forget, see "the step with no number" |
 
     Nine files, and the spec tests name most of them if you miss one. Budget
     `server.go` in particular: six lines in one file, and the `Config` field is
@@ -361,7 +361,7 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
     one that does.** It answers a startup hook rather than a command: its two
     markers are clone-local and dolt-ignored, so they describe the machine
     holding the database and mean nothing to a remote caller, and the one
-    version fact a client can act on is already `ContextResponse.bd_version`.
+    version fact a client can act on is already `ContextResponse.issuegraph_version`.
     Writing that decision down — in the leaf doc, beside the promises, and in
     AMBIGUITIES.md for the owner — is the work. Adding an operation because the
     checklist has a row for one is not.
@@ -391,7 +391,7 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
 | | files |
 |---|---|
 | new production files | 6 (leaf, builder, store body, uow body, hook wrapper, telemetry wrapper) + 2 store accessors |
-| edited production files | 3 (`storage.go`, `modules/cli/count.go`, `modules/cli/count_proxied_server.go`) |
+| edited production files | 3 (`storage.go`, `apps/cli/count.go`, `apps/cli/count_proxied_server.go`) |
 | new test files | 4 (contract + three wirings) + 1 builder unit test |
 | edited test files | 5 (two decorator enumerations, the root layering pins, the command's own, the `internal/jira` stub from step 9) |
 | config | 1 (`.golangci.yml`: one deny entry added, one exception entry removed) |
@@ -399,7 +399,7 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
 Counter's commit also touched three files the next role will not: renaming the
 depguard rule from `cmd-bd-reader-constructor` to `cmd-bd-role-constructors`
 moved a word in `internal/workapi/storereader/reader.go`,
-`modules/cli/show_proxied_server.go` and `issueops/reader.go`. That was the one-off
+`apps/cli/show_proxied_server.go` and `issueops/reader.go`. That was the one-off
 generalization that made step 12 a one-line edit from here on.
 
 Nine of those are mechanical once the leaf contract is written. The two that
@@ -431,9 +431,9 @@ because that is the list a third one inherits, and each of these reads like a
 convention until you notice it was situational.
 
 **Alias the sentinels; do not mint a second vocabulary.** `memoryops/errors.go`
-is one line of declaration — `var ErrValidation = beadserrors.ErrValidation`
+is one line of declaration — `var ErrValidation = issuegrapherrors.ErrValidation`
 — and the IDENTITY is the entire point. `errors.Is` against that one
-value is what the HTTP problem classifier, `modules/cli`'s error handling and every
+value is what the HTTP problem classifier, `apps/cli`'s error handling and every
 conformance contract already do. A `memoryops`-flavored twin would be a
 different value meaning the same thing, so all of those sites would have to
 match both forever; and the cost is not the double-match, it is the site that
@@ -442,22 +442,22 @@ error. Re-exporting rather than telling callers to reach through the declaring
 package is the other half: code holding only `Memories` can classify a refusal
 without discovering a second import.
 
-**Alias DOWNWARD, to `beadserrors`, not sideways into `issueops`.** This is the
+**Alias DOWNWARD, to `issuegrapherrors`, not sideways into `issueops`.** This is the
 part the second namespace got wrong first and then fixed. `memoryops` originally
 aliased `issueops.ErrValidation`, which kept identity but put the issue package
 in a memory leaf's dependency graph with `internal/types` behind it — a claim
 that the memory plane sits downstream of the issue plane, when the two are
-siblings over one config table. `beadserrors` now declares the namespace-neutral
+siblings over one config table. `issuegrapherrors` now declares the namespace-neutral
 vocabulary (`ErrValidation`, `ErrNotFound`, `ErrNotInitialized`, the
 `ErrUnsupported` type) and `issueops` re-exports it by alias like everyone else.
-`memoryops` depends on `beadserrors` and `context`, nothing more.
+`memoryops` depends on `issuegrapherrors` and `context`, nothing more.
 
 The test for what belongs down there: **would a leaf for a plane nobody has
 written yet need it?** A request can be invalid, a row can be missing, a
 substrate can be uninitialized and a backend can not implement a capability, on
 any plane. `ErrCloseBlocked` and `ErrDependencyCycle` name issue concepts and
-stay put. `beadserrors` imports stdlib and nothing else — enforced by the
-`beadserrors-leaf` depguard rule, not just asked for, because the next tempting
+stay put. `issuegrapherrors` imports stdlib and nothing else — enforced by the
+`issuegrapherrors-leaf` depguard rule, not just asked for, because the next tempting
 import is always one shared constant that "obviously belongs with the errors".
 
 **One earlier claim here was wrong and is worth keeping visible**: this section
@@ -481,18 +481,18 @@ entries at all, and the absence has to be readable as a decision rather than as
 a step someone skipped.
 
 `issueops.BatchApplier` is the second role with no entry, for the same reason
-and one more: its step-3 body is an `…InTx` function AND it has no `modules/cli`
+and one more: its step-3 body is an `…InTx` function AND it has no `apps/cli`
 front door at all in the slice that introduced it — it landed with the HTTP
 half only. An absent CLI is a decision too, and the place to write it down is
 the leaf doc beside the promises, exactly as `VersionReconciler` writes down
 its absent HTTP half.
 
 The test: **does step 3 have an exported constructor returning the role
-interface, in a package a `modules/cli` file can import?**
+interface, in a package a `apps/cli` file can import?**
 `internal/workapi/store<role>` does, so it gets an entry. A `…InTx` function
 does not. What the test is NOT is "does the namespace have a package below the
 role" — `internal/memoryapi` is exactly that, holds `DeriveKey`, the two
-refusals and the search filter, and is deliberately importable from `modules/cli`
+refusals and the search filter, and is deliberately importable from `apps/cli`
 (`internal/memoryapi/memoryapi.go:7-13`),
 because the `issuegraph remember` front door has to derive a key to recognize the
 bare-slug case before it knows which method to call. Denying the meaning layer
@@ -564,8 +564,8 @@ may be a row that cannot fail.**
 
 `journalops.Journal` is the durable mutation journal's read side: the
 seq-ordered replay feed behind `issuegraph events tail`, `issuegraph events export` and
-`GET /v0/beads/events`. It is a third leaf rather than a role in either
-existing one because its rows are neither beads nor settings — they are
+`GET /v0/issuegraph/events`. It is a third leaf rather than a role in either
+existing one because its rows are neither issuegraph nor settings — they are
 clone-local engine state on a `dolt_ignore`d table, written in the same
 transaction as the mutation they describe, versioned by nothing and replicated
 nowhere. A plane whose rows deliberately survive no merge has nothing in common
@@ -579,7 +579,7 @@ things did not, and the first two are the ones a fourth namespace inherits.
 source parse rather than a convenience.** Every other role in this tree is
 handed out by a method on a store or a provider; this one is reached by TYPE
 ASSERTION, because the journal is not on `storage.DoltStorage`'s published
-surface and a backend is free not to implement it (`modules/cli/serve.go`,
+surface and a backend is free not to implement it (`apps/cli/serve.go`,
 `serveJournalCursor`). `issueops.Importer` is the precedent and the warning: it
 had no contract case from the day it was written and nothing noticed, precisely
 because a reflection-only census can only ask about types something already
@@ -618,7 +618,7 @@ names and a constant moved from `internal/storage` into the leaf and the old
 spellings became aliases —
 `type EventsJournalCursor = journalops.Journal` and its three siblings — and
 the whole tree compiled with **no non-test change anywhere else**: not in
-`internal/httpapi`, not in `modules/cli`, not in any of the four implementations,
+`internal/httpapi`, not in `apps/cli`, not in any of the four implementations,
 not in the enterprise sync. `errors.As` against `*journalops.TruncatedError`
 matches an error every leg constructs as `*storage.EventsJournalTruncatedError`,
 because they are one type. The direction is what has to be right — the leaf
@@ -715,8 +715,8 @@ surface has to agree with the other.
 
 **Then go back and update the leaf when a front door lands**, because the same
 sentence that made the absence legible makes it a lie the moment it stops being
-true. `GET /v0/beads/dependencies:count` landed in #5536 and
-`GET /v0/beads/issues/{id}/related` in #5540; the first left `graphcounter.go`
+true. `GET /v0/issuegraph/dependencies:count` landed in #5536 and
+`GET /v0/issuegraph/issues/{id}/related` in #5540; the first left `graphcounter.go`
 saying it had "no HTTP operation either" and promising a bound "the graph-counts
 wire slice sets" in the future tense, over a slice that had already set it. A
 facade-only leaf carries a claim with an expiry date on it. The wire slice owns
@@ -771,7 +771,7 @@ refuse a hook-firing one — missing it is an `issuegraph serve` that runs a use
 subprocess per call); `uow`'s notifying wrapper, in BOTH halves — the recording
 use case, which silently records nothing for an inherited method, and the
 notifying provider, whose missing accessor makes a caller's type assertion stop
-matching; and two `modules/cli` stub stores that embedded `storage.DoltStorage`. Grep
+matching; and two `apps/cli` stub stores that embedded `storage.DoltStorage`. Grep
 for the embed, not for the interface.
 
 **A READ ROLE IS THE ONE THAT BITES, and the reason is the decorator, not the
@@ -791,7 +791,7 @@ shard — a test about hook peeling, which no `-run` pattern anyone reaches for
 names, so local runs never touched it. **The sharpened rule: a role bound in
 `serveIssueRoles` must be DECLARED on the serve stub store in the same commit.**
 
-Those two `modules/cli` stubs are the one place this step is now taken FOR you.
+Those two `apps/cli` stubs are the one place this step is now taken FOR you.
 `serveIssueRoles` asks for `serveRoleSource` — the accessor subset it actually
 reaches — and both stubs declare that subset, assert it with
 `var _ serveRoleSource = (*serveRolesStore)(nil)`, and embed NOTHING, so there
@@ -833,7 +833,7 @@ your mutation was in it.** Nothing automates this.
 **A wrapper is a composition, and the contract cannot see it.** `DoltStore` and
 `EmbeddedDoltStore` expose `UpdateIssueChecked`, `CloseIssueChecked` and
 `ClaimIssue` — published on `storage.DoltStorage`, with option types in
-`beads.go` — which assemble the shared bodies on their own. Deleting their only
+`issuegraph.go` — which assemble the shared bodies on their own. Deleting their only
 observers left `ExpectedStatus` routed on no branch at all, and disabling a
 wrapper's compare-and-set passed every contract case on that backend. When a
 wrapper has

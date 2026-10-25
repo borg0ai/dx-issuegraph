@@ -1,0 +1,948 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+
+	"github.com/borg0ai/dx-issuegraph/internal/ado"
+	"github.com/borg0ai/dx-issuegraph/internal/github"
+	"github.com/borg0ai/dx-issuegraph/internal/gitlab"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/jira"
+	"github.com/borg0ai/dx-issuegraph/internal/linear"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/notion"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/spf13/cobra"
+)
+
+// trackerPushPullFlags holds shared flags for push/pull subcommands.
+type trackerPushPullFlags struct {
+	dryRun bool
+}
+
+// --- ADO push/pull ---
+
+var adoPushCmd = &cobra.Command{
+	Use:   "push [issue-ids...]",
+	Short: "Push specific issuegraph to Azure DevOps",
+	Long: `Push one or more issuegraph issues to Azure DevOps.
+
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph ado sync --push-only --issues <ids>`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runADOPush,
+}
+
+var adoPullCmd = &cobra.Command{
+	Use:   "pull [refs...]",
+	Short: "Pull specific items from Azure DevOps",
+	Long: `Pull one or more items from Azure DevOps.
+
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph ado sync --pull-only --issues <refs>`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runADOPull,
+}
+
+// --- Jira push/pull ---
+
+var jiraPushCmd = &cobra.Command{
+	Use:   "push [issue-ids...]",
+	Short: "Push specific issuegraph to Jira",
+	Long: `Push one or more issuegraph issues to Jira.
+
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph jira sync --push --issues <ids>`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runJiraPush,
+}
+
+var jiraPullCmd = &cobra.Command{
+	Use:   "pull [refs...]",
+	Short: "Pull specific items from Jira",
+	Long: `Pull one or more items from Jira.
+
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph jira sync --pull --issues <refs>`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runJiraPull,
+}
+
+// --- Linear push/pull ---
+
+var linearPushCmd = &cobra.Command{
+	Use:   "push [issue-ids...]",
+	Short: "Push specific issuegraph to Linear",
+	Long: `Push one or more issuegraph issues to Linear.
+
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph linear sync --push --issues <ids>`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runLinearPush,
+}
+
+var linearPullCmd = &cobra.Command{
+	Use:   "pull [refs...]",
+	Short: "Pull specific items from Linear",
+	Long: `Pull one or more items from Linear.
+
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph linear sync --pull --issues <refs>`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runLinearPull,
+}
+
+// --- GitHub push/pull ---
+
+var githubPushCmd = &cobra.Command{
+	Use:     "push [issue-ids...]",
+	Aliases: []string{"export"},
+	Short:   "Push specific issuegraph to GitHub",
+	Long: `Push one or more issuegraph issues to GitHub.
+
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph github sync --push-only --issues <ids>`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runGitHubPush,
+}
+
+var githubPullCmd = &cobra.Command{
+	Use:     "pull [refs...]",
+	Aliases: []string{"import"},
+	Short:   "Pull specific items from GitHub",
+	Long: `Pull one or more items from GitHub.
+
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph github sync --pull-only --issues <refs>`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runGitHubPull,
+}
+
+// --- GitLab push/pull ---
+
+var gitlabPushCmd = &cobra.Command{
+	Use:   "push [issue-ids...]",
+	Short: "Push specific issuegraph to GitLab",
+	Long: `Push one or more issuegraph issues to GitLab.
+
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph gitlab sync --push-only --issues <ids>`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runGitLabPush,
+}
+
+var gitlabPullCmd = &cobra.Command{
+	Use:   "pull [refs...]",
+	Short: "Pull specific items from GitLab",
+	Long: `Pull one or more items from GitLab.
+
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph gitlab sync --pull-only --issues <refs>`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runGitLabPull,
+}
+
+// --- Notion push/pull ---
+
+var notionPushCmd = &cobra.Command{
+	Use:   "push [issue-ids...]",
+	Short: "Push specific issuegraph to Notion",
+	Long: `Push one or more issuegraph issues to Notion.
+
+Accepts issue IDs as positional arguments.
+Equivalent to: issuegraph notion sync --push --issues <ids>`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runNotionPush,
+}
+
+var notionPullCmd = &cobra.Command{
+	Use:   "pull [refs...]",
+	Short: "Pull specific items from Notion",
+	Long: `Pull one or more items from Notion.
+
+Accepts issue IDs or external references as positional arguments.
+Equivalent to: issuegraph notion sync --pull --issues <refs>`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE:          runNotionPull,
+}
+
+func init() {
+	// ADO push/pull
+	adoPushCmd.Flags().Bool("dry-run", false, "Preview push without making changes")
+	adoPullCmd.Flags().Bool("dry-run", false, "Preview pull without making changes")
+	adoCmd.AddCommand(adoPushCmd)
+	adoCmd.AddCommand(adoPullCmd)
+
+	// Jira push/pull
+	jiraPushCmd.Flags().Bool("dry-run", false, "Preview push without making changes")
+	jiraPullCmd.Flags().Bool("dry-run", false, "Preview pull without making changes")
+	jiraCmd.AddCommand(jiraPushCmd)
+	jiraCmd.AddCommand(jiraPullCmd)
+
+	// Linear push/pull
+	linearPushCmd.Flags().Bool("dry-run", false, "Preview push without making changes")
+	linearPullCmd.Flags().Bool("dry-run", false, "Preview pull without making changes")
+	linearPullCmd.Flags().Bool("relations", false, "Import Linear relations as issuegraph dependencies when pulling")
+	linearCmd.AddCommand(linearPushCmd)
+	linearCmd.AddCommand(linearPullCmd)
+
+	// GitHub push/pull
+	githubPushCmd.Flags().Bool("dry-run", false, "Preview push without applying changes")
+	githubPushCmd.Flags().Bool("apply", false, "Apply planned GitHub changes")
+	githubPullCmd.Flags().Bool("dry-run", false, "Preview pull without applying changes")
+	githubPullCmd.Flags().Bool("apply", false, "Apply planned local changes")
+	githubCmd.AddCommand(githubPushCmd)
+	githubCmd.AddCommand(githubPullCmd)
+
+	// GitLab push/pull
+	gitlabPushCmd.Flags().Bool("dry-run", false, "Preview push without making changes")
+	gitlabPullCmd.Flags().Bool("dry-run", false, "Preview pull without making changes")
+	gitlabCmd.AddCommand(gitlabPushCmd)
+	gitlabCmd.AddCommand(gitlabPullCmd)
+
+	// Notion push/pull
+	notionPushCmd.Flags().Bool("dry-run", false, "Preview push without making changes")
+	notionPullCmd.Flags().Bool("dry-run", false, "Preview pull without making changes")
+	notionCmd.AddCommand(notionPushCmd)
+	notionCmd.AddCommand(notionPullCmd)
+}
+
+// outputSyncResult writes sync results as JSON or human-readable text.
+func outputSyncResult(result *tracker.SyncResult, dryRun bool) {
+	if jsonOutput {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(result)
+		return
+	}
+	if dryRun {
+		fmt.Println("Dry run mode - no changes will be made")
+	}
+	if result.Stats.Pulled > 0 {
+		fmt.Printf("✓ Pulled %d issues (%d created, %d updated)\n",
+			result.Stats.Pulled, result.Stats.Created, result.Stats.Updated)
+	}
+	if result.Stats.Pushed > 0 {
+		fmt.Printf("✓ Pushed %d issues\n", result.Stats.Pushed)
+	}
+	if dryRun {
+		fmt.Println("\nRun without --dry-run to apply changes")
+	}
+}
+
+// --- ADO implementations ---
+
+func runADOPush(cmd *cobra.Command, args []string) error {
+	evt := metrics.NewCommandEvent("ado-push")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	if len(args) == 0 {
+		return fmt.Errorf("at least one issue ID is required")
+	}
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	if !dryRun {
+		CheckReadonly("ado push")
+	}
+
+	cfg := getADOConfig()
+	if err := validateADOConfig(cfg); err != nil {
+		return err
+	}
+	if err := ensureStoreActive(); err != nil {
+		return fmt.Errorf("database not available: %w", err)
+	}
+
+	ctx := cmd.Context()
+	at := &ado.Tracker{}
+	if err := at.Init(ctx, store); err != nil {
+		return fmt.Errorf("initializing Azure DevOps tracker: %w", err)
+	}
+
+	engine := tracker.NewEngine(at, store, actor)
+	engine.OnMessage = func(msg string) { fmt.Println("  " + msg) }
+	engine.OnWarning = func(msg string) { fmt.Fprintf(os.Stderr, "Warning: %s\n", msg) }
+
+	result, err := engine.Sync(ctx, tracker.SyncOptions{
+		Push:     true,
+		Pull:     false,
+		DryRun:   dryRun,
+		IssueIDs: args,
+	})
+	if err != nil {
+		return err
+	}
+	outputSyncResult(result, dryRun)
+	return nil
+}
+
+func runADOPull(cmd *cobra.Command, args []string) error {
+	evt := metrics.NewCommandEvent("ado-pull")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	if len(args) == 0 {
+		return fmt.Errorf("at least one issue ID or external reference is required")
+	}
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	if !dryRun {
+		CheckReadonly("ado pull")
+	}
+
+	cfg := getADOConfig()
+	if err := validateADOConfig(cfg); err != nil {
+		return err
+	}
+	if err := ensureStoreActive(); err != nil {
+		return fmt.Errorf("database not available: %w", err)
+	}
+
+	ctx := cmd.Context()
+	at := &ado.Tracker{}
+	if err := at.Init(ctx, store); err != nil {
+		return fmt.Errorf("initializing Azure DevOps tracker: %w", err)
+	}
+
+	engine := tracker.NewEngine(at, store, actor)
+	engine.PullHooks = buildADOPullHooks(ctx, at, false, false, new(int), engine.OnWarning)
+	engine.OnMessage = func(msg string) { fmt.Println("  " + msg) }
+	engine.OnWarning = func(msg string) { fmt.Fprintf(os.Stderr, "Warning: %s\n", msg) }
+
+	result, err := engine.Sync(ctx, tracker.SyncOptions{
+		Pull:     true,
+		Push:     false,
+		DryRun:   dryRun,
+		IssueIDs: args,
+	})
+	if err != nil {
+		return err
+	}
+	outputSyncResult(result, dryRun)
+	return nil
+}
+
+// --- Jira implementations ---
+
+func runJiraPush(cmd *cobra.Command, args []string) error {
+	evt := metrics.NewCommandEvent("jira-push")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	if len(args) == 0 {
+		return HandleError("at least one issue ID is required")
+	}
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	if !dryRun {
+		CheckReadonly("jira push")
+	}
+
+	trackerStore, err := trackerStoreForCommand(rootCtx)
+	if err != nil {
+		return HandleError("database not available: %v", err)
+	}
+	if err := validateJiraConfigForStore(trackerStore); err != nil {
+		return HandleError("%v", err)
+	}
+
+	ctx := rootCtx
+	jt := &jira.Tracker{}
+	if err := jt.Init(ctx, trackerStore); err != nil {
+		return HandleError("initializing Jira tracker: %v", err)
+	}
+
+	engine := tracker.NewEngine(jt, trackerStore, actor)
+	engine.OnMessage = func(msg string) { fmt.Println("  " + msg) }
+	engine.OnWarning = func(msg string) { fmt.Fprintf(os.Stderr, "Warning: %s\n", msg) }
+	engine.PushHooks = buildJiraPushHooksForStore(ctx, trackerStore)
+
+	result, err := engine.Sync(ctx, tracker.SyncOptions{
+		Push:     true,
+		Pull:     false,
+		DryRun:   dryRun,
+		IssueIDs: args,
+	})
+	if err != nil {
+		return HandleError("sync failed: %v", err)
+	}
+	outputSyncResult(result, dryRun)
+	return nil
+}
+
+func runJiraPull(cmd *cobra.Command, args []string) error {
+	evt := metrics.NewCommandEvent("jira-pull")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	if len(args) == 0 {
+		return HandleError("at least one issue ID or external reference is required")
+	}
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	if !dryRun {
+		CheckReadonly("jira pull")
+	}
+
+	trackerStore, err := trackerStoreForCommand(rootCtx)
+	if err != nil {
+		return HandleError("database not available: %v", err)
+	}
+	if err := validateJiraConfigForStore(trackerStore); err != nil {
+		return HandleError("%v", err)
+	}
+
+	ctx := rootCtx
+	jt := &jira.Tracker{}
+	if err := jt.Init(ctx, trackerStore); err != nil {
+		return HandleError("initializing Jira tracker: %v", err)
+	}
+
+	engine := tracker.NewEngine(jt, trackerStore, actor)
+	engine.OnMessage = func(msg string) { fmt.Println("  " + msg) }
+	engine.OnWarning = func(msg string) { fmt.Fprintf(os.Stderr, "Warning: %s\n", msg) }
+
+	result, err := engine.Sync(ctx, tracker.SyncOptions{
+		Pull:     true,
+		Push:     false,
+		DryRun:   dryRun,
+		IssueIDs: args,
+	})
+	if err != nil {
+		return HandleError("sync failed: %v", err)
+	}
+	outputSyncResult(result, dryRun)
+	return nil
+}
+
+// --- Linear implementations ---
+
+func runLinearPush(cmd *cobra.Command, args []string) error {
+	evt := metrics.NewCommandEvent("linear-push")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	if len(args) == 0 {
+		return HandleError("at least one issue ID is required")
+	}
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	if !dryRun {
+		CheckReadonly("linear push")
+	}
+
+	if lockDir := issuegraph.FindIssueGraphDir(); lockDir != "" {
+		syncLock, err := linear.AcquireSyncLock(lockDir, true)
+		if err != nil {
+			return HandleError("acquiring sync lock: %v", err)
+		}
+		defer func() {
+			if err := syncLock.Release(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to release sync lock: %v\n", err)
+			}
+		}()
+	}
+
+	trackerStore, err := trackerStoreForCommand(rootCtx)
+	if err != nil {
+		return HandleError("database not available: %v", err)
+	}
+	if err := validateLinearConfigForStore(trackerStore, nil); err != nil {
+		return HandleError("%v", err)
+	}
+
+	ctx := rootCtx
+	teamIDs := getLinearTeamIDsForStore(ctx, trackerStore, nil)
+	if len(teamIDs) > 1 {
+		return HandleError("linear push does not support multiple configured teams\nUse: issuegraph linear sync --push --team <TEAM_ID>")
+	}
+
+	lt := &linear.Tracker{}
+	lt.SetTeamIDs(teamIDs)
+	if err := lt.Init(ctx, trackerStore); err != nil {
+		return HandleError("initializing Linear tracker: %v", err)
+	}
+	if err := lt.ValidatePushStateMappings(ctx); err != nil {
+		return HandleError("%v", err)
+	}
+
+	engine := tracker.NewEngine(lt, trackerStore, actor)
+	engine.OnMessage = func(msg string) { fmt.Println("  " + msg) }
+	engine.OnWarning = func(msg string) { fmt.Fprintf(os.Stderr, "Warning: %s\n", msg) }
+	engine.PushHooks = buildLinearPushHooksForStore(ctx, trackerStore, lt, len(args) > 0)
+
+	result, err := engine.Sync(ctx, tracker.SyncOptions{
+		Push:             true,
+		Pull:             false,
+		DryRun:           dryRun,
+		ExcludeEphemeral: true,
+		IssueIDs:         args,
+	})
+	if err != nil {
+		return HandleError("sync failed: %v", err)
+	}
+	outputSyncResult(result, dryRun)
+	return nil
+}
+
+func runLinearPull(cmd *cobra.Command, args []string) error {
+	evt := metrics.NewCommandEvent("linear-pull")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	if len(args) == 0 {
+		return HandleError("at least one issue ID or external reference is required")
+	}
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	relations, _ := cmd.Flags().GetBool("relations")
+	if !dryRun {
+		CheckReadonly("linear pull")
+	}
+
+	if lockDir := issuegraph.FindIssueGraphDir(); lockDir != "" {
+		syncLock, err := linear.AcquireSyncLock(lockDir, true)
+		if err != nil {
+			return HandleError("acquiring sync lock: %v", err)
+		}
+		defer func() {
+			if err := syncLock.Release(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to release sync lock: %v\n", err)
+			}
+		}()
+	}
+
+	trackerStore, err := trackerStoreForCommand(rootCtx)
+	if err != nil {
+		return HandleError("database not available: %v", err)
+	}
+	if err := validateLinearConfigForStore(trackerStore, nil); err != nil {
+		return HandleError("%v", err)
+	}
+
+	ctx := rootCtx
+	teamIDs := getLinearTeamIDsForStore(ctx, trackerStore, nil)
+
+	lt := &linear.Tracker{}
+	lt.SetTeamIDs(teamIDs)
+	if err := lt.Init(ctx, trackerStore); err != nil {
+		return HandleError("initializing Linear tracker: %v", err)
+	}
+
+	engine := tracker.NewEngine(lt, trackerStore, actor)
+	engine.OnMessage = func(msg string) { fmt.Println("  " + msg) }
+	engine.OnWarning = func(msg string) { fmt.Fprintf(os.Stderr, "Warning: %s\n", msg) }
+	engine.PullHooks = buildLinearPullHooksForStore(ctx, trackerStore, linearPullHookOptions{
+		DryRun: dryRun,
+		Actor:  actor,
+	})
+
+	result, err := engine.Sync(ctx, tracker.SyncOptions{
+		Pull:              true,
+		Push:              false,
+		DryRun:            dryRun,
+		IssueIDs:          args,
+		DependencySources: linearPullDependencySources(relations),
+	})
+	if err != nil {
+		return HandleError("sync failed: %v", err)
+	}
+	outputSyncResult(result, dryRun)
+	return nil
+}
+
+// --- GitHub implementations ---
+
+func runGitHubPush(cmd *cobra.Command, args []string) error {
+	evt := metrics.NewCommandEvent("github-push")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	if len(args) == 0 {
+		return fmt.Errorf("at least one issue ID is required")
+	}
+	dryRunFlag, _ := cmd.Flags().GetBool("dry-run")
+	apply, _ := cmd.Flags().GetBool("apply")
+	if dryRunFlag && apply {
+		return fmt.Errorf("cannot use --dry-run and --apply together")
+	}
+	dryRun := !apply || dryRunFlag
+	if !dryRun {
+		CheckReadonly("github push")
+	}
+
+	config := getGitHubConfig()
+	if err := validateGitHubConfig(config); err != nil {
+		return err
+	}
+	if err := ensureStoreActive(); err != nil {
+		return fmt.Errorf("database not available: %w", err)
+	}
+
+	ctx := cmd.Context()
+	gt := &github.Tracker{}
+	if err := gt.Init(ctx, store); err != nil {
+		return fmt.Errorf("initializing GitHub tracker: %w", err)
+	}
+
+	engine := tracker.NewEngine(gt, store, actor)
+	engine.OnMessage = func(msg string) { fmt.Println("  " + msg) }
+	engine.OnWarning = func(msg string) { fmt.Fprintf(os.Stderr, "Warning: %s\n", msg) }
+	engine.PushHooks = buildGitHubPushHooks(gt)
+
+	result, err := engine.Sync(ctx, tracker.SyncOptions{
+		Push:     true,
+		Pull:     false,
+		DryRun:   dryRun,
+		IssueIDs: args,
+	})
+	if err != nil {
+		return err
+	}
+	outputSyncResult(result, dryRun)
+	return nil
+}
+
+func runGitHubPull(cmd *cobra.Command, args []string) error {
+	evt := metrics.NewCommandEvent("github-pull")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	if len(args) == 0 {
+		return fmt.Errorf("at least one issue ID or external reference is required")
+	}
+	dryRunFlag, _ := cmd.Flags().GetBool("dry-run")
+	apply, _ := cmd.Flags().GetBool("apply")
+	if dryRunFlag && apply {
+		return fmt.Errorf("cannot use --dry-run and --apply together")
+	}
+	dryRun := !apply || dryRunFlag
+	if !dryRun {
+		CheckReadonly("github pull")
+	}
+
+	config := getGitHubConfig()
+	if err := validateGitHubConfig(config); err != nil {
+		return err
+	}
+	if err := ensureStoreActive(); err != nil {
+		return fmt.Errorf("database not available: %w", err)
+	}
+
+	ctx := cmd.Context()
+	gt := &github.Tracker{}
+	if err := gt.Init(ctx, store); err != nil {
+		return fmt.Errorf("initializing GitHub tracker: %w", err)
+	}
+
+	engine := tracker.NewEngine(gt, store, actor)
+	engine.PullHooks = buildGitHubPullHooks(ctx)
+	engine.OnMessage = func(msg string) { fmt.Println("  " + msg) }
+	engine.OnWarning = func(msg string) { fmt.Fprintf(os.Stderr, "Warning: %s\n", msg) }
+
+	result, err := engine.Sync(ctx, tracker.SyncOptions{
+		Pull:     true,
+		Push:     false,
+		DryRun:   dryRun,
+		IssueIDs: args,
+	})
+	if err != nil {
+		return err
+	}
+	outputSyncResult(result, dryRun)
+	return nil
+}
+
+// --- GitLab implementations ---
+
+func runGitLabPush(cmd *cobra.Command, args []string) error {
+	evt := metrics.NewCommandEvent("gitlab-push")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	if len(args) == 0 {
+		return fmt.Errorf("at least one issue ID is required")
+	}
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	if !dryRun {
+		CheckReadonly("gitlab push")
+	}
+
+	config := getGitLabConfig()
+	if err := validateGitLabConfig(config); err != nil {
+		return err
+	}
+	if err := ensureStoreActive(); err != nil {
+		return fmt.Errorf("database not available: %w", err)
+	}
+
+	ctx := cmd.Context()
+	gt := &gitlab.Tracker{}
+	if err := gt.Init(ctx, store); err != nil {
+		return fmt.Errorf("initializing GitLab tracker: %w", err)
+	}
+
+	out := cmd.OutOrStdout()
+	engine := tracker.NewEngine(gt, store, actor)
+	engine.OnMessage = func(msg string) {
+		if !jsonOutput {
+			fmt.Fprintln(out, "  "+msg)
+		}
+	}
+	engine.OnWarning = func(msg string) { fmt.Fprintf(os.Stderr, "Warning: %s\n", msg) }
+	engine.PushHooks = buildGitLabPushHooks()
+
+	if dryRun && !jsonOutput {
+		fmt.Fprintln(out, "Dry run mode - no changes will be made")
+		fmt.Fprintln(out)
+	}
+
+	opts := tracker.SyncOptions{
+		Push:     true,
+		Pull:     false,
+		DryRun:   dryRun,
+		IssueIDs: args,
+	}
+	result, err := engine.Sync(ctx, opts)
+	if err != nil {
+		return err
+	}
+
+	// Dependency-link push parity with `issuegraph gitlab sync`: converge issuegraph
+	// dependencies among the requested issues into GitLab issue links (and
+	// repair epic-child milestones). Without this, `issuegraph gitlab push <ids>`
+	// would sync content but silently omit dependency links. Output is
+	// rendered here (rather than via outputSyncResult) so the link pass runs
+	// before the summary and the --json payload carries the link counts,
+	// matching issuegraph gitlab sync.
+	var linkWarnings []string
+	warnLink := func(msg string) {
+		linkWarnings = append(linkWarnings, msg)
+		fmt.Fprintf(os.Stderr, "Warning: %s\n", msg)
+	}
+	linksPushed, linksLicenseSkipped, milestonesUpdated := pushGitLabDependencyLinks(ctx, gt, store, opts, dryRun, out, warnLink)
+
+	if jsonOutput {
+		return outputJSON(gitlabSyncResult{
+			DryRun:              dryRun,
+			Pushed:              result.Stats.Pushed,
+			Created:             result.Stats.Created,
+			Updated:             result.Stats.Updated,
+			Skipped:             result.Stats.Skipped,
+			Conflicts:           result.Stats.Conflicts,
+			Errors:              result.Stats.Errors,
+			LinksPushed:         linksPushed,
+			LinksLicenseSkipped: linksLicenseSkipped,
+			MilestonesUpdated:   milestonesUpdated,
+			Warnings:            append(result.Warnings, linkWarnings...),
+		})
+	}
+
+	if dryRun {
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Run without --dry-run to apply changes")
+		return nil
+	}
+	if result.Stats.Pushed > 0 {
+		fmt.Fprintf(out, "✓ Pushed %d issues\n", result.Stats.Pushed)
+	}
+	if linksPushed > 0 {
+		fmt.Fprintf(out, "✓ Synced %d dependency links\n", linksPushed)
+	}
+	if result.Stats.Conflicts > 0 {
+		fmt.Fprintf(out, "→ Resolved %d conflicts\n", result.Stats.Conflicts)
+	}
+	return nil
+}
+
+func runGitLabPull(cmd *cobra.Command, args []string) error {
+	evt := metrics.NewCommandEvent("gitlab-pull")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	if len(args) == 0 {
+		return fmt.Errorf("at least one issue ID or external reference is required")
+	}
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	if !dryRun {
+		CheckReadonly("gitlab pull")
+	}
+
+	config := getGitLabConfig()
+	if err := validateGitLabConfig(config); err != nil {
+		return err
+	}
+	if err := ensureStoreActive(); err != nil {
+		return fmt.Errorf("database not available: %w", err)
+	}
+
+	ctx := cmd.Context()
+	gt := &gitlab.Tracker{}
+	if err := gt.Init(ctx, store); err != nil {
+		return fmt.Errorf("initializing GitLab tracker: %w", err)
+	}
+
+	engine := tracker.NewEngine(gt, store, actor)
+	engine.PullHooks = buildGitLabPullHooks(ctx)
+	engine.OnMessage = func(msg string) { fmt.Println("  " + msg) }
+	engine.OnWarning = func(msg string) { fmt.Fprintf(os.Stderr, "Warning: %s\n", msg) }
+
+	result, err := engine.Sync(ctx, tracker.SyncOptions{
+		Pull:     true,
+		Push:     false,
+		DryRun:   dryRun,
+		IssueIDs: args,
+	})
+	if err != nil {
+		return err
+	}
+	outputSyncResult(result, dryRun)
+	return nil
+}
+
+// --- Notion implementations ---
+
+func runNotionPush(cmd *cobra.Command, args []string) error {
+	evt := metrics.NewCommandEvent("notion-push")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	if len(args) == 0 {
+		return fmt.Errorf("at least one issue ID is required")
+	}
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	if !dryRun {
+		CheckReadonly("notion push")
+	}
+
+	cfg := getNotionConfig()
+	auth, err := resolveNotionAuth(cmd.Context())
+	if err != nil {
+		return err
+	}
+	if err := validateNotionConfig(cfg, auth); err != nil {
+		return err
+	}
+	if err := ensureStoreActive(); err != nil {
+		return fmt.Errorf("database not available: %w", err)
+	}
+
+	ctx := cmd.Context()
+	nt := &notion.Tracker{}
+	if err := nt.Init(ctx, store); err != nil {
+		return fmt.Errorf("initializing Notion tracker: %w", err)
+	}
+
+	engine := tracker.NewEngine(nt, store, actor)
+	unsupportedStats := newNotionUnsupportedPushStats()
+	engine.PushHooks = buildNotionPushHooks(ctx, nt, unsupportedStats)
+	engine.OnMessage = func(msg string) { fmt.Println("  " + msg) }
+	engine.OnWarning = func(msg string) { fmt.Fprintf(os.Stderr, "Warning: %s\n", msg) }
+
+	result, syncErr := engine.Sync(ctx, tracker.SyncOptions{
+		Push:             true,
+		Pull:             false,
+		DryRun:           dryRun,
+		ExcludeEphemeral: true,
+		IssueIDs:         args,
+	})
+	if syncErr != nil {
+		return syncErr
+	}
+	outputSyncResult(result, dryRun)
+	return nil
+}
+
+func runNotionPull(cmd *cobra.Command, args []string) error {
+	evt := metrics.NewCommandEvent("notion-pull")
+	defer func() {
+		if c := metrics.Global(); c != nil {
+			c.CloseEventAndAdd(evt)
+		}
+	}()
+
+	if len(args) == 0 {
+		return fmt.Errorf("at least one issue ID or external reference is required")
+	}
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	if !dryRun {
+		CheckReadonly("notion pull")
+	}
+
+	cfg := getNotionConfig()
+	auth, err := resolveNotionAuth(cmd.Context())
+	if err != nil {
+		return err
+	}
+	if err := validateNotionConfig(cfg, auth); err != nil {
+		return err
+	}
+	if err := ensureStoreActive(); err != nil {
+		return fmt.Errorf("database not available: %w", err)
+	}
+
+	ctx := cmd.Context()
+	nt := &notion.Tracker{}
+	if err := nt.Init(ctx, store); err != nil {
+		return fmt.Errorf("initializing Notion tracker: %w", err)
+	}
+
+	engine := tracker.NewEngine(nt, store, actor)
+	engine.PullHooks = buildNotionPullHooks(ctx)
+	engine.OnMessage = func(msg string) { fmt.Println("  " + msg) }
+	engine.OnWarning = func(msg string) { fmt.Fprintf(os.Stderr, "Warning: %s\n", msg) }
+
+	result, syncErr := engine.Sync(ctx, tracker.SyncOptions{
+		Pull:     true,
+		Push:     false,
+		DryRun:   dryRun,
+		IssueIDs: args,
+	})
+	if syncErr != nil {
+		return syncErr
+	}
+	outputSyncResult(result, dryRun)
+	return nil
+}

@@ -1,11 +1,11 @@
 ---
-title: "bd swarm"
-description: "Swarm management commands for coordinating parallel work on epics."
+title: "issuegraph swarm"
+description: "Swarm management for structured epics"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc swarm`.
+Generated from `issuegraph help --doc swarm`.
 
 Swarm management commands for coordinating parallel work on epics.
 
@@ -13,10 +13,10 @@ A swarm is a structured body of work defined by an epic and its children,
 with dependencies forming a DAG (directed acyclic graph) of work.
 
 ```
-bd swarm [flags]
+issuegraph swarm [command]
 ```
 
-## bd swarm create
+## issuegraph swarm create
 
 Create a swarm molecule to orchestrate parallel work on an epic.
 
@@ -31,12 +31,12 @@ If given a single issue (not an epic), it will be auto-wrapped:
 - Then creates the swarm molecule for that epic
 
 Examples:
-  bd swarm create bd-epic-123                          # Create swarm for epic
-  bd swarm create bd-epic-123 --coordinator=observer/   # With specific coordinator
-  bd swarm create bd-task-456                          # Auto-wrap single issue
+  issuegraph swarm create bd-epic-123                          # Create swarm for epic
+  issuegraph swarm create bd-epic-123 --coordinator=observer/   # With specific coordinator
+  issuegraph swarm create bd-task-456                          # Auto-wrap single issue
 
 ```
-bd swarm create [epic-id] [flags]
+issuegraph swarm create [epic-id] [flags]
 ```
 
 **Flags:**
@@ -46,7 +46,7 @@ bd swarm create [epic-id] [flags]
       --force                Create new swarm even if one already exists
 ```
 
-## bd swarm list
+## issuegraph swarm list
 
 List all swarm molecules with their status.
 
@@ -56,16 +56,16 @@ Shows each swarm molecule with:
 - Epic ID and title
 
 Examples:
-  bd swarm list         # List all swarms
-  bd swarm list --json  # Machine-readable output
+  issuegraph swarm list         # List all swarms
+  issuegraph swarm list --json  # Machine-readable output
 
 ```
-bd swarm list [flags]
+issuegraph swarm list [flags]
 ```
 
-## bd swarm status
+## issuegraph swarm status
 
-Show the current status of a swarm, computed from beads.
+Show the current status of a swarm, computed from issuegraph.
 
 Accepts either:
 - An epic ID (shows status for that epic's children)
@@ -77,19 +77,19 @@ Displays issues grouped by state:
 - Ready: Open issues with all dependencies satisfied
 - Blocked: Open issues waiting on dependencies
 
-The status is COMPUTED from beads, not stored separately.
-If beads changes, status changes.
+The status is COMPUTED from issuegraph, not stored separately.
+If issuegraph changes, status changes.
 
 Examples:
-  bd swarm status gt-epic-123       # Show swarm status by epic
-  bd swarm status gt-swarm-456      # Show status via swarm molecule
-  bd swarm status gt-epic-123 --json  # Machine-readable output
+  issuegraph swarm status gt-epic-123       # Show swarm status by epic
+  issuegraph swarm status gt-swarm-456      # Show status via swarm molecule
+  issuegraph swarm status gt-epic-123 --json  # Machine-readable output
 
 ```
-bd swarm status [epic-or-swarm-id] [flags]
+issuegraph swarm status [epic-or-swarm-id] [flags]
 ```
 
-## bd swarm validate
+## issuegraph swarm validate
 
 Validate an epic's structure to ensure it's ready for swarm execution.
 
@@ -107,11 +107,11 @@ Reports:
 - Warnings for potential issues
 
 Examples:
-  bd swarm validate gt-epic-123           # Validate epic structure
-  bd swarm validate gt-epic-123 --verbose # Include detailed issue graph
+  issuegraph swarm validate gt-epic-123           # Validate epic structure
+  issuegraph swarm validate gt-epic-123 --verbose # Include detailed issue graph
 
 ```
-bd swarm validate [epic-id] [flags]
+issuegraph swarm validate [epic-id] [flags]
 ```
 
 **Flags:**

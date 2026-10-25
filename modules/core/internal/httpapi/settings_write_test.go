@@ -8,22 +8,22 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The wire edge of the two settings WRITES, on a fake role.
 //
 // Which keys the plane refuses, what the projection of status.custom does, and
 // whether a removal removed anything are issueops.WorkspaceConfig's, held to on
-// three legs by its own contract and shown against real Dolt in modules/cli. What
+// three legs by its own contract and shown against real Dolt in apps/cli. What
 // only these cases can show is that the request a caller SENDS becomes the
 // request the role RECEIVES, that the response is projected by the SAME rule the
 // read is projected by — which is the whole of what stops a write leaking what a
 // read withholds — and that the removal has no 404 to give.
 
-const settingPath = "/v0/beads/config/status.custom"
+const settingPath = "/v0/issuegraph/config/status.custom"
 
 func (ts *testServer) setSetting(t *testing.T, path, body string) *http.Response {
 	t.Helper()
@@ -114,7 +114,7 @@ func TestSetSettingProjectsTheWholeRequest(t *testing.T) {
 			settings := &roleSettings{}
 			ts := newSettingsServer(t, settings)
 
-			resp := ts.setSetting(t, "/v0/beads/config/"+tc.path, tc.body)
+			resp := ts.setSetting(t, "/v0/issuegraph/config/"+tc.path, tc.body)
 			if resp.StatusCode != http.StatusOK {
 				t.Fatalf("status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -155,11 +155,11 @@ func TestSetSettingAnswersWhatTheReadWouldAnswer(t *testing.T) {
 			writer := newSettingsServer(t, &roleSettings{})
 			reader := newSettingsServer(t, &roleSettings{value: tc.value})
 
-			wrote := writer.setSetting(t, "/v0/beads/config/"+tc.key, fmt.Sprintf(`{"value":%q}`, tc.value))
+			wrote := writer.setSetting(t, "/v0/issuegraph/config/"+tc.key, fmt.Sprintf(`{"value":%q}`, tc.value))
 			if wrote.StatusCode != http.StatusOK {
 				t.Fatalf("PUT status = %d, want 200: %s", wrote.StatusCode, readAll(t, wrote))
 			}
-			read := reader.get(t, "/v0/beads/config/"+tc.key)
+			read := reader.get(t, "/v0/issuegraph/config/"+tc.key)
 			if read.StatusCode != http.StatusOK {
 				t.Fatalf("GET status = %d, want 200: %s", read.StatusCode, readAll(t, read))
 			}
@@ -177,7 +177,7 @@ func TestSetSettingAnswersWhatTheReadWouldAnswer(t *testing.T) {
 // and the value does not come back.
 //
 // PERMITTED because redaction is a rule about DISCLOSURE. The role refuses no
-// credential-bearing key — `bd config set`'s own secret guard is about writing
+// credential-bearing key — `issuegraph config set`'s own secret guard is about writing
 // one into a git-tracked config.yaml, a different plane with a different hazard —
 // and a writer already holds the value, so refusing here would protect nothing
 // while leaving a workspace's credentials visible as PRESENT and permanently
@@ -190,7 +190,7 @@ func TestSetSettingWithholdsACredentialItJustAccepted(t *testing.T) {
 	settings := &roleSettings{}
 	ts := newSettingsServer(t, settings)
 
-	resp := ts.setSetting(t, "/v0/beads/config/"+key, `{"value":"shhh-real-secret"}`)
+	resp := ts.setSetting(t, "/v0/issuegraph/config/"+key, `{"value":"shhh-real-secret"}`)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200 — a credential-bearing key is writable: %s", resp.StatusCode, readAll(t, resp))
 	}
@@ -273,7 +273,7 @@ func TestSetSettingRefusesTheRequest(t *testing.T) {
 			settings := &roleSettings{}
 			ts := newSettingsServer(t, settings)
 
-			resp := ts.setSetting(t, "/v0/beads/config/"+tc.path, tc.body)
+			resp := ts.setSetting(t, "/v0/issuegraph/config/"+tc.path, tc.body)
 			if resp.StatusCode != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400: %s", resp.StatusCode, readAll(t, resp))
 			}
@@ -310,7 +310,7 @@ func TestSetSettingAcceptsAValueAtTheColumnsCeiling(t *testing.T) {
 		if err != nil {
 			t.Fatalf("marshal body: %v", err)
 		}
-		resp := ts.setSetting(t, "/v0/beads/config/notes", string(raw))
+		resp := ts.setSetting(t, "/v0/issuegraph/config/notes", string(raw))
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("status = %d, want 200 — this value fits the column: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -333,7 +333,7 @@ func TestSetSettingAcceptsAValueAtTheColumnsCeiling(t *testing.T) {
 		if err != nil {
 			t.Fatalf("marshal body: %v", err)
 		}
-		resp := ts.setSetting(t, "/v0/beads/config/notes", string(raw))
+		resp := ts.setSetting(t, "/v0/issuegraph/config/notes", string(raw))
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("status = %d, want 400 — the column counts bytes: %s", resp.StatusCode, readAll(t, resp))
 		}
@@ -428,7 +428,7 @@ func TestSetSettingCarriesTheRolesRefusal(t *testing.T) {
 	}{
 		{
 			name: "the protected prefix key",
-			err:  `"issue_prefix" is set by bd init --prefix, bd bootstrap or bd rename-prefix, not by a config write`,
+			err:  `"issue_prefix" is set by issuegraph init --prefix, issuegraph bootstrap or issuegraph rename-prefix, not by a config write`,
 		},
 		{
 			name: "a status.custom value that does not parse",
@@ -488,7 +488,7 @@ func TestUnsetSettingRemovesTheNamedKey(t *testing.T) {
 }
 
 // TestUnsetSettingHasNo404 is the divergence from DELETE
-// /v0/beads/memories/{key}, which answers 404 for a key it held nothing under.
+// /v0/issuegraph/memories/{key}, which answers 404 for a key it held nothing under.
 // This role reports no affected-row count, so the operation states an intended
 // END STATE: removing a key nothing set succeeds, and removing the same key
 // twice is 200 and then 200.
@@ -497,7 +497,7 @@ func TestUnsetSettingHasNo404(t *testing.T) {
 	ts := newSettingsServer(t, settings)
 
 	for i := range 2 {
-		resp := ts.unsetSetting(t, "/v0/beads/config/never.set")
+		resp := ts.unsetSetting(t, "/v0/issuegraph/config/never.set")
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("removal %d: status = %d, want 200 — this operation has no miss to report: %s",
 				i+1, resp.StatusCode, readAll(t, resp))
@@ -534,13 +534,13 @@ func TestUnsetSettingRefusesTheKeyTheReadRefuses(t *testing.T) {
 			settings := &roleSettings{}
 			ts := newSettingsServer(t, settings)
 
-			removed := ts.unsetSetting(t, "/v0/beads/config/"+tc.path)
+			removed := ts.unsetSetting(t, "/v0/issuegraph/config/"+tc.path)
 			if removed.StatusCode != tc.want {
 				t.Fatalf("DELETE status = %d, want %d: %s", removed.StatusCode, tc.want, readAll(t, removed))
 			}
 			// The read answers the same way, which is what "the read's parameter,
 			// judged the read's way" means.
-			read := ts.get(t, "/v0/beads/config/"+tc.path)
+			read := ts.get(t, "/v0/issuegraph/config/"+tc.path)
 			if read.StatusCode != tc.want {
 				t.Errorf("GET status = %d, DELETE answered %d; the two must judge one parameter one way",
 					read.StatusCode, tc.want)

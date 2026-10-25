@@ -1,12 +1,12 @@
 // Package journalops describes the workspace's DURABLE MUTATION JOURNAL: the
-// seq-ordered record of every committed bead mutation that `bd events tail`,
-// `bd events export` and GET /v0/beads/events read, and that an external
+// seq-ordered record of every committed issue mutation that `issuegraph events tail`,
+// `issuegraph events export` and GET /v0/issuegraph/events read, and that an external
 // consumer replays to rebuild its own copy of the graph.
 //
 // It is a sibling of issueops and memoryops rather than more methods on either,
 // and the reason is not that the role rule forbids appending (it does): a
-// journal record is not a bead and not a setting. It is ENGINE STATE — rows in
-// the clone-local, dolt_ignored bd_events_journal table, written inside the
+// journal record is not a issue and not a setting. It is ENGINE STATE — rows in
+// the clone-local, dolt_ignored issuegraph_events_journal table, written inside the
 // same transaction as the mutation they describe (migration 0064) — so it
 // survives no merge, travels through no pull, and describes the history of ONE
 // clone rather than the state of a project. A plane whose rows are deliberately
@@ -36,11 +36,11 @@
 // where they are minted.
 //
 // THERE IS NO PRUNE ON THIS ROLE, and no activation switch either. Both exist —
-// `bd events prune`, the automatic bounding, and the per-instance enable that
+// `issuegraph events prune`, the automatic bounding, and the per-instance enable that
 // binds journaling to one open workspace — and both are OPERATOR surface,
 // carried by storage.EventsJournalAccessor and storage.EventsJournalConfigurer
 // beside the rows. The split is about who holds what: a surface that only
-// PUBLISHES the journal, which is what `bd serve` documents itself as, must not
+// PUBLISHES the journal, which is what `issuegraph serve` documents itself as, must not
 // be one line away from a delete. Narrowing the interface is what makes "this
 // server cannot prune" a fact about the type rather than a promise about the
 // handler. A role that carried a retention decision it is documented never to
@@ -57,17 +57,17 @@
 // being invisible to the exhaustiveness gate.
 //
 // WHAT THIS PACKAGE IMPORTS: context and fmt, and nothing else — narrower even
-// than memoryops, which needs beadserrors for a sentinel. This plane has no
+// than memoryops, which needs issuegrapherrors for a sentinel. This plane has no
 // deterministic request-validation refusal to classify: a checkpoint is an
 // int64, a limit is an int, and the one refusal that exists is the truncation,
 // which is a TYPED error carrying a window rather than a sentinel a caller
 // matches by identity. If a validation refusal ever appears here it aliases
-// beadserrors.ErrValidation rather than minting a twin, for the reasons
+// issuegrapherrors.ErrValidation rather than minting a twin, for the reasons
 // memoryops/errors.go gives.
 //
 // # Stability
 //
 // EXPERIMENTAL. This package is not yet covered by the project's compatibility
 // promise and may change in a minor release. A consumer replaying the feed
-// should pin an exact beads version.
+// should pin an exact issuegraph version.
 package journalops

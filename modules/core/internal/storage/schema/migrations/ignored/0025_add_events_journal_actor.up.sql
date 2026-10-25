@@ -1,8 +1,8 @@
--- Ignored migration 0025: ensure bd_events_journal carries the actor column on
+-- Ignored migration 0025: ensure issuegraph_events_journal carries the actor column on
 -- every clone (bd-mbrxm).
 --
 -- The twin of synced migration 0066, and required by check D of
--- scripts/check-migration-hygiene.sh rather than offered: bd_events_journal is
+-- scripts/check-migration-hygiene.sh rather than offered: issuegraph_events_journal is
 -- clone-local and dolt-ignored, so a fresh clone materializes it from
 -- ignored/0022 — whose CREATE carries no actor column — while the main cursor
 -- arrives at-latest and 0066 never runs there. Without this file an upgraded
@@ -22,15 +22,15 @@
 -- internal/storage/embeddeddolt/migrate_ignored_plane_shape_test.go.
 SET @needs_actor = IF(
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bd_events_journal') > 0
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'issuegraph_events_journal') > 0
     AND
     (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = 'bd_events_journal'
+          AND TABLE_NAME = 'issuegraph_events_journal'
           AND COLUMN_NAME = 'actor') = 0,
     1, 0
 );
 SET @sql = IF(@needs_actor = 1,
-    'ALTER TABLE bd_events_journal ADD COLUMN actor VARCHAR(255) NOT NULL DEFAULT ''''',
+    'ALTER TABLE issuegraph_events_journal ADD COLUMN actor VARCHAR(255) NOT NULL DEFAULT ''''',
     'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

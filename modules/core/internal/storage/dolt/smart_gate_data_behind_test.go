@@ -9,13 +9,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 )
 
 // TestDoltNew_SmartRemoteMigrateGate_DataBehindBlocks_RealDolt is the
-// regression test for gastownhall/beads#6575: the smart gate's first-mover
+// regression test for borg0ai/dx-issuegraph#6575: the smart gate's first-mover
 // verdict used to be computed from schema facts alone, so a clone level with
 // the remote on SCHEMA but behind it in DATA commits was classified a safe
 // first-mover and auto-migrated in place — minting local-only schema commits
@@ -45,8 +45,8 @@ import (
 // only in whether the clone also makes a local commit of its own before the
 // gate runs:
 //
-//   - ahead=0, behind=1 — a strict ancestor; `bd dolt pull` fast-forwards.
-//   - ahead=1, behind=1 — diverged; `bd dolt pull` merges. Since bd
+//   - ahead=0, behind=1 — a strict ancestor; `issuegraph dolt pull` fast-forwards.
+//   - ahead=1, behind=1 — diverged; `issuegraph dolt pull` merges. Since issuegraph
 //     auto-commits every write, this is the ordinary multi-machine state, and
 //     it reaches the identical wedge. At the first fix's head this shape
 //     printed "safe first-mover" and migrated.
@@ -156,8 +156,8 @@ func runDataBehindGateCase(t *testing.T, localCommits int, wantDiverged bool, wa
 	// its own branch HEAD stays at C0. ---
 	mustExec("fetch (no merge)", laggingConn, "CALL DOLT_FETCH('origin')")
 
-	// --- and, for the diverged shape, commits of its own on top of C0. bd
-	// auto-commits every write, so this is what an ordinary local `bd create`
+	// --- and, for the diverged shape, commits of its own on top of C0. issuegraph
+	// auto-commits every write, so this is what an ordinary local `issuegraph create`
 	// leaves behind. ---
 	for i := 0; i < localCommits; i++ {
 		mustExec("clone data edit", laggingConn,
@@ -233,7 +233,7 @@ func runDataBehindGateCase(t *testing.T, localCommits int, wantDiverged bool, wa
 	}
 	msg := gateErr.UserMessage()
 	// The remedy has to be there, and has to be the one measured to work from
-	// this state: the refusal's own open classification lets `bd dolt pull`
+	// this state: the refusal's own open classification lets `issuegraph dolt pull`
 	// through (see embeddeddolt's TestEmbeddedOpenForRemoteSync_DataBehind).
 	if !strings.Contains(msg, schema.DataBehindRemedyCommand) {
 		t.Errorf("UserMessage does not carry the pull-first remedy:\n%s", msg)
@@ -252,7 +252,7 @@ func runDataBehindGateCase(t *testing.T, localCommits int, wantDiverged bool, wa
 			aheadAfter, behindAfter, ahead, behind)
 	}
 
-	// --- remedy loop: `bd dolt pull` (a fast-forward for the strict-ancestor
+	// --- remedy loop: `issuegraph dolt pull` (a fast-forward for the strict-ancestor
 	// shape, a merge for the diverged one) leaves the clone with nothing left to
 	// pull, and the SAME gate call then auto-migrates it as a true first-mover.
 	// This is what keeps the fix from over-refusing. ---

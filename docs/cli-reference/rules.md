@@ -1,24 +1,24 @@
 ---
-title: "bd rules"
+title: "issuegraph rules"
 description: "Audit and compact Claude rules"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc rules`.
+Generated from `issuegraph help --doc rules`.
 
 Audit and compact Claude rules
 
 ```
-bd rules [flags]
+issuegraph rules [command]
 ```
 
-## bd rules audit
+## issuegraph rules audit
 
 Scan rules for contradictions and merge opportunities
 
 ```
-bd rules audit [flags]
+issuegraph rules audit [flags]
 ```
 
 **Flags:**
@@ -28,12 +28,12 @@ bd rules audit [flags]
       --threshold float   Jaccard similarity threshold (default 0.6)
 ```
 
-## bd rules compact
+## issuegraph rules compact
 
 Merge related rules into composites
 
 ```
-bd rules compact [flags]
+issuegraph rules compact [flags]
 ```
 
 **Flags:**

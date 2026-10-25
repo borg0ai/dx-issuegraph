@@ -7,22 +7,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// listSortOf drives GET /v0/beads/issues once and returns the filter the
+// listSortOf drives GET /v0/issuegraph/issues once and returns the filter the
 // handler built, which is the only place the order and the position are
 // observable — the response body shows rows, not what was asked for.
 func listSortOf(t *testing.T, query string) types.IssueFilter {
 	t.Helper()
 	ts, rec := newReadServer(t, Config{})
-	resp := ts.get(t, "/v0/beads/issues"+query)
+	resp := ts.get(t, "/v0/issuegraph/issues"+query)
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("GET /v0/beads/issues%s: status = %d, want 200; body=%v", query, resp.StatusCode, decodeBody(t, resp))
+		t.Fatalf("GET /v0/issuegraph/issues%s: status = %d, want 200; body=%v", query, resp.StatusCode, decodeBody(t, resp))
 	}
 	filters := rec.searchFilters()
 	if len(filters) != 1 {
-		t.Fatalf("GET /v0/beads/issues%s built %d filters, want 1", query, len(filters))
+		t.Fatalf("GET /v0/issuegraph/issues%s built %d filters, want 1", query, len(filters))
 	}
 	return filters[0]
 }
@@ -57,7 +57,7 @@ func TestListSortDefaultsToCreatedOrderForever(t *testing.T) {
 }
 
 // TestListSortPriorityReachesStorageAsThePriorityOrder pins the whole point of
-// the parameter: `sort=priority` must reach storage as the order `bd list`
+// the parameter: `sort=priority` must reach storage as the order `issuegraph list`
 // renders flaglessly (priority ASC, created_at DESC, id ASC), so one request
 // answers what a walk-to-exhaustion plus a client-side comparator answered
 // before.
@@ -84,7 +84,7 @@ func TestListSortPriorityReachesStorageAsThePriorityOrder(t *testing.T) {
 // machinery a client dispatches on.
 //
 // The values chosen are the ones a caller is most likely to try, because
-// `bd list --sort` and the query operation on this same surface both take them:
+// `issuegraph list --sort` and the query operation on this same surface both take them:
 // `updated` (maximally mutable key), `id` (an order the database cannot
 // express) and `status` (unindexed). Accepting any of them would mean either a
 // silently unordered page or a server-side walk — the very thing this parameter
@@ -92,7 +92,7 @@ func TestListSortPriorityReachesStorageAsThePriorityOrder(t *testing.T) {
 func TestListSortRefusesAnOrderItCannotPage(t *testing.T) {
 	for _, bad := range []string{"updated", "id", "status", "title", "closed", "assignee", "type", "PRIORITY", "created,priority", "ready", "hybrid"} {
 		ts, rec := newReadServer(t, Config{})
-		resp := ts.get(t, "/v0/beads/issues?sort="+bad)
+		resp := ts.get(t, "/v0/issuegraph/issues?sort="+bad)
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Errorf("GET ?sort=%q: status = %d, want 400", bad, resp.StatusCode)
 			continue
@@ -117,7 +117,7 @@ func TestListSortRefusesAnOrderItCannotPage(t *testing.T) {
 // parameter is safe to ship, and it is the one the design's own audit says the
 // obvious implementation fails.
 //
-// bd serve's cursor is base64 of `{t,i}` with no seal and no binding. Add
+// issuegraph serve's cursor is base64 of `{t,i}` with no seal and no binding. Add
 // `sort` without touching it and a token minted under the created order decodes
 // perfectly under `sort=priority`: the server reads its instant and its id,
 // applies them as a position in a DIFFERENT total order, and answers 200 with a
@@ -151,7 +151,7 @@ func TestListCursorCarriesItsOwnOrder(t *testing.T) {
 		{"a priority-order token replayed under sort=created", "?sort=created&cursor=", priorityToken},
 	} {
 		ts, rec := newReadServer(t, Config{})
-		resp := ts.get(t, "/v0/beads/issues"+tc.query+tc.token)
+		resp := ts.get(t, "/v0/issuegraph/issues"+tc.query+tc.token)
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Errorf("%s: status = %d, want 400 — it decoded and was silently reinterpreted as a position in the wrong order", tc.name, resp.StatusCode)
 			continue
@@ -238,7 +238,7 @@ func TestOutstandingV1CursorsStillPage(t *testing.T) {
 	}
 
 	ts, rec := newReadServer(t, Config{})
-	resp := ts.get(t, "/v0/beads/issues?sort=priority&cursor="+legacy)
+	resp := ts.get(t, "/v0/issuegraph/issues?sort=priority&cursor="+legacy)
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("a v1 token under sort=priority: status = %d, want 400", resp.StatusCode)
 	}

@@ -4,15 +4,15 @@
 // implementation has not landed yet. The interface ships complete now
 // (be-jaavsb / be-yinl4d); each stub will be replaced by a fully
 // streaming implementation in a follow-up child of be-yinl4d. The TODO
-// comment names the tracking bead so reviewers can find the work item.
+// comment names the tracking issue so reviewers can find the work item.
 package dolt
 
 import (
 	"context"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // IterIssueComments streams comments on an issue.

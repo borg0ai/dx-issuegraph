@@ -7,10 +7,10 @@ import (
 )
 
 func TestDefaultConfigReadsConfigYamlPort(t *testing.T) {
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
-	beadsDir := t.TempDir()
-	root := filepath.Join(beadsDir, "dolt")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
+	issuegraphDir := t.TempDir()
+	root := filepath.Join(issuegraphDir, "dolt")
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -18,7 +18,7 @@ func TestDefaultConfigReadsConfigYamlPort(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "config.yaml"), body, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if got := DefaultConfig(beadsDir).Port; got != 51234 {
+	if got := DefaultConfig(issuegraphDir).Port; got != 51234 {
 		t.Fatalf("DefaultConfig port = %d, want 51234 (from config.yaml listener.port)", got)
 	}
 }

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func TestPublicDeclarationsHaveUsefulZeroValues(t *testing.T) {
@@ -114,13 +114,13 @@ func TestForceAssigneeTransferHasSafeZeroValue(t *testing.T) {
 func TestPublicConstantsKeepCanonicalValues(t *testing.T) {
 	statuses := []struct {
 		got  issueops.Status
-		want beads.Status
+		want issuegraph.Status
 	}{
-		{issueops.StatusOpen, beads.StatusOpen},
-		{issueops.StatusInProgress, beads.StatusInProgress},
-		{issueops.StatusBlocked, beads.StatusBlocked},
-		{issueops.StatusDeferred, beads.StatusDeferred},
-		{issueops.StatusClosed, beads.StatusClosed},
+		{issueops.StatusOpen, issuegraph.StatusOpen},
+		{issueops.StatusInProgress, issuegraph.StatusInProgress},
+		{issueops.StatusBlocked, issuegraph.StatusBlocked},
+		{issueops.StatusDeferred, issuegraph.StatusDeferred},
+		{issueops.StatusClosed, issuegraph.StatusClosed},
 	}
 	for _, check := range statuses {
 		if check.got != check.want {
@@ -145,14 +145,14 @@ func TestPublicErrorsKeepCanonicalIdentity(t *testing.T) {
 		name      string
 		got, want error
 	}{
-		{"not found", issueops.ErrNotFound, beads.ErrNotFound},
-		{"field too long", issueops.ErrFieldTooLong, beads.ErrFieldTooLong},
-		{"already claimed", issueops.ErrAlreadyClaimed, beads.ErrAlreadyClaimed},
-		{"not claimable", issueops.ErrNotClaimable, beads.ErrNotClaimable},
-		{"close blocked", issueops.ErrCloseBlocked, beads.ErrCloseBlocked},
-		{"version mismatch", issueops.ErrVersionMismatch, beads.ErrVersionMismatch},
-		{"self dependency", issueops.ErrSelfDependency, beads.ErrSelfDependency},
-		{"dependency cycle", issueops.ErrDependencyCycle, beads.ErrDependencyCycle},
+		{"not found", issueops.ErrNotFound, issuegraph.ErrNotFound},
+		{"field too long", issueops.ErrFieldTooLong, issuegraph.ErrFieldTooLong},
+		{"already claimed", issueops.ErrAlreadyClaimed, issuegraph.ErrAlreadyClaimed},
+		{"not claimable", issueops.ErrNotClaimable, issuegraph.ErrNotClaimable},
+		{"close blocked", issueops.ErrCloseBlocked, issuegraph.ErrCloseBlocked},
+		{"version mismatch", issueops.ErrVersionMismatch, issuegraph.ErrVersionMismatch},
+		{"self dependency", issueops.ErrSelfDependency, issuegraph.ErrSelfDependency},
+		{"dependency cycle", issueops.ErrDependencyCycle, issuegraph.ErrDependencyCycle},
 	}
 	for _, check := range checks {
 		if !errors.Is(check.got, check.want) {
@@ -206,13 +206,13 @@ func TestPublicDependencyConflictTypesRemainCanonical(t *testing.T) {
 	if typeConflict == nil || hierarchyConflict == nil {
 		t.Fatal("dependency conflict aliases lost their error implementations")
 	}
-	if reflect.TypeFor[*issueops.DependencyTypeConflictError]() != reflect.TypeFor[*beads.DependencyTypeConflictError]() {
+	if reflect.TypeFor[*issueops.DependencyTypeConflictError]() != reflect.TypeFor[*issuegraph.DependencyTypeConflictError]() {
 		t.Error("DependencyTypeConflictError lost canonical type identity")
 	}
-	if reflect.TypeFor[*issueops.DependencyHierarchyConflictError]() != reflect.TypeFor[*beads.DependencyHierarchyConflictError]() {
+	if reflect.TypeFor[*issueops.DependencyHierarchyConflictError]() != reflect.TypeFor[*issuegraph.DependencyHierarchyConflictError]() {
 		t.Error("DependencyHierarchyConflictError lost canonical type identity")
 	}
-	if reflect.TypeFor[*issueops.DependencyEndpointNotFoundError]() != reflect.TypeFor[*beads.DependencyEndpointNotFoundError]() {
+	if reflect.TypeFor[*issueops.DependencyEndpointNotFoundError]() != reflect.TypeFor[*issuegraph.DependencyEndpointNotFoundError]() {
 		t.Error("DependencyEndpointNotFoundError lost canonical type identity")
 	}
 }

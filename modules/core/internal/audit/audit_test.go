@@ -11,18 +11,18 @@ import (
 
 func TestAppend_CreatesFileAndWritesJSONL(t *testing.T) {
 	tmp := t.TempDir()
-	beadsDir := filepath.Join(tmp, ".beads")
-	if err := os.MkdirAll(beadsDir, 0750); err != nil {
+	issuegraphDir := filepath.Join(tmp, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0750); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	// beads.FindBeadsDir() validates that the directory contains project files.
-	// Create metadata.json so BEADS_DIR is accepted by hasBeadsProjectFiles.
-	metadataPath := filepath.Join(beadsDir, "metadata.json")
+	// issuegraph.FindIssueGraphDir() validates that the directory contains project files.
+	// Create metadata.json so ISSUEGRAPH_DIR is accepted by hasIssueGraphProjectFiles.
+	metadataPath := filepath.Join(issuegraphDir, "metadata.json")
 	if err := os.WriteFile(metadataPath, []byte(`{"backend":"dolt"}`), 0644); err != nil {
 		t.Fatalf("write metadata.json: %v", err)
 	}
-	t.Setenv("BEADS_DIR", beadsDir)
-	t.Setenv("BD_AUDIT_ENABLED", "1")
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+	t.Setenv("ISSUEGRAPH_AUDIT_ENABLED", "1")
 
 	id1, err := Append(&Entry{Kind: "llm_call", Model: "test-model", Prompt: "p", Response: "r"})
 	if err != nil {
@@ -36,7 +36,7 @@ func TestAppend_CreatesFileAndWritesJSONL(t *testing.T) {
 		t.Fatalf("append label: %v", err)
 	}
 
-	p := filepath.Join(beadsDir, FileName)
+	p := filepath.Join(issuegraphDir, FileName)
 	f, err := os.Open(p)
 	if err != nil {
 		t.Fatalf("open: %v", err)
@@ -58,37 +58,37 @@ func TestAppend_CreatesFileAndWritesJSONL(t *testing.T) {
 
 func TestAppendIfEnabled_DisabledDoesNotCreateFile(t *testing.T) {
 	tmp := t.TempDir()
-	beadsDir := filepath.Join(tmp, ".beads")
-	if err := os.MkdirAll(beadsDir, 0750); err != nil {
+	issuegraphDir := filepath.Join(tmp, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0750); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	metadataPath := filepath.Join(beadsDir, "metadata.json")
+	metadataPath := filepath.Join(issuegraphDir, "metadata.json")
 	if err := os.WriteFile(metadataPath, []byte(`{"backend":"dolt"}`), 0644); err != nil {
 		t.Fatalf("write metadata.json: %v", err)
 	}
-	t.Setenv("BEADS_DIR", beadsDir)
-	t.Setenv("BD_AUDIT_ENABLED", "")
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
+	t.Setenv("ISSUEGRAPH_AUDIT_ENABLED", "")
 
 	if _, err := AppendIfEnabled(&Entry{Kind: "llm_call", Model: "test-model"}); err == nil {
 		t.Fatalf("expected disabled append to fail")
 	}
 
-	if _, err := os.Stat(filepath.Join(beadsDir, FileName)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(issuegraphDir, FileName)); !os.IsNotExist(err) {
 		t.Fatalf("disabled append created %s: %v", FileName, err)
 	}
 }
 
 func TestEnsureFile_DoesNotTruncateWhenConcurrentCreatorWins(t *testing.T) {
 	tmp := t.TempDir()
-	beadsDir := filepath.Join(tmp, ".beads")
-	if err := os.MkdirAll(beadsDir, 0750); err != nil {
+	issuegraphDir := filepath.Join(tmp, ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0750); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	metadataPath := filepath.Join(beadsDir, "metadata.json")
+	metadataPath := filepath.Join(issuegraphDir, "metadata.json")
 	if err := os.WriteFile(metadataPath, []byte(`{"backend":"dolt"}`), 0644); err != nil {
 		t.Fatalf("write metadata.json: %v", err)
 	}
-	t.Setenv("BEADS_DIR", beadsDir)
+	t.Setenv("ISSUEGRAPH_DIR", issuegraphDir)
 
 	wantContents := []byte("{\"id\":\"seed\"}\n")
 

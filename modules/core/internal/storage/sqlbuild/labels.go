@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // LabelSearchPlan rewrites label predicates (Labels AND-set, LabelsAny) from
@@ -76,7 +76,7 @@ func BuildLabelDrivenSearch(filter types.IssueFilter, tables FilterTables) Label
 
 // LabelSetClauses builds the AND / OR / NOT label predicates as IN-subqueries
 // against tables.Labels, keyed on idExpr. Semantics are the ones users already
-// know from bd list and bd ready: labels is AND (carry all of them), labelsAny
+// know from issuegraph list and issuegraph ready: labels is AND (carry all of them), labelsAny
 // is OR (carry at least one), exclude drops an issue carrying any. Clause and
 // arg ordering, and the treatment of empty entries, mirror the equivalent
 // blocks in BuildIssueFilterClauses so every listing command filters labels

@@ -21,9 +21,9 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 var acceptedVersions = map[string]bool{"0.49.6": true, "0.50.3": true}
@@ -42,7 +42,7 @@ const (
 
 var schema = map[string]string{
 	"metadata":     `key|TEXT|0|-|1 value|TEXT|1|-|0`,
-	"issues":       `id|TEXT|0|-|1 content_hash|TEXT|0|-|0 title|TEXT|1|-|0 description|TEXT|1|''|0 design|TEXT|1|''|0 acceptance_criteria|TEXT|1|''|0 notes|TEXT|1|''|0 status|TEXT|1|'open'|0 priority|INTEGER|1|2|0 issue_type|TEXT|1|'task'|0 assignee|TEXT|0|-|0 estimated_minutes|INTEGER|0|-|0 created_at|DATETIME|1|CURRENT_TIMESTAMP|0 created_by|TEXT|0|''|0 owner|TEXT|0|''|0 updated_at|DATETIME|1|CURRENT_TIMESTAMP|0 closed_at|DATETIME|0|-|0 closed_by_session|TEXT|0|''|0 external_ref|TEXT|0|-|0 spec_id|TEXT|0|-|0 compaction_level|INTEGER|0|0|0 compacted_at|DATETIME|0|-|0 compacted_at_commit|TEXT|0|-|0 original_size|INTEGER|0|-|0 deleted_at|DATETIME|0|-|0 deleted_by|TEXT|0|''|0 delete_reason|TEXT|0|''|0 original_type|TEXT|0|''|0 sender|TEXT|0|''|0 ephemeral|INTEGER|0|0|0 wisp_type|TEXT|0|''|0 pinned|INTEGER|0|0|0 is_template|INTEGER|0|0|0 crystallizes|INTEGER|0|0|0 mol_type|TEXT|0|''|0 work_type|TEXT|0|'mutex'|0 quality_score|REAL|0|-|0 source_system|TEXT|0|''|0 metadata|TEXT|1|'{}'|0 event_kind|TEXT|0|''|0 actor|TEXT|0|''|0 target|TEXT|0|''|0 payload|TEXT|0|''|0 source_repo|TEXT|0|'.'|0 close_reason|TEXT|0|''|0 await_type|TEXT|0|-|0 await_id|TEXT|0|-|0 timeout_ns|INTEGER|0|-|0 waiters|TEXT|0|-|0 hook_bead|TEXT|0|''|0 role_bead|TEXT|0|''|0 agent_state|TEXT|0|''|0 last_activity|DATETIME|0|-|0 role_type|TEXT|0|''|0 rig|TEXT|0|''|0 due_at|DATETIME|0|-|0 defer_until|DATETIME|0|-|0`,
+	"issues":       `id|TEXT|0|-|1 content_hash|TEXT|0|-|0 title|TEXT|1|-|0 description|TEXT|1|''|0 design|TEXT|1|''|0 acceptance_criteria|TEXT|1|''|0 notes|TEXT|1|''|0 status|TEXT|1|'open'|0 priority|INTEGER|1|2|0 issue_type|TEXT|1|'task'|0 assignee|TEXT|0|-|0 estimated_minutes|INTEGER|0|-|0 created_at|DATETIME|1|CURRENT_TIMESTAMP|0 created_by|TEXT|0|''|0 owner|TEXT|0|''|0 updated_at|DATETIME|1|CURRENT_TIMESTAMP|0 closed_at|DATETIME|0|-|0 closed_by_session|TEXT|0|''|0 external_ref|TEXT|0|-|0 spec_id|TEXT|0|-|0 compaction_level|INTEGER|0|0|0 compacted_at|DATETIME|0|-|0 compacted_at_commit|TEXT|0|-|0 original_size|INTEGER|0|-|0 deleted_at|DATETIME|0|-|0 deleted_by|TEXT|0|''|0 delete_reason|TEXT|0|''|0 original_type|TEXT|0|''|0 sender|TEXT|0|''|0 ephemeral|INTEGER|0|0|0 wisp_type|TEXT|0|''|0 pinned|INTEGER|0|0|0 is_template|INTEGER|0|0|0 crystallizes|INTEGER|0|0|0 mol_type|TEXT|0|''|0 work_type|TEXT|0|'mutex'|0 quality_score|REAL|0|-|0 source_system|TEXT|0|''|0 metadata|TEXT|1|'{}'|0 event_kind|TEXT|0|''|0 actor|TEXT|0|''|0 target|TEXT|0|''|0 payload|TEXT|0|''|0 source_repo|TEXT|0|'.'|0 close_reason|TEXT|0|''|0 await_type|TEXT|0|-|0 await_id|TEXT|0|-|0 timeout_ns|INTEGER|0|-|0 waiters|TEXT|0|-|0 hook_issue|TEXT|0|''|0 role_issue|TEXT|0|''|0 agent_state|TEXT|0|''|0 last_activity|DATETIME|0|-|0 role_type|TEXT|0|''|0 rig|TEXT|0|''|0 due_at|DATETIME|0|-|0 defer_until|DATETIME|0|-|0`,
 	"dependencies": `issue_id|TEXT|1|-|1 depends_on_id|TEXT|1|-|2 type|TEXT|1|'blocks'|3 created_at|TIMESTAMP|0|CURRENT_TIMESTAMP|0 created_by|TEXT|1|-|0 metadata|TEXT|0|-|0 thread_id|TEXT|0|-|0`,
 	"labels":       `issue_id|TEXT|1|-|1 label|TEXT|1|-|2`,
 	"comments":     `id|INTEGER|0|-|1 issue_id|TEXT|1|-|0 author|TEXT|1|-|0 text|TEXT|1|-|0 created_at|DATETIME|1|CURRENT_TIMESTAMP|0`,
@@ -305,7 +305,7 @@ func read(ctx context.Context, path string, out io.Writer) error {
 
 func verify(ctx context.Context, db *sql.Tx) error {
 	var version string
-	if err := db.QueryRowContext(ctx, "SELECT value FROM metadata WHERE key = 'bd_version'").Scan(&version); err != nil {
+	if err := db.QueryRowContext(ctx, "SELECT value FROM metadata WHERE key = 'issuegraph_version'").Scan(&version); err != nil {
 		return fmt.Errorf("legacy SQLite release marker: %w", err)
 	}
 	if !acceptedVersions[version] {
@@ -393,7 +393,7 @@ func verifyFKs(ctx context.Context, db *sql.Tx, table string) error {
 // the variadic ScanIssueFrom boundary hides any count mismatch from the
 // compiler, so TestLoadIssuesProjectionArity guards the invariant and makes the
 // drift fail at test time instead of mid-migration.
-const loadIssuesProjection = `id,content_hash,title,description,design,acceptance_criteria,notes,status,priority,issue_type,assignee,estimated_minutes,CAST(created_at AS TEXT),created_by,owner,CAST(updated_at AS TEXT),NULL,NULL,external_ref,spec_id,COALESCE(compaction_level,0),NULL,compacted_at_commit,original_size,source_repo,close_reason,NULL,sender,ephemeral,0,wisp_type,pinned,is_template,await_type,await_id,timeout_ns,NULL,mol_type,event_kind,actor,target,payload,NULL,NULL,work_type,source_system,NULL,0,NULL,NULL,NULL,NULL,closed_by_session,CAST(deleted_at AS TEXT),deleted_by,delete_reason,original_type,crystallizes,quality_score,hook_bead,role_bead,agent_state,CAST(last_activity AS TEXT),role_type,rig,metadata,waiters,ephemeral,pinned,is_template,estimated_minutes,compaction_level,original_size,CAST(closed_at AS TEXT),CAST(compacted_at AS TEXT),CAST(due_at AS TEXT),CAST(defer_until AS TEXT)`
+const loadIssuesProjection = `id,content_hash,title,description,design,acceptance_criteria,notes,status,priority,issue_type,assignee,estimated_minutes,CAST(created_at AS TEXT),created_by,owner,CAST(updated_at AS TEXT),NULL,NULL,external_ref,spec_id,COALESCE(compaction_level,0),NULL,compacted_at_commit,original_size,source_repo,close_reason,NULL,sender,ephemeral,0,wisp_type,pinned,is_template,await_type,await_id,timeout_ns,NULL,mol_type,event_kind,actor,target,payload,NULL,NULL,work_type,source_system,NULL,0,NULL,NULL,NULL,NULL,closed_by_session,CAST(deleted_at AS TEXT),deleted_by,delete_reason,original_type,crystallizes,quality_score,hook_issue,role_issue,agent_state,CAST(last_activity AS TEXT),role_type,rig,metadata,waiters,ephemeral,pinned,is_template,estimated_minutes,compaction_level,original_size,CAST(closed_at AS TEXT),CAST(compacted_at AS TEXT),CAST(due_at AS TEXT),CAST(defer_until AS TEXT)`
 
 func loadIssues(ctx context.Context, db *sql.Tx) ([]*types.Issue, error) {
 	rows, err := db.QueryContext(ctx, "SELECT "+loadIssuesProjection+" FROM issues ORDER BY id")
@@ -423,7 +423,7 @@ func loadIssues(ctx context.Context, db *sql.Tx) ([]*types.Issue, error) {
 func (x *legacyExtras) scanDests() []any {
 	return []any{
 		&x.closedBy, &x.deletedAt, &x.deletedBy, &x.deleteReason, &x.originalType,
-		&x.crystallizes, &x.quality, &x.hookBead, &x.roleBead, &x.agentState,
+		&x.crystallizes, &x.quality, &x.hookIssue, &x.roleIssue, &x.agentState,
 		&x.lastActivity, &x.roleType, &x.rig, &x.metadata, &x.waiters,
 		&x.ephemeral, &x.pinned, &x.template, &x.estimatedMinutes, &x.compactionLevel,
 		&x.originalSize, &x.closedAt, &x.compactedAt, &x.dueAt, &x.deferUntil,
@@ -431,12 +431,12 @@ func (x *legacyExtras) scanDests() []any {
 }
 
 type legacyExtras struct {
-	closedBy, deletedAt, deletedBy, deleteReason, originalType, hookBead, roleBead, agentState, lastActivity, metadata, waiters sql.NullString
-	closedAt, compactedAt, dueAt, deferUntil                                                                                    sql.NullString
-	crystallizes, ephemeral, pinned, template                                                                                   sql.NullInt64
-	estimatedMinutes, compactionLevel, originalSize                                                                             sql.NullInt64
-	quality                                                                                                                     sql.NullFloat64
-	roleType, rig                                                                                                               sql.NullString
+	closedBy, deletedAt, deletedBy, deleteReason, originalType, hookIssue, roleIssue, agentState, lastActivity, metadata, waiters sql.NullString
+	closedAt, compactedAt, dueAt, deferUntil                                                                                      sql.NullString
+	crystallizes, ephemeral, pinned, template                                                                                     sql.NullInt64
+	estimatedMinutes, compactionLevel, originalSize                                                                               sql.NullInt64
+	quality                                                                                                                       sql.NullFloat64
+	roleType, rig                                                                                                                 sql.NullString
 }
 
 func (x legacyExtras) validate(issue *types.Issue) error {
@@ -564,7 +564,7 @@ func checkRequiredScalars(issue *types.Issue) error {
 // checkRemovedFields rejects legacy rows that populate columns the current
 // schema no longer supports, then validates the tri-state boolean columns.
 func (x legacyExtras) checkRemovedFields(issue *types.Issue) error {
-	if nonempty(x.closedBy, x.deletedBy, x.deleteReason, x.originalType, x.hookBead, x.roleBead, x.agentState, x.lastActivity, x.roleType, x.rig) || x.deletedAt.Valid || x.crystallizes.Int64 != 0 || x.quality.Valid || (issue.SourceRepo != "" && issue.SourceRepo != ".") {
+	if nonempty(x.closedBy, x.deletedBy, x.deleteReason, x.originalType, x.hookIssue, x.roleIssue, x.agentState, x.lastActivity, x.roleType, x.rig) || x.deletedAt.Valid || x.crystallizes.Int64 != 0 || x.quality.Valid || (issue.SourceRepo != "" && issue.SourceRepo != ".") {
 		return fmt.Errorf("legacy SQLite issue %s uses unsupported removed fields", issue.ID)
 	}
 	for _, b := range []struct {

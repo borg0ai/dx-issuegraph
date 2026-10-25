@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // The journal stream. Half of these cases are about the boundary the poll read
@@ -85,7 +85,7 @@ func (j *liveEventsJournal) commit(row storage.EventsJournalRow) int64 {
 	return row.Seq
 }
 
-// prune drops everything below floor, exactly as `bd events prune` does — and,
+// prune drops everything below floor, exactly as `issuegraph events prune` does — and,
 // for these cases, exactly while somebody is reading.
 func (j *liveEventsJournal) prune(floor int64) {
 	j.mu.Lock()
@@ -272,7 +272,7 @@ func TestEventsWatchDeliversRecordsAsTheyLand(t *testing.T) {
 	journal := &liveEventsJournal{}
 	ts := watchServer(t, journal)
 
-	ws := openWatch(t, ts, "/v0/beads/events:watch?since=0", nil)
+	ws := openWatch(t, ts, "/v0/issuegraph/events:watch?since=0", nil)
 
 	// The reconnection delay leads, before any record exists, so a client's
 	// backoff is set even if the stream carries nothing for an hour.
@@ -330,7 +330,7 @@ func TestEventsWatchFramesEveryRecordOnOneLine(t *testing.T) {
 	journal := &liveEventsJournal{}
 	ts := watchServer(t, journal)
 
-	ws := openWatch(t, ts, "/v0/beads/events:watch?since=0", nil)
+	ws := openWatch(t, ts, "/v0/issuegraph/events:watch?since=0", nil)
 	ws.next(t) // retry
 
 	// The payload members travel as raw JSON, so this is what a mutation on an
@@ -378,7 +378,7 @@ func TestEventsWatchHeartbeatsWhileIdle(t *testing.T) {
 	journal := &liveEventsJournal{}
 	ts := watchServer(t, journal)
 
-	ws := openWatch(t, ts, "/v0/beads/events:watch?since=0", nil)
+	ws := openWatch(t, ts, "/v0/issuegraph/events:watch?since=0", nil)
 	ws.next(t) // retry
 
 	if got := ws.next(t); got != ": heartbeat" {
@@ -415,7 +415,7 @@ func TestEventsWatchLastEventIDOutranksSince(t *testing.T) {
 		journal.commit(storage.EventsJournalRow{})
 	}
 
-	ws := openWatch(t, ts, "/v0/beads/events:watch?since=0",
+	ws := openWatch(t, ts, "/v0/issuegraph/events:watch?since=0",
 		http.Header{lastEventIDHeader: []string{"3"}})
 	ws.next(t) // retry
 
@@ -441,7 +441,7 @@ func TestEventsWatchTreatsAnEmptyLastEventIDAsAbsent(t *testing.T) {
 		journal.commit(storage.EventsJournalRow{})
 	}
 
-	ws := openWatch(t, ts, "/v0/beads/events:watch?since=1",
+	ws := openWatch(t, ts, "/v0/issuegraph/events:watch?since=1",
 		http.Header{lastEventIDHeader: []string{""}})
 	ws.next(t) // retry
 
@@ -472,7 +472,7 @@ func TestEventsWatchRefusesAnUnusableLastEventID(t *testing.T) {
 			journal := &liveEventsJournal{}
 			ts := watchServer(t, journal)
 
-			ws := rawWatch(t, ts, "/v0/beads/events:watch?since=0",
+			ws := rawWatch(t, ts, "/v0/issuegraph/events:watch?since=0",
 				http.Header{lastEventIDHeader: []string{tc.id}})
 			if ws.resp.StatusCode != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400", ws.resp.StatusCode)
@@ -516,7 +516,7 @@ func TestEventsWatchRefusesABadCheckpoint(t *testing.T) {
 			journal := &liveEventsJournal{}
 			ts := watchServer(t, journal)
 
-			ws := rawWatch(t, ts, "/v0/beads/events:watch"+tc.query, tc.header)
+			ws := rawWatch(t, ts, "/v0/issuegraph/events:watch"+tc.query, tc.header)
 			if ws.resp.StatusCode != http.StatusBadRequest {
 				t.Fatalf("status = %d, want 400: %s", ws.resp.StatusCode, readAll(t, ws.resp))
 			}
@@ -535,7 +535,7 @@ func TestEventsWatchRefusesWhenTheJournalIsDisabled(t *testing.T) {
 	journal := &liveEventsJournal{}
 	ts := newTestServer(t, rolesConfig(Config{EventsJournal: journal, EventsJournalEnabled: false}))
 
-	ws := rawWatch(t, ts, "/v0/beads/events:watch?since=0", nil)
+	ws := rawWatch(t, ts, "/v0/issuegraph/events:watch?since=0", nil)
 	if ws.resp.StatusCode != http.StatusConflict {
 		t.Fatalf("status = %d, want 409: %s", ws.resp.StatusCode, readAll(t, ws.resp))
 	}
@@ -559,7 +559,7 @@ func TestEventsWatchRefusesAStaleCheckpointBeforeOpening(t *testing.T) {
 	journal.prune(4)
 	ts := watchServer(t, journal)
 
-	ws := rawWatch(t, ts, "/v0/beads/events:watch?since=0", nil)
+	ws := rawWatch(t, ts, "/v0/issuegraph/events:watch?since=0", nil)
 	if ws.resp.StatusCode != http.StatusGone {
 		t.Fatalf("status = %d, want 410: %s", ws.resp.StatusCode, readAll(t, ws.resp))
 	}
@@ -581,7 +581,7 @@ func TestEventsWatchRefusesAStaleCheckpointBeforeOpening(t *testing.T) {
 
 	// The header's cursor is the one that gets checked, because it is the one
 	// that would have been used.
-	ws = rawWatch(t, ts, "/v0/beads/events:watch?since=5",
+	ws = rawWatch(t, ts, "/v0/issuegraph/events:watch?since=5",
 		http.Header{lastEventIDHeader: []string{"0"}})
 	if ws.resp.StatusCode != http.StatusGone {
 		t.Fatalf("with a stale Last-Event-ID and a live `since`, status = %d, want 410", ws.resp.StatusCode)
@@ -601,7 +601,7 @@ func TestEventsWatchEndsWithATruncatedEventWhenAPruneRacesIt(t *testing.T) {
 	journal.commit(storage.EventsJournalRow{})
 	ts := watchServer(t, journal)
 
-	ws := openWatch(t, ts, "/v0/beads/events:watch?since=0", nil)
+	ws := openWatch(t, ts, "/v0/issuegraph/events:watch?since=0", nil)
 	ws.next(t) // retry
 	if got := ws.next(t); !strings.HasPrefix(got, "id: 1\n") {
 		t.Fatalf("first record = %q", got)
@@ -682,7 +682,7 @@ func TestEventsWatchReleasesItsSlotOnEveryExit(t *testing.T) {
 	live := func() int64 { return ts.Server.watchStreams.Load() }
 
 	// A stream the CLIENT ends.
-	ws := openWatch(t, ts, "/v0/beads/events:watch?since=0", nil)
+	ws := openWatch(t, ts, "/v0/issuegraph/events:watch?since=0", nil)
 	ws.next(t)
 	if got := live(); got != 1 {
 		t.Fatalf("open streams = %d, want 1", got)
@@ -692,14 +692,14 @@ func TestEventsWatchReleasesItsSlotOnEveryExit(t *testing.T) {
 
 	// A stream the SERVER ends, on the truncated path.
 	journal.commit(storage.EventsJournalRow{})
-	ws = openWatch(t, ts, "/v0/beads/events:watch?since=0", nil)
+	ws = openWatch(t, ts, "/v0/issuegraph/events:watch?since=0", nil)
 	ws.next(t)
 	ws.next(t)
 	journal.prune(9)
 	waitFor(t, "the truncated stream to give its slot back", func() bool { return live() == 0 })
 
 	// A stream REFUSED before it opened must not have charged the cap at all.
-	rawWatch(t, ts, "/v0/beads/events:watch?since=-1", nil)
+	rawWatch(t, ts, "/v0/issuegraph/events:watch?since=-1", nil)
 	if got := live(); got != 0 {
 		t.Errorf("open streams after a refused connect = %d, want 0", got)
 	}
@@ -715,13 +715,13 @@ func TestEventsWatchRefusesBeyondTheStreamCap(t *testing.T) {
 	ts := watchServer(t, journal, func(s *Server) { s.maxWatchStreams = 2 })
 
 	for i := range 2 {
-		ws := openWatch(t, ts, "/v0/beads/events:watch?since=0", nil)
+		ws := openWatch(t, ts, "/v0/issuegraph/events:watch?since=0", nil)
 		if got := ws.next(t); !strings.HasPrefix(got, "retry: ") {
 			t.Fatalf("stream %d did not open: %q", i, got)
 		}
 	}
 
-	refused := rawWatch(t, ts, "/v0/beads/events:watch?since=0", nil)
+	refused := rawWatch(t, ts, "/v0/issuegraph/events:watch?since=0", nil)
 	if refused.resp.StatusCode != http.StatusServiceUnavailable {
 		t.Fatalf("status past the cap = %d, want 503: %s", refused.resp.StatusCode, readAll(t, refused.resp))
 	}
@@ -734,10 +734,10 @@ func TestEventsWatchRefusesBeyondTheStreamCap(t *testing.T) {
 	}
 	// The paged read is the documented way out, and it must keep working while
 	// every stream slot is taken.
-	if detail, _ := body["detail"].(string); !strings.Contains(detail, "/v0/beads/events") {
+	if detail, _ := body["detail"].(string); !strings.Contains(detail, "/v0/issuegraph/events") {
 		t.Errorf("detail = %q; it must name the read that is not capped this way", detail)
 	}
-	if resp := ts.get(t, "/v0/beads/events?since=0"); resp.StatusCode != http.StatusOK {
+	if resp := ts.get(t, "/v0/issuegraph/events?since=0"); resp.StatusCode != http.StatusOK {
 		t.Errorf("the paged read = %d while the stream cap is full, want 200", resp.StatusCode)
 	}
 }
@@ -757,7 +757,7 @@ func TestEventsWatchHoldsNoDatabaseSlotBetweenReads(t *testing.T) {
 		s.watchPoll = 20 * time.Millisecond
 	})
 
-	ws := openWatch(t, ts, "/v0/beads/events:watch?since=0", nil)
+	ws := openWatch(t, ts, "/v0/issuegraph/events:watch?since=0", nil)
 	ws.next(t)
 	journal.commit(storage.EventsJournalRow{})
 	if got := ws.next(t); !strings.HasPrefix(got, "id: 1\n") {
@@ -766,7 +766,7 @@ func TestEventsWatchHoldsNoDatabaseSlotBetweenReads(t *testing.T) {
 
 	// The paged read needs the same single slot the stream keeps taking and
 	// giving back.
-	if resp := ts.get(t, "/v0/beads/events?since=0"); resp.StatusCode != http.StatusOK {
+	if resp := ts.get(t, "/v0/issuegraph/events?since=0"); resp.StatusCode != http.StatusOK {
 		t.Fatalf("a paged read alongside one open stream = %d, want 200: %s",
 			resp.StatusCode, readAll(t, resp))
 	}
@@ -830,7 +830,7 @@ func TestEventsWatchStopsDrainingABacklogWhenAskedTo(t *testing.T) {
 
 			ctx, hangUp := context.WithCancel(context.Background())
 			defer hangUp()
-			req := httptest.NewRequest(http.MethodGet, "/v0/beads/events:watch?since=0", nil).WithContext(ctx)
+			req := httptest.NewRequest(http.MethodGet, "/v0/issuegraph/events:watch?since=0", nil).WithContext(ctx)
 			first, err := s.readWatchBatch(ctx, &reqInfo{}, journal, 0)
 			if err != nil {
 				t.Fatalf("connect read: %v", err)
@@ -912,7 +912,7 @@ func TestEventsWatchClosesOnServerShutdown(t *testing.T) {
 	go func() { served <- srv.Serve(ctx) }()
 
 	base := "http://" + srv.Addr()
-	req, err := http.NewRequest(http.MethodGet, base+"/v0/beads/events:watch?since=0", nil)
+	req, err := http.NewRequest(http.MethodGet, base+"/v0/issuegraph/events:watch?since=0", nil)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
@@ -964,7 +964,7 @@ func TestEventsWatchRefusesAWriterItCannotFlush(t *testing.T) {
 	ts := watchServer(t, journal)
 
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v0/beads/events:watch?since=0", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v0/issuegraph/events:watch?since=0", nil)
 	ts.Server.handleWatchEvents(unflushableWriter{rec: rec}, req)
 
 	if rec.Code != http.StatusInternalServerError {
@@ -1068,7 +1068,7 @@ func TestEventsWatchClearsTheRequestReadDeadline(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	req := httptest.NewRequest(http.MethodGet, "/v0/beads/events:watch?since=0", nil).WithContext(ctx)
+	req := httptest.NewRequest(http.MethodGet, "/v0/issuegraph/events:watch?since=0", nil).WithContext(ctx)
 
 	done := make(chan struct{})
 	go func() {

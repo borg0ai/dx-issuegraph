@@ -9,11 +9,11 @@ import "strings"
 // uncommitted rows in the same table makes the two impossible to separate
 // later.
 //
-// The documented recovery is "bd dolt commit" (or "bd vc commit"), which
+// The documented recovery is "issuegraph dolt commit" (or "issuegraph vc commit"), which
 // commits the working set at the current schema so the migration can then
 // run cleanly. But those commit commands also open the store, and an open
 // runs MigrateUp - hitting this same guard before the commit that would
-// clear the dirty state ever gets a chance to run (gastownhall/beads#4566).
+// clear the dirty state ever gets a chance to run (borg0ai/dx-issuegraph#4566).
 // To break that deadlock, working-set-reconcile opens detect this error type
 // at open time via errors.As and skip the migration instead of failing the
 // open, so the commit can proceed and clear the working set. Both storage
@@ -26,5 +26,5 @@ type DirtyTablesError struct {
 
 func (e *DirtyTablesError) Error() string {
 	return "pending schema migrations alter pre-existing dirty tables: " + strings.Join(e.Tables, ", ") +
-		"; run 'bd dolt commit' to commit the working set at the current schema, then re-run the migration (gastownhall/beads#4566)"
+		"; run 'issuegraph dolt commit' to commit the working set at the current schema, then re-run the migration (borg0ai/dx-issuegraph#4566)"
 }

@@ -4,6 +4,12 @@
 
 **Parent:** [0001](0001-issuegraph-local-git.md)
 
+## Decision Update
+
+RFC [0013](0013-go-cli-under-apps.md) supersedes this RFC's placement of an
+installable npm CLI package in `apps/cli`. pnpm and Turbo workspace decisions
+and reusable npm packages remain in force.
+
 ## Summary
 
 Move the npm CLI app to `apps/cli`, reusable npm packages to `packages/*`, and coordinate JavaScript/TypeScript workspace tasks with pnpm and Turborepo. Go source layout and product asset relocation belong to RFCs [0009](0009-go-module-cli-build.md) and [0010](0010-issuegraph-asset-layout.md).

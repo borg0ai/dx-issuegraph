@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func TestIssueOperationsRejectsInvalidRequestsBeforeOpeningUOW(t *testing.T) {
@@ -228,7 +228,7 @@ func TestIssueOperationsCreateRetriesUsingRunTxResult(t *testing.T) {
 func TestIssueOperationsCreateUsesConfiguredStatusesAndTypes(t *testing.T) {
 	var received domain.CreateIssueParams
 	uw := &mockUnitOfWork{
-		configUseCase:     createConfigUseCaseStub{context: domain.CreateContext{IssuePrefix: "bd", CustomStatuses: []types.CustomStatus{{Name: "review"}}, CustomTypes: []string{"research"}}},
+		configUseCase:     createConfigUseCaseStub{context: domain.CreateContext{IssuePrefix: "issuegraph", CustomStatuses: []types.CustomStatus{{Name: "review"}}, CustomTypes: []string{"research"}}},
 		labelUseCase:      hydrationLabelUseCaseStub{},
 		dependencyUseCase: hydrationDependencyUseCaseStub{},
 		commentUseCase:    hydrationCommentUseCaseStub{},
@@ -268,7 +268,7 @@ func TestIssueOperationsLifecycleWithRealUnitOfWork(t *testing.T) {
 	ctx := context.Background()
 	provider := newTestUOWProvider(t)
 	if err := RunTx(ctx, provider, func(ctx context.Context, uw UnitOfWork) (string, error) {
-		if err := uw.ConfigUseCase().SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+		if err := uw.ConfigUseCase().SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 			return "", err
 		}
 		return "initialize lifecycle fixture", nil
@@ -556,7 +556,7 @@ func TestIssueOperationsCreateRejectsIncompleteUnitOfWork(t *testing.T) {
 
 	t.Run("labels", func(t *testing.T) {
 		uw := &mockUnitOfWork{
-			configUseCase:     createConfigUseCaseStub{context: domain.CreateContext{IssuePrefix: "bd"}},
+			configUseCase:     createConfigUseCaseStub{context: domain.CreateContext{IssuePrefix: "issuegraph"}},
 			issueUseCase:      issueUseCase,
 			dependencyUseCase: hydrationDependencyUseCaseStub{},
 			commentUseCase:    hydrationCommentUseCaseStub{},
@@ -579,7 +579,7 @@ func TestIssueOperationsCreateRejectsIncompleteUnitOfWork(t *testing.T) {
 
 	t.Run("dependencies", func(t *testing.T) {
 		uw := &mockUnitOfWork{
-			configUseCase:  createConfigUseCaseStub{context: domain.CreateContext{IssuePrefix: "bd"}},
+			configUseCase:  createConfigUseCaseStub{context: domain.CreateContext{IssuePrefix: "issuegraph"}},
 			issueUseCase:   issueUseCase,
 			labelUseCase:   hydrationLabelUseCaseStub{},
 			commentUseCase: hydrationCommentUseCaseStub{},
@@ -602,7 +602,7 @@ func TestIssueOperationsCreateRejectsIncompleteUnitOfWork(t *testing.T) {
 
 	t.Run("create comments", func(t *testing.T) {
 		uw := &mockUnitOfWork{
-			configUseCase:     createConfigUseCaseStub{context: domain.CreateContext{IssuePrefix: "bd"}},
+			configUseCase:     createConfigUseCaseStub{context: domain.CreateContext{IssuePrefix: "issuegraph"}},
 			issueUseCase:      issueUseCase,
 			labelUseCase:      hydrationLabelUseCaseStub{},
 			dependencyUseCase: hydrationDependencyUseCaseStub{},

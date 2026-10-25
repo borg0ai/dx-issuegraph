@@ -13,10 +13,10 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
-	"github.com/steveyegge/beads/internal/audit"
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/telemetry"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/audit"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/telemetry"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
@@ -113,28 +113,28 @@ var aiMetrics struct {
 var aiMetricsOnce sync.Once
 
 func initAIMetrics() {
-	m := telemetry.Meter("github.com/steveyegge/beads/ai")
-	aiMetrics.inputTokens, _ = m.Int64Counter("bd.ai.input_tokens",
+	m := telemetry.Meter("github.com/borg0ai/dx-issuegraph/ai")
+	aiMetrics.inputTokens, _ = m.Int64Counter("issuegraph.ai.input_tokens",
 		metric.WithDescription("Anthropic API input tokens consumed"),
 		metric.WithUnit("{token}"),
 	)
-	aiMetrics.outputTokens, _ = m.Int64Counter("bd.ai.output_tokens",
+	aiMetrics.outputTokens, _ = m.Int64Counter("issuegraph.ai.output_tokens",
 		metric.WithDescription("Anthropic API output tokens generated"),
 		metric.WithUnit("{token}"),
 	)
-	aiMetrics.duration, _ = m.Float64Histogram("bd.ai.request.duration",
+	aiMetrics.duration, _ = m.Float64Histogram("issuegraph.ai.request.duration",
 		metric.WithDescription("Anthropic API request duration in milliseconds"),
 		metric.WithUnit("ms"),
 	)
 }
 
 func (h *haikuClient) callWithRetry(ctx context.Context, prompt string) (string, error) {
-	tracer := telemetry.Tracer("github.com/steveyegge/beads/ai")
+	tracer := telemetry.Tracer("github.com/borg0ai/dx-issuegraph/ai")
 	ctx, span := tracer.Start(ctx, "anthropic.messages.new")
 	defer span.End()
 	span.SetAttributes(
-		attribute.String("bd.ai.model", h.model),
-		attribute.String("bd.ai.operation", "compact"),
+		attribute.String("issuegraph.ai.model", h.model),
+		attribute.String("issuegraph.ai.operation", "compact"),
 	)
 
 	var lastErr error
@@ -162,16 +162,16 @@ func (h *haikuClient) callWithRetry(ctx context.Context, prompt string) (string,
 
 		if err == nil {
 			// Record token usage and latency.
-			modelAttr := attribute.String("bd.ai.model", h.model)
+			modelAttr := attribute.String("issuegraph.ai.model", h.model)
 			if aiMetrics.inputTokens != nil {
 				aiMetrics.inputTokens.Add(ctx, message.Usage.InputTokens, metric.WithAttributes(modelAttr))
 				aiMetrics.outputTokens.Add(ctx, message.Usage.OutputTokens, metric.WithAttributes(modelAttr))
 				aiMetrics.duration.Record(ctx, ms, metric.WithAttributes(modelAttr))
 			}
 			span.SetAttributes(
-				attribute.Int64("bd.ai.input_tokens", message.Usage.InputTokens),
-				attribute.Int64("bd.ai.output_tokens", message.Usage.OutputTokens),
-				attribute.Int("bd.ai.attempts", attempt+1),
+				attribute.Int64("issuegraph.ai.input_tokens", message.Usage.InputTokens),
+				attribute.Int64("issuegraph.ai.output_tokens", message.Usage.OutputTokens),
+				attribute.Int("issuegraph.ai.attempts", attempt+1),
 			)
 
 			if len(message.Content) > 0 {

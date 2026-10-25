@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	storeops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	storeops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the contract every implementation of publicops.TreeWalker
@@ -539,7 +539,7 @@ func RunTreeWalkerRefusesAnInvalidRequest(t *testing.T, ctx context.Context, fix
 // EVERY LEG HONORS IT, which is the difference from ListRequest.MaxRows, whose
 // unit-of-work arm refuses the field with ErrUnsupported. The cap lives in the
 // one shared body here, so the unit-of-work leg is where a wrapper that dropped
-// the field would show up — and that leg is exactly the one `bd dep tree
+// the field would show up — and that leg is exactly the one `issuegraph dep tree
 // --max-rows` used to refuse outright.
 func RunTreeWalkerRefusesAWalkOverTheRowCap(t *testing.T, ctx context.Context, fixture TreeWalkerFixture) {
 	t.Helper()

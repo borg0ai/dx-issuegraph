@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "linden",
-  "name": "Beads Documentation",
+  "name": "IssueGraph Documentation",
   "logo": {
     "light": "/images/logo.svg",
     "dark": "/images/logo.svg"
@@ -13,18 +13,14 @@
         "label": "GitHub",
         "icon": "github",
         "iconType": "brands",
-        "href": "https://github.com/gastownhall/beads"
-      },
-      {
-        "label": "npm",
-        "href": "https://www.npmjs.com/package/@beads/bd"
+        "href": "https://github.com/borg0ai/dx-issuegraph"
       }
     ]
   },
   "colors": {
-    "primary": "#2e8555",
-    "light": "#3cad6e",
-    "dark": "#29784c"
+    "primary": "#6BC8B5",
+    "light": "#83D9C8",
+    "dark": "#17212B"
   },
   "redirects": [
     {
@@ -341,7 +337,6 @@
             "pages": [
               "cli-reference/index",
               "cli-reference/admin",
-              "cli-reference/ado",
               "cli-reference/assign",
               "cli-reference/audit",
               "cli-reference/backup",
@@ -356,6 +351,7 @@
               "cli-reference/compact",
               "cli-reference/completion",
               "cli-reference/config",
+              "cli-reference/conflicts",
               "cli-reference/context",
               "cli-reference/cook",
               "cli-reference/count",
@@ -371,6 +367,7 @@
               "cli-reference/duplicates",
               "cli-reference/edit",
               "cli-reference/epic",
+              "cli-reference/events",
               "cli-reference/export",
               "cli-reference/federation",
               "cli-reference/find-duplicates",
@@ -380,8 +377,8 @@
               "cli-reference/gate",
               "cli-reference/gc",
               "cli-reference/github",
-              "cli-reference/gitlab",
               "cli-reference/graph",
+              "cli-reference/heartbeat",
               "cli-reference/history",
               "cli-reference/hooks",
               "cli-reference/human",
@@ -389,10 +386,8 @@
               "cli-reference/info",
               "cli-reference/init-safety",
               "cli-reference/init",
-              "cli-reference/jira",
               "cli-reference/kv",
               "cli-reference/label",
-              "cli-reference/linear",
               "cli-reference/link",
               "cli-reference/lint",
               "cli-reference/list",
@@ -400,10 +395,10 @@
               "cli-reference/memories",
               "cli-reference/merge-slot",
               "cli-reference/metrics",
+              "cli-reference/migrate-personal",
               "cli-reference/migrate",
               "cli-reference/mol",
               "cli-reference/note",
-              "cli-reference/notion",
               "cli-reference/onboard",
               "cli-reference/orphans",
               "cli-reference/ping",
@@ -411,6 +406,7 @@
               "cli-reference/prime",
               "cli-reference/priority",
               "cli-reference/promote",
+              "cli-reference/provenance",
               "cli-reference/prune",
               "cli-reference/purge",
               "cli-reference/q",
@@ -418,6 +414,7 @@
               "cli-reference/quickstart",
               "cli-reference/ready",
               "cli-reference/recall",
+              "cli-reference/reclaim",
               "cli-reference/recompute-blocked",
               "cli-reference/remember",
               "cli-reference/rename-prefix",
@@ -426,7 +423,9 @@
               "cli-reference/repo",
               "cli-reference/restore",
               "cli-reference/rules",
+              "cli-reference/schema",
               "cli-reference/search",
+              "cli-reference/serve",
               "cli-reference/set-state",
               "cli-reference/setup",
               "cli-reference/ship",
@@ -438,9 +437,11 @@
               "cli-reference/statuses",
               "cli-reference/supersede",
               "cli-reference/swarm",
+              "cli-reference/sync",
               "cli-reference/tag",
               "cli-reference/todo",
               "cli-reference/types",
+              "cli-reference/unclaim",
               "cli-reference/undefer",
               "cli-reference/update",
               "cli-reference/upgrade",

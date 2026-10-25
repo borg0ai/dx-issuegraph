@@ -3,7 +3,7 @@ package telemetry
 import (
 	"context"
 
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // VersionReconciler returns the inner store's version-marker surface wrapped in
@@ -12,7 +12,7 @@ import (
 //
 // This is the one role whose spans are emitted on EVERY command, which makes it
 // the one place a startup regression would show up as a number rather than as a
-// report that bd feels slow.
+// report that issuegraph feels slow.
 func (s *InstrumentedStorage) VersionReconciler() (issueops.VersionReconciler, error) {
 	inner, err := s.Unwrap().VersionReconciler()
 	if err != nil {

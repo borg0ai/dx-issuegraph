@@ -1,0 +1,10 @@
+# Test issuegraph export command
+issuegraph init --prefix test
+issuegraph create 'Test issue'
+issuegraph export -o export.jsonl
+exists export.jsonl
+
+# Verify the exported file contains the issue
+issuegraph import export.jsonl
+issuegraph list
+stdout 'Test issue'

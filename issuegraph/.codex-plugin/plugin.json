@@ -6,8 +6,8 @@
     "name": "Steve Yegge",
     "url": "https://github.com/steveyegge"
   },
-  "homepage": "https://github.com/gastownhall/beads",
-  "repository": "https://github.com/gastownhall/beads",
+  "homepage": "https://github.com/borg0ai/dx-issuegraph",
+  "repository": "https://github.com/borg0ai/dx-issuegraph",
   "license": "MIT",
   "keywords": [
     "issue-tracker",
@@ -27,7 +27,7 @@
       "Skills",
       "Task tracking"
     ],
-    "websiteURL": "https://github.com/gastownhall/beads",
+    "websiteURL": "https://github.com/borg0ai/dx-issuegraph",
     "defaultPrompt": [
       "Use $issuegraph to show ready work in this repo.",
       "Use $issuegraph to claim the top ready task and summarize it.",

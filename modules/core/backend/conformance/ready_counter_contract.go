@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the semantic contract every implementation of
@@ -73,7 +73,7 @@ type ReadyCounterFixture struct {
 // accepts.
 //
 // The failure this exists to prevent is a total that describes a different set
-// than the page it is printed beside: `bd ready` publishes both numbers as
+// than the page it is printed beside: `issuegraph ready` publishes both numbers as
 // "showing 2 of 5", and a reader takes the second as "how much work is left".
 //
 // The bounded page is the half that matters. A count computed by re-running
@@ -332,7 +332,7 @@ func RunReadyCounterDoesNotMutateTheCallerRequest(t *testing.T, ctx context.Cont
 // the identity this role is (issueops/readycounter.go:60-70). Ready work is
 // open work — "Open only, not in_progress" (internal/workapi.BuildReadyFilter)
 // — and a count that sized a wider set than the page beside it would publish
-// `bd ready`'s "showing 2 of 5" over two different questions.
+// `issuegraph ready`'s "showing 2 of 5" over two different questions.
 //
 // EVERY OTHER CASE IN THIS FILE SEEDS OPEN ROWS AND NOTHING ELSE, so the status
 // predicate is unreachable from all of them: drop it and every count in this

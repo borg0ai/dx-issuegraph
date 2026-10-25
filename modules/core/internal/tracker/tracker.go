@@ -3,7 +3,7 @@ package tracker
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // IssueTracker is the plugin interface that all tracker integrations must implement.
@@ -19,7 +19,7 @@ type IssueTracker interface {
 	// ConfigPrefix returns the config key prefix (e.g., "linear", "gitlab").
 	ConfigPrefix() string
 
-	// Init initializes the tracker with configuration from the beads config store.
+	// Init initializes the tracker with configuration from the issuegraph config store.
 	// Called once before any sync operations.
 	Init(ctx context.Context, store Store) error
 
@@ -76,31 +76,31 @@ type PullStatsProvider interface {
 }
 
 // FieldMapper handles bidirectional conversion of issue fields between
-// an external tracker and beads. Each tracker provides its own mapper.
+// an external tracker and issuegraph. Each tracker provides its own mapper.
 type FieldMapper interface {
-	// PriorityToBeads converts a tracker priority to beads priority (0-4).
-	PriorityToBeads(trackerPriority interface{}) int
+	// PriorityToIssueGraph converts a tracker priority to issuegraph priority (0-4).
+	PriorityToIssueGraph(trackerPriority interface{}) int
 
-	// PriorityToTracker converts a beads priority (0-4) to the tracker's format.
-	PriorityToTracker(beadsPriority int) interface{}
+	// PriorityToTracker converts a issuegraph priority (0-4) to the tracker's format.
+	PriorityToTracker(issuegraphPriority int) interface{}
 
-	// StatusToBeads converts a tracker state to a beads status.
-	StatusToBeads(trackerState interface{}) types.Status
+	// StatusToIssueGraph converts a tracker state to a issuegraph status.
+	StatusToIssueGraph(trackerState interface{}) types.Status
 
-	// StatusToTracker converts a beads status to the tracker's state format.
-	StatusToTracker(beadsStatus types.Status) interface{}
+	// StatusToTracker converts a issuegraph status to the tracker's state format.
+	StatusToTracker(issuegraphStatus types.Status) interface{}
 
-	// TypeToBeads converts a tracker issue type to a beads issue type.
-	TypeToBeads(trackerType interface{}) types.IssueType
+	// TypeToIssueGraph converts a tracker issue type to a issuegraph issue type.
+	TypeToIssueGraph(trackerType interface{}) types.IssueType
 
-	// TypeToTracker converts a beads issue type to the tracker's format.
-	TypeToTracker(beadsType types.IssueType) interface{}
+	// TypeToTracker converts a issuegraph issue type to the tracker's format.
+	TypeToTracker(issuegraphType types.IssueType) interface{}
 
-	// IssueToBeads performs a full conversion from a tracker issue to a beads issue.
+	// IssueToIssueGraph performs a full conversion from a tracker issue to a issuegraph issue.
 	// Returns the converted issue and any dependencies to be created.
-	IssueToBeads(trackerIssue *TrackerIssue) *IssueConversion
+	IssueToIssueGraph(trackerIssue *TrackerIssue) *IssueConversion
 
-	// IssueToTracker builds update fields from a beads issue for the external tracker.
+	// IssueToTracker builds update fields from a issuegraph issue for the external tracker.
 	// Returns a map of field names to values in the tracker's format.
 	IssueToTracker(issue *types.Issue) map[string]interface{}
 }

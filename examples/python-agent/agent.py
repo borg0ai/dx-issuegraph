@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple AI agent workflow using bd (Beads issue tracker).
+Simple AI agent workflow using issuegraph (IssueGraph issue tracker).
 
 This demonstrates how an agent can:
 1. Find ready work
@@ -16,15 +16,15 @@ import sys
 from typing import Optional
 
 
-class BeadsAgent:
-    """Simple agent that manages tasks using bd."""
+class IssueGraphAgent:
+    """Simple agent that manages tasks using issuegraph."""
 
     def __init__(self):
         self.current_task = None
 
     def run_bd(self, *args) -> dict:
-        """Run bd command and parse JSON output."""
-        cmd = ["bd"] + list(args) + ["--json"]
+        """Run issuegraph command and parse JSON output."""
+        cmd = ["issuegraph"] + list(args) + ["--json"]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
 
         if result.stdout.strip():
@@ -58,7 +58,7 @@ class BeadsAgent:
         """Link a discovered issue back to its parent."""
         print(f"🔗 Linking {discovered_id} ← discovered-from ← {parent_id}")
         subprocess.run(
-            ["bd", "dep", "add", discovered_id, parent_id, "--type", "discovered-from"],
+            ["issuegraph", "dep", "add", discovered_id, parent_id, "--type", "discovered-from"],
             check=True
         )
 
@@ -119,7 +119,7 @@ class BeadsAgent:
 
     def run(self, max_iterations: int = 10):
         """Run the agent for multiple iterations."""
-        print("🚀 Beads Agent starting...\n")
+        print("🚀 IssueGraph Agent starting...\n")
 
         for i in range(max_iterations):
             print(f"\n{'='*60}")
@@ -135,11 +135,11 @@ class BeadsAgent:
 def main():
     """Main entry point."""
     try:
-        agent = BeadsAgent()
+        agent = IssueGraphAgent()
         agent.run()
     except subprocess.CalledProcessError as e:
-        print(f"Error running bd: {e}", file=sys.stderr)
-        print("Make sure bd is installed: curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash")
+        print(f"Error running issuegraph: {e}", file=sys.stderr)
+        print("Make sure issuegraph is installed (Homebrew, Nix or Scoop; see the README Installation section)")
         sys.exit(1)
     except KeyboardInterrupt:
         print("\n\n👋 Agent interrupted by user")

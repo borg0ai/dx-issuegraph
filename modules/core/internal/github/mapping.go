@@ -8,14 +8,14 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// MappingConfig configures how GitHub fields map to beads fields.
+// MappingConfig configures how GitHub fields map to issuegraph fields.
 type MappingConfig struct {
-	PriorityMap  map[string]int    // priority label value -> beads priority (0-4)
-	StateMap     map[string]string // GitHub state -> beads status
-	LabelTypeMap map[string]string // type label value -> beads issue type
+	PriorityMap  map[string]int    // priority label value -> issuegraph priority (0-4)
+	StateMap     map[string]string // GitHub state -> issuegraph status
+	LabelTypeMap map[string]string // type label value -> issuegraph issue type
 }
 
 // DefaultMappingConfig returns the default mapping configuration.
@@ -35,7 +35,7 @@ func DefaultMappingConfig() *MappingConfig {
 
 	return &MappingConfig{
 		PriorityMap: priorityMap,
-		// StateMap maps GitHub states to beads statuses
+		// StateMap maps GitHub states to issuegraph statuses
 		StateMap: map[string]string{
 			"open":   StatusMapping["open"],
 			"closed": StatusMapping["closed"],
@@ -58,7 +58,7 @@ func priorityFromLabels(labels []string, config *MappingConfig) int {
 	return 2 // Default to medium
 }
 
-// statusFromLabelsAndState determines beads status from GitHub labels and state.
+// statusFromLabelsAndState determines issuegraph status from GitHub labels and state.
 // GitHub's closed state takes precedence over status labels.
 func statusFromLabelsAndState(labels []string, state string, config *MappingConfig) string {
 	// Closed state always wins
@@ -83,7 +83,7 @@ func statusFromLabelsAndState(labels []string, state string, config *MappingConf
 		}
 	}
 
-	// Default: map GitHub state to beads status
+	// Default: map GitHub state to issuegraph status
 	if s, ok := config.StateMap[state]; ok {
 		return s
 	}
@@ -111,8 +111,8 @@ func typeFromLabels(labels []string, config *MappingConfig) string {
 	return "task" // Default to task
 }
 
-// GitHubIssueToBeads converts a GitHub Issue to a beads Issue.
-func GitHubIssueToBeads(gh *Issue, config *MappingConfig) *IssueConversion {
+// GitHubIssueToIssueGraph converts a GitHub Issue to a issuegraph Issue.
+func GitHubIssueToIssueGraph(gh *Issue, config *MappingConfig) *IssueConversion {
 	htmlURL := gh.HTMLURL
 	sourceSystem := fmt.Sprintf("github:%s:%d", gh.HTMLURL, gh.Number)
 	// Use a cleaner source system format if HTMLURL is not available
@@ -152,8 +152,8 @@ func GitHubIssueToBeads(gh *Issue, config *MappingConfig) *IssueConversion {
 	}
 }
 
-// BeadsIssueToGitHubFields converts a beads Issue to GitHub API update fields.
-func BeadsIssueToGitHubFields(issue *types.Issue, config *MappingConfig) map[string]interface{} {
+// IssueGraphIssueToGitHubFields converts a issuegraph Issue to GitHub API update fields.
+func IssueGraphIssueToGitHubFields(issue *types.Issue, config *MappingConfig) map[string]interface{} {
 	fields := map[string]interface{}{
 		"title": issue.Title,
 		"body":  issue.Description,
@@ -199,10 +199,10 @@ func BeadsIssueToGitHubFields(issue *types.Issue, config *MappingConfig) map[str
 
 // PushFieldsEqual reports whether a GitHub push would be a no-op by comparing
 // only the fields a push can actually mutate: title, body, state, and the
-// label set that BeadsIssueToGitHubFields would send. When these already match
+// label set that IssueGraphIssueToGitHubFields would send. When these already match
 // the remote issue, the push is redundant and can be skipped — this is what
-// prevents `bd github sync --push-only` from re-PATCHing every issue on every
-// run (gastownhall/beads#4214). Mirrors linear.PushFieldsEqual.
+// prevents `issuegraph github sync --push-only` from re-PATCHing every issue on every
+// run (borg0ai/dx-issuegraph#4214). Mirrors linear.PushFieldsEqual.
 func PushFieldsEqual(local *types.Issue, remote *Issue, config *MappingConfig) bool {
 	if local == nil || remote == nil {
 		return false
@@ -225,16 +225,16 @@ func PushFieldsEqual(local *types.Issue, remote *Issue, config *MappingConfig) b
 	// Compare the label set we would push against the remote's current labels.
 	// Both include the scoped type::/priority::/status:: labels plus any
 	// non-scoped labels, so an unchanged issue produces an identical set.
-	desiredLabels, _ := BeadsIssueToGitHubFields(local, config)["labels"].([]string)
+	desiredLabels, _ := IssueGraphIssueToGitHubFields(local, config)["labels"].([]string)
 	return labelSetsEqual(desiredLabels, remote.LabelNames())
 }
 
 // PushContentHash returns a stable hex fingerprint of the fields a push would
 // send to GitHub: title, body, desired state, and the order-independent label
-// set produced by BeadsIssueToGitHubFields. The engine persists this hash in
+// set produced by IssueGraphIssueToGitHubFields. The engine persists this hash in
 // local_metadata after each push and compares it before fetching the remote
 // issue, so an unchanged issue is skipped without any API call
-// (gastownhall/beads#4214). It is derived from the same fields PushFieldsEqual
+// (borg0ai/dx-issuegraph#4214). It is derived from the same fields PushFieldsEqual
 // compares, so the two agree on what "unchanged" means. Fields are
 // length-prefixed before hashing so distinct field boundaries cannot collide.
 func PushContentHash(local *types.Issue, config *MappingConfig) string {
@@ -247,7 +247,7 @@ func PushContentHash(local *types.Issue, config *MappingConfig) string {
 		desiredState = "closed"
 	}
 
-	desiredLabels, _ := BeadsIssueToGitHubFields(local, config)["labels"].([]string)
+	desiredLabels, _ := IssueGraphIssueToGitHubFields(local, config)["labels"].([]string)
 	sortedLabels := append([]string(nil), desiredLabels...)
 	slices.Sort(sortedLabels)
 
@@ -272,7 +272,7 @@ func labelSetsEqual(a, b []string) bool {
 	return slices.Equal(as, bs)
 }
 
-// priorityToLabel converts beads priority (0-4) to GitHub priority label value.
+// priorityToLabel converts issuegraph priority (0-4) to GitHub priority label value.
 func priorityToLabel(priority int) string {
 	switch priority {
 	case 0:

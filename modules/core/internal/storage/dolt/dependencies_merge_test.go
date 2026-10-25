@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestAddDependencyUsesDeterministicID proves the production insert path derives
@@ -51,7 +51,7 @@ func TestAddDependencyUsesDeterministicID(t *testing.T) {
 //     exactly one dependency (no duplicate, no uk_dep_* collision).
 //   - random ids (negative control): the same edge under two different primary
 //     keys brings in two rows that violate uk_dep_issue_target, and the merge
-//     does not cleanly converge — exactly the unrecoverable `bd dolt pull` break
+//     does not cleanly converge — exactly the unrecoverable `issuegraph dolt pull` break
 //     this fix removes.
 //
 // The deterministic-id value used here is depid.New(...), the same value the
@@ -165,7 +165,7 @@ func TestInsertBackfillIDPathsAgree(t *testing.T) {
 	if insertID != backfillID {
 		t.Errorf("insert path stored id %q but backfill would derive %q from "+
 			"(issue_id=%q, coalesce_target=%q): the two paths have diverged — "+
-			"independently-upgraded clones would produce different ids and bd dolt pull would fork (#4259)",
+			"independently-upgraded clones would produce different ids and issuegraph dolt pull would fork (#4259)",
 			insertID, backfillID, issueID, coalesceTarget)
 	}
 }

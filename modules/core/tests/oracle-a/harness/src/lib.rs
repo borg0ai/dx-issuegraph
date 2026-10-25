@@ -1,6 +1,6 @@
-//! Differential conformance harness for `bd`.
+//! Differential conformance harness for `issuegraph`.
 //!
-//! Runs the same curated CLI scenarios against two separately-built `bd`
+//! Runs the same curated CLI scenarios against two separately-built `issuegraph`
 //! binaries — a reference (the "before") and a candidate (the "after") — in
 //! isolated workspaces, and diffs each step's observable behavior
 //! (stdout/stderr/exit) with JSON-aware, array-order-significant comparison.

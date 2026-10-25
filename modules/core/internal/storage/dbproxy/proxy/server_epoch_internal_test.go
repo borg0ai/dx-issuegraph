@@ -10,12 +10,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/util"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/util"
 )
 
-// epochAdvancingServer simulates the F4 race deterministically: `bd dolt
+// epochAdvancingServer simulates the F4 race deterministically: `issuegraph dolt
 // stop` advancing the stop epoch while the proxy child is inside its (slow)
 // backend Start, after the spawn marker has already been cleared under
 // proxy.lock.

@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // SweepInTx is the store-backed body behind issueops.Sweeper: the whole of
-// `bd purge` and `bd prune` from candidate query to deletion, inside ONE
+// `issuegraph purge` and `issuegraph prune` from candidate query to deletion, inside ONE
 // transaction.
 //
 // It lives here rather than in an importable internal/workapi/store<role>
@@ -79,7 +79,7 @@ func SweepInTx(ctx context.Context, tx *sql.Tx, req publicops.SweepRequest) (pub
 //
 // Reading the workspace's custom statuses is required rather than best-effort:
 // an error aborts the sweep, because a scan that silently missed a custom active
-// status would under-protect and delete a bead a live bead still cites
+// status would under-protect and delete a issue a live issue still cites
 // (issueops.SweepRequest.ProtectReferenced).
 func sweepReferencedInTx(ctx context.Context, tx *sql.Tx, candidates []*types.Issue) (map[string]bool, error) {
 	if len(candidates) == 0 {
@@ -97,7 +97,7 @@ func sweepReferencedInTx(ctx context.Context, tx *sql.Tx, candidates []*types.Is
 	}
 	notDone, err := SearchIssuesInTx(ctx, tx, "", workapi.BuildSweepReferenceScanFilter(custom))
 	if err != nil {
-		return nil, fmt.Errorf("scanning open beads for references: %w", err)
+		return nil, fmt.Errorf("scanning open issuegraph for references: %w", err)
 	}
 
 	notDoneIDs := make([]string, 0, len(notDone))
@@ -108,7 +108,7 @@ func sweepReferencedInTx(ctx context.Context, tx *sql.Tx, candidates []*types.Is
 	}
 	comments, err := GetCommentsForIssuesInTx(ctx, tx, notDoneIDs)
 	if err != nil {
-		return nil, fmt.Errorf("scanning open beads for references: %w", err)
+		return nil, fmt.Errorf("scanning open issuegraph for references: %w", err)
 	}
 
 	referenced := make(map[string]bool)

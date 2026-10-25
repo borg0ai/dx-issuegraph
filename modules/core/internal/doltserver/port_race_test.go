@@ -10,17 +10,17 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/doltserver"
-	"github.com/steveyegge/beads/internal/testutil/integration"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil/integration"
 )
 
 // TestPortRace_ConcurrentStart verifies that when two goroutines call Start()
-// simultaneously on the same beadsDir, exactly one succeeds due to flock
+// simultaneously on the same issuegraphDir, exactly one succeeds due to flock
 // serialization, and both end up with a healthy server.
 func TestPortRace_ConcurrentStart(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
 	const numStarters = 3
@@ -37,7 +37,7 @@ func TestPortRace_ConcurrentStart(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			<-ready
-			state, err := doltserver.Start(beadsDir)
+			state, err := doltserver.Start(issuegraphDir)
 			mu.Lock()
 			states[idx] = state
 			errs[idx] = err
@@ -82,7 +82,7 @@ func TestPortRace_ConcurrentStart(t *testing.T) {
 	}
 
 	// Cleanup.
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Logf("Stop: %v", err)
 	}
 	if firstPID != 0 {
@@ -93,9 +93,9 @@ func TestPortRace_ConcurrentStart(t *testing.T) {
 // TestPortRace_EphemeralPortRetry verifies that the ephemeral port allocation
 // retry loop works when a port is already in use.
 func TestPortRace_EphemeralPortRetry(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
 	// Bind a port to simulate it being in use.
@@ -109,7 +109,7 @@ func TestPortRace_EphemeralPortRetry(t *testing.T) {
 
 	// Start() uses ephemeral port allocation (port 0) by default.
 	// It should succeed even with one port occupied because it retries.
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestPortRace_EphemeralPortRetry(t *testing.T) {
 
 	t.Logf("Server started on port %d (occupied port was %d)", state.Port, occupiedPort)
 
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Logf("Stop: %v", err)
 	}
 	reg.Deregister(state.PID)
@@ -131,12 +131,12 @@ func TestPortRace_EphemeralPortRetry(t *testing.T) {
 // TestPortRace_LoopbackBinding verifies that the dolt server binds to
 // 127.0.0.1 (loopback) and is not accessible from other interfaces.
 func TestPortRace_LoopbackBinding(t *testing.T) {
-	beadsDir := setupLifecycleTestDir(t)
+	issuegraphDir := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
-	diag := integration.NewDiagnostics(t, beadsDir)
+	diag := integration.NewDiagnostics(t, issuegraphDir)
 	diag.CaptureOnFailure()
 
-	state, err := doltserver.Start(beadsDir)
+	state, err := doltserver.Start(issuegraphDir)
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -153,12 +153,12 @@ func TestPortRace_LoopbackBinding(t *testing.T) {
 	t.Log("Loopback connection succeeded")
 
 	// Check the dolt server config confirms 127.0.0.1 binding.
-	cfg := doltserver.DefaultConfig(beadsDir)
+	cfg := doltserver.DefaultConfig(issuegraphDir)
 	if cfg.Host != "127.0.0.1" && cfg.Host != "localhost" && cfg.Host != "" {
 		t.Errorf("server config host is %q, expected 127.0.0.1 or localhost", cfg.Host)
 	}
 
-	if err := doltserver.Stop(beadsDir); err != nil {
+	if err := doltserver.Stop(issuegraphDir); err != nil {
 		t.Logf("Stop: %v", err)
 	}
 	reg.Deregister(state.PID)
@@ -167,8 +167,8 @@ func TestPortRace_LoopbackBinding(t *testing.T) {
 // TestPortRace_MultiRepoPortCollision verifies that two repos don't collide
 // on the same ephemeral port.
 func TestPortRace_MultiRepoPortCollision(t *testing.T) {
-	beadsDirA := setupLifecycleTestDir(t)
-	beadsDirB := setupLifecycleTestDir(t)
+	issuegraphDirA := setupLifecycleTestDir(t)
+	issuegraphDirB := setupLifecycleTestDir(t)
 	reg := integration.NewProcessRegistry(t)
 
 	// Start both servers concurrently.
@@ -179,11 +179,11 @@ func TestPortRace_MultiRepoPortCollision(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		stateA, errA = doltserver.Start(beadsDirA)
+		stateA, errA = doltserver.Start(issuegraphDirA)
 	}()
 	go func() {
 		defer wg.Done()
-		stateB, errB = doltserver.Start(beadsDirB)
+		stateB, errB = doltserver.Start(issuegraphDirB)
 	}()
 	wg.Wait()
 
@@ -211,9 +211,9 @@ func TestPortRace_MultiRepoPortCollision(t *testing.T) {
 	}
 	t.Logf("Repo A: port %d, Repo B: port %d", stateA.Port, stateB.Port)
 
-	_ = doltserver.Stop(beadsDirA)
+	_ = doltserver.Stop(issuegraphDirA)
 	reg.Deregister(stateA.PID)
-	_ = doltserver.Stop(beadsDirB)
+	_ = doltserver.Stop(issuegraphDirB)
 	reg.Deregister(stateB.PID)
 }
 

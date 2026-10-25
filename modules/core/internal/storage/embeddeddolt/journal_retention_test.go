@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestEventsJournalPruneNeverSplitsASkewedPair is the regression guard for the
@@ -60,7 +60,7 @@ func TestEventsJournalPruneNeverSplitsASkewedPair(t *testing.T) {
 		{rows[0].Seq, old}, {rows[1].Seq, old}, {rows[2].Seq, young},
 		{rows[3].Seq, old}, {rows[4].Seq, young}, {rows[5].Seq, young},
 	} {
-		env.exec(t, ctx, "UPDATE bd_events_journal SET ts = ? WHERE seq = ?", s.ts, s.seq)
+		env.exec(t, ctx, "UPDATE issuegraph_events_journal SET ts = ? WHERE seq = ?", s.ts, s.seq)
 	}
 
 	n, err := store.PruneEventsJournal(ctx, 1_000_000, 7, 0)
@@ -125,7 +125,7 @@ func TestEventsJournalPruneWhenEveryRowIsOlderThanTheCutoff(t *testing.T) {
 	// touched in a month.
 	stale := time.Now().UTC().AddDate(0, 0, -30)
 	for _, r := range rows {
-		env.exec(t, ctx, "UPDATE bd_events_journal SET ts = ? WHERE seq = ?", stale, r.Seq)
+		env.exec(t, ctx, "UPDATE issuegraph_events_journal SET ts = ? WHERE seq = ?", stale, r.Seq)
 	}
 
 	// The age floor protects nothing, so --before alone governs: rows below the
@@ -146,7 +146,7 @@ func TestEventsJournalPruneWhenEveryRowIsOlderThanTheCutoff(t *testing.T) {
 	}
 }
 
-// TestEventsJournalReadRefusesAnInteriorHole is the defense-in-depth half. bd's
+// TestEventsJournalReadRefusesAnInteriorHole is the defense-in-depth half. issuegraph's
 // own prune cannot produce a hole above the floor (it resolves to one `seq <
 // bound` prefix delete), but a restored, hand-edited or partially-copied
 // journal table can — and that hole is invisible to a left-edge-only check.
@@ -175,7 +175,7 @@ func TestEventsJournalReadRefusesAnInteriorHole(t *testing.T) {
 	head := rows[len(rows)-1].Seq
 
 	// Punch out a middle row, the way a hand-repaired table arrives.
-	env.exec(t, ctx, "DELETE FROM bd_events_journal WHERE seq = ?", rows[2].Seq)
+	env.exec(t, ctx, "DELETE FROM issuegraph_events_journal WHERE seq = ?", rows[2].Seq)
 
 	_, err = store.ReadEventsJournal(ctx, 0, 0)
 	trunc := requireTruncated(t, err)

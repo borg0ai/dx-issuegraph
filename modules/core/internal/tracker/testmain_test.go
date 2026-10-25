@@ -9,8 +9,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/dolt"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // testServerPort is the port of the shared test Dolt server.
@@ -27,9 +27,9 @@ func TestMain(m *testing.M) {
 }
 
 func testMainInner(m *testing.M) int {
-	os.Setenv("BEADS_TEST_MODE", "1")
+	os.Setenv("ISSUEGRAPH_TEST_MODE", "1")
 	// AD-01 (be-c5p): allow tracker tests to connect to the test container.
-	os.Setenv("BEADS_TEST_SERVER", "1")
+	os.Setenv("ISSUEGRAPH_TEST_SERVER", "1")
 	if err := testutil.EnsureDoltContainerForTestMain(); err != nil {
 		fmt.Fprintf(os.Stderr, "WARN: %v, skipping Dolt tests\n", err)
 	} else {
@@ -55,8 +55,8 @@ func testMainInner(m *testing.M) int {
 
 	code := m.Run()
 
-	os.Unsetenv("BEADS_DOLT_PORT")
-	os.Unsetenv("BEADS_TEST_MODE")
+	os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
+	os.Unsetenv("ISSUEGRAPH_TEST_MODE")
 	return code
 }
 
@@ -75,7 +75,7 @@ func initTrackerSharedSchema(port int) error {
 	}
 	defer store.Close()
 
-	if err := store.SetConfig(ctx, "issue_prefix", "bd"); err != nil {
+	if err := store.SetConfig(ctx, "issue_prefix", "issuegraph"); err != nil {
 		return fmt.Errorf("SetConfig(issue_prefix): %w", err)
 	}
 

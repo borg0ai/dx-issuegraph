@@ -11,10 +11,10 @@ formula is optional — any epic with children is a molecule.
 
 A molecule is a persistent instance of a proto (a cooked formula):
 - Contains steps with dependencies
-- Persistent beads in the issue database, synced like any other bead
+- Persistent issuegraph in the issue database, synced like any other issue
 - Steps map to issues with parent-child relationships
 
-Under the hood, **a molecule is just an epic** — a parent bead with children —
+Under the hood, **a molecule is just an epic** — a parent issue with children —
 plus workflow semantics:
 
 | Term | Meaning | When to use |
@@ -37,8 +37,8 @@ issuegraph mol pour release --var version=1.0.0
 ```
 
 This creates:
-- Parent issue: `bd-xyz` (the molecule root)
-- Child issues: `bd-xyz.1`, `bd-xyz.2`, etc. (the steps)
+- Parent issue: `issuegraph-xyz` (the molecule root)
+- Child issues: `issuegraph-xyz.1`, `issuegraph-xyz.2`, etc. (the steps)
 
 ### Without a Formula
 
@@ -139,13 +139,13 @@ issuegraph ready --mol <molecule-id>  # Only shows steps with completed dependen
 
 ```bash
 # Start a step
-issuegraph update bd-xyz.1 --claim
+issuegraph update issuegraph-xyz.1 --claim
 
 # Complete a step
-issuegraph close bd-xyz.1 --reason "Done"
+issuegraph close issuegraph-xyz.1 --reason "Done"
 
 # Check what's ready next
-issuegraph ready --mol bd-xyz
+issuegraph ready --mol issuegraph-xyz
 ```
 
 ### Viewing Progress
@@ -177,7 +177,7 @@ Closed / Squashed / Burned
 
 Closing the last child does not close the molecule root — epics stay open as
 close-eligible work until closed explicitly (`issuegraph epic close-eligible` sweeps
-them). For cleanup of the beads themselves:
+them). For cleanup of the issuegraph themselves:
 
 - `issuegraph mol squash <id>` condenses a molecule's ephemeral children into a
   permanent digest issue.
@@ -219,8 +219,8 @@ When the number of children isn't known until runtime, bond in a loop with
 
 ```bash
 # One arm per discovered worker
-issuegraph mol bond mol-worker-arm bd-patrol --ref arm-{{name}} --var name=ace
-# Creates: bd-patrol.arm-ace (and children like bd-patrol.arm-ace.capture)
+issuegraph mol bond mol-worker-arm issuegraph-patrol --ref arm-{{name}} --var name=ace
+# Creates: issuegraph-patrol.arm-ace (and children like issuegraph-patrol.arm-ace.capture)
 ```
 
 ## Advanced Features
@@ -274,14 +274,14 @@ issuegraph cook feature-workflow.formula.toml
 issuegraph mol pour feature-workflow --var name="dark-mode"
 
 # 2. View structure
-issuegraph dep tree bd-xyz
+issuegraph dep tree issuegraph-xyz
 
 # 3. Start first step
-issuegraph update bd-xyz.1 --claim
+issuegraph update issuegraph-xyz.1 --claim
 
 # 4. Complete and progress
-issuegraph close bd-xyz.1
-issuegraph ready --mol bd-xyz  # Shows next steps
+issuegraph close issuegraph-xyz.1
+issuegraph ready --mol issuegraph-xyz  # Shows next steps
 
 # 5. Continue until complete
 ```

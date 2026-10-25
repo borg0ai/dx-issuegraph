@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Audit cases for the "config-metadata-slots-repomtime" slice. Each case pins a
@@ -121,7 +121,7 @@ func testAuditSetConfigInvalidStatusRollsBack(t *testing.T, f Factory) {
 // normalized custom_types table and GetCustomTypes reads it back ORDER BY name —
 // alphabetical, independent of the JSON-array order in the config string. (The
 // YAML overlay-union adds nothing here: in-process store tests have no
-// .beads/config.yaml.)
+// .issuegraph/config.yaml.)
 func testAuditCustomTypesOrder(t *testing.T, f Factory) {
 	s := f(t)
 	c := ctx()
@@ -174,8 +174,8 @@ func testAuditDeleteConfigLeavesNormalizedTable(t *testing.T, f Factory) {
 // unconfigured path had no owning proof and GetInfraTypes had none at all.
 // The consumption is a hard failure edge: internal/workapi/list.go LoadListConfig
 // loads all four up front and wraps any error, so a backend that answers a scan
-// error or a nil-map surprise for an unconfigured workspace bricks `bd list`,
-// `bd ready` and every other list-shaped command rather than degrading.
+// error or a nil-map surprise for an unconfigured workspace bricks `issuegraph list`,
+// `issuegraph ready` and every other list-shaped command rather than degrading.
 //
 // The infra set is spelled out rather than compared against the production
 // constant: this suite is the contract, and reading the answer from the same

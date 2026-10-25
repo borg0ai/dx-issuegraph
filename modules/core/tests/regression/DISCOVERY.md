@@ -208,7 +208,7 @@ node := &types.TreeNode{
 }
 ```
 
-The `renderTree()` function at `modules/cli/dep.go:721-729` builds a children map
+The `renderTree()` function at `apps/cli/dep.go:721-729` builds a children map
 keyed by `ParentID`. Since `ParentID` is always empty, all children go into
 `children[""]` instead of `children[rootID]`. Root's children lookup returns empty.
 
@@ -235,7 +235,7 @@ func (s *DoltStore) buildDependencyTree(ctx context.Context, issueID string,
 ### BUG-3: `dep tree` shows `[READY]` for blocked root issue
 
 **Severity: MEDIUM**
-**File:** `modules/cli/dep.go:835`
+**File:** `apps/cli/dep.go:835`
 
 ```go
 if node.Status == types.StatusOpen && node.Depth == 0 {
@@ -305,10 +305,10 @@ transactions.
 **Status:** ✅ RESOLVED — Unique prefix per workspace
 
 All `issuegraph init --prefix test` workspaces on the same Dolt server (127.0.0.1:3307)
-share the same `beads_test` database. This is by design for collaborative use.
+share the same `issuegraph_test` database. This is by design for collaborative use.
 
 The regression harness now uses unique prefixes per workspace (FNV hash of temp
-dir path), creating separate `beads_t<hash>` databases. Each test workspace
+dir path), creating separate `issuegraph_t<hash>` databases. Each test workspace
 is fully isolated.
 
 ---
@@ -380,7 +380,7 @@ The help text documents this, but the `--ready` flag name is misleading.
 
 **Severity: MEDIUM** — Breaks scripting and automation
 **Affects:** `issuegraph close` (close guard), `issuegraph update --claim` (already claimed), likely others
-**Files:** `modules/cli/close.go:117`, `modules/cli/update.go:278`
+**Files:** `apps/cli/close.go:117`, `apps/cli/update.go:278`
 
 When close guard prevents closing a blocked issue, the command prints a message
 to stderr (the delegated embedded path emits "cannot close blocked issue: X is
@@ -404,7 +404,7 @@ They must parse stderr text instead, which is fragile.
 ### BUG-11: `issuegraph update --status` accepts arbitrary values
 
 **Severity: MEDIUM** — Data integrity issue
-**File:** `modules/cli/update.go`
+**File:** `apps/cli/update.go`
 
 `issuegraph update X --status "bogus"` succeeds and stores "bogus" as the status.
 Valid statuses should be: open, in_progress, closed, deferred.
@@ -420,7 +420,7 @@ won't appear in any filtered list (they're not open, not closed, not deferred).
 ### BUG-12: `issuegraph update --title ""` accepts empty title
 
 **Severity: LOW** — Data quality issue
-**File:** `modules/cli/update.go`
+**File:** `apps/cli/update.go`
 
 `issuegraph create --title ""` correctly fails with "title required".
 `issuegraph update X --title ""` succeeds and stores an empty title.
@@ -534,7 +534,7 @@ blocked appear as ready.
 
 **Severity: LOW-MEDIUM** — Silent discrepancy between related commands
 **Discovered:** Lane 3 candidate-only discovery, code review + test
-**File:** `modules/cli/count.go:106-110` vs `modules/cli/list.go:410-412`
+**File:** `apps/cli/count.go:106-110` vs `apps/cli/list.go:410-412`
 **Test:** `TestDiscovery_CountVsListDefaultFilter`
 
 `issuegraph count` (no flags) counts ALL issues including closed.
@@ -586,7 +586,7 @@ not there either. Has no way to discover why the child isn't showing in ready.
 
 **Severity: HIGH** — Silent bypass of safety mechanism
 **Discovered:** Session 4 deep discovery, test
-**File:** `modules/cli/update.go` (no blocker check) vs `modules/cli/close.go:109-119`
+**File:** `apps/cli/update.go` (no blocker check) vs `apps/cli/close.go:109-119`
 **Test:** `TestDiscovery_UpdateStatusClosedBypassesCloseGuard`
 
 `issuegraph close X` checks for open blockers and rejects the close. `issuegraph update X
@@ -619,7 +619,7 @@ be rejected for superseded/duplicated issues?
 
 **Severity: MEDIUM** — Issue becomes invisible to all workflows
 **Discovered:** Session 4 deep discovery, test
-**File:** `modules/cli/defer.go:37-44` (no past-date validation)
+**File:** `apps/cli/defer.go:37-44` (no past-date validation)
 **Test:** `TestDiscovery_DeferPastDateInvisible`
 
 `issuegraph defer X --until 2020-01-01` sets status=deferred and defer_until to a past
@@ -692,7 +692,7 @@ reopen be rejected for superseded/duplicated issues?
 
 **Severity: MEDIUM** — Issue silently lost
 **Discovered:** Session 4 deep discovery, test
-**File:** `modules/cli/defer.go:37-44` (no past-date validation)
+**File:** `apps/cli/defer.go:37-44` (no past-date validation)
 **Test:** `TestDiscovery_DeferPastDateInvisible`
 
 `issuegraph defer X --until 2020-01-01` sets status=deferred and defer_until to a past
@@ -708,7 +708,7 @@ Note: `issuegraph update --defer` warns about past dates but `issuegraph defer` 
 **Severity: HIGH** — Complete silent filter failure
 **Status: FIXED — PR #3971**
 **Discovered:** Session 5 deep discovery, code review + test
-**File:** `modules/cli/list.go:436-441` (sets filter) vs `internal/storage/dolt/queries.go` (never reads it)
+**File:** `apps/cli/list.go:436-441` (sets filter) vs `internal/storage/dolt/queries.go` (never reads it)
 **Test:** `TestDiscovery_LabelPatternFilterDeadCode`
 
 `issuegraph list --label-pattern "tech-*"` sets `filter.LabelPattern` in the IssueFilter
@@ -732,7 +732,7 @@ documented the live bug.
 
 **Severity: MEDIUM** — Silent contradictory state
 **Discovered:** Session 5 deep discovery, test
-**File:** `modules/cli/update.go:276-306` (sequential non-transactional ops)
+**File:** `apps/cli/update.go:276-306` (sequential non-transactional ops)
 **Test:** `TestDiscovery_ClaimThenStatusOverwrite`
 
 `issuegraph update X --claim --status open` first calls `ClaimIssue` (sets status=in_progress),
@@ -745,7 +745,7 @@ user sees "Updated" with no warning about the contradictory flags.
 
 **Severity: MEDIUM** — Silent filter override
 **Discovered:** Session 5 deep discovery, test
-**File:** `modules/cli/list.go:401-408` (if-else precedence)
+**File:** `apps/cli/list.go:401-408` (if-else precedence)
 **Test:** `TestDiscovery_ListReadyOverridesStatusFlag`
 
 `issuegraph list --status closed --ready` silently discards `--status closed` because
@@ -758,7 +758,7 @@ closed — completely wrong results with no warning.
 
 **Severity: MEDIUM** — Silent filter bypass
 **Discovered:** Session 5 deep discovery, test
-**File:** `modules/cli/list.go:423-425` (empty string check)
+**File:** `apps/cli/list.go:423-425` (empty string check)
 **Test:** `TestDiscovery_AssigneeEmptyStringVsNoAssignee`
 
 `issuegraph list --assignee ""` fails the `!= ""` check, so the assignee filter is never
@@ -772,7 +772,7 @@ silently wrong results.
 
 **Severity: HIGH** — Completely wrong results, silently
 **Discovered:** Session 6 discovery, test
-**File:** `modules/cli/stale.go:22,71` (no validation) + `internal/storage/dolt/queries.go:767`
+**File:** `apps/cli/stale.go:22,71` (no validation) + `internal/storage/dolt/queries.go:767`
 **Test:** `TestDiscovery_StaleNegativeDaysSilentlyInverts`
 
 `issuegraph stale --days -1` is accepted without error. The cutoff computation at
@@ -787,7 +787,7 @@ while expecting "issues not updated in the last day."
 
 **Severity: MEDIUM** — Silent degradation of sort behavior
 **Discovered:** Session 6 discovery, test
-**File:** `modules/cli/list.go:238-240` (default case in sort switch)
+**File:** `apps/cli/list.go:238-240` (default case in sort switch)
 **Test:** `TestDiscovery_ListSortUnknownFieldSilentNoOp`
 
 `issuegraph list --sort nonexistent_field` succeeds without error. The sort comparator
@@ -801,7 +801,7 @@ their specified field but gets arbitrary ordering.
 
 **Severity: HIGH** — Structural corruption of issue hierarchy
 **Discovered:** Session 6 discovery, test
-**File:** `modules/cli/update.go:328-342` (reparent logic, no cycle check)
+**File:** `apps/cli/update.go:328-342` (reparent logic, no cycle check)
 **Test:** `TestDiscovery_ReparentCreatesParentChildCycle`
 
 `issuegraph update parent --parent child` (where child is already a child of parent)
@@ -836,7 +836,7 @@ need more thorough testing with controlled time.
 
 **Severity: MEDIUM** — Silent wrong results from reversed range
 **Discovered:** Session 6 discovery, test
-**File:** `modules/cli/list.go:522-535` (independent validation, no min<=max check)
+**File:** `apps/cli/list.go:522-535` (independent validation, no min<=max check)
 **Test:** `TestDiscovery_PriorityMinMaxReversedSilentEmpty`
 
 `issuegraph list --priority-min 4 --priority-max 0` produces SQL `priority >= 4 AND
@@ -849,7 +849,7 @@ bound is validated independently (0-4 range) but the pair is never checked.
 
 **Severity: MEDIUM** — Silent wrong results from reversed date range
 **Discovered:** Session 6 discovery, test
-**File:** `modules/cli/list.go:466-508` (independent parsing, no range check)
+**File:** `apps/cli/list.go:466-508` (independent parsing, no range check)
 **Test:** `TestDiscovery_DateRangeReversedSilentEmpty`
 
 `issuegraph list --created-after 2099-12-31 --created-before 2020-01-01` produces SQL
@@ -862,7 +862,7 @@ empty with no error.
 
 **Severity: LOW** — Negative limit not validated
 **Discovered:** Session 6 discovery, test
-**File:** `modules/cli/list.go:666-668` (`effectiveLimit > 0` check)
+**File:** `apps/cli/list.go:666-668` (`effectiveLimit > 0` check)
 **Test:** `TestDiscovery_NegativeLimitNotRejected`
 
 `issuegraph list -n -1` is silently accepted and acts as unlimited (same as `-n 0`).
@@ -888,7 +888,7 @@ not the status transition. Classified as PROTOCOL (correct behavior).
 
 **Severity: LOW** — Data quality issue (extension of BUG-12)
 **Discovered:** Session 6 discovery, test
-**File:** `modules/cli/update.go:66-68` (no whitespace validation)
+**File:** `apps/cli/update.go:66-68` (no whitespace validation)
 **Test:** `TestDiscovery_WhitespaceOnlyTitleAccepted`
 
 `issuegraph update X --title "   "` succeeds and stores a whitespace-only title. The
@@ -901,7 +901,7 @@ issue becomes effectively untitled. `issuegraph create` rejects empty titles but
 
 **Severity: LOW** — UX ambiguity
 **Discovered:** Session 6 discovery, test
-**File:** `modules/cli/config.go:207` (empty string check)
+**File:** `apps/cli/config.go:207` (empty string check)
 **Test:** `TestDiscovery_ConfigEmptyValueAmbiguous`
 
 After `issuegraph config set key ""`, `issuegraph config get key` displays "(not set)" — the
@@ -929,7 +929,7 @@ check the result.
 
 **Severity: MEDIUM** — State corruption, issue can't wake up
 **Discovered:** Session 7 discovery, test
-**File:** `modules/cli/update.go:43-199` (status and defer are independent)
+**File:** `apps/cli/update.go:43-199` (status and defer are independent)
 **Test:** `TestDiscovery_DeferredStatusWithoutDate`
 
 `issuegraph update X --status deferred` (without `--defer`) sets status=deferred but
@@ -943,7 +943,7 @@ back to open. User must manually `issuegraph undefer` or `issuegraph update --st
 
 **Severity: MEDIUM** — Silent wrong results
 **Discovered:** Session 7 discovery, test
-**File:** `modules/cli/list.go:255,405` (GetString not GetStringSlice)
+**File:** `apps/cli/list.go:255,405` (GetString not GetStringSlice)
 **Test:** `TestDiscovery_CommaStatusSilentlyReturnsEmpty`
 
 `--status` is a simple string flag, not a slice. "open,closed" is treated as a
@@ -956,7 +956,7 @@ error. Contrast with `--id` which DOES parse comma-separated values.
 
 **Severity: MEDIUM** — Contradictory flags silently produce wrong results
 **Discovered:** Session 7 discovery, test
-**File:** `modules/cli/list.go:423-424,514-515` (both set independently)
+**File:** `apps/cli/list.go:423-424,514-515` (both set independently)
 **Test:** `TestDiscovery_AssigneeAndNoAssigneeConflict`
 
 Both flags are processed independently and both set on the filter struct.
@@ -969,7 +969,7 @@ which is always false. Returns empty with no error or warning.
 
 **Severity: MEDIUM** — Creates child under dead parent
 **Discovered:** Session 7 discovery, test
-**File:** `modules/cli/create.go:422-437` (only checks existence, not status)
+**File:** `apps/cli/create.go:422-437` (only checks existence, not status)
 **Test:** `TestDiscovery_CreateChildOfClosedParent`
 
 `issuegraph create --parent <closed-issue>` validates that the parent exists but does
@@ -998,7 +998,7 @@ is non-empty and ≤50 chars. Classified as PROTOCOL (correct behavior).
 
 **Severity: LOW** — Data quality issue (same pattern as BUG-14)
 **Discovered:** Session 7c discovery, test
-**File:** `modules/cli/comments.go:110-114` (no validation)
+**File:** `apps/cli/comments.go:110-114` (no validation)
 **Test:** `TestDiscovery_EmptyCommentAccepted`
 
 `issuegraph comments add X ""` accepts and stores a comment with empty text. Same
@@ -1011,7 +1011,7 @@ create noise in the comment list.
 
 **Severity: LOW-MEDIUM** — Inconsistency with --defer warning
 **Discovered:** Session 7c discovery, test
-**File:** `modules/cli/update.go:169-180` (no past-date check) vs lines 192-197 (--defer warns)
+**File:** `apps/cli/update.go:169-180` (no past-date check) vs lines 192-197 (--defer warns)
 **Test:** `TestDiscovery_DueDatePastNoWarning`
 
 `issuegraph update X --due 2020-01-01` sets due_at to a past date without any warning.
@@ -1047,7 +1047,7 @@ retrieved correctly via JSON output.
 
 **Severity: MEDIUM** — Missing lifecycle validation
 **Discovered:** Session 8 discovery, test
-**File:** `modules/cli/reopen.go` (no status validation) + `internal/validation/issue.go:150-156` (forReopen validator exists but unused)
+**File:** `apps/cli/reopen.go` (no status validation) + `internal/validation/issue.go:150-156` (forReopen validator exists but unused)
 **Test:** `TestDiscovery_ReopenAlreadyOpenSucceeds`
 
 `issuegraph reopen <open-issue>` succeeds with "Reopened" message even though the issue
@@ -1061,7 +1061,7 @@ accidental double-reopens and confuses users about the actual state.
 
 **Severity: MEDIUM** — Missing lifecycle validation
 **Discovered:** Session 8 discovery, test
-**File:** `modules/cli/undefer.go:25-75` (no status validation)
+**File:** `apps/cli/undefer.go:25-75` (no status validation)
 **Test:** `TestDiscovery_UndeferNonDeferredSucceeds`
 
 `issuegraph undefer <open-issue>` succeeds with "Undeferred" message even though the
@@ -1074,7 +1074,7 @@ clears defer_until (which was already empty). Misleading confirmation message.
 
 **Severity: LOW** — Silent validation gap
 **Discovered:** Session 8 discovery, test
-**File:** `modules/cli/ready.go:96-98` (no validation on priority value)
+**File:** `apps/cli/ready.go:96-98` (no validation on priority value)
 **Test:** `TestDiscovery_ReadyPriorityOutOfRange`
 
 `issuegraph ready --priority 5` is accepted without error. Valid priorities are 0-4.
@@ -1087,7 +1087,7 @@ has no way to know their filter value was invalid vs. truly no matching work.
 
 **Severity: MEDIUM** — Silent validation gap
 **Discovered:** Session 8 discovery, test
-**File:** `modules/cli/children.go` (no parent existence validation)
+**File:** `apps/cli/children.go` (no parent existence validation)
 **Test:** `TestDiscovery_ChildrenNonexistentParentSilentEmpty`
 
 `issuegraph children nonexistent-xyz` returns success with empty results. Compare with
@@ -1100,7 +1100,7 @@ between "parent has no children" and "parent doesn't exist."
 
 **Severity: MEDIUM** — Semantic corruption (extends BUG-25)
 **Discovered:** Session 8 discovery, test
-**File:** `modules/cli/duplicate.go` (no cycle check) + `internal/storage/dolt/dependencies.go:54` (cycle detection only for 'blocks')
+**File:** `apps/cli/duplicate.go` (no cycle check) + `internal/storage/dolt/dependencies.go:54` (cycle detection only for 'blocks')
 **Test:** `TestDiscovery_DuplicateCycleUndetected`
 
 `issuegraph duplicate A --of B` then `issuegraph duplicate B --of A` creates a mutual
@@ -1115,7 +1115,7 @@ duplicate/supersede command path.
 
 **Severity: MEDIUM** — Semantically invalid results
 **Discovered:** Session 8b discovery, test
-**File:** `modules/cli/stale.go:22` (no validation) + `internal/storage/dolt/queries.go:767`
+**File:** `apps/cli/stale.go:22` (no validation) + `internal/storage/dolt/queries.go:767`
 **Test:** `TestDiscovery_StaleZeroDaysReturnsFreshIssue`
 
 `issuegraph stale --days 0` is accepted without error. The cutoff computation at
@@ -1130,7 +1130,7 @@ The user gets all issues returned as "stale" when they expected "nothing is stal
 
 **Severity: MEDIUM** — Same comma-status bug as BUG-44 but in search
 **Discovered:** Session 8b discovery, test
-**File:** `modules/cli/search.go:53` (GetString not GetStringSlice)
+**File:** `apps/cli/search.go:53` (GetString not GetStringSlice)
 **Test:** `TestDiscovery_SearchStatusCommaNotParsed`
 
 Same pattern as BUG-44 (list --status "open,closed"). The `--status` flag is
@@ -1143,7 +1143,7 @@ status value, matching no issues. Returns empty with no error.
 
 **Severity: MEDIUM** — Silent filter failure
 **Discovered:** Session 8b discovery, test
-**File:** `modules/cli/list.go` (no type validation on filter)
+**File:** `apps/cli/list.go` (no type validation on filter)
 **Test:** `TestDiscovery_ListTypeNonexistentSilentEmpty`
 
 `issuegraph list --type nonexistent_type_xyz` is accepted without error and returns
@@ -1157,7 +1157,7 @@ list (doesn't validate) means users silently get wrong results.
 
 **Severity: MEDIUM** — Silent validation gap (same class as BUG-59)
 **Discovered:** Session 8c discovery, test
-**File:** `modules/cli/ready.go:218-245` (no parent validation)
+**File:** `apps/cli/ready.go:218-245` (no parent validation)
 **Test:** `TestDiscovery_BlockedNonexistentParentSilentEmpty`
 
 `issuegraph blocked --parent nonexistent-xyz` returns "No blocked issues" with exit 0.
@@ -1171,7 +1171,7 @@ exist." Same class of bug as BUG-59 (children nonexistent parent).
 **Severity: LOW** — False positive confirmation (same class as BUG-42)
 **Status: FIXED — PR #6742** (GH#5988)
 **Discovered:** Session 8c discovery, test
-**File:** `modules/cli/label.go` (no existence check before remove)
+**File:** `apps/cli/label.go` (no existence check before remove)
 **Test:** `TestDiscovery_LabelRemoveNonexistentSilentSuccess`
 
 `issuegraph label remove X 'never-existed-label'` reports success even though the label
@@ -1184,7 +1184,7 @@ was never on the issue. Same pattern as BUG-42 (dep rm nonexistent says "Removed
 **Severity: LOW** — Misleading success message
 **Status: FIXED — PR #6742** (GH#5988)
 **Discovered:** Session 8c discovery, test
-**File:** `modules/cli/label.go:99-102` (no existence check before add)
+**File:** `apps/cli/label.go:99-102` (no existence check before add)
 **Test:** `TestDiscovery_LabelAddDuplicateReportsAdded`
 
 `issuegraph label add X 'existing-label'` reports "Added label" even when the label is
@@ -1196,11 +1196,11 @@ already exists on issue."
 
 ### Code review findings (session 7, not CLI-testable)
 
-**`issuegraph sync` is a deprecated no-op:** `modules/cli/sync.go:9-37` — all flags
+**`issuegraph sync` is a deprecated no-op:** `apps/cli/sync.go:9-37` — all flags
 (--message, --dry-run, --no-push, --import, --export) are accepted but
 ignored. Silently succeeds with no actual work done.
 
-**Multiple `issuegraph doctor --fix` checks are no-ops:** `modules/cli/doctor_fix.go:253-315` —
+**Multiple `issuegraph doctor --fix` checks are no-ops:** `apps/cli/doctor_fix.go:253-315` —
 "Sync Divergence", "JSONL Config", "Duplicate Issues", "Test Pollution",
 "Git Conflicts", "Large Database" fixes all print messages but do nothing.
 
@@ -1724,7 +1724,7 @@ The regression harness has been adapted to work without `issuegraph export`:
 
 3. **`compareExports()`** calls `snapshot()` directly on both workspaces.
 
-4. **Database isolation**: Each workspace gets a unique prefix derived from FNV hash of its temp directory path (e.g., `t12345`). This creates separate Dolt databases (`beads_t12345`) per test workspace. Note: `BEADS_TEST_MODE=1` in env is kept but the real isolation comes from the unique prefix → `cfg.DoltDatabase = "beads_<prefix>"` in metadata.json.
+4. **Database isolation**: Each workspace gets a unique prefix derived from FNV hash of its temp directory path (e.g., `t12345`). This creates separate Dolt databases (`issuegraph_t12345`) per test workspace. Note: `ISSUEGRAPH_TEST_MODE=1` in env is kept but the real isolation comes from the unique prefix → `cfg.DoltDatabase = "issuegraph_<prefix>"` in metadata.json.
 
 5. **Normalization additions for show-vs-export field differences**:
    - Strip `content_hash`, `events` (show-only fields)
@@ -1745,8 +1745,8 @@ The regression harness has been adapted to work without `issuegraph export`:
 | FAIL (new findings) | 3 | TestUpdateDoesNotClobberRelationalData (labels missing in dependent view), TestBlockedEpicChildrenNotReady (GH#1495), TestListResolvedBlockerAnnotation (GH#1858) |
 | SKIP (pre-existing) | 10 | Export/import removed, waits-for baseline gap, sorting GH#1880, metadata GH#1912, etc. |
 
-### BEADS_DOLT_SERVER_DATABASE bypass (discovered during harness work)
+### ISSUEGRAPH_DOLT_SERVER_DATABASE bypass (discovered during harness work)
 
-The `BEADS_TEST_MODE=1` env var is intended to create isolated test databases via FNV hash of `cfg.Path`. However, `main.go:543` calls `cfg.GetDoltDatabase()` which pre-fills `cfg.Database` BEFORE `applyConfigDefaults` checks for test mode. This means the test mode hash is bypassed.
+The `ISSUEGRAPH_TEST_MODE=1` env var is intended to create isolated test databases via FNV hash of `cfg.Path`. However, `main.go:543` calls `cfg.GetDoltDatabase()` which pre-fills `cfg.Database` BEFORE `applyConfigDefaults` checks for test mode. This means the test mode hash is bypassed.
 
-The regression harness works around this by using unique prefixes per workspace, which causes `issuegraph init` to create unique databases (`beads_t<hash>`). The `BEADS_TEST_MODE` bypass should be fixed in the main codebase for other test consumers.
+The regression harness works around this by using unique prefixes per workspace, which causes `issuegraph init` to create unique databases (`issuegraph_t<hash>`). The `ISSUEGRAPH_TEST_MODE` bypass should be fixed in the main codebase for other test consumers.

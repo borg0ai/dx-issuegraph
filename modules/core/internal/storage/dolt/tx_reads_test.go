@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestTxReadYourWritesWithComment exercises the full composite-view
@@ -20,7 +20,7 @@ func TestTxReadYourWritesWithComment(t *testing.T) {
 	ctx, cancel := testContext(t)
 	defer cancel()
 
-	err := store.RunInTransaction(ctx, "bd: tx read-your-writes", func(tx storage.Transaction) error {
+	err := store.RunInTransaction(ctx, "issuegraph: tx read-your-writes", func(tx storage.Transaction) error {
 		if err := tx.CreateIssue(ctx, &types.Issue{ID: "txr-1", Title: "Blocker", Status: types.StatusOpen, Priority: 2, IssueType: types.TypeTask}, "tester"); err != nil {
 			return err
 		}
@@ -101,7 +101,7 @@ func TestTxReadYourWritesWispTier(t *testing.T) {
 		t.Fatalf("CreateIssue committed wisp: %v", err)
 	}
 
-	err := store.RunInTransaction(ctx, "bd: wisp read-your-writes", func(tx storage.Transaction) error {
+	err := store.RunInTransaction(ctx, "issuegraph: wisp read-your-writes", func(tx storage.Transaction) error {
 		// Count-vs-search asymmetry on the classic Dolt tx (committed data only,
 		// before this tx mutates anything): SearchIssues sees the durable blocker
 		// but not the committed wisp; CountIssuesByGroup counts both.

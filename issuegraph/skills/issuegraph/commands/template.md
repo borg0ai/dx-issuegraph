@@ -16,7 +16,7 @@ issuegraph template create <template-name>
 
 Templates can be:
 - **Built-in**: Provided by issuegraph (epic, bug, feature)
-- **Custom**: Stored in `.beads/templates/` directory
+- **Custom**: Stored in `.issuegraph/templates/` directory
 
 Each template defines default values for:
 - Description structure with placeholders
@@ -82,7 +82,7 @@ Description:
 
 ### create
 
-Create a custom template in `.beads/templates/` directory.
+Create a custom template in `.issuegraph/templates/` directory.
 
 ```bash
 issuegraph template create <template-name>
@@ -94,10 +94,10 @@ This creates a YAML file with default structure that you can edit to customize.
 
 ```bash
 $ issuegraph template create performance
-✓ Created template: .beads/templates/performance.yaml
+✓ Created template: .issuegraph/templates/performance.yaml
 Edit the file to customize your template.
 
-$ cat .beads/templates/performance.yaml
+$ cat .issuegraph/templates/performance.yaml
 name: performance
 description: |-
     [Describe the issue]
@@ -114,7 +114,7 @@ acceptance_criteria: |-
     - [ ] Acceptance criterion 2
 
 # Edit the template to customize it
-$ vim .beads/templates/performance.yaml
+$ vim .issuegraph/templates/performance.yaml
 ```
 
 ## Using Templates with `issuegraph create`
@@ -140,14 +140,14 @@ issuegraph create --from-template epic "Q4 Infrastructure" -l infrastructure,ops
 ```bash
 # Create epic from template
 $ issuegraph create --from-template epic "Phase 3 Features"
-✓ Created issue: bd-a3f8e9
+✓ Created issue: issuegraph-a3f8e9
   Title: Phase 3 Features
   Priority: P1
   Status: open
 
 # Create bug report from template
 $ issuegraph create --from-template bug "Auth token validation fails"
-✓ Created issue: bd-42bc7a
+✓ Created issue: issuegraph-42bc7a
   Title: Auth token validation fails
   Priority: P1
   Status: open
@@ -244,7 +244,7 @@ For feature requests and enhancements.
 Custom templates override built-in templates with the same name. This allows you to customize built-in templates for your project.
 
 **Priority:**
-1. Custom templates in `.beads/templates/`
+1. Custom templates in `.issuegraph/templates/`
 2. Built-in templates
 
 **Example - Override bug template:**
@@ -254,7 +254,7 @@ Custom templates override built-in templates with the same name. This allows you
 $ issuegraph template create bug
 
 # Edit to add project-specific fields
-$ cat > .beads/templates/bug.yaml << 'EOF'
+$ cat > .issuegraph/templates/bug.yaml << 'EOF'
 name: bug
 description: |
   ## Bug Report
@@ -325,7 +325,7 @@ $ issuegraph template show bug --json
 
 1. **Use templates for consistency**: Establish team conventions for common issue types
 2. **Customize built-ins**: Override built-in templates to match your workflow
-3. **Version control templates**: Commit `.beads/templates/` to share across team
+3. **Version control templates**: Commit `.issuegraph/templates/` to share across team
 4. **Keep templates focused**: Create specific templates (e.g., `performance`, `security-audit`) rather than generic ones
 5. **Use placeholders**: Mark sections requiring input with `[brackets]` or `TODO`
 6. **Include checklists**: Use `- [ ]` for actionable items in description and acceptance criteria

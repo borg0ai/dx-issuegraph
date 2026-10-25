@@ -6,21 +6,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func writeWorkspace(t *testing.T, yaml string) string {
 	t.Helper()
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	if err := os.MkdirAll(beadsDir, 0o755); err != nil {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 	if yaml != "" {
-		if err := os.WriteFile(filepath.Join(beadsDir, "config.yaml"), []byte(yaml), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte(yaml), 0o644); err != nil {
 			t.Fatalf("write config.yaml: %v", err)
 		}
 	}
-	return beadsDir
+	return issuegraphDir
 }
 
 // TestEnabledForPrecedence pins the ladder an operator relies on.
@@ -29,7 +29,7 @@ func writeWorkspace(t *testing.T, yaml string) string {
 // journal on for a process without editing a workspace — and a process that
 // writes into several workspaces (a routed create, a hydration pass) is exactly
 // where an operator reaches for it. A yaml file that could silently veto it
-// would make `BD_EVENTS_JOURNAL=1` a suggestion, and the operator would find
+// would make `ISSUEGRAPH_EVENTS_JOURNAL=1` a suggestion, and the operator would find
 // out by discovering an empty journal later.
 //
 // The workspace file has to win over the default, and it has to be the TARGET
@@ -81,7 +81,7 @@ func TestEnabledForPrecedence(t *testing.T) {
 }
 
 // TestEnabledForIgnoresAnotherWorkspacesConfig is the cross-workspace half: a
-// routed write consults the TARGET, never the directory bd was launched from.
+// routed write consults the TARGET, never the directory issuegraph was launched from.
 func TestEnabledForIgnoresAnotherWorkspacesConfig(t *testing.T) {
 	if err := os.Unsetenv(EnvVar); err != nil {
 		t.Fatalf("unset %s: %v", EnvVar, err)

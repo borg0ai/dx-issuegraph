@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/rowid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/rowid"
 )
 
 // auxRekeyPass names one clone-local convergence pass over the aux tables.
@@ -86,7 +86,7 @@ var auxRekeyPasses = []auxRekeyPass{auxRekeyPassInitial, auxRekeyPassDerivedInse
 // retire its own skip; the drift itself is not necessarily clone-local, since
 // both halves of it (the column's storage-encoding tag and the row chunks it
 // disagrees with) are committed data that travels on push/pull — migration 0057
-// documents bd's own 0048 as one way a lineage acquires it.
+// documents issuegraph's own 0048 as one way a lineage acquires it.
 //
 // This one record is shared by every pass in auxRekeyPasses, which is only
 // correct because every pass runs the identical rekeyAuxRowTable rewrite over
@@ -468,7 +468,7 @@ func rekeyAuxRowIDsPending(ctx context.Context, db DBConn, mainVersionBefore int
 				// log, not the TTY-gated progress writer: a piped or CI caller
 				// discards that writer, and these three lines are the only
 				// notice that a table's ids stayed divergent.
-				log.Printf("schema migration: aux row id re-key skipped %q — the table holds rows Dolt cannot decode (schema-encoding drift, gastownhall/beads#4380): %v",
+				log.Printf("schema migration: aux row id re-key skipped %q — the table holds rows Dolt cannot decode (schema-encoding drift, borg0ai/dx-issuegraph#4380): %v",
 					t.name, err)
 				continue
 			}
@@ -486,7 +486,7 @@ func rekeyAuxRowIDsPending(ctx context.Context, db DBConn, mainVersionBefore int
 		}
 		log.Printf("schema migration: %d table(s) kept their old row ids: %s — merges with other clones of this database may duplicate those rows",
 			len(skipped), strings.Join(skipped, ", "))
-		log.Printf("schema migration: repair the storage drift (see gastownhall/beads#4380); the re-key is re-attempted on each later pass that applies schema migrations")
+		log.Printf("schema migration: repair the storage drift (see borg0ai/dx-issuegraph#4380); the re-key is re-attempted on each later pass that applies schema migrations")
 	case len(state.drifted) > 0:
 		if err := clearAuxRekeyDrifted(ctx, db); err != nil {
 			return wrote, fmt.Errorf("clearing aux rekey drift record: %w", err)
@@ -521,7 +521,7 @@ func rekeyAuxRowIDsPending(ctx context.Context, db DBConn, mainVersionBefore int
 // on the "panic recovered" wrapper:
 //
 //   - the width varies with the direction of the tag flip — migration 0057
-//     documents this same drift from bd's own side (0048 re-widening an
+//     documents this same drift from issuegraph's own side (0048 re-widening an
 //     already-LONGTEXT column under a pre-#11126 embedded engine) and records
 //     both "invalid hash length: 19" on read and "invalid hash length: 1" on
 //     insert/merge;

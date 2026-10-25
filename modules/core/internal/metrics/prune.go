@@ -46,7 +46,7 @@ const (
 // and the surviving batches are capped at maxQueueFiles / maxQueueBytes by
 // dropping oldest-first. It returns how many files were removed and the bytes
 // freed. It runs only in the detached send-metrics child, so its full
-// directory scan never lands on an interactive bd invocation.
+// directory scan never lands on an interactive issuegraph invocation.
 //
 // The prune deliberately runs OUTSIDE eventkit.lock (Flush's TryLock treats
 // ErrLocked as "another flusher owns the queue" and silently no-ops, so
@@ -54,7 +54,7 @@ const (
 // worst lock-free interleaving: a rare second child mid-upload sees a file
 // this prune deleted and its whole Flush aborts on ENOENT — no event is
 // double-sent, the backlog just waits one more spawn interval. ENOENT
-// tolerance in eventkit's flush loop is the upstream fix (gastownhall/beads
+// tolerance in eventkit's flush loop is the upstream fix (borg0ai/dx-issuegraph
 // GH#5649 lane).
 //
 // The scan is bounded by ctx: it reads the directory in chunks and, once the

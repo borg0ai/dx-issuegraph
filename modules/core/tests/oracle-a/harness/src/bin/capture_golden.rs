@@ -1,20 +1,20 @@
-//! Capture golden traces from a reference `bd` binary.
+//! Capture golden traces from a reference `issuegraph` binary.
 //!
-//!   ORACLE_REFERENCE_BD=/path/to/bd cargo run -p bd-conformance --bin capture_golden
+//!   ORACLE_REFERENCE_BD=/path/to/issuegraph cargo run -p bd-conformance --bin capture_golden
 //!
 //! Writes one `<scenario>.trace.json` per scenario under `testdata/golden/`.
-//! These are the reference `bd`'s captured per-step behavior that the candidate
-//! `bd` is diffed against — regenerated on every run, not version-controlled.
+//! These are the reference `issuegraph`'s captured per-step behavior that the candidate
+//! `issuegraph` is diffed against — regenerated on every run, not version-controlled.
 
-use bd_conformance::differential::{run_scenario, Trace};
-use bd_conformance::scenarios;
+use issuegraph_conformance::differential::{run_scenario, Trace};
+use issuegraph_conformance::scenarios;
 use std::path::PathBuf;
 
 fn main() {
-    let bd = match std::env::var("ORACLE_REFERENCE_BD") {
+    let issuegraph = match std::env::var("ORACLE_REFERENCE_BD") {
         Ok(p) => PathBuf::from(p),
         Err(_) => {
-            eprintln!("set ORACLE_REFERENCE_BD=/path/to/bd");
+            eprintln!("set ORACLE_REFERENCE_BD=/path/to/issuegraph");
             std::process::exit(2);
         }
     };
@@ -34,7 +34,7 @@ fn main() {
 
     let mut failures = 0;
     for sc in scens {
-        match run_scenario(&bd, &sc) {
+        match run_scenario(&issuegraph, &sc) {
             Ok(trace) => {
                 let path = golden_dir.join(format!("{}.trace.json", sc.name));
                 let json = serde_json::to_string_pretty(&trace).expect("serialize trace");

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // HistoryEntry names the version-control entry a guarded mutation records: the
@@ -19,10 +19,10 @@ import (
 // Every guarded mutation whose request carries a label calls this. Create is
 // the one that does not, and the reason is NOT that no surface names the
 // created issue — several do (internal/storage/dolt/issues.go writes
-// "bd: create <id>", reached from modules/cli/create_atomic.go). It is that
+// "issuegraph: create <id>", reached from apps/cli/create_atomic.go). It is that
 // CreateRequest has no Provenance field for a caller to set, so there is no
 // label for this function to prefer. That is a gap rather than a principle:
-// the proxied route's create message changed from "bd: create <id>" to
+// the proxied route's create message changed from "issuegraph: create <id>" to
 // "create issue" for exactly this reason, and closing it means either giving
 // CreateRequest the field or having the role compose an id-bearing default the
 // way BatchCloser and ClaimNext do. Tracked as its own decision.

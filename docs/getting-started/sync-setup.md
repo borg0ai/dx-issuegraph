@@ -3,7 +3,7 @@ title: Sync Setup Guide
 description: "Set up Dolt sync so issue data follows you across machines: remotes, bootstrapping a clone, and day-to-day push and pull"
 ---
 
-Set up beads with Dolt sync so your issues follow you across computers.
+Set up issuegraph with Dolt sync so your issues follow you across computers.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ You need two tools installed on every machine:
 
 | Tool | Version | Install |
 |------|---------|---------|
-| **issuegraph** (beads CLI) | 0.59.0+ | See [Installation](/getting-started/installation) |
+| **issuegraph** (issuegraph CLI) | 0.59.0+ | See [Installation](/getting-started/installation) |
 | **Dolt** | A specific pinned version, not "latest" | See [Which Dolt version to install](/architecture/dolt#which-dolt-version-to-install) |
 
 Verify both are installed:
@@ -33,14 +33,14 @@ already have.
 
 ## Initial Setup (First Computer)
 
-### 1. Initialize beads
+### 1. Initialize issuegraph
 
 ```bash
 cd your-project
 issuegraph init
 ```
 
-This creates the `.beads/` directory with a Dolt database. If the git repo has
+This creates the `.issuegraph/` directory with a Dolt database. If the git repo has
 an `origin` remote, `issuegraph init` also configures a Dolt remote named `origin`
 pointing at that same git URL. Dolt stores issue data under `refs/dolt/data`,
 separate from normal source branches.
@@ -62,7 +62,7 @@ issuegraph dolt remote list
 # Expected: origin  <your git origin URL>
 ```
 
-If the repo had no `origin` during init, point beads at your Git remote for
+If the repo had no `origin` during init, point issuegraph at your Git remote for
 sync:
 
 ```bash
@@ -92,24 +92,24 @@ git ls-remote origin | grep dolt
 ## Existing Projects Without a Dolt Remote
 
 Projects initialized by older versions of `issuegraph init` may have a local embedded
-Dolt database and a committed `.beads/issues.jsonl`, but no Dolt remote. Fix
+Dolt database and a committed `.issuegraph/issues.jsonl`, but no Dolt remote. Fix
 that from the machine whose local database is authoritative:
 
 ```bash
 issuegraph dolt remote list
-issuegraph export -o .beads/issues.pre-remote.jsonl   # optional issue audit export
+issuegraph export -o .issuegraph/issues.pre-remote.jsonl   # optional issue audit export
 issuegraph dolt remote add origin git+ssh://git@github.com/org/repo.git
 issuegraph dolt push
 ```
 
-`issuegraph dolt remote add origin ...` writes `sync.remote` to `.beads/config.yaml`.
+`issuegraph dolt remote add origin ...` writes `sync.remote` to `.issuegraph/config.yaml`.
 Commit and push that config file with your normal git workflow. Other clones can
 then run `issuegraph bootstrap` if their database is missing/stale, or `issuegraph dolt pull`
 when they already have the right database.
 
 ## Cloning to a New Computer
 
-When you clone a repo that already has beads data on the remote, a standard `git clone` does **not** fetch `refs/dolt/data`. You need to bootstrap the Dolt database.
+When you clone a repo that already has issuegraph data on the remote, a standard `git clone` does **not** fetch `refs/dolt/data`. You need to bootstrap the Dolt database.
 
 ### Quick path: issuegraph bootstrap
 
@@ -135,21 +135,21 @@ If `issuegraph bootstrap` succeeds, you're done — skip to [Day-to-day Sync](#d
 
 If `issuegraph bootstrap` doesn't work (older issuegraph versions, unusual remote configs), follow these steps:
 
-**Step 1: Confirm the remote has beads data**
+**Step 1: Confirm the remote has issuegraph data**
 
 ```bash
 git ls-remote origin | grep dolt
 # Expected: <hash>  refs/dolt/data
-# If missing, the remote has no beads data — use issuegraph init normally.
+# If missing, the remote has no issuegraph data — use issuegraph init normally.
 ```
 
-**Step 2: Initialize beads**
+**Step 2: Initialize issuegraph**
 
 ```bash
 issuegraph init
 ```
 
-This creates `.beads/` with an empty database. Ignore any warnings about `issuegraph bootstrap` — we'll replace the empty database manually.
+This creates `.issuegraph/` with an empty database. Ignore any warnings about `issuegraph bootstrap` — we'll replace the empty database manually.
 
 **Step 3: Stop the Dolt server**
 
@@ -161,20 +161,20 @@ issuegraph dolt stop
 
 ```bash
 # Check your database name
-cat .beads/metadata.json    # look for "dolt_database"
+cat .issuegraph/metadata.json    # look for "dolt_database"
 ```
 
 The `dolt_database` field is your `<dbname>` (typically the repo name).
 
 ```bash
 # Remove the empty database
-rm -rf .beads/dolt/<dbname>/
+rm -rf .issuegraph/dolt/<dbname>/
 ```
 
 **Step 5: Clone the Dolt data from the remote**
 
 ```bash
-cd .beads/dolt
+cd .issuegraph/dolt
 dolt clone git@github.com:org/repo.git <dbname>
 cd ../..
 ```
@@ -221,8 +221,8 @@ Machine A                          Machine B
 issuegraph create "New task" -p 1
 issuegraph dolt push
                                    issuegraph dolt pull
-                                   issuegraph update bd-a1b2 --claim
-                                   issuegraph close bd-a1b2 --reason "Done"
+                                   issuegraph update issuegraph-a1b2 --claim
+                                   issuegraph close issuegraph-a1b2 --reason "Done"
                                    issuegraph dolt push
 issuegraph dolt pull
 issuegraph list                            # sees the closed task
@@ -233,7 +233,7 @@ issuegraph list                            # sees the closed task
 - **Always use `issuegraph dolt ...` commands** — never run raw `dolt` CLI commands while the Dolt server is running. It causes journal corruption.
 - **Commit before pulling** — if you have uncommitted working set changes, `issuegraph dolt pull` will fail with "cannot merge with uncommitted changes". Run `issuegraph dolt commit` first.
 - **Push before switching machines** — unpushed changes only exist locally.
-- **Do not use JSONL as sync** — `.beads/issues.jsonl` is an export for viewers and interchange. It is not the source of truth, not a full database backup, and cannot safely reconcile deletes or pruning.
+- **Do not use JSONL as sync** — `.issuegraph/issues.jsonl` is an export for viewers and interchange. It is not the source of truth, not a full database backup, and cannot safely reconcile deletes or pruning.
 
 ## Troubleshooting
 
@@ -260,8 +260,10 @@ issuegraph dolt pull
 This was a bug in issuegraph < 0.59.0. Upgrade issuegraph:
 
 ```bash
-brew upgrade beads
-# or re-run the install script
+# macOS / Linux / Windows
+brew upgrade issuegraph
+nix profile upgrade issuegraph
+scoop update issuegraph
 ```
 
 ### issuegraph list shows nothing after clone
@@ -290,10 +292,10 @@ issuegraph dolt start
 ## See Also
 
 - [Sync Concepts](/core-concepts/sync-concepts) — The conceptual model behind this setup (why Dolt is the source of truth, what JSONL is for)
-- [Quick Start](/getting-started/quickstart) — Getting started with beads
-- [Dolt Backend for Beads](/architecture/dolt) — Dolt backend details, server modes, federation, remote types, and sync modes
+- [Quick Start](/getting-started/quickstart) — Getting started with issuegraph
+- [Dolt Backend for IssueGraph](/architecture/dolt) — Dolt backend details, server modes, federation, remote types, and sync modes
 - [Installation](/getting-started/installation) — Installation for all platforms
 
 ## Attribution
 
-This guide was inspired by [@leonletto](https://github.com/leonletto)'s community setup guide at [leonletto.github.io/thrum](https://leonletto.github.io/thrum/docs.html#guides/beads-setup.html), which documented the end-to-end setup and sync process including the manual bootstrap workflow. Thanks for contributing to the beads community!
+This guide was inspired by [@leonletto](https://github.com/leonletto)'s community setup guide at [leonletto.github.io/thrum](https://leonletto.github.io/thrum/docs.html#guides/issuegraph-setup.html), which documented the end-to-end setup and sync process including the manual bootstrap workflow. Thanks for contributing to the issuegraph community!

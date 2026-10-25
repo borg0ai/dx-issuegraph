@@ -13,7 +13,7 @@
     "checkedPaths": [
       "AGENTS.md",
       "CLAUDE.md",
-      "modules/cli/AGENTS.md",
+      "apps/cli/AGENTS.md",
       "docs/architecture/index.md",
       "docs/core-concepts/sync-concepts.md",
       "docs/multi-agent/federation.md",
@@ -39,13 +39,13 @@
       "name": "bd 命令面",
       "kind": "local",
       "responsibility": "Cobra CLI。Agent 用 JSON 创建、认领、关闭 issue。",
-      "ownership": [{ "kind": "directory", "path": "modules/cli" }],
+      "ownership": [{ "kind": "directory", "path": "apps/cli" }],
       "evidence": [
         {
           "path": "engdocs/CLAUDE.md",
           "line": 48,
           "endLine": 52,
-          "note": "CLI 层在 modules/cli，每条命令一个文件，支持 --json。"
+          "note": "CLI 层在 apps/cli，每条命令一个文件，支持 --json。"
         },
         {
           "path": "README.md",
@@ -196,11 +196,11 @@
       "responsibility": "bd dolt push/pull、bootstrap、federation、autopush。可选 dolt.local-only 关闭部分远程写。",
       "ownership": [
         { "kind": "directory", "path": "internal/doltremote" },
-        { "kind": "file", "path": "modules/cli/dolt.go" },
-        { "kind": "file", "path": "modules/cli/sync.go" },
-        { "kind": "file", "path": "modules/cli/dolt_local_only.go" },
-        { "kind": "file", "path": "modules/cli/bootstrap.go" },
-        { "kind": "file", "path": "modules/cli/dolt_autopush.go" }
+        { "kind": "file", "path": "apps/cli/dolt.go" },
+        { "kind": "file", "path": "apps/cli/sync.go" },
+        { "kind": "file", "path": "apps/cli/dolt_local_only.go" },
+        { "kind": "file", "path": "apps/cli/bootstrap.go" },
+        { "kind": "file", "path": "apps/cli/dolt_autopush.go" }
       ],
       "evidence": [
         {
@@ -210,7 +210,7 @@
           "note": "跨机器同步走 Dolt remote；git 项目把历史放在 refs/dolt/data，与代码分支分开。"
         },
         {
-          "path": "modules/cli/dolt_local_only.go",
+          "path": "apps/cli/dolt_local_only.go",
           "line": 4,
           "endLine": 9,
           "symbol": "isDoltLocalOnly",

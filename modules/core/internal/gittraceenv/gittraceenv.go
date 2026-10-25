@@ -1,5 +1,5 @@
 // Package gittraceenv scrubs stderr-directed git tracing variables around the
-// git commands Dolt runs inside bd's own process.
+// git commands Dolt runs inside issuegraph's own process.
 //
 // Dolt transfers refs/dolt/data for a git-protocol remote by shelling out to
 // git plumbing against its cache-mirror, .dolt/git-remote-cache/<hash>/repo.git,
@@ -19,14 +19,14 @@
 //
 // The scrub is value-aware: git's file-target forms (an absolute path, or
 // af_unix:... for GIT_TRACE2) never touch stderr, are harmless to Dolt's
-// parsing, and are the supported way to trace bd's git remote plumbing — those
+// parsing, and are the supported way to trace issuegraph's git remote plumbing — those
 // values are left alone. Only the forms git directs at stderr (1/true/yes/on),
 // at an inherited file descriptor (2..9), or rejects with a warning printed to
 // stderr (a relative path) are removed for the duration of the call.
 //
 // Same shape as package githooksenv (GH#3724/GH#4272): the primary path is
-// CALL DOLT_PUSH/DOLT_FETCH running in the Dolt engine inside bd — there is no
-// exec.Cmd to decorate, so the override has to be on bd's own process
+// CALL DOLT_PUSH/DOLT_FETCH running in the Dolt engine inside issuegraph — there is no
+// exec.Cmd to decorate, so the override has to be on issuegraph's own process
 // environment for the duration of the call.
 package gittraceenv
 

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // These are pure: the release path runs end to end over a real listener against
@@ -18,13 +18,13 @@ import (
 //
 // What a fake cannot prove is that a REFUSED release left the claim standing,
 // and that is the property the whole non-idempotence argument rests on. That
-// lives in modules/cli's proxied-server integration test against real Dolt
+// lives in apps/cli's proxied-server integration test against real Dolt
 // (TestProxiedServerServeRelease). The role-level transition — what the row
 // looks like afterwards, the lease, the event — is owned against a real store
 // by internal/storage/uow/releaser_contract_test.go, which this slice cites
 // rather than duplicates.
 
-const releasePath = "/v0/beads/issues/bd-1:release"
+const releasePath = "/v0/issuegraph/issues/bd-1:release"
 
 func (ts *testServer) releaseIssue(t *testing.T, path, body string) *http.Response {
 	t.Helper()

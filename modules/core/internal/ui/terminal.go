@@ -1,4 +1,4 @@
-// Package ui provides terminal styling and output helpers for beads CLI.
+// Package ui provides terminal styling and output helpers for issuegraph CLI.
 package ui
 
 import (
@@ -23,7 +23,7 @@ func IsStderrTerminal() bool {
 
 // ShouldUseColor determines if ANSI color codes should be used.
 // Respects standard conventions:
-//   - BD_GIT_HOOK=1: disables color in git hook context (prevents OSC 11 queries, GH#1303)
+//   - ISSUEGRAPH_GIT_HOOK=1: disables color in git hook context (prevents OSC 11 queries, GH#1303)
 //   - NO_COLOR: https://no-color.org/ - disables color if set
 //   - CLICOLOR=0: disables color
 //   - CLICOLOR_FORCE: forces color even in non-TTY
@@ -32,8 +32,8 @@ func IsStderrTerminal() bool {
 func ShouldUseColor() bool {
 	// Git hook context - disable color to prevent termenv OSC 11 terminal
 	// background queries that leak escape sequences to the terminal (GH#1303).
-	// Set by bd hook shim templates before calling 'bd hooks run'.
-	if os.Getenv("BD_GIT_HOOK") == "1" {
+	// Set by issuegraph hook shim templates before calling 'issuegraph hooks run'.
+	if os.Getenv("ISSUEGRAPH_GIT_HOOK") == "1" {
 		return false
 	}
 
@@ -75,7 +75,7 @@ func ShouldUseHyperlinks() bool {
 // capability markers (for example Windows Terminal's WT_SESSION) without needing
 // to run inside those terminals.
 func shouldUseHyperlinks(stdoutIsTerminal bool) bool {
-	if os.Getenv("BD_GIT_HOOK") == "1" {
+	if os.Getenv("ISSUEGRAPH_GIT_HOOK") == "1" {
 		return false
 	}
 	if os.Getenv("NO_COLOR") != "" {
@@ -130,10 +130,10 @@ func shouldUseHyperlinks(stdoutIsTerminal bool) bool {
 
 // ShouldUseEmoji determines if emoji decorations should be used.
 // Disabled in non-TTY mode to keep output machine-readable.
-// Can be controlled with BD_NO_EMOJI environment variable.
+// Can be controlled with ISSUEGRAPH_NO_EMOJI environment variable.
 func ShouldUseEmoji() bool {
 	// Explicit disable
-	if os.Getenv("BD_NO_EMOJI") != "" {
+	if os.Getenv("ISSUEGRAPH_NO_EMOJI") != "" {
 		return false
 	}
 

@@ -6,10 +6,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/steveyegge/beads/backend/conformance"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/embeddeddolt"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/backend/conformance"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // roleFixtureKit is the embedded store's answer to the hooks every issueops
@@ -25,7 +25,7 @@ import (
 //
 // FROZEN SURFACE. This file is owned by the scaffolding slice (bd-kue5t) and
 // no role slice edits it. A role that needs a hook this kit does not expose
-// routes the addition through a follow-up commit against that bead, so the
+// routes the addition through a follow-up commit against that issue, so the
 // three kits never drift apart in a worktree.
 //
 // NAMING CONVENTION FOR EVERYTHING BUILT ON THIS KIT: every unexported helper a
@@ -287,7 +287,7 @@ func TestEmbeddedRoleFixtureKitCountHistoryMovesWithACommit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CountHistory before: %v", err)
 	}
-	if err := te.store.Commit(ctx, "bd: role fixture kit history probe"); err != nil {
+	if err := te.store.Commit(ctx, "issuegraph: role fixture kit history probe"); err != nil {
 		t.Fatalf("Commit: %v", err)
 	}
 	after, err := kit.CountHistory(ctx)

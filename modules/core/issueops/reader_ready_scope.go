@@ -6,7 +6,7 @@ import (
 )
 
 // readyScopeField is one ListRequest field the ReadyFlag arm cannot carry,
-// paired with the `bd list` flag that sets it. Naming both is the point of the
+// paired with the `issuegraph list` flag that sets it. Naming both is the point of the
 // refusal: a library caller looks for the struct field and a CLI caller for
 // the flag, and neither should have to map one onto the other to learn which
 // part of their request could not be honored.
@@ -50,7 +50,7 @@ type readyScopeField struct {
 //     ReadyFlag before the projection ever runs (`all` is the no-filter
 //     spelling). An explicit --status is carried: BuildListFilter writes it
 //     onto IssueFilter and ReadyFilterFromIssueFilter copies Status/Statuses
-//     onto the ready-work filter, so `bd list --status X --ready` is the
+//     onto the ready-work filter, so `issuegraph list --status X --ready` is the
 //     intersection rather than the unfiltered ready set (GH#5832). Status is
 //     therefore ABSENT from this drop set because it is honored, not because
 //     it is overridden. The default-open pin is the golden

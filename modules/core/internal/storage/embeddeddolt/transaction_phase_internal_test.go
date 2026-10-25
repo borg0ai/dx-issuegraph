@@ -9,7 +9,7 @@ import (
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func TestTransactionCleanupAfterSQLCommitIsIndeterminate(t *testing.T) {

@@ -7,9 +7,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/steveyegge/beads"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestRunInTransactionPostCommitStageFailureIsIndeterminate(t *testing.T) {
@@ -35,8 +35,8 @@ func TestRunInTransactionPostCommitStageFailureIsIndeterminate(t *testing.T) {
 	if err == nil {
 		t.Fatal("post-commit stage failure returned nil")
 	}
-	if !errors.Is(err, beads.ErrCommitIndeterminate) {
-		t.Fatalf("errors.Is(err, beads.ErrCommitIndeterminate) = false; err = %v", err)
+	if !errors.Is(err, issuegraph.ErrCommitIndeterminate) {
+		t.Fatalf("errors.Is(err, issuegraph.ErrCommitIndeterminate) = false; err = %v", err)
 	}
 	if calls != 1 {
 		t.Fatalf("callback calls = %d, want 1", calls)

@@ -1,0 +1,25 @@
+# Test issuegraph search command
+
+issuegraph init --prefix test
+
+# Create issues with different attributes
+issuegraph create 'Login authentication bug' --type bug --priority 1
+issuegraph create 'Database refactor task' --type task --priority 3
+issuegraph create 'User profile feature' --type feature
+
+# Basic search by text
+issuegraph search 'authentication'
+stdout 'Login authentication bug'
+
+# Search with status filter
+issuegraph search 'bug' --status open
+stdout 'Login authentication bug'
+
+# Search with no results
+issuegraph search 'nonexistent-term-xyz'
+! stdout 'Login'
+! stdout 'Database'
+
+# Search with no query should fail
+! issuegraph search --type task
+stderr 'search query is required'

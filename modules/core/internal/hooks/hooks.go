@@ -1,5 +1,5 @@
 // Package hooks provides a hook system for extensibility.
-// Hooks are executable scripts in .beads/hooks/ that run after certain events.
+// Hooks are executable scripts in .issuegraph/hooks/ that run after certain events.
 package hooks
 
 import (
@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Event types
@@ -29,7 +29,7 @@ const (
 type Runner struct {
 	hooksDir string
 	timeout  time.Duration
-	// inFlight counts the hooks Run started and has not finished. A bd
+	// inFlight counts the hooks Run started and has not finished. A issuegraph
 	// command is short: it fires its hooks after the commit and returns, and
 	// the process exit takes every goroutine with it — including one that has
 	// not reached exec yet. Wait is how a caller gives them their moment.
@@ -37,7 +37,7 @@ type Runner struct {
 }
 
 // NewRunner creates a new hook runner.
-// hooksDir is typically .beads/hooks/ relative to workspace root.
+// hooksDir is typically .issuegraph/hooks/ relative to workspace root.
 func NewRunner(hooksDir string) *Runner {
 	return &Runner{
 		hooksDir: hooksDir,
@@ -47,7 +47,7 @@ func NewRunner(hooksDir string) *Runner {
 
 // NewRunnerFromWorkspace creates a hook runner for a workspace.
 func NewRunnerFromWorkspace(workspaceRoot string) *Runner {
-	return NewRunner(filepath.Join(workspaceRoot, ".beads", "hooks"))
+	return NewRunner(filepath.Join(workspaceRoot, ".issuegraph", "hooks"))
 }
 
 // Run executes a hook if it exists.

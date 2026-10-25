@@ -1,4 +1,4 @@
-// Package apigen holds the Go types generated from the bd serve OpenAPI
+// Package apigen holds the Go types generated from the issuegraph serve OpenAPI
 // document (spec-first: internal/httpapi/spec/openapi.v0.yaml is the source of
 // truth, this package is its output).
 //

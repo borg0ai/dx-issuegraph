@@ -5,7 +5,7 @@ description: Configuration reference for issuegraph ado sync, which bidirectiona
 
 Last reviewed: 2026-08-07
 
-Freshness source: `modules/cli/ado*.go` and `internal/ado/`.
+Freshness source: `apps/cli/ado*.go` and `internal/ado/`.
 
 This guide covers all configuration options for the `issuegraph ado sync` command, which synchronizes issuegraph issues with Azure DevOps work items.
 
@@ -134,11 +134,11 @@ For Bug-type work items, ADO also requires a Severity field:
 |---|---|---|
 | `open` | `New` | `ado.state_map.open` |
 | `in_progress` | `Active` | `ado.state_map.in_progress` |
-| `blocked` | `Active` + `beads:blocked` tag | `ado.state_map.blocked` |
+| `blocked` | `Active` + `issuegraph:blocked` tag | `ado.state_map.blocked` |
 | `deferred` | `Removed` | `ado.state_map.deferred` |
 | `closed` | `Closed` | `ado.state_map.closed` |
 
-**Blocked status:** ADO has no native blocked state. issuegraph maps blocked to `Active` and adds a `beads:blocked` tag. On pull, `Active` + `beads:blocked` tag restores `StatusBlocked`.
+**Blocked status:** ADO has no native blocked state. issuegraph maps blocked to `Active` and adds a `issuegraph:blocked` tag. On pull, `Active` + `issuegraph:blocked` tag restores `StatusBlocked`.
 
 Override defaults for your process template:
 
@@ -256,8 +256,8 @@ When the same issue has been modified both locally and in ADO:
 | `--no-create` | Only update existing items, never create new ones |
 | `--bootstrap-match` | Enable heuristic title matching for first sync |
 | `--reconcile` | Force reconciliation scan for deleted items (see Reconciliation below) |
-| `--issues` | Sync specific issues by bead ID or ADO work item ID |
-| `--parent` | Push only a bead and its descendants (push mode only; mutually exclusive with `--issues`) |
+| `--issues` | Sync specific issues by issue ID or ADO work item ID |
+| `--parent` | Push only a issue and its descendants (push mode only; mutually exclusive with `--issues`) |
 | `--project` | Project name(s) for this run, repeatable — overrides `ado.project`/`ado.projects` |
 | `--states` | Filter by work item states (comma-separated) |
 | `--types` | Filter by work item types (comma-separated) |
@@ -308,7 +308,7 @@ issuegraph stores ADO-specific metadata for round-trip fidelity:
 
 - ADO tags are semicolon-separated; issuegraph labels use arrays
 - User labels round-trip through ADO tags
-- Internal `beads:*` tags (e.g., `beads:blocked`) are filtered on pull — they don't appear as user labels
+- Internal `issuegraph:*` tags (e.g., `issuegraph:blocked`) are filtered on pull — they don't appear as user labels
 
 ## API Limits
 

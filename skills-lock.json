@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "netify": {
+      "source": "borg0ai/netify",
+      "sourceType": "github",
+      "skillPath": "netify/SKILL.md",
+      "computedHash": "ddc2a8d6355225a5fde81f8d3ae62eef3819824bd4b77153060d1b61a68d8b11"
+    }
+  }
+}

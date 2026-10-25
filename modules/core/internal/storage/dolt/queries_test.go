@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // =============================================================================
@@ -174,7 +174,7 @@ func TestGetReadyWork_StatusFilter(t *testing.T) {
 	}
 }
 
-// TestGetReadyWork_CustomActiveCategory pins GH#5831: `bd ready` pins
+// TestGetReadyWork_CustomActiveCategory pins GH#5831: `issuegraph ready` pins
 // StatusOpen, and that pin is the active category — built-in open plus any
 // custom status whose category is active. WIP/done/frozen/unspecified
 // customs stay out; in_progress stays out.
@@ -910,7 +910,7 @@ func TestGetReadyWork_DottedHasMetadataKey(t *testing.T) {
 		Status:    types.StatusOpen,
 		Priority:  1,
 		IssueType: types.TypeTask,
-		Metadata:  []byte(`{"gc.routed_to":"beads/workflows.codex-max"}`),
+		Metadata:  []byte(`{"gc.routed_to":"issuegraph/workflows.codex-max"}`),
 	}
 	nonMatching := &types.Issue{
 		ID:        "test-rw-meta-nested",
@@ -918,7 +918,7 @@ func TestGetReadyWork_DottedHasMetadataKey(t *testing.T) {
 		Status:    types.StatusOpen,
 		Priority:  1,
 		IssueType: types.TypeTask,
-		Metadata:  []byte(`{"gc":{"routed_to":"beads/workflows.codex-max"}}`),
+		Metadata:  []byte(`{"gc":{"routed_to":"issuegraph/workflows.codex-max"}}`),
 	}
 	if err := store.CreateIssues(ctx, []*types.Issue{matching, nonMatching}, "tester"); err != nil {
 		t.Fatalf("create metadata issues: %v", err)
@@ -2003,7 +2003,7 @@ func TestSearchIssues_ExcludesPinnedByDefault(t *testing.T) {
 		}
 	}
 
-	// Filter with pinned=false (as bd list now does by default) should exclude pinned beads
+	// Filter with pinned=false (as issuegraph list now does by default) should exclude pinned issuegraph
 	openStatus := types.StatusOpen
 	notPinned := false
 	results, err := store.SearchIssues(ctx, "", types.IssueFilter{Status: &openStatus, Pinned: &notPinned})
@@ -3020,7 +3020,7 @@ func TestCounterMode_SeedsFromExistingIssues(t *testing.T) {
 		}
 	}
 
-	// Now enable counter mode (simulating the user running bd config set issue_id_mode counter).
+	// Now enable counter mode (simulating the user running issuegraph config set issue_id_mode counter).
 	if err := store.SetConfig(ctx, "issue_id_mode", "counter"); err != nil {
 		t.Fatalf("failed to enable counter mode: %v", err)
 	}

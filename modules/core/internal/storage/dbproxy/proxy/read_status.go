@@ -1,21 +1,21 @@
 package proxy
 
 import (
-	"github.com/steveyegge/beads/internal/procid"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/procid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
 )
 
 // Status is a point-in-time description of the process tree under a proxied
-// root: the proxy bd connects through, and the dolt backend the proxy
+// root: the proxy issuegraph connects through, and the dolt backend the proxy
 // supervises on a managed-local topology.
 type Status struct {
 	ProxyRunning bool
 	ProxyPID     int
 	ProxyPort    int
 	// BackendRunning describes the proxy-child record only. An external
-	// proxied topology never writes one — bd spawns no dolt there — so a
-	// false value means "bd supervises no backend here", which is not the
+	// proxied topology never writes one — issuegraph spawns no dolt there — so a
+	// false value means "issuegraph supervises no backend here", which is not the
 	// same claim as "the database is down". Callers that can tell the
 	// topologies apart must say which one they are reporting.
 	BackendRunning bool

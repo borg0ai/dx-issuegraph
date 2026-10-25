@@ -1,0 +1,295 @@
+//go:build cgo
+
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/lockfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/backends"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/util"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
+)
+
+func usesSQLServer() bool {
+	if shouldUseGlobals() {
+		if serverMode || proxiedServerMode {
+			return true
+		}
+	} else if cmdCtx != nil && (cmdCtx.ServerMode || cmdCtx.ProxiedServerMode) {
+		return true
+	}
+	if doltserver.IsSharedServerMode() {
+		return true
+	}
+	return false // default: embedded
+}
+
+// isEmbeddedMode reports whether the command is using embedded Dolt storage.
+func isEmbeddedMode() bool {
+	return !usesSQLServer()
+}
+
+func usesProxiedServer() bool {
+	if shouldUseGlobals() {
+		return proxiedServerMode
+	}
+	return cmdCtx != nil && cmdCtx.ProxiedServerMode
+}
+
+// newDoltStore creates a storage backend from an explicit config.
+// Used by issuegraph init and PersistentPreRun.
+//
+// Events-journal activation is applied HERE rather than by the caller: see the
+// note at the top of events_journal.go for why every store construction has to
+// go through an activating factory.
+// newRegisteredBackendStore opens a store from the pluggable backend registry,
+// so the registry arm of the root pre-run's open is not a second, unactivated
+// construction path. A read-only open still goes through activation: a
+// registered backend decides for itself what read-only means, and refusing to
+// offer it the setting would be this factory guessing on its behalf.
+func newRegisteredBackendStore(ctx context.Context, name, issuegraphDir string, readOnly bool) (s storage.DoltStorage, err error) {
+	defer func() { s, err = activateEventsJournalStore(issuegraphDir, s, err) }()
+	backend, ok := backends.Lookup(name)
+	if !ok {
+		return nil, fmt.Errorf("storage backend %q is not registered", name)
+	}
+	if readOnly {
+		return backend.OpenReadOnly(ctx, issuegraphDir)
+	}
+	return backend.Open(ctx, issuegraphDir)
+}
+
+func newDoltStore(ctx context.Context, cfg *dolt.Config) (s storage.DoltStorage, err error) {
+	defer func() { s, err = activateEventsJournalStore(cfg.IssueGraphDir, s, err) }()
+	if cfg.ProxiedServer {
+		return nil, errProxiedStoreUnrouted()
+	}
+	if cfg.ServerMode {
+		return dolt.New(ctx, cfg)
+	}
+	if cfg.Preview {
+		// Preview commands are stricter than ordinary read commands: they
+		// must not run schema initialization or permit incidental writes
+		// before their RunE honors --dry-run/--inspect.
+		return embeddeddolt.OpenForPreviewCommand(ctx, cfg.IssueGraphDir, cfg.Database, "main")
+	}
+	if cfg.ReadOnly {
+		if cfg.DisableAutoStart {
+			// Strict --readonly (cfg.DisableAutoStart is the strict-only
+			// signal threaded from policy.disableAutoStart): the command
+			// must not write anything, not even incidentally (schema
+			// init, migrations, the post-command autocommit net). Use the
+			// genuinely write-refusing open — same one used for cross-repo
+			// hydration of foreign projects (GH#3231, bd-6dnrw.32) — instead
+			// of OpenForReadOnlyCommand, which is "otherwise a normal
+			// writable store".
+			return embeddeddolt.OpenReadOnly(ctx, cfg.IssueGraphDir, cfg.Database, "main")
+		}
+		// Ordinary classified-read commands (issuegraph show, issuegraph list, ...) must
+		// not be bricked by the #4259 remote-migrate gate (bd-578h9.5);
+		// server mode's ReadOnly opens already skip migration entirely.
+		return embeddeddolt.OpenForReadOnlyCommand(ctx, cfg.IssueGraphDir, cfg.Database, "main")
+	}
+	if cfg.LenientOpen {
+		// Working-set-reconcile commands (issuegraph dolt commit, issuegraph vc commit) must
+		// not be bricked by a pending-migration dirty-table refusal: that
+		// refusal's documented recovery is exactly the commit these commands
+		// run, so failing the open here would deadlock (#4566). The server
+		// arm above honors the same cfg.LenientOpen inside dolt.New; this
+		// branch is the embedded half of one policy, not the whole of it.
+		return embeddeddolt.OpenForWorkingSetReconcile(ctx, cfg.IssueGraphDir, cfg.Database, "main")
+	}
+	if cfg.RemoteSyncOpen {
+		// `issuegraph dolt pull` must not be bricked by the #6575 data-behind gate
+		// refusal, because that refusal's entire remedy IS this pull: the gate
+		// stops a clone that is behind the remote from migrating and tells the
+		// operator to pull first, and an embedded clone has no external dolt
+		// binary to do it with. Same deadlock as #4566, and this open tolerates
+		// only that one gate reason (see openRemoteSync). The server arm above
+		// honors the same cfg.RemoteSyncOpen inside dolt.New.
+		return embeddeddolt.OpenForRemoteSync(ctx, cfg.IssueGraphDir, cfg.Database, "main")
+	}
+	return embeddeddolt.Open(ctx, cfg.IssueGraphDir, cfg.Database, "main")
+}
+
+// acquireEmbeddedLock acquires an exclusive flock on the embeddeddolt data
+// directory derived from issuegraphDir. The caller must defer lock.Unlock().
+// Returns a no-op lock when serverMode is true (the server handles its own
+// concurrency).
+func acquireEmbeddedLock(issuegraphDir string, serverMode bool) (util.Unlocker, error) {
+	if serverMode {
+		return util.NoopLock{}, nil
+	}
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
+	lock, err := util.TryLock(filepath.Join(dataDir, ".lock"))
+	if err != nil {
+		if lockfile.IsLocked(err) {
+			return nil, fmt.Errorf("embeddeddolt: another process holds the exclusive lock on %s; "+
+				"the embedded backend supports only one writer at a time — "+
+				"use the dolt server backend for concurrent access", dataDir)
+		}
+		return nil, fmt.Errorf("embeddeddolt: acquiring lock: %w", err)
+	}
+	return lock, nil
+}
+
+// newDoltStoreFromConfig creates a storage backend from the issuegraph directory's
+// persisted metadata.json configuration. Uses embedded Dolt by default;
+// connects to dolt sql-server when dolt_mode is "server".
+//
+// For embedded mode, legacy hyphenated database names (pre-GH#2142) are
+// auto-sanitized to underscores and the fix is persisted to metadata.json.
+//
+// This is the factory the CROSS-WORKSPACE opens use — routed creates,
+// remote-cache hydration — so activation is resolved from issuegraphDir's own
+// config, not the launching workspace's.
+func newDoltStoreFromConfig(ctx context.Context, issuegraphDir string) (s storage.DoltStorage, err error) {
+	defer func() { s, err = activateEventsJournalStore(issuegraphDir, s, err) }()
+	cfg, err := configfile.Load(issuegraphDir)
+	if err != nil {
+		// A present-but-unloadable metadata.json must not degrade to the
+		// embedded default: on server-mode deployments the embedded
+		// directory is an empty relic, and opening it silently turns every
+		// query into an empty result set with exit 0 (false-empty). Absent
+		// metadata.json (cfg == nil, err == nil) keeps the embedded default.
+		return nil, fmt.Errorf("load %s: %w (refusing to fall back to the embedded store)", configfile.ConfigPath(issuegraphDir), err)
+	}
+	if err := validateConfiguredBackend(cfg, issuegraphDir); err != nil {
+		return nil, err
+	}
+	cfg = normalizeLoadedConfig(cfg)
+	if backend, ok := backends.Lookup(cfg.GetBackend()); ok {
+		return backend.Open(ctx, issuegraphDir)
+	}
+	if cfg != nil && cfg.IsDoltProxiedServerMode() {
+		return nil, errProxiedStoreUnrouted()
+	}
+	if cfg != nil && cfg.IsDoltServerMode() {
+		return dolt.NewFromConfig(ctx, issuegraphDir)
+	}
+	database := configfile.DefaultDoltDatabase
+	if cfg != nil {
+		database = cfg.GetDoltDatabase()
+	}
+	if sanitized := sanitizeDBName(database); sanitized != database {
+		if err := migrateHyphenatedDB(issuegraphDir, cfg, database, sanitized); err != nil {
+			return nil, fmt.Errorf("auto-sanitize database name %q → %q: %w", database, sanitized, err)
+		}
+		database = sanitized
+	}
+	return embeddeddolt.Open(ctx, issuegraphDir, database, "main")
+}
+
+// migrateHyphenatedDB renames a legacy hyphenated database directory and
+// persists the sanitized name to metadata.json so subsequent opens use it.
+// This handles projects initialized before GH#2142 that upgrade to
+// embedded-mode-default builds (GH#3231).
+func migrateHyphenatedDB(issuegraphDir string, cfg *configfile.Config, oldName, newName string) error {
+	dataDir := filepath.Join(issuegraphDir, "embeddeddolt")
+	oldDir := filepath.Join(dataDir, oldName)
+	newDir := filepath.Join(dataDir, newName)
+
+	oldExists := false
+	if info, err := os.Stat(oldDir); err == nil && info.IsDir() {
+		oldExists = true
+	}
+
+	if oldExists {
+		_, newErr := os.Stat(newDir)
+		switch {
+		case newErr == nil:
+			return fmt.Errorf("cannot auto-migrate database: both %q and %q exist under %s; remove one manually and retry",
+				oldName, newName, dataDir)
+		case !os.IsNotExist(newErr):
+			return fmt.Errorf("checking target directory %q: %w", newDir, newErr)
+		default:
+			if err := os.Rename(oldDir, newDir); err != nil {
+				return fmt.Errorf("renaming database directory: %w", err)
+			}
+			fmt.Fprintf(os.Stderr, "issuegraph: migrated database directory %q → %q (GH#3231)\n", oldName, newName)
+		}
+	}
+
+	if cfg != nil && cfg.DoltDatabase != newName {
+		cfg.DoltDatabase = newName
+		if err := cfg.Save(issuegraphDir); err != nil {
+			return fmt.Errorf("persisting sanitized database name to metadata.json: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "issuegraph: updated metadata.json dolt_database %q → %q (GH#3231)\n", oldName, newName)
+	}
+	return nil
+}
+
+// newReadOnlyStoreFromConfig creates a read-only storage backend from the issuegraph
+// directory's persisted metadata.json configuration.
+//
+// For embedded mode, invalid characters (hyphens, dots) are sanitized in-memory
+// only — no directory renames or metadata.json writes. This prevents cross-repo
+// hydration from mutating foreign projects (GH#3231).
+func newReadOnlyStoreFromConfig(ctx context.Context, issuegraphDir string) (storage.DoltStorage, error) {
+	return openNonMutatingStoreFromConfig(ctx, issuegraphDir, false)
+}
+
+// newPreviewStoreFromConfig is newReadOnlyStoreFromConfig for a preview
+// command (--dry-run, --inspect) reading a repository it was only pointed at:
+// the same non-mutating open, but a BEHIND schema cursor is tolerated rather
+// than refused, matching embeddeddolt.OpenForPreviewCommand and the preview
+// policy the root pre-run applies to the command's own store. A preview that
+// only reads a parent issue out of another repo should not be the thing that
+// refuses because that repo has not been migrated yet — and it must certainly
+// not migrate it.
+func newPreviewStoreFromConfig(ctx context.Context, issuegraphDir string) (storage.DoltStorage, error) {
+	return openNonMutatingStoreFromConfig(ctx, issuegraphDir, true)
+}
+
+// openNonMutatingStoreFromConfig deliberately does NOT activate the events
+// journal: every arm below opens a store that refuses writes (OpenReadOnly,
+// OpenForPreviewCommand, ReadOnly server config), so there is no mutation for a
+// journal row to accompany. Registered in the construction guard's exemption
+// list with that reason.
+func openNonMutatingStoreFromConfig(ctx context.Context, issuegraphDir string, preview bool) (storage.DoltStorage, error) {
+	cfg, err := configfile.Load(issuegraphDir)
+	if err != nil {
+		// Same contract as newDoltStoreFromConfig: a present-but-unloadable
+		// metadata.json is a hard error, not a silent embedded fallback —
+		// and the error must name the real cause rather than the downstream
+		// "database not found" the embedded open would produce.
+		return nil, fmt.Errorf("load %s: %w (refusing to fall back to the embedded store)", configfile.ConfigPath(issuegraphDir), err)
+	}
+	if err := validateConfiguredBackend(cfg, issuegraphDir); err != nil {
+		return nil, err
+	}
+	cfg = normalizeLoadedConfig(cfg)
+	if backend, ok := backends.Lookup(cfg.GetBackend()); ok {
+		return backend.OpenReadOnly(ctx, issuegraphDir)
+	}
+	if cfg != nil && cfg.IsDoltProxiedServerMode() {
+		return nil, errProxiedStoreUnrouted()
+	}
+	if cfg != nil && cfg.IsDoltServerMode() {
+		return dolt.NewFromConfigWithOptions(ctx, issuegraphDir, &dolt.Config{ReadOnly: true})
+	}
+	database := configfile.DefaultDoltDatabase
+	if cfg != nil {
+		database = cfg.GetDoltDatabase()
+	}
+	if sanitized := sanitizeDBName(database); sanitized != database {
+		database = sanitized
+	}
+	if preview {
+		return embeddeddolt.OpenForPreviewCommand(ctx, issuegraphDir, database, "main")
+	}
+	// OpenReadOnly, not Open: a read-only open of a foreign project must not
+	// run the remote-migrate gate (a behind, remote-backed database would fail
+	// hard) and must not write migrations into the target's history
+	// (bd-6dnrw.32, GH#3231).
+	return embeddeddolt.OpenReadOnly(ctx, issuegraphDir, database, "main")
+}

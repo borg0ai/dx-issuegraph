@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestExists(t *testing.T) {
@@ -242,7 +242,7 @@ func TestAssigneeMatches(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "empty actor with assigned bead fails",
+			name:        "empty actor with assigned issue fails",
 			issue:       &types.Issue{ID: "bd-test", Assignee: "bob"},
 			actor:       "",
 			wantErr:     true,
@@ -252,7 +252,7 @@ func TestAssigneeMatches(t *testing.T) {
 		// identity ("gastown.mayor") while actor resolution can hand back a
 		// DIFFERENT layer's spelling of the SAME identity — a session name
 		// sanitizes the dot to "__" because a dot is unsafe there. The owner
-		// closing its own bead must not need --force just because two layers
+		// closing its own issue must not need --force just because two layers
 		// spelled its name differently.
 		{
 			name:    "same identity under session-name spelling passes (ga-wzl83)",
@@ -347,7 +347,7 @@ func TestAssigneeNotStolen(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name:        "reassigning an OPEN assigned bead stays frictionless",
+			name:        "reassigning an OPEN assigned issue stays frictionless",
 			issue:       &types.Issue{ID: "bd-test", Assignee: "bob", Status: types.StatusOpen},
 			actor:       "alice",
 			newAssignee: "carol",
@@ -428,8 +428,8 @@ func TestAssigneeNotStolen(t *testing.T) {
 				// The copy must name the holder, point at coordination, and
 				// name --force explicitly (so script authors can adopt it
 				// deterministically) — never an eviction recipe like the old
-				// "use bd unclaim" claim-refusal copy (wy-zs5s2 item 2).
-				for _, frag := range []string{"held by", "coordinate with the holder", "--force", "bd mail"} {
+				// "use issuegraph unclaim" claim-refusal copy (wy-zs5s2 item 2).
+				for _, frag := range []string{"held by", "coordinate with the holder", "--force", "issuegraph mail"} {
 					if !strings.Contains(err.Error(), frag) {
 						t.Errorf("AssigneeNotStolen() error %q should contain %q", err.Error(), frag)
 					}
@@ -439,14 +439,14 @@ func TestAssigneeNotStolen(t *testing.T) {
 	}
 
 	// The pool thunk must be consulted only after the cheap clauses pass —
-	// call sites hand it a live config read, and routine dispatch (open-bead
+	// call sites hand it a live config read, and routine dispatch (open-issue
 	// reassigns, self-edits) must not pay that round trip.
 	poolsCalled = false
 	if err := AssigneeNotStolen("alice", "bob", pools, false)("bd-test", &types.Issue{ID: "bd-test", Assignee: "bob", Status: types.StatusOpen}); err != nil {
-		t.Errorf("open-bead reassign should pass, got %v", err)
+		t.Errorf("open-issue reassign should pass, got %v", err)
 	}
 	if poolsCalled {
-		t.Errorf("pool thunk consulted on an open-bead reassign; the config read should be lazy")
+		t.Errorf("pool thunk consulted on an open-issue reassign; the config read should be lazy")
 	}
 }
 

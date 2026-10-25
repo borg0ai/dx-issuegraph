@@ -4,6 +4,12 @@
 
 **Parent:** [0001](0001-issuegraph-local-git.md)
 
+## Decision Update
+
+RFC [0013](0013-go-cli-under-apps.md) supersedes this RFC's Go CLI location in
+`modules/cli` and its output path under the npm app. The core Go module remains
+in `modules/core`; other module and workspace decisions remain in force.
+
 ## Summary
 
 Split Go implementation into independent modules under `modules/*`, coordinate them with root Go workspace files, and keep the TypeScript npm app in `apps/cli` separate from native Go code.
@@ -26,4 +32,4 @@ Move existing root Go module contents, Go-only configs, tests, and module depend
 
 ## Acceptance
 
-Root `go env GOMOD` and `go env GOWORK` resolve to repository `go.mod` and `go.work`; `modules/core/go.mod` preserves the current public Go module path; `modules/cli/go.mod` is an independent module beneath that path; all production Go source is under `modules/*`; `go -C modules/cli build -o ../../apps/cli/bin/cli .` succeeds after asset generation; TypeScript app in `apps/cli` launches the generated binary; CI and docs build/test each module; no workflow or script expects `modules/issuegraph-go`.
+`go env GOWORK` resolves to the repository `go.work`, and there is no root `go.mod` ([0013](0013-go-cli-under-apps.md)); `modules/core/go.mod` preserves the current public Go module path; `modules/cli/go.mod` is an independent module beneath that path; all production Go source is under `modules/*`; `go -C modules/cli build -o ../../apps/cli/bin/cli .` succeeds after asset generation; TypeScript app in `apps/cli` launches the generated binary; CI and docs build/test each module; no workflow or script expects `modules/issuegraph-go`.

@@ -24,11 +24,11 @@ func TestAgentsFile(t *testing.T) {
 		if err := Initialize(); err != nil {
 			t.Fatalf("Initialize: %v", err)
 		}
-		Set("agents.file", "BEADS.md")
+		Set("agents.file", "ISSUEGRAPH.md")
 		t.Cleanup(func() { Set("agents.file", "") })
 		got := AgentsFile()
-		if got != "BEADS.md" {
-			t.Errorf("AgentsFile() = %q, want %q", got, "BEADS.md")
+		if got != "ISSUEGRAPH.md" {
+			t.Errorf("AgentsFile() = %q, want %q", got, "ISSUEGRAPH.md")
 		}
 	})
 }
@@ -41,7 +41,7 @@ func TestValidateAgentsFile(t *testing.T) {
 		errMsg  string
 	}{
 		{name: "valid default", input: "AGENTS.md", wantErr: false},
-		{name: "valid custom", input: "BEADS.md", wantErr: false},
+		{name: "valid custom", input: "ISSUEGRAPH.md", wantErr: false},
 		{name: "valid lowercase", input: "agents.md", wantErr: false},
 		{name: "valid with hyphens", input: "my-agents.md", wantErr: false},
 		{name: "valid with underscores", input: "my_agents.md", wantErr: false},
@@ -99,11 +99,11 @@ func TestSafeAgentsFile(t *testing.T) {
 		if err := Initialize(); err != nil {
 			t.Fatalf("Initialize: %v", err)
 		}
-		Set("agents.file", "BEADS.md")
+		Set("agents.file", "ISSUEGRAPH.md")
 		t.Cleanup(func() { Set("agents.file", "") })
 		got := SafeAgentsFile()
-		if got != "BEADS.md" {
-			t.Errorf("SafeAgentsFile() = %q, want %q", got, "BEADS.md")
+		if got != "ISSUEGRAPH.md" {
+			t.Errorf("SafeAgentsFile() = %q, want %q", got, "ISSUEGRAPH.md")
 		}
 	})
 

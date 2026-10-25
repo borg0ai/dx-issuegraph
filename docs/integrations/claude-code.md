@@ -82,7 +82,7 @@ issuegraph create "Fix authentication bug" \
 # Link discovered issues
 issuegraph create "Found SQL injection" \
   --description="User input not sanitized in query builder" \
-  --deps discovered-from:bd-42 --json
+  --deps discovered-from:issuegraph-42 --json
 ```
 
 ### Working on Issues
@@ -92,10 +92,10 @@ issuegraph create "Found SQL injection" \
 issuegraph ready --json
 
 # Start work
-issuegraph update bd-42 --claim --json
+issuegraph update issuegraph-42 --claim --json
 
 # Complete work
-issuegraph close bd-42 --reason "Fixed in commit abc123" --json
+issuegraph close issuegraph-42 --reason "Fixed in commit abc123" --json
 ```
 
 ### Querying
@@ -105,7 +105,7 @@ issuegraph close bd-42 --reason "Fixed in commit abc123" --json
 issuegraph list --status open --json
 
 # Show issue details
-issuegraph show bd-42 --json
+issuegraph show issuegraph-42 --json
 
 # Check blocked issues
 issuegraph blocked --json
@@ -125,7 +125,7 @@ issuegraph dolt push
 ```bash
 issuegraph list --json          # Parse programmatically
 issuegraph create "Task" --json # Get issue ID from output
-issuegraph show bd-42 --json    # Structured data
+issuegraph show issuegraph-42 --json    # Structured data
 ```
 
 ### Always Include Descriptions
@@ -145,7 +145,7 @@ issuegraph create "Fix auth bug" -t bug -p 1 --json
 ```bash
 # When you discover issues during work
 issuegraph create "Found related bug" \
-  --deps discovered-from:bd-current --json
+  --deps discovered-from:issuegraph-current --json
 ```
 
 ### Push Before Session End
@@ -161,17 +161,17 @@ For slash commands and enhanced UX, install the [issuegraph plugin](/integration
 
 ```bash
 # In Claude Code
-/plugin marketplace add gastownhall/beads
-/plugin install beads
+/plugin marketplace add borg0ai/dx-issuegraph
+/plugin install issuegraph
 # Restart Claude Code
 ```
 
 Adds slash commands:
-- `/beads:ready` - Show ready work
-- `/beads:create` - Create issue
-- `/beads:show` - Show issue
-- `/beads:update` - Update issue
-- `/beads:close` - Close issue
+- `/issuegraph:ready` - Show ready work
+- `/issuegraph:create` - Create issue
+- `/issuegraph:show` - Show issue
+- `/issuegraph:update` - Update issue
+- `/issuegraph:close` - Close issue
 
 ## Troubleshooting
 

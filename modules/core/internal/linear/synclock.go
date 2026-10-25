@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/lockfile"
+	"github.com/borg0ai/dx-issuegraph/internal/lockfile"
 )
 
 const syncLockFilename = ".linear-sync.lock"
 
-// SyncLock serializes concurrent bd linear sync invocations within a workspace.
+// SyncLock serializes concurrent issuegraph linear sync invocations within a workspace.
 // The persistent kernel lock is authoritative. Platform-specific metadata only
 // improves contention diagnostics.
 type SyncLock struct {
@@ -28,18 +28,18 @@ type SyncLockInfo struct {
 	Started time.Time
 }
 
-// AcquireSyncLock acquires the sync lock for the given beads directory.
+// AcquireSyncLock acquires the sync lock for the given issuegraph directory.
 // If wait is true, blocks until the lock is available. If false, returns
 // an error immediately when the lock is held by another live process.
-func AcquireSyncLock(beadsDir string, wait bool) (*SyncLock, error) {
-	lockPath := filepath.Join(beadsDir, syncLockFilename)
-	infoPath := syncLockMetadataPath(beadsDir, lockPath)
+func AcquireSyncLock(issuegraphDir string, wait bool) (*SyncLock, error) {
+	lockPath := filepath.Join(issuegraphDir, syncLockFilename)
+	infoPath := syncLockMetadataPath(issuegraphDir, lockPath)
 
-	if err := os.MkdirAll(beadsDir, 0755); err != nil {
-		return nil, fmt.Errorf("creating beads directory: %w", err)
+	if err := os.MkdirAll(issuegraphDir, 0755); err != nil {
+		return nil, fmt.Errorf("creating issuegraph directory: %w", err)
 	}
 
-	f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0600) // #nosec G304 -- lockPath is constrained to the beads directory.
+	f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0600) // #nosec G304 -- lockPath is constrained to the issuegraph directory.
 	if err != nil {
 		return nil, fmt.Errorf("opening lock file: %w", err)
 	}
@@ -110,10 +110,10 @@ type SyncLockHeldError struct {
 
 func (e *SyncLockHeldError) Error() string {
 	if e.Info != nil {
-		return fmt.Sprintf("another bd linear sync is already running (PID %d, started %s)",
+		return fmt.Sprintf("another issuegraph linear sync is already running (PID %d, started %s)",
 			e.Info.PID, e.Info.Started.Format(time.RFC3339))
 	}
-	return "another bd linear sync is already running"
+	return "another issuegraph linear sync is already running"
 }
 
 func writeLockInfo(f *os.File) error {
@@ -129,7 +129,7 @@ func writeLockInfo(f *os.File) error {
 }
 
 func readLockInfo(path string) *SyncLockInfo {
-	data, err := os.ReadFile(path) // #nosec G304 -- path is constructed from beadsDir, not user input
+	data, err := os.ReadFile(path) // #nosec G304 -- path is constructed from issuegraphDir, not user input
 	if err != nil {
 		return nil
 	}

@@ -4,13 +4,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 	mysql "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
 )
 
 // =============================================================================
-// DoltStore.History Tests (the production path `bd history` actually calls —
+// DoltStore.History Tests (the production path `issuegraph history` actually calls —
 // distinct from the unexported getIssueHistory below, which nothing calls)
 // =============================================================================
 
@@ -18,7 +18,7 @@ import (
 // the shared pool's 10s ReadTimeout (ga-ahnxx): a dolt_history_issues scan on
 // an issue with many revisions can legitimately take longer than that,
 // surfacing as an intermittent MySQL i/o timeout / invalid connection error
-// even though bd show on the same id succeeds instantly (a fast point lookup
+// even though issuegraph show on the same id succeeds instantly (a fast point lookup
 // on the live table, not the history table).
 //
 // store.db (the shared pool) is opened once at store-creation time with a

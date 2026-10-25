@@ -12,10 +12,10 @@ import (
 
 	mysql "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/proxy"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/proxy"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,11 +31,11 @@ func TestNewExternalDoltServerUOWProvider_ValidationErrors(t *testing.T) {
 		want     string
 	}{
 		{"empty database", "", "root", validExt, "database name must not be empty"},
-		{"empty rootUser", "beads", "", validExt, "rootUser must not be empty"},
-		{"empty external config", "beads", "root", configfile.ExternalDoltConfig{}, "external"},
-		{"external host without port", "beads", "root", configfile.ExternalDoltConfig{Host: "db"}, "Host requires Port"},
-		{"external tls cert without key", "beads", "root", configfile.ExternalDoltConfig{
-			Host: "db", Port: 3306, TLSCert: "/etc/beads/client.pem",
+		{"empty rootUser", "issuegraph", "", validExt, "rootUser must not be empty"},
+		{"empty external config", "issuegraph", "root", configfile.ExternalDoltConfig{}, "external"},
+		{"external host without port", "issuegraph", "root", configfile.ExternalDoltConfig{Host: "db"}, "Host requires Port"},
+		{"external tls cert without key", "issuegraph", "root", configfile.ExternalDoltConfig{
+			Host: "db", Port: 3306, TLSCert: "/etc/issuegraph/client.pem",
 		}, "TLSCert set without TLSKey"},
 	}
 	for _, tc := range cases {
@@ -65,9 +65,9 @@ func TestNewExternalDoltServerUOWProvider_EndToEnd(t *testing.T) {
 	portInt, err := strconv.Atoi(port)
 	require.NoError(t, err)
 
-	bdBin := buildBDBinary(t)
+	issuegraphBin := buildIssueGraphBinary(t)
 	prev := proxy.ResolveExecutable
-	proxy.ResolveExecutable = func() (string, error) { return bdBin, nil }
+	proxy.ResolveExecutable = func() (string, error) { return issuegraphBin, nil }
 	t.Cleanup(func() { proxy.ResolveExecutable = prev })
 
 	t.Setenv("HOME", t.TempDir())
@@ -83,7 +83,7 @@ func TestNewExternalDoltServerUOWProvider_EndToEnd(t *testing.T) {
 	provider, err := NewExternalDoltServerUOWProvider(
 		ctx,
 		storeRootDir,
-		"beads_test",
+		"issuegraph_test",
 		logPath,
 		configfile.ExternalDoltConfig{Host: "127.0.0.1", Port: portInt},
 		"root",
@@ -106,7 +106,7 @@ func TestNewExternalDoltServerUOWProvider_EndToEnd(t *testing.T) {
 
 	var dbName string
 	require.NoError(t, sqlProv.db.QueryRowContext(ctx, "SELECT DATABASE()").Scan(&dbName))
-	assert.Equal(t, "beads_test", dbName)
+	assert.Equal(t, "issuegraph_test", dbName)
 
 	_, err = sqlProv.db.ExecContext(ctx, "CREATE TABLE t_external_e2e (id INT PRIMARY KEY, v VARCHAR(64))")
 	require.NoError(t, err)
@@ -127,9 +127,9 @@ func TestNewExternalDoltServerUOWProvider_ConcurrentInstantiation(t *testing.T) 
 	portInt, err := strconv.Atoi(port)
 	require.NoError(t, err)
 
-	bdBin := buildBDBinary(t)
+	issuegraphBin := buildIssueGraphBinary(t)
 	prev := proxy.ResolveExecutable
-	proxy.ResolveExecutable = func() (string, error) { return bdBin, nil }
+	proxy.ResolveExecutable = func() (string, error) { return issuegraphBin, nil }
 	t.Cleanup(func() { proxy.ResolveExecutable = prev })
 
 	t.Setenv("HOME", t.TempDir())
@@ -156,7 +156,7 @@ func TestNewExternalDoltServerUOWProvider_ConcurrentInstantiation(t *testing.T) 
 			p, err := NewExternalDoltServerUOWProvider(
 				context.Background(),
 				storeRootDir,
-				"beads_test",
+				"issuegraph_test",
 				logPath,
 				external,
 				"root",
@@ -186,8 +186,8 @@ func TestNewExternalDoltServerUOWProvider_ConcurrentInstantiation(t *testing.T) 
 }
 
 // TestNewExternalDoltServerUOWProvider_FreshInitSelfHealsAfterMidPassFailure is
-// the regression test for gastownhall/beads#5012: the proxied shard-1 CI flake
-// where a fresh `bd init --proxied-server` fails with
+// the regression test for borg0ai/dx-issuegraph#5012: the proxied shard-1 CI flake
+// where a fresh `issuegraph init --proxied-server` fails with
 //
 //	uow: migrate: pending schema migrations alter pre-existing dirty tables: issues
 //
@@ -211,9 +211,9 @@ func TestNewExternalDoltServerUOWProvider_FreshInitSelfHealsAfterMidPassFailure(
 	portInt, err := strconv.Atoi(port)
 	require.NoError(t, err)
 
-	bdBin := buildBDBinary(t)
+	issuegraphBin := buildIssueGraphBinary(t)
 	prev := proxy.ResolveExecutable
-	proxy.ResolveExecutable = func() (string, error) { return bdBin, nil }
+	proxy.ResolveExecutable = func() (string, error) { return issuegraphBin, nil }
 	t.Cleanup(func() { proxy.ResolveExecutable = prev })
 
 	t.Setenv("HOME", t.TempDir())
@@ -247,7 +247,7 @@ func TestNewExternalDoltServerUOWProvider_FreshInitSelfHealsAfterMidPassFailure(
 	provider, err := NewExternalDoltServerUOWProvider(
 		ctx,
 		storeRootDir,
-		"beads_fresh_heal",
+		"issuegraph_fresh_heal",
 		logPath,
 		configfile.ExternalDoltConfig{Host: "127.0.0.1", Port: portInt},
 		"root",
@@ -298,9 +298,9 @@ func TestNewExternalDoltServerUOWProvider_PreexistingDirtyDatabaseIsNotHealed(t 
 	portInt, err := strconv.Atoi(port)
 	require.NoError(t, err)
 
-	bdBin := buildBDBinary(t)
+	issuegraphBin := buildIssueGraphBinary(t)
 	prev := proxy.ResolveExecutable
-	proxy.ResolveExecutable = func() (string, error) { return bdBin, nil }
+	proxy.ResolveExecutable = func() (string, error) { return issuegraphBin, nil }
 	t.Cleanup(func() { proxy.ResolveExecutable = prev })
 
 	t.Setenv("HOME", t.TempDir())
@@ -319,15 +319,15 @@ func TestNewExternalDoltServerUOWProvider_PreexistingDirtyDatabaseIsNotHealed(t 
 	admin, err := sql.Open("mysql", fmt.Sprintf("root:@tcp(127.0.0.1:%d)/?parseTime=true", portInt))
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = admin.Close() })
-	_, err = admin.ExecContext(ctx, "CREATE DATABASE beads_loser")
+	_, err = admin.ExecContext(ctx, "CREATE DATABASE issuegraph_loser")
 	require.NoError(t, err)
-	_, err = admin.ExecContext(ctx, "CREATE TABLE beads_loser.issues (id INT PRIMARY KEY)")
+	_, err = admin.ExecContext(ctx, "CREATE TABLE issuegraph_loser.issues (id INT PRIMARY KEY)")
 	require.NoError(t, err)
 
 	provider, err := NewExternalDoltServerUOWProvider(
 		ctx,
 		storeRootDir,
-		"beads_loser",
+		"issuegraph_loser",
 		logPath,
 		configfile.ExternalDoltConfig{Host: "127.0.0.1", Port: portInt},
 		"root",
@@ -346,6 +346,6 @@ func TestNewExternalDoltServerUOWProvider_PreexistingDirtyDatabaseIsNotHealed(t 
 	// The dirt must be untouched: no DOLT_RESET may have fired.
 	var count int
 	require.NoError(t, admin.QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM beads_loser.dolt_status WHERE table_name = 'issues'").Scan(&count))
+		"SELECT COUNT(*) FROM issuegraph_loser.dolt_status WHERE table_name = 'issues'").Scan(&count))
 	require.Equal(t, 1, count, "issues working-set dirt was discarded by a non-creator init")
 }

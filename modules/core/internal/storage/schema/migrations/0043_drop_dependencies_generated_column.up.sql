@@ -1,4 +1,4 @@
--- NOTE (gastownhall/beads#4259): this migration introduces the surrogate
+-- NOTE (borg0ai/dx-issuegraph#4259): this migration introduces the surrogate
 -- `id CHAR(36) ... DEFAULT (UUID())` primary key below. UUID() is per-clone-random
 -- and makes the dependencies table merge-unsafe across Dolt clones. The fix lives
 -- in migration 0050 + the rekeyDependencyIDs backfill, which derive id

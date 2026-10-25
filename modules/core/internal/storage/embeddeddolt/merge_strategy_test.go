@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/versioncontrolops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
 )
 
-// These tests cover #4992: `bd vc merge --strategy` was dead code because the
+// These tests cover #4992: `issuegraph vc merge --strategy` was dead code because the
 // merge ran as a bare CALL DOLT_MERGE under autocommit, so Dolt rejected any
 // real conflict (Error 1105, "@autocommit must be disabled ...") before the
 // strategy could ever be applied. versioncontrolops.MergeWithStrategy runs
@@ -182,7 +182,7 @@ func TestMerge_NoStrategyStillErrorsWithEscapeHatchHint(t *testing.T) {
 }
 
 // TestMergeAndSettleWithStrategy_ResolvesDeclinedConflict is the #4992 part 2
-// case: bd dolt pull's merge machinery (MergeAndSettle) declines the same
+// case: issuegraph dolt pull's merge machinery (MergeAndSettle) declines the same
 // conflict TryAutoResolveMergeConflicts always declines for issues with
 // ambiguous LWW timestamps, but MergeAndSettleWithStrategy resolves it with
 // the operator's escape-hatch strategy instead of aborting for manual

@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
 )
 
 // depRekeyTables are the two edge tables the re-key covers, in execution order.
@@ -41,7 +41,7 @@ type DependencyRekeyConflictError struct {
 }
 
 func (e *DependencyRekeyConflictError) Error() string {
-	return fmt.Sprintf("%s: %s; run `bd doctor` to inspect the table (gastownhall/beads#5268)",
+	return fmt.Sprintf("%s: %s; run `issuegraph doctor` to inspect the table (borg0ai/dx-issuegraph#5268)",
 		e.Table, e.Detail)
 }
 
@@ -53,7 +53,7 @@ func (e *DependencyRekeyConflictError) Error() string {
 // per-clone-random; migration 0050 + the deterministic insert paths fix new
 // rows, but rows that already exist on an upgrading clone still carry the random
 // id. Leaving them would keep two independently-migrated clones divergent (same
-// edge, different primary key) and break `bd dolt pull`. This rewrites them to
+// edge, different primary key) and break `issuegraph dolt pull`. This rewrites them to
 // the deterministic value so two clones converge to byte-identical dependencies.
 //
 // It runs from MigrateUp right after the schema migrations (so 0050 has already
@@ -64,7 +64,7 @@ func (e *DependencyRekeyConflictError) Error() string {
 // MigrateUp; wisp_dependencies is dolt-ignored, so its re-key stays clone-local
 // (it only escapes on promotion, which copies the id).
 //
-// gastownhall/beads#5268: depid keys on (issue_id, resolved target) and
+// borg0ai/dx-issuegraph#5268: depid keys on (issue_id, resolved target) and
 // deliberately not on which typed column holds the target, but the unique keys
 // are per-column (uk_dep_issue_target / uk_dep_wisp_target /
 // uk_dep_external_target), so a legal table can hold the same logical edge
@@ -138,7 +138,7 @@ type depRow struct {
 // its natural identity is unambiguous enough to group and re-key. Rows with none
 // (ck_dep_one_target should prevent them) and rows with several (reachable by
 // merging drifted schemas or hand-repair SQL) are both left exactly as they are,
-// for `bd doctor` to surface rather than for this to guess about. Guessing is
+// for `issuegraph doctor` to surface rather than for this to guess about. Guessing is
 // what would be destructive now that a group can delete rows: truncating a
 // multi-target row to its first non-null column could drop it as a "duplicate"
 // and silently destroy the edge its other column recorded.
@@ -308,8 +308,8 @@ func scanDependencyRows(ctx context.Context, db DBConn, table string) ([]depRow,
 //     like), and updating first would manufacture the very duplicate-primary-key
 //     abort this replaces.
 //   - UPDATEs run in topological order. A row can legitimately hold the id
-//     another row needs while itself needing to move — `bd rename A B` followed
-//     by `bd rename C A` produces exactly that chain — so the occupant is moved
+//     another row needs while itself needing to move — `issuegraph rename A B` followed
+//     by `issuegraph rename C A` produces exactly that chain — so the occupant is moved
 //     out of the way first rather than refused. Each id is wanted by at most one
 //     row and each row vacates at most one id, so the graph is a set of simple
 //     chains and rotations: chains are walked from their free end, and only a

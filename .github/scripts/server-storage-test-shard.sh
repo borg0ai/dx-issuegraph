@@ -14,7 +14,7 @@
 # Tests listed in server-storage-test-shards.txt for the requested shard count
 # use that committed assignment; newly-added tests fall back to
 # hash(name) % total. Runs the matching subset using the pre-built test
-# binary at BEADS_TEST_SERVER_TEST_BINARY (or /tmp/dolt-conformance-test).
+# binary at ISSUEGRAPH_TEST_SERVER_TEST_BINARY (or /tmp/dolt-conformance-test).
 #
 # This package hands 1126 top-level tests to a single job (be-extn): the
 # sibling embedded lane's test-embedded-storage shards 324 tests over 5 jobs.
@@ -27,10 +27,10 @@
 # distinct shards so they do not cluster.
 #
 # Environment:
-#   BEADS_TEST_ENV_RUN_DOLT=1               required (tests skip without it)
-#   BEADS_TEST_SERVER_TEST_BINARY=<path>    pre-built storage test binary
+#   ISSUEGRAPH_TEST_ENV_RUN_DOLT=1               required (tests skip without it)
+#   ISSUEGRAPH_TEST_SERVER_TEST_BINARY=<path>    pre-built storage test binary
 #                                            (default: /tmp/dolt-conformance-test)
-#   BEADS_TEST_SHARD_LIST_ONLY=1            print selected tests without running them
+#   ISSUEGRAPH_TEST_SHARD_LIST_ONLY=1            print selected tests without running them
 
 set -euo pipefail
 
@@ -48,7 +48,7 @@ if (( TOTAL_SHARDS < 1 || SHARD_NUMBER < 1 || SHARD_NUMBER > TOTAL_SHARDS )); th
 fi
 
 SHARD_INDEX=$(( SHARD_NUMBER - 1 ))
-MANIFEST="${BEADS_TEST_SHARD_MANIFEST:-.github/scripts/server-storage-test-shards.txt}"
+MANIFEST="${ISSUEGRAPH_TEST_SHARD_MANIFEST:-.github/scripts/server-storage-test-shards.txt}"
 
 # Discover all top-level Test* functions except TestConformance, which is
 # sharded separately (test-server-storage job, -test.run '^TestConformance$')
@@ -138,8 +138,8 @@ printf "  %s\n" "${SHARD_TESTS[@]}"
 echo ""
 
 # Use pre-built test binary if available, otherwise fall back to go test.
-STORAGE_BINARY="${BEADS_TEST_SERVER_TEST_BINARY:-/tmp/dolt-conformance-test}"
-if [ "${BEADS_TEST_SHARD_LIST_ONLY:-}" = "1" ]; then
+STORAGE_BINARY="${ISSUEGRAPH_TEST_SERVER_TEST_BINARY:-/tmp/dolt-conformance-test}"
+if [ "${ISSUEGRAPH_TEST_SHARD_LIST_ONLY:-}" = "1" ]; then
   exit 0
 fi
 
@@ -156,5 +156,5 @@ else
   exec go test -tags=integration,gms_pure_go -v -count=1 -timeout 15m \
     -run "$RUN_REGEX" \
     "$@" \
-    github.com/steveyegge/beads/internal/storage/dolt/
+    github.com/borg0ai/dx-issuegraph/internal/storage/dolt/
 fi

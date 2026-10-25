@@ -7,11 +7,11 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 	"github.com/google/uuid"
-	"github.com/steveyegge/beads/internal/storage/schema"
 )
 
-// This file covers two coverage gaps flagged in gastownhall/beads#4878's
+// This file covers two coverage gaps flagged in borg0ai/dx-issuegraph#4878's
 // review (mybd-i9un): migration 0057's guarded TEXT->LONGTEXT conversion
 // branch, and 0047's Go-level delegate repair converging through the ignored
 // sequence's own structural split (#4555).
@@ -41,7 +41,7 @@ import (
 // real SQL engine; the limitation above is specific to the dolt CLI's
 // `sql -f`/`-q` batch executor, which nothing in production uses.
 //
-// Both tests require BEADS_TEST_EMBEDDED_DOLT=1 (requireEmbedded, defined in
+// Both tests require ISSUEGRAPH_TEST_EMBEDDED_DOLT=1 (requireEmbedded, defined in
 // migrate_selfheal_test.go), the same gate every other cgo embedded-dolt test
 // in this package uses.
 
@@ -431,7 +431,7 @@ func TestEmbeddedMigration0058AddsOnlyMissingConstraintInMixedPopulation(t *test
 // key over data that accumulated during the window it was missing repeats
 // the #4534 failure class ignored/0011 documents ("Dolt then fails
 // constraint validation on subsequent writes, so one legacy orphan bricks
-// every bd create"), and ADD CONSTRAINT ck_wisp_dep_one_target validates
+// every issuegraph create"), and ADD CONSTRAINT ck_wisp_dep_one_target validates
 // existing rows regardless of FOREIGN_KEY_CHECKS, so a zero- or multi-target
 // row accumulated in the same window would abort the ADD CONSTRAINT itself,
 // repeatedly failing MigrateUp before it ever records 0058.

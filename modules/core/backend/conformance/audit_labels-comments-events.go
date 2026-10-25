@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Audit cases for the "labels-comments-events" slice. Each case pins a strange
@@ -116,7 +116,7 @@ func testAuditLabelEventNonIdempotent(t *testing.T, f Factory) {
 // testAuditCountCommentsWispParity pins that CountIssueComments wisp-routes the
 // same way GetIssueComments does: a wisp's structured comments live in
 // `wisp_comments`, and the count must agree with the rows (GH#5565 — the count
-// used to query only `comments` and report 0, so `bd show` showed comment_count 0
+// used to query only `comments` and report 0, so `issuegraph show` showed comment_count 0
 // on a wisp that had comments).
 func testAuditCountCommentsWispParity(t *testing.T, f Factory) {
 	s := f(t)

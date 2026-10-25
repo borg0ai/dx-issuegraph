@@ -11,7 +11,7 @@ How to use issuegraph with Aider.
 
 ### Prerequisites
 
-- issuegraph installed and initialized in your project (see [Installation](/getting-started/installation)); run `issuegraph init` if there's no `.beads/` directory yet
+- issuegraph installed and initialized in your project (see [Installation](/getting-started/installation)); run `issuegraph init` if there's no `.issuegraph/` directory yet
 - aider installed: `pip install aider-chat` (or `pipx install aider-chat`)
 
 ### Quick Setup
@@ -23,7 +23,7 @@ issuegraph setup aider
 This creates:
 
 - `.aider.conf.yml` — tells aider to load the issuegraph instructions
-- `.aider/BEADS.md` — workflow instructions the AI reads
+- `.aider/ISSUEGRAPH.md` — workflow instructions the AI reads
 - `.aider/README.md` — quick reference for humans
 
 ### Verify Setup
@@ -38,7 +38,7 @@ issuegraph setup aider --check
 issuegraph setup aider --remove
 ```
 
-This removes `.aider.conf.yml`, `.aider/BEADS.md`, and `.aider/README.md`.
+This removes `.aider.conf.yml`, `.aider/ISSUEGRAPH.md`, and `.aider/README.md`.
 
 ## Configuration
 
@@ -51,10 +51,10 @@ The generated `.aider.conf.yml` loads the issuegraph instructions into aider's r
 # Load IssueGraph workflow instructions for the AI
 # This file is marked read-only and cached for efficiency
 read:
-  - .aider/BEADS.md
+  - .aider/ISSUEGRAPH.md
 ```
 
-`.aider/BEADS.md` holds the workflow rules the AI follows: track all work in issuegraph (never markdown TODOs), suggest `issuegraph ready` to find work, suggest `issuegraph create` for new issues, suggest `issuegraph dolt push` at end of session — and always *suggest* commands for you to run via `/run`. You can edit it to add project-specific instructions, but rerunning `issuegraph setup aider` regenerates it.
+`.aider/ISSUEGRAPH.md` holds the workflow rules the AI follows: track all work in issuegraph (never markdown TODOs), suggest `issuegraph ready` to find work, suggest `issuegraph create` for new issues, suggest `issuegraph dolt push` at end of session — and always *suggest* commands for you to run via `/run`. You can edit it to add project-specific instructions, but rerunning `issuegraph setup aider` regenerates it.
 
 ## Workflow
 
@@ -78,10 +78,10 @@ You: What issues are ready to work on?
 Aider: Let me check the available work. Run:
 /run issuegraph ready
 
-You: Let's work on bd-42
+You: Let's work on issuegraph-42
 
 Aider: To claim it, run:
-/run issuegraph update bd-42 --claim
+/run issuegraph update issuegraph-42 --claim
 ```
 
 To give the AI full issuegraph context mid-session, run `/run issuegraph prime` — the AI reads the output and picks up the complete workflow guide.
@@ -92,12 +92,12 @@ Use issuegraph commands alongside aider:
 
 ```bash
 # In another terminal or after exiting aider
-issuegraph create "Found bug during work" --deps discovered-from:bd-42 --json
-issuegraph update bd-42 --claim
+issuegraph create "Found bug during work" --deps discovered-from:issuegraph-42 --json
+issuegraph update issuegraph-42 --claim
 issuegraph ready
 
 # Link an already-created issue as discovered work
-issuegraph dep add bd-77 bd-42 --type discovered-from
+issuegraph dep add issuegraph-77 issuegraph-42 --type discovered-from
 ```
 
 ### End Session
@@ -121,15 +121,15 @@ issuegraph dolt push
 issuegraph ready
 
 # 2. Start aider with issue context
-aider --message "Working on bd-42: Fix auth bug"
+aider --message "Working on issuegraph-42: Fix auth bug"
 
 # 3. Work in aider...
 
 # 4. Create discovered issues
-issuegraph create "Found related bug" --deps discovered-from:bd-42 --json
+issuegraph create "Found related bug" --deps discovered-from:issuegraph-42 --json
 
 # 5. Complete and push
-issuegraph close bd-42 --reason "Fixed"
+issuegraph close issuegraph-42 --reason "Fixed"
 issuegraph dolt push
 ```
 
@@ -163,4 +163,4 @@ issuegraph doctor
 - [IDE Setup](/getting-started/ide-setup)
 - [Quickstart](/getting-started/quickstart)
 - [Aider documentation](https://aider.chat/docs/)
-- [AGENTS.md](https://github.com/gastownhall/beads/blob/main/AGENTS.md) - the full issuegraph agent workflow guide
+- [AGENTS.md](https://github.com/borg0ai/dx-issuegraph/blob/main/AGENTS.md) - the full issuegraph agent workflow guide

@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	storageops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/storage/sqlbuild"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	storageops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/sqlbuild"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the semantic contract every implementation of
@@ -83,7 +83,7 @@ import (
 // THE DOC COMMENT IS THE SPEC. Every case below asserts what
 // issueops/reader.go promises, not what any implementation currently does. A
 // backend that disagrees is parked at its own wiring site with
-// skipKnownDivergence and a bead, never by weakening the case.
+// skipKnownDivergence and a issue, never by weakening the case.
 
 // ReaderFixture supplies adapter-specific storage access for the reader
 // assertions. It carries only the hooks these cases use: the role is read-only,
@@ -768,7 +768,7 @@ func RunReaderListReadyFlagRefusesAFilterItCannotCarry(t *testing.T, ctx context
 	// The refusal is scoped to what the query cannot carry. Labels is carried,
 	// and NoPinnedFlag is already true of the ready set, so neither is refused
 	// — the doc promises both, and a validator that refused every flag it did
-	// not recognize would break `bd list --ready` outright.
+	// not recognize would break `issuegraph list --ready` outright.
 	page, err := fixture.Reader.List(ctx, publicops.ListRequest{
 		Labels: []string{scope}, NoPinnedFlag: true, ReadyFlag: true, SortBy: "id",
 	})
@@ -1782,7 +1782,7 @@ func RunReaderListStatusAcceptsACommaSeparatedORSet(t *testing.T, ctx context.Co
 // runs the predicate-form mega-query (issueops.runReadyCountsInTx). The
 // unit-of-work body resolves ids first either way — its own UNION across the
 // two planes — and hydrates them by id (domain/db.fetchCountsByIDs). Three
-// wirings, three routes to one promise, and `bd ready`'s "showing N of M" rides
+// wirings, three routes to one promise, and `issuegraph ready`'s "showing N of M" rides
 // on all of them.
 //
 // WHAT THIS FIXTURE MAKES OBSERVABLE that RunReaderReadyLimitBoundary's does
@@ -2078,7 +2078,7 @@ func RunReaderReadyPageWiderThanTheHydrationBatchIsStillThatPrefix(t *testing.T,
 // A page row's DependencyCount and DependentCount are BLOCKS-ONLY — outgoing
 // blocks edges and reverse blockers — while a detail view's count EVERY
 // outgoing and incoming edge whatever its type. Two vocabularies on one role,
-// and a user sees both: `bd list` prints the first, `bd show` the second.
+// and a user sees both: `issuegraph list` prints the first, `issuegraph show` the second.
 //
 // WHAT THIS FIXTURE MAKES OBSERVABLE. Every existing count fixture in this file
 // seeds blocks edges alone — RunReaderGetDetailShapeMatchesTheSeededIssue,

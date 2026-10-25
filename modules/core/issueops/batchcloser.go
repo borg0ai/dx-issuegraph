@@ -4,7 +4,7 @@ import "context"
 
 // BatchCloseItem is one issue a batch close asks for, with the reason recorded
 // against that issue alone. Reasons are per item rather than per request
-// because `bd close a b c --reason x --reason y --reason z` has always mapped
+// because `issuegraph close a b c --reason x --reason y --reason z` has always mapped
 // them positionally, and a single request-wide reason could not express it.
 type BatchCloseItem struct {
 	IssueID string
@@ -25,7 +25,7 @@ type CloseBatchRequest struct {
 	// Items are the issues to close, in the order the caller asked for them.
 	// It must not be empty. Every item appears in Outcomes at the same index.
 	//
-	// A DUPLICATED id is not a request error — `bd close a b a` is a plausible
+	// A DUPLICATED id is not a request error — `issuegraph close a b a` is a plausible
 	// typo, not a failure. The items are closed in the order given, so the
 	// second occurrence finds what the first one did and reports an idempotent
 	// re-close at its OWN index: a per-item success with Changed false. The
@@ -104,7 +104,7 @@ type CloseBatchResult struct {
 }
 
 // BatchCloser describes closing many issues as one durable act: the write side
-// of `bd close a b c`, and — like Lifecycle, Reader and ReadyClaimer — a role
+// of `issuegraph close a b c`, and — like Lifecycle, Reader and ReadyClaimer — a role
 // with its own accessor. A new capability gets a new role interface and its
 // own accessor; never append a method here.
 //

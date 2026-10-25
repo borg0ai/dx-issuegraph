@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 	"github.com/cenkalti/backoff/v4"
 	mysql "github.com/go-sql-driver/mysql"
-	"github.com/steveyegge/beads/internal/storage/schema"
 )
 
 func TestClassifyInitSchemaErrorKeepsBootstrapPreparationErrorsDistinct(t *testing.T) {
@@ -100,18 +100,18 @@ func TestInitSchemaAcquiresMigrationLockBeforeBootstrapDDL(t *testing.T) {
 	}
 	defer db.Close()
 
-	lockName := schema.MigrationLockName("beads")
+	lockName := schema.MigrationLockName("issuegraph")
 	expectNoSessionDatabase(mock)
-	expectDatabaseExistsProbe(mock, "beads", false)
+	expectDatabaseExistsProbe(mock, "issuegraph", false)
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT GET_LOCK(?, ?)")).
 		WithArgs(lockName, 5).
 		WillReturnRows(sqlmock.NewRows([]string{"locked"}).AddRow(1))
-	mock.ExpectExec(regexp.QuoteMeta("CREATE DATABASE `beads`")).
+	mock.ExpectExec(regexp.QuoteMeta("CREATE DATABASE `issuegraph`")).
 		WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec(regexp.QuoteMeta("USE `beads`")).
+	mock.ExpectExec(regexp.QuoteMeta("USE `issuegraph`")).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT DATABASE(), @@server_uuid, DOLT_HASHOF('HEAD')")).
-		WillReturnRows(sqlmock.NewRows([]string{"database", "server_uuid", "head"}).AddRow("beads", "server-uuid", "initial-head"))
+		WillReturnRows(sqlmock.NewRows([]string{"database", "server_uuid", "head"}).AddRow("issuegraph", "server-uuid", "initial-head"))
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM dolt_log")).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM dolt_status")).
@@ -133,7 +133,7 @@ func TestInitSchemaAcquiresMigrationLockBeforeBootstrapDDL(t *testing.T) {
 		db:             db,
 		serverEndpoint: "tcp:127.0.0.1:3306",
 	}
-	err = p.initSchema(context.Background(), "beads")
+	err = p.initSchema(context.Background(), "issuegraph")
 	if err == nil || !strings.Contains(err.Error(), "first migration statement failed") {
 		t.Fatalf("initSchema() error = %v, want first migration sentinel", err)
 	}
@@ -165,10 +165,10 @@ func TestInitSchemaConvergenceProbeRunsWithNoSessionDatabase(t *testing.T) {
 	}
 	defer db.Close()
 
-	lockName := schema.MigrationLockName("beads")
+	lockName := schema.MigrationLockName("issuegraph")
 	expectNoSessionDatabase(mock)
-	expectDatabaseExistsProbe(mock, "beads", true)
-	mock.ExpectExec(regexp.QuoteMeta("USE `beads`")).
+	expectDatabaseExistsProbe(mock, "issuegraph", true)
+	mock.ExpectExec(regexp.QuoteMeta("USE `issuegraph`")).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	// migrationWorkNeeded's first question, reached only because the probe put
 	// the session on the database itself. The cursor is far behind this
@@ -184,9 +184,9 @@ func TestInitSchemaConvergenceProbeRunsWithNoSessionDatabase(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"locked"}).AddRow(1))
 	// The bare CREATE DATABASE loses to the database the probe just proved
 	// exists, so this init captures no fresh-bootstrap heal authority.
-	mock.ExpectExec(regexp.QuoteMeta("CREATE DATABASE `beads`")).
+	mock.ExpectExec(regexp.QuoteMeta("CREATE DATABASE `issuegraph`")).
 		WillReturnError(&mysql.MySQLError{Number: 1007, Message: "database exists"})
-	mock.ExpectExec(regexp.QuoteMeta("USE `beads`")).
+	mock.ExpectExec(regexp.QuoteMeta("USE `issuegraph`")).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	// The shared-store migration gate, between preparation and MigrateUp. This
 	// database is pre-existing and behind, so the gate would refuse — the
@@ -205,7 +205,7 @@ func TestInitSchemaConvergenceProbeRunsWithNoSessionDatabase(t *testing.T) {
 		db:             db,
 		serverEndpoint: "tcp:127.0.0.1:3306",
 	}
-	err = p.initSchema(context.Background(), "beads")
+	err = p.initSchema(context.Background(), "issuegraph")
 	if err == nil || !strings.Contains(err.Error(), "first migration statement failed") {
 		t.Fatalf("initSchema() error = %v, want first migration sentinel", err)
 	}
@@ -228,15 +228,15 @@ func TestSelectProbeDatabaseIssuesPreparationsUse(t *testing.T) {
 		}
 		defer db.Close()
 
-		mock.ExpectExec(regexp.QuoteMeta("USE `beads`")).
+		mock.ExpectExec(regexp.QuoteMeta("USE `issuegraph`")).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		quoted, err := selectProbeDatabase(context.Background(), db, "beads")
+		quoted, err := selectProbeDatabase(context.Background(), db, "issuegraph")
 		if err != nil {
 			t.Fatalf("selectProbeDatabase() error = %v", err)
 		}
-		if quoted != "`beads`" {
-			t.Fatalf("selectProbeDatabase() quoted = %q, want %q", quoted, "`beads`")
+		if quoted != "`issuegraph`" {
+			t.Fatalf("selectProbeDatabase() quoted = %q, want %q", quoted, "`issuegraph`")
 		}
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Fatalf("unmet SQL expectations: %v", err)

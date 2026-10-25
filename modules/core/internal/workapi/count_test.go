@@ -5,12 +5,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// TestBuildCountFilterIncludeInfraMirrorsListFilter pins `bd count
-// --include-infra` to the exact cardinality semantics of `bd list
+// TestBuildCountFilterIncludeInfraMirrorsListFilter pins `issuegraph count
+// --include-infra` to the exact cardinality semantics of `issuegraph list
 // --include-infra --all` (GH#4387): for any filter set, the count must equal
 // the number of rows the equivalent list invocation returns. The trap
 // dimensions are the wisps merge (SkipWisps), template exclusion (IsTemplate),
@@ -71,7 +71,7 @@ func TestBuildCountFilterIncludeInfraMirrorsListFilter(t *testing.T) {
 }
 
 // TestBuildCountFilterHonorsTheWorkspaceInfraSet verifies that the infra-type
-// routing honors a store-configured infra set, exactly like bd list does.
+// routing honors a store-configured infra set, exactly like issuegraph list does.
 func TestBuildCountFilterHonorsTheWorkspaceInfraSet(t *testing.T) {
 	cfg := ListConfig{InfraSet: map[string]bool{"robot": true}}
 
@@ -95,7 +95,7 @@ func TestBuildCountFilterHonorsTheWorkspaceInfraSet(t *testing.T) {
 }
 
 // TestBuildCountFilterDefaultsToTheDurablePlane pins the no-flag path, which
-// is the answer every scripted `bd count` has always read: durable rows only
+// is the answer every scripted `issuegraph count` has always read: durable rows only
 // (SkipWisps), and none of the listing's template, gate, status or pinned
 // exclusions.
 func TestBuildCountFilterDefaultsToTheDurablePlane(t *testing.T) {

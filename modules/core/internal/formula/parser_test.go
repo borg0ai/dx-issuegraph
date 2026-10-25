@@ -8,19 +8,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/beads"
-	"github.com/steveyegge/beads/internal/git"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
+	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 func resetFormulaSearchCaches() {
-	beads.ResetCaches()
+	issuegraph.ResetCaches()
 	git.ResetCaches()
 }
 
 func resetFormulaSearchTestContext(t *testing.T) {
 	t.Helper()
-	t.Setenv("BEADS_DIR", "")
+	t.Setenv("ISSUEGRAPH_DIR", "")
 	t.Setenv("GT_ROOT", "")
 	resetFormulaSearchCaches()
 	t.Cleanup(resetFormulaSearchCaches)
@@ -150,7 +150,7 @@ func TestParse_BasicFormula(t *testing.T) {
 	}
 }
 
-func TestDefaultSearchPaths_UsesResolvedBeadsDirForWorktree(t *testing.T) {
+func TestDefaultSearchPaths_UsesResolvedIssueGraphDirForWorktree(t *testing.T) {
 	resetFormulaSearchTestContext(t)
 
 	root := t.TempDir()
@@ -165,8 +165,8 @@ func TestDefaultSearchPaths_UsesResolvedBeadsDirForWorktree(t *testing.T) {
 		_ = cmd.Run()
 	})
 
-	mainFormulaDir := filepath.Join(mainRepo, ".beads", "formulas")
-	if err := os.MkdirAll(filepath.Join(mainRepo, ".beads", "dolt"), 0o755); err != nil {
+	mainFormulaDir := filepath.Join(mainRepo, ".issuegraph", "formulas")
+	if err := os.MkdirAll(filepath.Join(mainRepo, ".issuegraph", "dolt"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	writeFormulaFixture(t, mainFormulaDir, "shared", "shared formula")
@@ -180,7 +180,7 @@ func TestDefaultSearchPaths_UsesResolvedBeadsDirForWorktree(t *testing.T) {
 	}
 
 	gotResolved := canonicalTestPath(paths[0])
-	wantResolved := canonicalTestPath(filepath.Join(mainRepo, ".beads", "formulas"))
+	wantResolved := canonicalTestPath(filepath.Join(mainRepo, ".issuegraph", "formulas"))
 	if gotResolved != wantResolved {
 		t.Fatalf("DefaultSearchPaths()[0] = %q, want %q", gotResolved, wantResolved)
 	}
@@ -195,11 +195,11 @@ func TestDefaultSearchPaths_UsesResolvedBeadsDirForWorktree(t *testing.T) {
 	}
 }
 
-func TestDefaultSearchPaths_FallsBackToCwdFormulaDirWithoutBeadsProject(t *testing.T) {
+func TestDefaultSearchPaths_FallsBackToCwdFormulaDirWithoutIssueGraphProject(t *testing.T) {
 	resetFormulaSearchTestContext(t)
 
 	root := t.TempDir()
-	formulaDir := filepath.Join(root, ".beads", "formulas")
+	formulaDir := filepath.Join(root, ".issuegraph", "formulas")
 	writeFormulaFixture(t, formulaDir, "local-only", "cwd fallback")
 
 	t.Chdir(root)
@@ -209,7 +209,7 @@ func TestDefaultSearchPaths_FallsBackToCwdFormulaDirWithoutBeadsProject(t *testi
 	if len(paths) == 0 {
 		t.Fatal("DefaultSearchPaths() returned no paths")
 	}
-	want := filepath.Join(root, ".beads", "formulas")
+	want := filepath.Join(root, ".issuegraph", "formulas")
 	if filepath.Clean(paths[0]) != filepath.Clean(want) {
 		t.Fatalf("DefaultSearchPaths()[0] = %q, want %q", paths[0], want)
 	}
@@ -224,14 +224,14 @@ func TestDefaultSearchPaths_IncludesCwdFormulaDirWithResolvedParentProject(t *te
 	resetFormulaSearchTestContext(t)
 
 	root := t.TempDir()
-	parentFormulaDir := filepath.Join(root, ".beads", "formulas")
-	if err := os.MkdirAll(filepath.Join(root, ".beads", "dolt"), 0o755); err != nil {
+	parentFormulaDir := filepath.Join(root, ".issuegraph", "formulas")
+	if err := os.MkdirAll(filepath.Join(root, ".issuegraph", "dolt"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	writeFormulaFixture(t, parentFormulaDir, "shared", "parent formula")
 
 	checkout := filepath.Join(root, "checkout")
-	checkoutFormulaDir := filepath.Join(checkout, ".beads", "formulas")
+	checkoutFormulaDir := filepath.Join(checkout, ".issuegraph", "formulas")
 	writeFormulaFixture(t, checkoutFormulaDir, "checkout-local", "checkout formula")
 
 	t.Chdir(checkout)
@@ -264,16 +264,16 @@ func TestDefaultSearchPaths_IncludesCheckoutFormulaDirFromSubdirectory(t *testin
 	resetFormulaSearchTestContext(t)
 
 	root := t.TempDir()
-	parentFormulaDir := filepath.Join(root, ".beads", "formulas")
-	if err := os.MkdirAll(filepath.Join(root, ".beads", "dolt"), 0o755); err != nil {
+	parentFormulaDir := filepath.Join(root, ".issuegraph", "formulas")
+	if err := os.MkdirAll(filepath.Join(root, ".issuegraph", "dolt"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	writeFormulaFixture(t, parentFormulaDir, "shared", "parent formula")
-	t.Setenv("BEADS_DIR", filepath.Join(root, ".beads"))
+	t.Setenv("ISSUEGRAPH_DIR", filepath.Join(root, ".issuegraph"))
 
 	checkout := filepath.Join(root, "checkout")
 	initFormulaTestRepo(t, checkout)
-	checkoutFormulaDir := filepath.Join(checkout, ".beads", "formulas")
+	checkoutFormulaDir := filepath.Join(checkout, ".issuegraph", "formulas")
 	writeFormulaFixture(t, checkoutFormulaDir, "checkout-local", "checkout formula")
 
 	subdir := filepath.Join(checkout, "cmd")
@@ -557,8 +557,8 @@ func TestSubstitute(t *testing.T) {
 		},
 		{
 			input: "{{name}} version {{version}}",
-			vars:  map[string]string{"name": "beads"},
-			want:  "beads version {{version}}", // unresolved kept
+			vars:  map[string]string{"name": "issuegraph"},
+			want:  "issuegraph version {{version}}", // unresolved kept
 		},
 		{
 			input: "No variables here",
@@ -756,7 +756,7 @@ func TestApplyDefaults(t *testing.T) {
 func TestParseFile_AndResolve(t *testing.T) {
 	// Create temp directory with test formulas
 	dir := t.TempDir()
-	formulaDir := filepath.Join(dir, ".beads", "formulas")
+	formulaDir := filepath.Join(dir, ".issuegraph", "formulas")
 	if err := os.MkdirAll(formulaDir, 0755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -837,7 +837,7 @@ func TestParseFile_AndResolve(t *testing.T) {
 
 func TestResolve_CircularExtends(t *testing.T) {
 	dir := t.TempDir()
-	formulaDir := filepath.Join(dir, ".beads", "formulas")
+	formulaDir := filepath.Join(dir, ".issuegraph", "formulas")
 	if err := os.MkdirAll(formulaDir, 0755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -1587,7 +1587,7 @@ func TestParse_GateFieldWithAllTypes(t *testing.T) {
 		{"github_pr", "gh:pr", "123"},
 		{"timer", "timer", ""},
 		{"human", "human", ""},
-		{"bead", "bead", "bd-xyz"},
+		{"issue", "issue", "bd-xyz"},
 		{"mail", "mail", "from:witness"},
 	}
 
@@ -2139,7 +2139,7 @@ title = "Test"
 }
 
 // TestParseTOML_StepMetadata verifies that a `metadata = { ... }` table on a
-// step is preserved through TOML parsing. Regression for gastownhall/beads#3341.
+// step is preserved through TOML parsing. Regression for borg0ai/dx-issuegraph#3341.
 func TestParseTOML_StepMetadata(t *testing.T) {
 	tomlData := `
 formula = "repro"
@@ -2175,7 +2175,7 @@ metadata = { priority_level = "high", origin = "repro" }
 }
 
 // TestParseJSON_StepMetadata verifies that `"metadata": { ... }` on a step is
-// preserved through JSON parsing. Regression for gastownhall/beads#3341.
+// preserved through JSON parsing. Regression for borg0ai/dx-issuegraph#3341.
 func TestParseJSON_StepMetadata(t *testing.T) {
 	jsonData := `{
   "formula": "repro",

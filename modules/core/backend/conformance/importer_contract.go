@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the contract every implementation of publicops.Importer must
-// satisfy: the sanctioned bulk-upsert door, the write half of `bd import`.
+// satisfy: the sanctioned bulk-upsert door, the write half of `issuegraph import`.
 //
 // WHY IT IS A SEPARATE FILE RATHER THAN MORE BatchCreator CASES. The batch
 // creator does not merely lack these promises, it REFUSES them, twice and on
@@ -18,7 +18,7 @@ import (
 //
 //   - "AN EXPLICIT ID IS CREATE-ONLY … an id that already names a row is
 //     ErrAlreadyExists and never a silent full-row upsert. THE DOCUMENTED
-//     UPSERT SURFACE IS `bd import`" (issueops/batchcreator.go, on
+//     UPSERT SURFACE IS `issuegraph import`" (issueops/batchcreator.go, on
 //     BatchCreateItem.Issue). The role text names this role as the home of the
 //     promise it declines.
 //   - "EVERY REQUESTED EDGE IS WRITTEN OR THE BATCH REFUSES. There is no
@@ -45,10 +45,10 @@ import (
 // OVERSIGHT. A capability in this repo is a role plus an accessor
 // (engdocs/ADDING_AN_ISSUEOPS_ROLE.md), and Importer has exactly one accessor:
 // uow.ImporterSource, served by the unit-of-work provider and reached in
-// production by modules/cli/import_proxied_server.go. storage.DoltStorage has no
+// production by apps/cli/import_proxied_server.go. storage.DoltStorage has no
 // Importer() — it is the only uow capability source with no counterpart there
-// — so on the two store backends `bd import` still runs the raw seam
-// (store.CreateIssuesWithFullOptions, modules/cli/import_shared.go) and there is no
+// — so on the two store backends `issuegraph import` still runs the raw seam
+// (store.CreateIssuesWithFullOptions, apps/cli/import_shared.go) and there is no
 // role for a contract to hold. Giving them one means a new method on the
 // storage interface and a new body behind it at two backends, which is API
 // work rather than test work.
@@ -343,8 +343,8 @@ func RunImporterReportsTheCycleEdgeItDropped(t *testing.T, ctx context.Context, 
 	assertImporterSkipped(t, result, []publicops.SkippedDependency{dropped})
 }
 
-// runImporterBatch imports issues under the option set `bd import` actually
-// sends (modules/cli/import_proxied_server.go): stale rows rejected in the
+// runImporterBatch imports issues under the option set `issuegraph import` actually
+// sends (apps/cli/import_proxied_server.go): stale rows rejected in the
 // transaction, and an explicit import admitting ids outside the workspace's
 // configured prefix. It fails the test on an error, because every case here is
 // about a batch that LANDS — the refusals belong to BatchCreator.

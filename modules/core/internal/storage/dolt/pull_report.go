@@ -1,7 +1,7 @@
 package dolt
 
 import (
-	"github.com/steveyegge/beads/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 )
 
 // doltMergeSucceededMessage is the message DOLT_PULL and DOLT_MERGE put in

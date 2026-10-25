@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
-// Reading and pruning the durable events journal (bd_events_journal). Both
+// Reading and pruning the durable events journal (issuegraph_events_journal). Both
 // query bodies live here, at the issueops seam, for the same reason emission
 // does: every store plumbing — embedded, server-mode, and the unit-of-work
 // repositories — hands its own transaction to these functions, so the read
@@ -26,7 +26,7 @@ import (
 // `prune --before <huge>`.
 //
 // Both prunes resolve through the same floors: the one an operator asks for
-// (`bd events prune`, this file) and the automatic bounding that keeps an
+// (`issuegraph events prune`, this file) and the automatic bounding that keeps an
 // enabled journal inside its floors (journal_autoprune.go, whose whole target
 // is "the bound the floors leave when nothing else constrains it").
 //
@@ -56,7 +56,7 @@ import (
 // holds retainRows or fewer rows, meaning the whole journal is inside the
 // retained window and nothing may be pruned by the rows floor.
 func EventsPruneRowsCeilQuery() string {
-	return `SELECT seq FROM bd_events_journal ORDER BY seq DESC LIMIT 1 OFFSET ?`
+	return `SELECT seq FROM issuegraph_events_journal ORDER BY seq DESC LIMIT 1 OFFSET ?`
 }
 
 // EventsPruneDaysFloorQuery returns the query that resolves the retain-days
@@ -70,7 +70,7 @@ func EventsPruneRowsCeilQuery() string {
 // ErrNoRows), which reads as "every row is older than the cutoff" — the age
 // floor then constrains nothing.
 func EventsPruneDaysFloorQuery() string {
-	return `SELECT MIN(seq) FROM bd_events_journal WHERE ts >= ?`
+	return `SELECT MIN(seq) FROM issuegraph_events_journal WHERE ts >= ?`
 }
 
 // BuildEventsPruneWhere renders a resolved prune bound as the WHERE predicate
@@ -107,7 +107,7 @@ func ReadEventsInTx(ctx context.Context, tx DBTX, since int64, limit int) ([]sto
 
 // ReadEventsPageInTx is ReadEventsInTx plus the journal HEAD, for a consumer
 // that has to know how far behind it is rather than merely what came next.
-// `bd events tail` does not: it prints what it is given and polls again. A
+// `issuegraph events tail` does not: it prints what it is given and polls again. A
 // polling HTTP consumer does, because the answer to "keep asking, or wait?"
 // is not in the rows.
 //
@@ -158,7 +158,7 @@ func ReadEventsPageInTx(ctx context.Context, tx DBTX, since int64, limit int) (s
 // missing prefix. That makes the common case free: when the first row returned
 // is exactly since+1 AND the batch is internally contiguous, the read is a
 // clean continuation and no extra query runs — which matters because
-// `bd events tail --follow` calls this every second.
+// `issuegraph events tail --follow` calls this every second.
 //
 // Three shapes cost a counter read, and they are checked in this order:
 //
@@ -170,7 +170,7 @@ func ReadEventsPageInTx(ctx context.Context, tx DBTX, since int64, limit int) (s
 //     and Since is the caller's own checkpoint — the nearest hole is the one a
 //     consumer must decide about first.
 //  3. the batch itself skips a seq: a hole in the MIDDLE of the retained
-//     window. Nothing in bd can produce one — prune is prefix-only by
+//     window. Nothing in issuegraph can produce one — prune is prefix-only by
 //     construction (see ComputeEventsPruneWhere) — but the rows are already in
 //     memory, so checking costs nothing and covers what the prefix argument
 //     cannot: a restored, hand-edited, or partially-copied journal table, and
@@ -241,7 +241,7 @@ func firstEventsSeqGap(rows []storage.EventsJournalRow) int {
 // has ever been journaled here, which is a head of 0.
 func readEventsHeadInTx(ctx context.Context, tx DBTX) (int64, error) {
 	var head int64
-	err := tx.QueryRowContext(ctx, "SELECT next_seq FROM bd_events_seq WHERE id = 0").Scan(&head)
+	err := tx.QueryRowContext(ctx, "SELECT next_seq FROM issuegraph_events_seq WHERE id = 0").Scan(&head)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil
 	}
@@ -254,7 +254,7 @@ func readEventsHeadInTx(ctx context.Context, tx DBTX) (int64, error) {
 func readEventsRowsInTx(ctx context.Context, tx DBTX, since int64, limit int) ([]storage.EventsJournalRow, error) {
 	// CAST(ts AS CHAR) normalizes the DATETIME to a stable string across drivers.
 	q := `SELECT seq, CAST(ts AS CHAR), op, issue_id, actor, issue_json, dep_json, comment_json
-	      FROM bd_events_journal WHERE seq > ? ORDER BY seq ASC`
+	      FROM issuegraph_events_journal WHERE seq > ? ORDER BY seq ASC`
 	if limit > 0 {
 		q += " LIMIT " + strconv.Itoa(limit)
 	}
@@ -368,7 +368,7 @@ func ComputeEventsPruneWhere(
 
 // eventsPruneFloorReadersInTx returns the two substrate reads
 // ComputeEventsPruneWhere resolves its floors with, bound to one transaction.
-// Both prune entry points — the explicit `bd events prune` below and the
+// Both prune entry points — the explicit `issuegraph events prune` below and the
 // automatic bounding in journal_autoprune.go — take their readers from here, so
 // a floor cannot mean one thing when an operator asks for it and another when
 // maintenance applies it.
@@ -417,7 +417,7 @@ func PruneEventsInTx(ctx context.Context, tx DBTX, before int64, retainDays, ret
 	if skip {
 		return 0, nil
 	}
-	res, err := tx.ExecContext(ctx, "DELETE FROM bd_events_journal WHERE "+where, args...)
+	res, err := tx.ExecContext(ctx, "DELETE FROM issuegraph_events_journal WHERE "+where, args...)
 	if err != nil {
 		return 0, fmt.Errorf("journal: prune below %d: %w", before, err)
 	}

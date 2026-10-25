@@ -14,12 +14,12 @@ const idempotencySuffix = " -->"
 // after sync interruptions: if the marker already exists in Linear, we skip
 // creation and return the existing issue.
 //
-// Hash inputs are intentionally limited to immutable fields (beadID,
+// Hash inputs are intentionally limited to immutable fields (issueID,
 // creatorEmail, createdAtNano). Title is excluded because it can change
 // after creation, which would break dedup on rename.
-func GenerateIdempotencyMarker(beadID, creatorEmail string, createdAtNano int64) string {
+func GenerateIdempotencyMarker(issueID, creatorEmail string, createdAtNano int64) string {
 	h := sha256.New()
-	h.Write([]byte(beadID))
+	h.Write([]byte(issueID))
 	h.Write([]byte(creatorEmail))
 	h.Write([]byte(fmt.Sprintf("%d", createdAtNano)))
 	hash := hex.EncodeToString(h.Sum(nil))[:12]

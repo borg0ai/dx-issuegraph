@@ -7,12 +7,12 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // EmbeddedDoltStore reads and prunes the durable events journal through its
-// own per-operation connection (withConn), so the `bd events` CLI works in
+// own per-operation connection (withConn), so the `issuegraph events` CLI works in
 // embedded mode — where there is no stable *sql.DB to reach via RawDBAccessor.
 var (
 	_ storage.EventsJournalAccessor    = (*EmbeddedDoltStore)(nil)

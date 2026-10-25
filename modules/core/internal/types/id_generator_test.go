@@ -19,7 +19,7 @@ func TestGenerateHashID(t *testing.T) {
 	}{
 		{
 			name:        "basic hash ID",
-			prefix:      "bd",
+			prefix:      "issuegraph",
 			title:       "Fix auth bug",
 			description: "Users can't log in",
 			created:     now,
@@ -60,8 +60,8 @@ func TestGenerateHashID_Deterministic(t *testing.T) {
 	now := time.Date(2025, 10, 30, 12, 0, 0, 0, time.UTC)
 
 	// Same inputs should produce same hash
-	hash1 := GenerateHashID("bd", "Title", "Desc", now, "ws1")
-	hash2 := GenerateHashID("bd", "Title", "Desc", now, "ws1")
+	hash1 := GenerateHashID("issuegraph", "Title", "Desc", now, "ws1")
+	hash2 := GenerateHashID("issuegraph", "Title", "Desc", now, "ws1")
 
 	if hash1 != hash2 {
 		t.Errorf("expected deterministic hash, got %s and %s", hash1, hash2)
@@ -71,7 +71,7 @@ func TestGenerateHashID_Deterministic(t *testing.T) {
 func TestGenerateHashID_DifferentInputs(t *testing.T) {
 	now := time.Date(2025, 10, 30, 12, 0, 0, 0, time.UTC)
 
-	baseHash := GenerateHashID("bd", "Title", "Desc", now, "ws1")
+	baseHash := GenerateHashID("issuegraph", "Title", "Desc", now, "ws1")
 
 	tests := []struct {
 		name        string
@@ -88,7 +88,7 @@ func TestGenerateHashID_DifferentInputs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			hash := GenerateHashID("bd", tt.title, tt.description, tt.created, tt.workspaceID)
+			hash := GenerateHashID("issuegraph", tt.title, tt.description, tt.created, tt.workspaceID)
 			if hash == baseHash {
 				t.Errorf("expected different hash for %s, got same: %s", tt.name, hash)
 			}
@@ -199,7 +199,7 @@ func BenchmarkGenerateHashID(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = GenerateHashID("bd", "Fix auth bug", "Users can't log in", now, "workspace-1")
+		_ = GenerateHashID("issuegraph", "Fix auth bug", "Users can't log in", now, "workspace-1")
 	}
 }
 

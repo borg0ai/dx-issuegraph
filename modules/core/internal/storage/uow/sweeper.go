@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // SweeperSource is the capability accessor a unit-of-work provider offers for
@@ -67,7 +67,7 @@ func (s *sweeper) Sweep(ctx context.Context, req publicops.SweepRequest) (public
 			// at most one history entry per call and none for a no-op.
 			return result, "", err
 		}
-		return result, fmt.Sprintf("bd: sweep %d %s bead(s)", result.Swept, req.Tier), nil
+		return result, fmt.Sprintf("issuegraph: sweep %d %s issue(s)", result.Swept, req.Tier), nil
 	})
 }
 
@@ -136,7 +136,7 @@ func sweepReferencedInUOW(ctx context.Context, uw UnitOfWork, candidates []*type
 	}
 	page, err := uw.IssueUseCase().SearchIssues(ctx, "", workapi.BuildSweepReferenceScanFilter(custom))
 	if err != nil {
-		return nil, fmt.Errorf("scanning open beads for references: %w", err)
+		return nil, fmt.Errorf("scanning open issuegraph for references: %w", err)
 	}
 	notDone := page.Items
 
@@ -150,8 +150,8 @@ func sweepReferencedInUOW(ctx context.Context, uw UnitOfWork, candidates []*type
 	// comes from SearchIssues, which merges the durable and wisp planes, so it
 	// contains wisps — and their comments live in wisp_comments, which
 	// GetCommentsForIssues does not read. Scanning only the durable table left
-	// a closed bead cited solely by a comment on an open WISP unprotected, so
-	// `bd prune` deleted it on this route and kept it on the other. The
+	// a closed issue cited solely by a comment on an open WISP unprotected, so
+	// `issuegraph prune` deleted it on this route and kept it on the other. The
 	// contract says an implementation that cannot read the full set must fail
 	// the sweep rather than under-scan it.
 	//
@@ -160,7 +160,7 @@ func sweepReferencedInUOW(ctx context.Context, uw UnitOfWork, candidates []*type
 	// for it, and a mis-partition here would silently under-scan again.
 	comments, err := uw.CommentUseCase().GetCommentsForIssues(ctx, notDoneIDs)
 	if err != nil {
-		return nil, fmt.Errorf("scanning open beads for references: %w", err)
+		return nil, fmt.Errorf("scanning open issuegraph for references: %w", err)
 	}
 	wispComments, err := uw.CommentUseCase().GetCommentsForWisps(ctx, notDoneIDs)
 	if err != nil {

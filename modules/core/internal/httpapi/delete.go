@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The request body's member vocabulary. The schema is
@@ -41,18 +41,18 @@ var deleteMembers = []string{
 // one transaction, so the practical ceiling is the backend's write timeout.
 const maxDeleteIDs = 1000
 
-// handleDelete answers POST /v0/beads/issues:delete — the second DESTRUCTIVE
+// handleDelete answers POST /v0/issuegraph/issues:delete — the second DESTRUCTIVE
 // operation on this surface.
 //
 // WHAT THIS HANDLER DOES NOT DO is the point of it, as for the sweep. It does
 // not resolve ids, does not expand a cascade, does not decide which rows are
 // dependents, and — the one that matters — does not implement the guard that
 // refuses an unforced delete over an outside dependent. All of that is
-// issueops.Deleter, the same library surface `bd delete` calls. Everything
+// issueops.Deleter, the same library surface `issuegraph delete` calls. Everything
 // above the role here is argument validation.
 //
 // NO ACTOR IS INFERRED, for the reason the claim gives. It is OPTIONAL here as
-// it is on the sweep — a deleted bead leaves no row to attribute the deletion
+// it is on the sweep — a deleted issue leaves no row to attribute the deletion
 // on — and validated by the same rules when present, because it reaches the
 // same commit-message interpolation AND the surviving rows this operation
 // rewrites.
@@ -109,7 +109,7 @@ func (s *Server) deleteRequest(w http.ResponseWriter, r *http.Request) (issueops
 	// cascade, force and dry_run all default to their ZERO values here, unlike
 	// the sweep's protect_referenced: false is already the guarded answer for
 	// all three, so an omitted member cannot buy weaker protection than the
-	// operator typing `bd delete` gets.
+	// operator typing `issuegraph delete` gets.
 	var request issueops.DeleteRequest
 
 	raw, ok := members[deleteIDsMember]
@@ -128,7 +128,7 @@ func (s *Server) deleteRequest(w http.ResponseWriter, r *http.Request) (issueops
 		// The ROLE refuses this too. It is refused here as well so the client
 		// gets the member name.
 		s.fail(w, r, InvalidArgument(deleteIDsMember, ReasonInvalidValue,
-			"`"+deleteIDsMember+"` must name at least one bead"))
+			"`"+deleteIDsMember+"` must name at least one issue"))
 		return issueops.DeleteRequest{}, false
 	}
 	if len(*ids) > maxDeleteIDs {
@@ -146,7 +146,7 @@ func (s *Server) deleteRequest(w http.ResponseWriter, r *http.Request) (issueops
 	for i, id := range *ids {
 		if strings.TrimSpace(id) == "" {
 			s.fail(w, r, InvalidArgument(deleteIDsMember, ReasonInvalidValue,
-				fmt.Sprintf("`%s[%d]` is blank; every id must name a bead", deleteIDsMember, i)))
+				fmt.Sprintf("`%s[%d]` is blank; every id must name a issue", deleteIDsMember, i)))
 			return issueops.DeleteRequest{}, false
 		}
 	}
@@ -172,7 +172,7 @@ func (s *Server) deleteRequest(w http.ResponseWriter, r *http.Request) (issueops
 	if expectedVersion != nil {
 		if distinct := distinctDeleteIDs(request.IDs); distinct > 1 {
 			s.fail(w, r, InvalidArgument(expectedVersionMember, ReasonInvalidValue,
-				fmt.Sprintf("`%s` guards ONE bead and this request names %d distinct ids; a row version describes one row. Send one guarded request per bead",
+				fmt.Sprintf("`%s` guards ONE issue and this request names %d distinct ids; a row version describes one row. Send one guarded request per issue",
 					expectedVersionMember, distinct)))
 			return issueops.DeleteRequest{}, false
 		}
@@ -257,7 +257,7 @@ func deleteMemberList() string {
 // role's *NotFoundError wraps issueops.ErrNotFound, which ClassifyError already
 // maps to a 404 carrying NotFound()'s FIXED detail. The role's own message
 // names every id that did not resolve and the wire deliberately does not repeat
-// it — NotFound's doc says why. `bd delete` still names them, because it is
+// it — NotFound's doc says why. `issuegraph delete` still names them, because it is
 // talking to the person who typed them. Its rank ABOVE the guard is the role's:
 // a request that named no row has nothing to be stale about, so no branch here
 // has to arrange it.

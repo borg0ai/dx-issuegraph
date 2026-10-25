@@ -6,8 +6,8 @@ import (
 	"maps"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the contract every implementation of publicops.Counter must
@@ -31,11 +31,11 @@ import (
 // suite seeded a row.
 //
 // What is deliberately NOT here:
-//   - the mapping from flags to a request, which is `bd count`'s job and is
-//     pinned in modules/cli/count_filter_test.go;
+//   - the mapping from flags to a request, which is `issuegraph count`'s job and is
+//     pinned in apps/cli/count_filter_test.go;
 //   - the filter CONSTRUCTION, which all three share through one builder and
 //     which internal/workapi/count_test.go pins directly, including the
-//     --include-infra cardinality parity with `bd list` (GH#4387);
+//     --include-infra cardinality parity with `issuegraph list` (GH#4387);
 //   - whether Total and Groups are one snapshot, which counter.go explicitly
 //     does not promise because the store-backed body cannot offer it.
 
@@ -95,12 +95,12 @@ func RunCounterIncludeInfraMergesTheWispTier(t *testing.T, ctx context.Context, 
 }
 
 // RunCounterIncludeInfraExcludesGates pins the third clause of
-// counter.go:115: under IncludeInfra a gate bead is excluded unless
+// counter.go:115: under IncludeInfra a gate issue is excluded unless
 // IssueType asks for gates by name.
 //
 // The DEFAULT count is asserted first and includes the gate, which is the
 // asymmetry worth pinning: the exclusion belongs to the --include-infra mode
-// alone, because that mode exists to match `bd list --include-infra --all`'s
+// alone, because that mode exists to match `issuegraph list --include-infra --all`'s
 // cardinality.
 func RunCounterIncludeInfraExcludesGates(t *testing.T, ctx context.Context, fixture CounterFixture) {
 	t.Helper()
@@ -125,7 +125,7 @@ func RunCounterIncludeInfraExcludesGates(t *testing.T, ctx context.Context, fixt
 
 // RunCounterCountsClosedRows pins counter.go:233-235: an empty request counts
 // every durable row INCLUDING closed ones, because a count applies none of the
-// listing's default exclusions. A `bd list` of the same two rows shows one,
+// listing's default exclusions. A `issuegraph list` of the same two rows shows one,
 // which is what makes Counter a separate role from Reader.
 func RunCounterCountsClosedRows(t *testing.T, ctx context.Context, fixture CounterFixture) {
 	t.Helper()
@@ -301,7 +301,7 @@ func RunCounterPrefixesPriorityBuckets(t *testing.T, ctx context.Context, fixtur
 // value where the CAST and the COALESCE can disagree with each other: a body
 // that folded the column's zero into the empty string — the shape that
 // normalization is there to catch for the nullable columns — answers "P" for
-// it while every P1/P3 fixture stays green. P0 is also the priority `bd
+// it while every P1/P3 fixture stays green. P0 is also the priority `issuegraph
 // create --priority 0` writes, so the bucket is not a corner case.
 //
 // A BUCKET HOLDING MORE THAN ONE ROW. Every priority bucket in this file held
@@ -343,7 +343,7 @@ func RunCounterPriorityBucketsCountZeroAndCountEveryRow(t *testing.T, ctx contex
 // appended ONLY when it would be nonzero, so a set in which every row carries a
 // label has no such key at all — not a key with a zero behind it.
 //
-// The distinction is not cosmetic. `bd count --group-by label` renders one line
+// The distinction is not cosmetic. `issuegraph count --group-by label` renders one line
 // per key, so a bucket that is present-and-zero prints a phantom "(no labels) 0"
 // row; and every caller that reads the map to decide whether any unlabeled work
 // EXISTS tests for the key, not for its value.
@@ -399,7 +399,7 @@ func RunCounterTheNoLabelBucketIsAbsentWhenEveryRowIsLabeled(t *testing.T, ctx c
 // synthetic bucket — so "this one is passed through verbatim" is a decision,
 // and the exact-map assertion is what makes a fourth normalization (a "T"
 // prefix, a title-cased name, a plural) fail rather than quietly reshape every
-// `bd count --group-by type` line and every caller keying off it.
+// `issuegraph count --group-by type` line and every caller keying off it.
 //
 // It also pins that the dimension reads issue_type at all: nothing drove
 // CountGroupType before, so a seam whose dimension table sent "type" to the

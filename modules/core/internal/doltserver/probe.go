@@ -14,7 +14,7 @@ import (
 // them in a short window (e.g. from repeated readiness/circuit-breaker
 // probes) can crash the dolt sql-server process. Reading the greeting first
 // — even partially — lets the TCP stack close cleanly instead. See
-// gastownhall/beads#4132 and #4133.
+// borg0ai/dx-issuegraph#4132 and #4133.
 //
 // Returns whether the first read observed any greeting bytes before the
 // connection was closed.

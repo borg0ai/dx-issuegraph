@@ -55,12 +55,12 @@ possible data loss detected in journal file at offset 1080309: corrupted journal
 }
 
 func TestCorruptJournalRecoveryHint(t *testing.T) {
-	beadsDir := filepath.Join(t.TempDir(), ".beads")
-	got := corruptJournalRecoveryHint(beadsDir)
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	got := corruptJournalRecoveryHint(issuegraphDir)
 	for _, want := range []string{
 		"Dolt journal corruption detected",
-		"bd bootstrap --dry-run",
-		"bd bootstrap --yes",
+		"issuegraph bootstrap --dry-run",
+		"issuegraph bootstrap --yes",
 		"dolt fsck --revive-journal-with-data-loss",
 		"will not run automatic journal repair",
 	} {
@@ -144,7 +144,7 @@ func TestFindCorruptNomsDirs(t *testing.T) {
 	doltDir := filepath.Join(root, "dolt")
 
 	// Corrupt database
-	writeNomsDir(t, filepath.Join(doltDir, "bd"), 40, 0, 0)
+	writeNomsDir(t, filepath.Join(doltDir, "issuegraph"), 40, 0, 0)
 	// Healthy database (has oldgen data)
 	writeNomsDir(t, filepath.Join(doltDir, "other"), 40, 0, 2048)
 
@@ -155,7 +155,7 @@ func TestFindCorruptNomsDirs(t *testing.T) {
 	if len(matches) != 1 {
 		t.Fatalf("got %d matches, want 1: %v", len(matches), matches)
 	}
-	if !strings.Contains(matches[0], filepath.Join("bd", ".dolt", "noms")) {
+	if !strings.Contains(matches[0], filepath.Join("issuegraph", ".dolt", "noms")) {
 		t.Errorf("unexpected match: %s", matches[0])
 	}
 }
@@ -163,13 +163,13 @@ func TestFindCorruptNomsDirs(t *testing.T) {
 // bd-6dnrw.6: detection must report the corrupt databases without modifying
 // anything on disk — repair only happens via the explicit doctor --fix path.
 func TestDetectCorruptManifest_ReportsWithoutModifying(t *testing.T) {
-	beadsDir := t.TempDir()
-	doltDir := filepath.Join(beadsDir, "dolt")
-	nomsDir := writeNomsDir(t, filepath.Join(doltDir, "bd"), 40, 0, 0)
+	issuegraphDir := t.TempDir()
+	doltDir := filepath.Join(issuegraphDir, "dolt")
+	nomsDir := writeNomsDir(t, filepath.Join(doltDir, "issuegraph"), 40, 0, 0)
 
 	// Without the log signature, nothing is reported even though the noms
 	// dir looks corrupt.
-	dirs, err := detectCorruptManifest(beadsDir, doltDir)
+	dirs, err := detectCorruptManifest(issuegraphDir, doltDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,11 +178,11 @@ func TestDetectCorruptManifest_ReportsWithoutModifying(t *testing.T) {
 	}
 
 	logContent := "error: root hash doesn't exist: abc123\n"
-	if err := os.WriteFile(logPath(beadsDir), []byte(logContent), 0600); err != nil {
+	if err := os.WriteFile(logPath(issuegraphDir), []byte(logContent), 0600); err != nil {
 		t.Fatal(err)
 	}
 
-	dirs, err = detectCorruptManifest(beadsDir, doltDir)
+	dirs, err = detectCorruptManifest(issuegraphDir, doltDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,17 +194,17 @@ func TestDetectCorruptManifest_ReportsWithoutModifying(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(nomsDir, "manifest")); err != nil {
 		t.Errorf("detection modified the corrupt database: %v", err)
 	}
-	if backupGlob, _ := filepath.Glob(filepath.Join(doltDir, "bd", ".dolt.*")); len(backupGlob) != 0 {
+	if backupGlob, _ := filepath.Glob(filepath.Join(doltDir, "issuegraph", ".dolt.*")); len(backupGlob) != 0 {
 		t.Errorf("detection created backups: %v", backupGlob)
 	}
 }
 
 func TestRecoverCorruptManifest_NoLogSignatureNoop(t *testing.T) {
-	beadsDir := t.TempDir()
-	doltDir := filepath.Join(beadsDir, "dolt")
-	writeNomsDir(t, filepath.Join(doltDir, "bd"), 40, 0, 0)
+	issuegraphDir := t.TempDir()
+	doltDir := filepath.Join(issuegraphDir, "dolt")
+	writeNomsDir(t, filepath.Join(doltDir, "issuegraph"), 40, 0, 0)
 
-	backups, err := recoverCorruptManifest(beadsDir, doltDir)
+	backups, err := recoverCorruptManifest(issuegraphDir, doltDir)
 	if err != nil {
 		t.Fatal(err)
 	}

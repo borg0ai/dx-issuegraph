@@ -1,11 +1,11 @@
 ---
-title: "bd gate"
-description: "Gates are async wait conditions that block workflow steps."
+title: "issuegraph gate"
+description: "Manage async coordination gates"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc gate`.
+Generated from `issuegraph help --doc gate`.
 
 Gates are async wait conditions that block workflow steps.
 
@@ -13,39 +13,41 @@ Gates are created automatically when a formula step has a gate field.
 They must be closed (manually or via watchers) for the blocked step to proceed.
 
 Gate types:
-  human   - Requires manual bd close (Phase 1)
+  human   - Requires manual issuegraph close (Phase 1)
   timer   - Expires after timeout (Phase 2)
   gh:run  - Waits for GitHub workflow (Phase 3)
   gh:pr   - Waits for PR merge (Phase 3)
-  bead    - Waits for cross-rig bead to close (Phase 4)
+  issue    - Waits for another issue to close (Phase 4)
 
-For bead gates, await_id format is &lt;rig&gt;:&lt;bead-id&gt; (e.g., "other-project:op-abc123").
+For issue gates, await_id may be a issue ID in this rig's database (e.g.,
+"bd-abc123") or the historical cross-rig form &lt;rig&gt;:&lt;issue-id&gt;. Cross-rig
+targets resolve through the issue ID's prefix route in routes.jsonl.
 
 Examples:
-  bd gate list           # Show all open gates
-  bd gate list --all     # Show all gates including closed
-  bd gate check          # Evaluate all open gates
-  bd gate check --type=bead  # Evaluate only bead gates
-  bd gate resolve &lt;id&gt;   # Close a gate manually
+  issuegraph gate list           # Show all open gates
+  issuegraph gate list --all     # Show all gates including closed
+  issuegraph gate check          # Evaluate all open gates
+  issuegraph gate check --type=issue  # Evaluate only issue gates
+  issuegraph gate resolve &lt;id&gt;   # Close a gate manually
 
 ```
-bd gate [flags]
+issuegraph gate [command]
 ```
 
-## bd gate add-waiter
+## issuegraph gate add-waiter
 
-Register an agent as a waiter on a gate bead.
+Register an agent as a waiter on a gate issue.
 
-When the gate closes, the waiter will receive a wake notification via 'bd gate wake'.
+When the gate closes, the waiter will receive a wake notification via 'issuegraph gate wake'.
 The waiter is typically the worker's address (e.g., "my-project/workers/agent-1").
 
-This is used by 'bd done --phase-complete' to register for gate wake notifications.
+This is used by 'issuegraph done --phase-complete' to register for gate wake notifications.
 
 ```
-bd gate add-waiter <gate-id> <waiter> [flags]
+issuegraph gate add-waiter <gate-id> <waiter> [flags]
 ```
 
-## bd gate check
+## issuegraph gate check
 
 Evaluate gate conditions and automatically close resolved gates.
 
@@ -56,7 +58,7 @@ Gate types:
   gh:run   - Check GitHub Actions workflow runs
   gh:pr    - Check pull request merge status
   timer    - Check timer gates (auto-expire based on timeout)
-  bead     - Check cross-rig bead gates
+  issue     - Check cross-rig issue gates
   all      - Check all gate types
 
 GitHub gates use the 'gh' CLI to query status:
@@ -67,23 +69,23 @@ A gate is resolved when:
   - gh:run: status=completed AND conclusion=success
   - gh:pr: state=MERGED
   - timer: current time &gt; created_at + timeout
-  - bead: target bead status=closed
+  - issue: target issue status=closed
 
 A gate is escalated when:
   - gh:run: status=completed AND conclusion in (failure, canceled)
   - gh:pr: state=CLOSED
 
 Examples:
-  bd gate check              # Check all gates
-  bd gate check --type=gh    # Check only GitHub gates
-  bd gate check --type=gh:run # Check only workflow run gates
-  bd gate check --type=timer # Check only timer gates
-  bd gate check --type=bead  # Check only cross-rig bead gates
-  bd gate check --dry-run    # Show what would happen without changes
-  bd gate check --escalate   # Escalate expired/failed gates
+  issuegraph gate check              # Check all gates
+  issuegraph gate check --type=gh    # Check only GitHub gates
+  issuegraph gate check --type=gh:run # Check only workflow run gates
+  issuegraph gate check --type=timer # Check only timer gates
+  issuegraph gate check --type=issue  # Check only cross-rig issue gates
+  issuegraph gate check --dry-run    # Show what would happen without changes
+  issuegraph gate check --escalate   # Escalate expired/failed gates
 
 ```
-bd gate check [flags]
+issuegraph gate check [flags]
 ```
 
 **Flags:**
@@ -92,30 +94,31 @@ bd gate check [flags]
       --dry-run       Show what would happen without making changes
   -e, --escalate      Escalate failed/expired gates
   -l, --limit int     Limit results (default 100) (default 100)
-  -t, --type string   Gate type to check (gh, gh:run, gh:pr, timer, bead, all)
+  -t, --type string   Gate type to check (gh, gh:run, gh:pr, timer, issue, all)
 ```
 
-## bd gate create
+## issuegraph gate create
 
 Create an ad-hoc gate issue that blocks another issue until resolved.
 
-The blocked issue will not appear in 'bd ready' until the gate is resolved
-via 'bd gate resolve'.
+The blocked issue will not appear in 'issuegraph ready' until the gate is resolved
+via 'issuegraph gate resolve'.
 
 Gate types:
-  human   - Requires manual 'bd gate resolve' (default)
+  human   - Requires manual 'issuegraph gate resolve' (default)
   timer   - Auto-resolves after --timeout duration
   gh:run  - Waits for GitHub Actions workflow
   gh:pr   - Waits for PR merge
 
 Examples:
-  bd gate create --blocks bd-abc
-  bd gate create --type=human --blocks bd-abc --reason="Need design review"
-  bd gate create --type=timer --blocks bd-abc --timeout=2h
-  bd gate create --type=gh:pr --blocks bd-abc --await-id=42
+  issuegraph gate create --blocks bd-abc
+  issuegraph gate create --type=human --blocks bd-abc --reason="Need design review"
+  issuegraph gate create --type=timer --blocks bd-abc --timeout=2h
+  issuegraph gate create --type=gh:pr --blocks bd-abc --await-id=42
+  issuegraph gate create --blocks bd-abc --title="Gate: awaiting owner sign-off"
 
 ```
-bd gate create [flags]
+issuegraph gate create [flags]
 ```
 
 **Flags:**
@@ -125,10 +128,11 @@ bd gate create [flags]
       --blocks string     Issue ID to block (required)
   -r, --reason string     Reason for the gate
       --timeout string    Timeout duration (e.g., 2h, 30m)
+      --title string      Custom gate title (default: "Gate: <type>")
   -t, --type string       Gate type (human, timer, gh:run, gh:pr) (default "human")
 ```
 
-## bd gate discover
+## issuegraph gate discover
 
 Discovers GitHub workflow run IDs for gates awaiting CI/CD completion.
 
@@ -141,13 +145,17 @@ queries recent GitHub workflow runs, and matches them using heuristics:
 Once matched, the gate's await_id is updated with the GitHub run ID, enabling
 subsequent polling to check the run's status.
 
+A gate whose metadata.repo targets another repository is only matched
+against runs queried from that repository, never against the current
+repository's runs of a same-named workflow.
+
 Examples:
-  bd gate discover           # Auto-discover run IDs for all matching gates
-  bd gate discover --dry-run # Preview what would be matched (no updates)
-  bd gate discover --branch main --limit 10  # Only match runs on 'main' branch
+  issuegraph gate discover           # Auto-discover run IDs for all matching gates
+  issuegraph gate discover --dry-run # Preview what would be matched (no updates)
+  issuegraph gate discover --branch main --limit 10  # Only match runs on 'main' branch
 
 ```
-bd gate discover [flags]
+issuegraph gate discover [flags]
 ```
 
 **Flags:**
@@ -159,14 +167,18 @@ bd gate discover [flags]
   -a, --max-age duration   Max age for gate/run matching (default 30m0s)
 ```
 
-## bd gate list
+## issuegraph gate list
 
-List all gate issues in the current beads database.
+List gate issues.
+
+With no argument, lists all gate issues in the current issuegraph database.
+With an [issue-id] argument, lists ONLY the gates that block that issue
+(its own dependency gates) — not every gate in the database.
 
 By default, shows only open gates. Use --all to include closed gates.
 
 ```
-bd gate list [flags]
+issuegraph gate list [issue-id] [flags]
 ```
 
 **Flags:**
@@ -176,15 +188,15 @@ bd gate list [flags]
   -n, --limit int   Limit results (default 50) (default 50)
 ```
 
-## bd gate resolve
+## issuegraph gate resolve
 
 Close a gate issue to unblock the step waiting on it.
 
-This is equivalent to 'bd close &lt;gate-id&gt;' but with a more explicit name.
+This is equivalent to 'issuegraph close &lt;gate-id&gt;' but with a more explicit name.
 Use --reason to provide context for why the gate was resolved.
 
 ```
-bd gate resolve <gate-id> [flags]
+issuegraph gate resolve <gate-id> [flags]
 ```
 
 **Flags:**
@@ -193,12 +205,12 @@ bd gate resolve <gate-id> [flags]
   -r, --reason string   Reason for resolving the gate
 ```
 
-## bd gate show
+## issuegraph gate show
 
 Display details of a gate issue including its waiters.
 
-This is similar to 'bd show' but validates that the issue is a gate.
+This is similar to 'issuegraph show' but validates that the issue is a gate.
 
 ```
-bd gate show <gate-id> [flags]
+issuegraph gate show <gate-id> [flags]
 ```

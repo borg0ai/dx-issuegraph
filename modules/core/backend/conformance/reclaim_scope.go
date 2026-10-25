@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// testReclaimScoped: bd reclaim honors the scope filters (--label / --label-any /
+// testReclaimScoped: issuegraph reclaim honors the scope filters (--label / --label-any /
 // --exclude-label / --assignee / --id), reverting ONLY the stale leases the
 // filter selects and leaving every other stale lease in_progress. The filters
 // never widen the set — an unmatched scope reclaims nothing even though a global

@@ -4,7 +4,7 @@ This directory contains integration tests for issuegraph that test end-to-end fu
 
 ## Prerequisites
 
-- issuegraph installed: `curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash`
+- issuegraph installed (Homebrew, Nix or Scoop; see the README Installation section)
 - Python 3.7+ for Python-based tests
 
 ## Running Tests

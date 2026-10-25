@@ -1,11 +1,11 @@
 ---
-title: "bd rename"
-description: "Rename an issue from one ID to another."
+title: "issuegraph rename"
+description: "Rename an issue ID"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc rename`.
+Generated from `issuegraph help --doc rename`.
 
 Rename an issue from one ID to another.
 
@@ -16,11 +16,11 @@ This updates:
 - Labels, comments, and events
 
 Examples:
-  bd rename bd-w382l bd-dolt     # Rename to memorable ID
-  bd rename gt-abc123 gt-auth    # Use descriptive ID
+  issuegraph rename bd-w382l bd-dolt     # Rename to memorable ID
+  issuegraph rename gt-abc123 gt-auth    # Use descriptive ID
 
 Note: The new ID must use a valid prefix for this database.
 
 ```
-bd rename <old-id> <new-id> [flags]
+issuegraph rename <old-id> <new-id> [flags]
 ```

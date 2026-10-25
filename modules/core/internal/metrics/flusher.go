@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	EnvEndpoint = "BEADS_METRICS_ENDPOINT"
+	EnvEndpoint = "ISSUEGRAPH_METRICS_ENDPOINT"
 
 	flushTimeout = 30 * time.Second
 )

@@ -1,5 +1,5 @@
 // Package doltserver manages the lifecycle of a local dolt sql-server process.
-// It provides transparent auto-start so that `bd init` and `bd <command>` work
+// It provides transparent auto-start so that `issuegraph init` and `issuegraph <command>` work
 // without manual server management.
 //
 // Port assignment uses OS-assigned ephemeral ports by default. When no explicit
@@ -8,11 +8,11 @@
 // the actual port to dolt-server.port. This eliminates the birthday-problem
 // collisions that plagued the old hash-derived port scheme (GH#2098, GH#2372).
 //
-// Users with explicit port config via BEADS_DOLT_SERVER_PORT env var or
+// Users with explicit port config via ISSUEGRAPH_DOLT_SERVER_PORT env var or
 // config.yaml always use that port instead, with conflict detection via
 // reclaimPort.
 //
-// Server state files (PID, port, log, lock) live in the .beads/ directory.
+// Server state files (PID, port, log, lock) live in the .issuegraph/ directory.
 package doltserver
 
 import (
@@ -33,14 +33,14 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"gopkg.in/yaml.v3"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/fdhygiene"
-	"github.com/steveyegge/beads/internal/githooksenv"
-	"github.com/steveyegge/beads/internal/gittraceenv"
-	"github.com/steveyegge/beads/internal/lockfile"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/fdhygiene"
+	"github.com/borg0ai/dx-issuegraph/internal/githooksenv"
+	"github.com/borg0ai/dx-issuegraph/internal/gittraceenv"
+	"github.com/borg0ai/dx-issuegraph/internal/lockfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 )
 
 // ErrServerNotRunning is returned by Stop when the Dolt server is not running.
@@ -96,7 +96,7 @@ const DefaultSharedServerPort = 3308
 
 // GlobalDatabaseName is the SQL database name for the project-agnostic
 // global issue database in shared-server mode.
-const GlobalDatabaseName = "beads_global"
+const GlobalDatabaseName = "issuegraph_global"
 
 // GlobalIssuePrefix is the issue prefix used in the global database.
 const GlobalIssuePrefix = "global"
@@ -108,28 +108,28 @@ const GlobalProjectID = "00000000-0000-0000-0000-000000000000"
 
 // IsSharedServerMode returns true if shared server mode is enabled.
 // Checks (in priority order):
-//  1. BEADS_DOLT_SHARED_SERVER env var ("1" or "true")
+//  1. ISSUEGRAPH_DOLT_SHARED_SERVER env var ("1" or "true")
 //  2. dolt.shared-server in config.yaml
 //
 // Shared server mode means all projects on this machine share a single
 // dolt sql-server process at SharedServerDir(), each using its own
-// database (already unique via prefix-based naming in bd init).
+// database (already unique via prefix-based naming in issuegraph init).
 func IsSharedServerMode() bool {
-	if v := os.Getenv("BEADS_DOLT_SHARED_SERVER"); v == "1" || strings.EqualFold(v, "true") {
+	if v := os.Getenv("ISSUEGRAPH_DOLT_SHARED_SERVER"); v == "1" || strings.EqualFold(v, "true") {
 		return true
 	}
 	return config.GetBool("dolt.shared-server")
 }
 
 func IsDebugMode() bool {
-	if v := os.Getenv("BEADS_DOLT_DEBUG"); v == "1" || strings.EqualFold(v, "true") {
+	if v := os.Getenv("ISSUEGRAPH_DOLT_DEBUG"); v == "1" || strings.EqualFold(v, "true") {
 		return true
 	}
 	return config.GetBool("dolt.debug")
 }
 
-func DebugProfileDir(beadsDir string) string {
-	p := filepath.Join(resolveServerDir(beadsDir), "dolt-pprof")
+func DebugProfileDir(issuegraphDir string) string {
+	p := filepath.Join(resolveServerDir(issuegraphDir), "dolt-pprof")
 	if abs, err := filepath.Abs(p); err == nil {
 		return abs
 	}
@@ -138,8 +138,8 @@ func DebugProfileDir(beadsDir string) string {
 
 const debugProfileFilename = "cpu.pprof"
 
-func rotateDebugProfile(beadsDir string) {
-	profDir := DebugProfileDir(beadsDir)
+func rotateDebugProfile(issuegraphDir string) {
+	profDir := DebugProfileDir(issuegraphDir)
 	src := filepath.Join(profDir, debugProfileFilename)
 	info, err := os.Stat(src)
 	if err != nil || info.Size() == 0 {
@@ -156,7 +156,7 @@ func rotateDebugProfile(beadsDir string) {
 }
 
 // IsAutoStartDisabled returns true if the dolt server should NOT be
-// auto-started or managed by bd. When true, KillStaleServers and
+// auto-started or managed by issuegraph. When true, KillStaleServers and
 // auto-start are suppressed — the server is externally managed (e.g.,
 // by systemd).
 //
@@ -169,28 +169,28 @@ func rotateDebugProfile(beadsDir string) {
 // This is used by KillStaleServers and Start to avoid killing or
 // interfering with externally-managed dolt processes (GH#2641).
 func IsAutoStartDisabled() bool {
-	if isFalsyBool(os.Getenv("BEADS_DOLT_AUTO_START")) {
+	if isFalsyBool(os.Getenv("ISSUEGRAPH_DOLT_AUTO_START")) {
 		return true
 	}
 	return isFalsyBool(config.GetString("dolt.auto-start"))
 }
 
 // externalNonLocalhostHost reports the configured Dolt server host when
-// it is set to a non-localhost value, indicating bd is talking to a
+// it is set to a non-localhost value, indicating issuegraph is talking to a
 // server it does not manage. Returns (host, true) when external,
 // ("", false) otherwise.
 //
 // Used to branch error messages in EnsureRunning so operators with a
-// non-localhost server are not told to "bd dolt start" — that command
+// non-localhost server are not told to "issuegraph dolt start" — that command
 // won't help them and reinforces a wrong mental model (GH#3518).
 //
-// Falls back to a zero Config when no metadata.json exists in beadsDir
-// so env-only configurations (BEADS_DOLT_SERVER_HOST set, no on-disk
+// Falls back to a zero Config when no metadata.json exists in issuegraphDir
+// so env-only configurations (ISSUEGRAPH_DOLT_SERVER_HOST set, no on-disk
 // config) are still detected. configfile.Load error returns are treated
 // as "not external" — the existing local-flavored error message is the
 // safer fallback and the configfile error will surface elsewhere.
-func externalNonLocalhostHost(beadsDir string) (string, bool) {
-	cfg, err := configfile.Load(beadsDir)
+func externalNonLocalhostHost(issuegraphDir string) (string, bool) {
+	cfg, err := configfile.Load(issuegraphDir)
 	if err != nil {
 		return "", false
 	}
@@ -222,20 +222,20 @@ func isFalsyBool(s string) bool {
 
 // readyTimeout returns the timeout used by waitForReady when starting the
 // dolt sql-server. Defaults to 10 seconds, but can be overridden via the
-// BEADS_DOLT_READY_TIMEOUT environment variable (positive integer seconds).
+// ISSUEGRAPH_DOLT_READY_TIMEOUT environment variable (positive integer seconds).
 // First-run Dolt SQL engine initialization can take ~60s on slower hardware
 // where the privileges.db, stats subrepo, and other bootstrap work must
 // happen before the MySQL listener accepts TCP connections. See GH#3142.
 func readyTimeout() time.Duration {
 	const defaultTimeout = 10 * time.Second
-	v := strings.TrimSpace(os.Getenv("BEADS_DOLT_READY_TIMEOUT"))
+	v := strings.TrimSpace(os.Getenv("ISSUEGRAPH_DOLT_READY_TIMEOUT"))
 	if v == "" {
 		return defaultTimeout
 	}
 	secs, err := strconv.Atoi(v)
 	if err != nil || secs < 1 {
 		fmt.Fprintf(os.Stderr,
-			"Warning: BEADS_DOLT_READY_TIMEOUT=%q is not a positive integer; using default %s\n",
+			"Warning: ISSUEGRAPH_DOLT_READY_TIMEOUT=%q is not a positive integer; using default %s\n",
 			v, defaultTimeout)
 		return defaultTimeout
 	}
@@ -243,77 +243,77 @@ func readyTimeout() time.Duration {
 }
 
 // SharedServerPath returns the directory for shared server state files without
-// creating it. Override with BEADS_SHARED_SERVER_DIR for testing or custom
-// layouts; otherwise it resolves to ~/.beads/shared-server/.
+// creating it. Override with ISSUEGRAPH_SHARED_SERVER_DIR for testing or custom
+// layouts; otherwise it resolves to ~/.issuegraph/shared-server/.
 func SharedServerPath() (string, error) {
-	if d := os.Getenv("BEADS_SHARED_SERVER_DIR"); d != "" {
+	if d := os.Getenv("ISSUEGRAPH_SHARED_SERVER_DIR"); d != "" {
 		return d, nil
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("cannot determine home directory: %w", err)
 	}
-	return filepath.Join(home, ".beads", "shared-server"), nil
+	return filepath.Join(home, ".issuegraph", "shared-server"), nil
 }
 
 // SharedServerDir returns the directory for shared server state files.
-// Returns ~/.beads/shared-server/ (created on first use).
-// Override with BEADS_SHARED_SERVER_DIR env var for testing or custom layouts.
+// Returns ~/.issuegraph/shared-server/ (created on first use).
+// Override with ISSUEGRAPH_SHARED_SERVER_DIR env var for testing or custom layouts.
 func SharedServerDir() (string, error) {
 	dir, err := SharedServerPath()
 	if err != nil {
 		return "", err
 	}
-	if err := os.MkdirAll(dir, config.BeadsDirPerm); err != nil {
+	if err := os.MkdirAll(dir, config.IssueGraphDirPerm); err != nil {
 		return "", fmt.Errorf("cannot create shared server directory %s: %w", dir, err)
 	}
 	return dir, nil
 }
 
 // SharedDoltDir returns the dolt data directory for the shared server.
-// Returns ~/.beads/shared-server/dolt/ (created on first use).
+// Returns ~/.issuegraph/shared-server/dolt/ (created on first use).
 func SharedDoltDir() (string, error) {
 	serverDir, err := SharedServerDir()
 	if err != nil {
 		return "", err
 	}
 	dir := filepath.Join(serverDir, "dolt")
-	if err := os.MkdirAll(dir, config.BeadsDirPerm); err != nil {
+	if err := os.MkdirAll(dir, config.IssueGraphDirPerm); err != nil {
 		return "", fmt.Errorf("cannot create shared dolt directory %s: %w", dir, err)
 	}
 	return dir, nil
 }
 
 // resolveServerDir returns the canonical server directory for dolt state files.
-// In shared server mode, returns ~/.beads/shared-server/ instead of the
-// project's .beads/ directory.
-func resolveServerDir(beadsDir string) string {
+// In shared server mode, returns ~/.issuegraph/shared-server/ instead of the
+// project's .issuegraph/ directory.
+func resolveServerDir(issuegraphDir string) string {
 	if IsSharedServerMode() {
 		dir, err := SharedServerDir()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: shared server directory unavailable, using per-project mode: %v\n", err)
-			return beadsDir
+			return issuegraphDir
 		}
 		return dir
 	}
-	return beadsDir
+	return issuegraphDir
 }
 
 // ResolveServerDir is the exported version of resolveServerDir.
 // CLI commands use this to resolve the server directory before calling
 // Start, Stop, or IsRunning.
-func ResolveServerDir(beadsDir string) string {
-	return resolveServerDir(beadsDir)
+func ResolveServerDir(issuegraphDir string) string {
+	return resolveServerDir(issuegraphDir)
 }
 
-// ResolveDoltDir returns the dolt data directory for the given beadsDir.
-// It checks the BEADS_DOLT_DATA_DIR env var and metadata.json for a custom
-// dolt_data_dir, falling back to the default .beads/dolt/ path.
+// ResolveDoltDir returns the dolt data directory for the given issuegraphDir.
+// It checks the ISSUEGRAPH_DOLT_DATA_DIR env var and metadata.json for a custom
+// dolt_data_dir, falling back to the default .issuegraph/dolt/ path.
 //
 // Note: we check for metadata.json existence before calling configfile.Load
 // to avoid triggering the config.json → metadata.json migration side effect,
-// which would create files in the .beads/ directory unexpectedly.
-func ResolveDoltDir(beadsDir string) string {
+// which would create files in the .issuegraph/ directory unexpectedly.
+func ResolveDoltDir(issuegraphDir string) string {
 	// Shared server mode: use centralized dolt data directory
 	if IsSharedServerMode() {
 		dir, err := SharedDoltDir()
@@ -327,26 +327,26 @@ func ResolveDoltDir(beadsDir string) string {
 	// Env var, metadata.json dolt_data_dir (stat-guarded), then default —
 	// shared with the side-effect-free DoltDirPath so the two resolvers
 	// cannot drift.
-	return projectDoltDirPath(beadsDir)
+	return projectDoltDirPath(issuegraphDir)
 }
 
 // Config holds the server configuration.
 type Config struct {
-	BeadsDir string     // Path to .beads/ directory
-	Port     int        // MySQL protocol port (0 = allocate ephemeral port on Start)
-	Host     string     // Bind address (default: 127.0.0.1)
-	Mode     ServerMode // Server ownership mode (Owned, External, Embedded)
+	IssueGraphDir string     // Path to .issuegraph/ directory
+	Port          int        // MySQL protocol port (0 = allocate ephemeral port on Start)
+	Host          string     // Bind address (default: 127.0.0.1)
+	Mode          ServerMode // Server ownership mode (Owned, External, Embedded)
 
 	// PortSource records which step of the precedence chain (see
 	// portSources) resolved Port. PortSourceUnset when Port == 0. Callers
 	// that auto-start a replacement server use this to decide whether
 	// silently retargeting to a different port is safe (GH#4052): safe for
-	// bd's own port-file bookkeeping, not safe for a source where the user
+	// issuegraph's own port-file bookkeeping, not safe for a source where the user
 	// (or config on the user's behalf) explicitly asserted the port.
 	PortSource PortSource
 
 	// PortSharedServer records whether Port was resolved in shared-server
-	// mode (BEADS_DOLT_SHARED_SERVER=1): either because port resolution
+	// mode (ISSUEGRAPH_DOLT_SHARED_SERVER=1): either because port resolution
 	// consulted the shared server directory's sources, or because no source
 	// resolved a port and DefaultConfig fell back to DefaultSharedServerPort.
 	// Orthogonal to PortSource — a shared-mode port can come from any source
@@ -366,11 +366,11 @@ type State struct {
 	DataDir string `json:"data_dir"`
 }
 
-// file paths within .beads/
-func pidPath(beadsDir string) string  { return filepath.Join(beadsDir, PIDFileName) }
-func logPath(beadsDir string) string  { return filepath.Join(beadsDir, "dolt-server.log") }
-func lockPath(beadsDir string) string { return filepath.Join(beadsDir, "dolt-server.lock") }
-func portPath(beadsDir string) string { return filepath.Join(beadsDir, PortFileName) }
+// file paths within .issuegraph/
+func pidPath(issuegraphDir string) string  { return filepath.Join(issuegraphDir, PIDFileName) }
+func logPath(issuegraphDir string) string  { return filepath.Join(issuegraphDir, "dolt-server.log") }
+func lockPath(issuegraphDir string) string { return filepath.Join(issuegraphDir, "dolt-server.lock") }
+func portPath(issuegraphDir string) string { return filepath.Join(issuegraphDir, PortFileName) }
 
 // MaxDoltServers is the hard ceiling on concurrent dolt sql-server processes.
 // Allows up to 3 (e.g., multiple projects).
@@ -413,7 +413,7 @@ func isPortAvailable(host string, port int) bool {
 // Returns (adoptPID, nil) when an existing server should be adopted.
 // Returns (0, nil) when the port is free for a new server.
 // Returns (0, err) when the port can't be used.
-func reclaimPort(host string, port int, beadsDir string) (adoptPID int, err error) {
+func reclaimPort(host string, port int, issuegraphDir string) (adoptPID int, err error) {
 	if isPortAvailable(host, port) {
 		return 0, nil // port is free
 	}
@@ -432,36 +432,36 @@ func reclaimPort(host string, port int, beadsDir string) (adoptPID int, err erro
 
 	// Check if it's a dolt sql-server process
 	if !isDoltProcess(pid) {
-		return 0, fmt.Errorf("port %d is in use by a non-dolt process (PID %d).\n\n%s\n\nFree the port or configure a different one with: bd dolt set port <port>", port, pid, portConflictDiagnostics(port))
+		return 0, fmt.Errorf("port %d is in use by a non-dolt process (PID %d).\n\n%s\n\nFree the port or configure a different one with: issuegraph dolt set port <port>", port, pid, portConflictDiagnostics(port))
 	}
 
 	// It's a dolt process. Check if it's one we should adopt.
 
 	// Check if the process is using our data directory (CWD matches our dolt dir).
 	// dolt sql-server is started with cmd.Dir = doltDir, so CWD is the data dir.
-	doltDir := ResolveDoltDir(beadsDir)
+	doltDir := ResolveDoltDir(issuegraphDir)
 	if isProcessInDir(pid, doltDir) {
 		return pid, nil // our server — adopt it
 	}
 
-	// Another beads project's Dolt server is on this port.
-	return 0, fmt.Errorf("port %d is in use by another project's dolt server (PID %d).\n\n%s\n\nFree the port or use a different one with: bd dolt set port <port>", port, pid, portConflictDiagnostics(port))
+	// Another issuegraph project's Dolt server is on this port.
+	return 0, fmt.Errorf("port %d is in use by another project's dolt server (PID %d).\n\n%s\n\nFree the port or use a different one with: issuegraph dolt set port <port>", port, pid, portConflictDiagnostics(port))
 }
 
 // portConflictDiagnostics returns a multi-line block of operator-actionable
 // hints for diagnosing what's holding a port. Combines the platform-specific
 // listener-discovery command with a docker-in-the-loop hint that frequently
 // applies in practice — operators running their own dolt sql-server in a
-// container don't realize bd would otherwise try to start a competing
+// container don't realize issuegraph would otherwise try to start a competing
 // instance and lose the race (GH#3516).
 func portConflictDiagnostics(port int) string {
 	return fmt.Sprintf("Identify the listener:\n  %s\n\n"+
 		"If the listener is YOUR own Dolt instance (e.g., a docker container "+
-		"or systemd unit you manage), bd does not need to start a new server. "+
-		"Configure bd to talk to the existing server instead:\n"+
-		"  export BEADS_DOLT_SERVER_HOST=<host>  # 127.0.0.1 for local container\n"+
-		"  export BEADS_DOLT_SERVER_PORT=%d\n"+
-		"  bd dolt status   # verify reachable",
+		"or systemd unit you manage), issuegraph does not need to start a new server. "+
+		"Configure issuegraph to talk to the existing server instead:\n"+
+		"  export ISSUEGRAPH_DOLT_SERVER_HOST=<host>  # 127.0.0.1 for local container\n"+
+		"  export ISSUEGRAPH_DOLT_SERVER_PORT=%d\n"+
+		"  issuegraph dolt status   # verify reachable",
 		fmt.Sprintf(portConflictHint, port), port)
 }
 
@@ -480,8 +480,8 @@ func isDoltProcess(pid int) bool {
 
 // readPortFile reads the actual port from the port file, if it exists.
 // Returns 0 if the file doesn't exist or is unreadable.
-func readPortFile(beadsDir string) int {
-	data, err := os.ReadFile(portPath(beadsDir))
+func readPortFile(issuegraphDir string) int {
+	data, err := os.ReadFile(portPath(issuegraphDir))
 	if err != nil {
 		return 0
 	}
@@ -495,10 +495,10 @@ func readPortFile(beadsDir string) int {
 // writePortFile records the actual port the server is listening on.
 // Write-temp-then-rename: a plain os.WriteFile truncates in place, so a
 // concurrent readPortFile can observe an empty or partial file and resolve
-// port 0 (or a truncated port). Rename within .beads is atomic.
-func writePortFile(beadsDir string, port int) error {
-	path := portPath(beadsDir)
-	tmp, err := os.CreateTemp(beadsDir, PortFileName+".tmp-*")
+// port 0 (or a truncated port). Rename within .issuegraph is atomic.
+func writePortFile(issuegraphDir string, port int) error {
+	path := portPath(issuegraphDir)
+	tmp, err := os.CreateTemp(issuegraphDir, PortFileName+".tmp-*")
 	if err != nil {
 		return err
 	}
@@ -520,41 +520,41 @@ func writePortFile(beadsDir string, port int) error {
 
 // EnsurePortFile makes the repo-local port file match the connected server port.
 // This is a best-effort repair path for upgraded repos that are missing
-// .beads/dolt-server.port even though commands can still connect.
-func EnsurePortFile(beadsDir string, port int) error {
-	if beadsDir == "" || port <= 0 {
+// .issuegraph/dolt-server.port even though commands can still connect.
+func EnsurePortFile(issuegraphDir string, port int) error {
+	if issuegraphDir == "" || port <= 0 {
 		return nil
 	}
-	existing := readPortFile(beadsDir)
+	existing := readPortFile(issuegraphDir)
 	if existing == port {
 		return nil
 	}
 	if existing > 0 {
-		fmt.Fprintf(os.Stderr, "Info: updating port file %d → %d in %s\n", existing, port, beadsDir)
+		fmt.Fprintf(os.Stderr, "Info: updating port file %d → %d in %s\n", existing, port, issuegraphDir)
 	}
-	return writePortFile(beadsDir, port)
+	return writePortFile(issuegraphDir, port)
 }
 
 // ReadPortFile returns the port from the project's dolt-server.port file,
-// or 0 if the file doesn't exist or is invalid. Exported for use by bd init
+// or 0 if the file doesn't exist or is invalid. Exported for use by issuegraph init
 // to detect whether this project has its own running server (GH#2336).
-func ReadPortFile(beadsDir string) int {
-	return readPortFile(beadsDir)
+func ReadPortFile(issuegraphDir string) int {
+	return readPortFile(issuegraphDir)
 }
 
-// ManagesLiveServerOnPort reports whether beadsDir has a dolt sql-server that
-// bd brought under management FOR IT and that is still alive on port. It is
-// the affirmative proof of ownership available from local state: bd writes
+// ManagesLiveServerOnPort reports whether issuegraphDir has a dolt sql-server that
+// issuegraph brought under management FOR IT and that is still alive on port. It is
+// the affirmative proof of ownership available from local state: issuegraph writes
 // both state files in Start(), so a workspace that can show a live PID beside
 // a port file naming the port a caller is actually connected on is a workspace
-// whose server bd started — or adopted — for itself. Two file reads and a
+// whose server issuegraph started — or adopted — for itself. Two file reads and a
 // signal 0 cannot separate those two, which is why the invariant is stated
 // that way; see the residual gaps below.
 //
 // The absence of that proof is what matters at the call sites. An operator who
-// points bd at an endpoint — through BEADS_DOLT_SERVER_PORT, a config.yaml
-// pin, `bd init --server-port`, or a hand-built library Config — produces no
-// state files at all, because bd never started anything. Nothing else about
+// points issuegraph at an endpoint — through ISSUEGRAPH_DOLT_SERVER_PORT, a config.yaml
+// pin, `issuegraph init --server-port`, or a hand-built library Config — produces no
+// state files at all, because issuegraph never started anything. Nothing else about
 // the connection distinguishes the two: both end as "a local TCP dolt
 // sql-server on port N".
 //
@@ -564,7 +564,7 @@ func ReadPortFile(beadsDir string) int {
 // connection must not mutate a workspace's server state as a side effect, so
 // this duplicates the two cheap checks rather than reusing IsRunning.
 //
-// Two residual gaps remain, both of which answer "owned" for a server bd did
+// Two residual gaps remain, both of which answer "owned" for a server issuegraph did
 // not launch. Both are narrower than what trusting the port file alone — or
 // ResolveServerMode alone — left open, and #6123 owns closing them as part of
 // reconciling the four resolvers that answer "is this dolt server ours?".
@@ -573,16 +573,16 @@ func ReadPortFile(beadsDir string) int {
 // files for a server it adopts rather than launches: reclaimPort returns the
 // PID of a dolt process whose CWD is this workspace's dolt dir, and Start
 // records that foreign PID and the port before reporting Running. So an
-// operator running `dolt sql-server` over .beads/dolt under systemd or a
+// operator running `dolt sql-server` over .issuegraph/dolt under systemd or a
 // container — exactly the operator portConflictDiagnostics addresses — mints
-// this proof by typing `bd dolt start`.
+// this proof by typing `issuegraph dolt start`.
 //
 // Typing it is not required, though, and the effect does not wear off. The
 // storage layer dials with a 500 ms timeout, so any open that times out —
 // under load, or inside a systemd/container restart window — reaches the same
 // adopt branch through its auto-start path with no operator action at all.
 // Nothing suppresses that by default for the topology this predicate exists to
-// gate: when the endpoint comes only from BEADS_DOLT_SERVER_PORT,
+// gate: when the endpoint comes only from ISSUEGRAPH_DOLT_SERVER_PORT,
 // ResolveServerMode still answers Owned (that is the bug being closed here), so
 // EnsureRunningDetailed's ServerModeExternal branch never fires and Start()
 // proceeds. Once the adopt branch has written the two files they stay:
@@ -592,9 +592,9 @@ func ReadPortFile(beadsDir string) int {
 // the gate permanently.
 //
 // One setting does suppress it: `dolt.auto-start: false` (or
-// BEADS_DOLT_AUTO_START=0) fails serverOpenCanAutoStart and IsAutoStartDisabled,
+// ISSUEGRAPH_DOLT_AUTO_START=0) fails serverOpenCanAutoStart and IsAutoStartDisabled,
 // so a timed-out open errors instead of adopting. That closes the incidental
-// route only — `bd dolt start` never consults either check, so the deliberate
+// route only — `issuegraph dolt start` never consults either check, so the deliberate
 // route above stays open. It is the one mitigation an operator has while #6123
 // is open.
 //
@@ -616,16 +616,16 @@ func ReadPortFile(beadsDir string) int {
 // one — reclaimPort already requires isDoltProcess before it will adopt.
 //
 // Callers needing certainty over latency should use IsRunning.
-func ManagesLiveServerOnPort(beadsDir string, port int) bool {
-	if beadsDir == "" || port <= 0 {
+func ManagesLiveServerOnPort(issuegraphDir string, port int) bool {
+	if issuegraphDir == "" || port <= 0 {
 		return false
 	}
 	// The port file first: it is the cheaper read, and a workspace pointed at
 	// somebody else's endpoint usually has no port file at all.
-	if readPortFile(beadsDir) != port {
+	if readPortFile(issuegraphDir) != port {
 		return false
 	}
-	data, err := os.ReadFile(pidPath(beadsDir))
+	data, err := os.ReadFile(pidPath(issuegraphDir))
 	if err != nil {
 		return false
 	}
@@ -647,10 +647,10 @@ type PortFileSnapshot struct {
 	Existed bool
 }
 
-// SnapshotPortFile captures the current on-disk state of beadsDir's port
+// SnapshotPortFile captures the current on-disk state of issuegraphDir's port
 // file (see PortFileSnapshot). Read-only; does not mutate anything.
-func SnapshotPortFile(beadsDir string) (PortFileSnapshot, error) {
-	data, err := os.ReadFile(portPath(beadsDir))
+func SnapshotPortFile(issuegraphDir string) (PortFileSnapshot, error) {
+	data, err := os.ReadFile(portPath(issuegraphDir))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return PortFileSnapshot{}, nil
@@ -664,21 +664,21 @@ func SnapshotPortFile(beadsDir string) (PortFileSnapshot, error) {
 	return PortFileSnapshot{Data: cp, Existed: true}, nil
 }
 
-// RestorePortFile restores beadsDir's port file to the state captured by
+// RestorePortFile restores issuegraphDir's port file to the state captured by
 // snap: removes the file if it did not exist before, or rewrites it with the
 // exact prior bytes (write-temp-then-rename, matching writePortFile, so a
 // concurrent reader never observes a partially written file). Used on
 // fail-closed auto-start paths (GH#4052) that must leave no port-file trace
 // of a server they decided not to use.
-func RestorePortFile(beadsDir string, snap PortFileSnapshot) error {
-	path := portPath(beadsDir)
+func RestorePortFile(issuegraphDir string, snap PortFileSnapshot) error {
+	path := portPath(issuegraphDir)
 	if !snap.Existed {
 		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 			return err
 		}
 		return nil
 	}
-	tmp, err := os.CreateTemp(beadsDir, PortFileName+".tmp-*")
+	tmp, err := os.CreateTemp(issuegraphDir, PortFileName+".tmp-*")
 	if err != nil {
 		return err
 	}
@@ -698,8 +698,8 @@ func RestorePortFile(beadsDir string, snap PortFileSnapshot) error {
 	return os.Rename(tmpName, path)
 }
 
-func configYamlPort(beadsDir string) int {
-	path := filepath.Join(ResolveDoltDir(beadsDir), "config.yaml")
+func configYamlPort(issuegraphDir string) int {
+	path := filepath.Join(ResolveDoltDir(issuegraphDir), "config.yaml")
 	if _, err := os.Stat(path); err != nil {
 		return 0
 	}
@@ -712,7 +712,7 @@ func configYamlPort(beadsDir string) int {
 
 // PortSource identifies which step of the port-resolution precedence chain
 // (see portSources) produced a Config's Port. Callers use it to distinguish
-// a port the user explicitly asserted (authoritative) from bd's own
+// a port the user explicitly asserted (authoritative) from issuegraph's own
 // bookkeeping (the gitignored port file), which auto-start is free to
 // replace without confirmation (GH#4052).
 type PortSource string
@@ -721,49 +721,49 @@ const (
 	// PortSourceUnset means no source resolved a port (Port == 0); Start()
 	// will allocate an ephemeral port.
 	PortSourceUnset PortSource = ""
-	// PortSourceEnv is the BEADS_DOLT_SERVER_PORT environment variable.
+	// PortSourceEnv is the ISSUEGRAPH_DOLT_SERVER_PORT environment variable.
 	PortSourceEnv PortSource = "env"
-	// PortSourcePortFile is the gitignored .beads/dolt-server.port file that
-	// bd itself writes and rewrites as part of normal server bookkeeping.
+	// PortSourcePortFile is the gitignored .issuegraph/dolt-server.port file that
+	// issuegraph itself writes and rewrites as part of normal server bookkeeping.
 	PortSourcePortFile PortSource = "port_file"
 	// PortSourceDoltConfigYaml is the Dolt server's own config.yaml
 	// (listener.port) in the dolt data directory.
 	PortSourceDoltConfigYaml PortSource = "dolt_config_yaml"
-	// PortSourceConfigYaml is Beads' project/global config.yaml (dolt.port).
+	// PortSourceConfigYaml is IssueGraph' project/global config.yaml (dolt.port).
 	PortSourceConfigYaml PortSource = "config_yaml"
 	// PortSourceGlobalConfig is retained as an alias of PortSourceConfigYaml
-	// for callers that think of it as "global config" (~/.config/bd/config.yaml
+	// for callers that think of it as "global config" (~/.config/issuegraph/config.yaml
 	// resolves through the same config.GetYamlConfig("dolt.port") lookup).
 	PortSourceGlobalConfig = PortSourceConfigYaml
 	// PortSourceMetadataJSON is the deprecated metadata.json dolt_server_port
-	// fallback. Still an explicit user/tooling assertion, not bd bookkeeping.
+	// fallback. Still an explicit user/tooling assertion, not issuegraph bookkeeping.
 	PortSourceMetadataJSON PortSource = "metadata_json"
 	// PortSourceExternalHostDefault is the documented default port (3307)
 	// assumed for a host-inferred external server when no port source
-	// resolved (GH#3545): the user asserted a remote host, so bd fills in
+	// resolved (GH#3545): the user asserted a remote host, so issuegraph fills in
 	// the default port rather than dialing :0 or allocating locally.
 	PortSourceExternalHostDefault PortSource = "external_host_default"
 	// PortSourceCallerExplicit is an already-nonzero Config.ServerPort set by
-	// the caller before applyConfigDefaults runs (e.g. `bd init
+	// the caller before applyConfigDefaults runs (e.g. `issuegraph init
 	// --server-port`, or initGlobalDatabaseConfig's copy-forward of it) —
 	// a direct user/tooling assertion, outranking the
-	// BEADS_DOLT_SERVER_PORT/BEADS_DOLT_PORT env vars (be-wf9a.1).
+	// ISSUEGRAPH_DOLT_SERVER_PORT/ISSUEGRAPH_DOLT_PORT env vars (be-wf9a.1).
 	PortSourceCallerExplicit PortSource = "caller_explicit"
 	// PortSourceSharedServerDefault is DefaultSharedServerPort (3308), filled
 	// in when shared-server mode is on and no other source resolved a port.
-	// NOT authoritative: bd picked it on the user's behalf, exactly like the
+	// NOT authoritative: issuegraph picked it on the user's behalf, exactly like the
 	// port file. It exists so DefaultConfig never returns a nonzero Port with
 	// PortSourceUnset — without it, a bd-chosen shared default is
 	// indistinguishable from a caller assertion and applyConfigDefaults
 	// stamps it PortSourceCallerExplicit, which silently disables the
-	// BEADS_DOLT_SERVER_PORT override and turns a benign auto-start port
+	// ISSUEGRAPH_DOLT_SERVER_PORT override and turns a benign auto-start port
 	// change into a hard failure (GH#4052, be-9tju).
 	PortSourceSharedServerDefault PortSource = "shared_server_default"
 )
 
 // IsAuthoritative reports whether this source represents a user (or
 // tooling-on-the-user's-behalf) assertion of where the Dolt server lives, as
-// opposed to bd's own bookkeeping (the port file). Auto-start may freely
+// opposed to issuegraph's own bookkeeping (the port file). Auto-start may freely
 // replace a non-authoritative port; it must not silently replace an
 // authoritative one (GH#4052).
 func (s PortSource) IsAuthoritative() bool {
@@ -781,19 +781,19 @@ func (s PortSource) IsAuthoritative() bool {
 type portSource struct {
 	label   string
 	source  PortSource
-	resolve func(beadsDir string) (int, bool)
+	resolve func(issuegraphDir string) (int, bool)
 }
 
 // portSources is the single precedence chain for server-port resolution.
 // DefaultConfig consumes it behaviorally; PortSourceLabels exposes the same
-// slice's labels so callers like `bd dolt show-config` render the actual
+// slice's labels so callers like `issuegraph dolt show-config` render the actual
 // chain instead of hand-copying it out of sync (GH#4511).
 var portSources = []portSource{
 	{
-		label:  "Environment variable (BEADS_DOLT_SERVER_PORT)",
+		label:  "Environment variable (ISSUEGRAPH_DOLT_SERVER_PORT)",
 		source: PortSourceEnv,
-		resolve: func(beadsDir string) (int, bool) {
-			p := os.Getenv("BEADS_DOLT_SERVER_PORT")
+		resolve: func(issuegraphDir string) (int, bool) {
+			p := os.Getenv("ISSUEGRAPH_DOLT_SERVER_PORT")
 			if p == "" {
 				return 0, false
 			}
@@ -804,27 +804,27 @@ var portSources = []portSource{
 	{
 		// Gitignored, local-only. Elevated above the YAML sources to prevent
 		// git-tracked values from causing cross-project data leakage (GH#2372).
-		label:  "Port file (.beads/dolt-server.port; shared-server dir in shared mode)",
+		label:  "Port file (.issuegraph/dolt-server.port; shared-server dir in shared mode)",
 		source: PortSourcePortFile,
-		resolve: func(beadsDir string) (int, bool) {
-			p := readPortFile(beadsDir)
+		resolve: func(issuegraphDir string) (int, bool) {
+			p := readPortFile(issuegraphDir)
 			return p, p > 0
 		},
 	},
 	{
 		label:  "Dolt server config.yaml (listener.port, in the dolt data directory)",
 		source: PortSourceDoltConfigYaml,
-		resolve: func(beadsDir string) (int, bool) {
-			p := configYamlPort(beadsDir)
+		resolve: func(issuegraphDir string) (int, bool) {
+			p := configYamlPort(issuegraphDir)
 			return p, p > 0
 		},
 	},
 	{
-		// ~/.config/bd/config.yaml or project config.yaml (GH#2073). Git-tracked,
+		// ~/.config/issuegraph/config.yaml or project config.yaml (GH#2073). Git-tracked,
 		// so it ranks below the port file above.
-		label:  "Beads config.yaml / global config (dolt.port)",
+		label:  "IssueGraph config.yaml / global config (dolt.port)",
 		source: PortSourceConfigYaml,
-		resolve: func(beadsDir string) (int, bool) {
+		resolve: func(issuegraphDir string) (int, bool) {
 			p := config.GetYamlConfig("dolt.port")
 			if p == "" {
 				return 0, false
@@ -839,14 +839,14 @@ var portSources = []portSource{
 		// setups don't break silently.
 		label:  "metadata.json dolt_server_port (deprecated fallback)",
 		source: PortSourceMetadataJSON,
-		resolve: func(beadsDir string) (int, bool) {
-			metaCfg, err := configfile.Load(beadsDir)
+		resolve: func(issuegraphDir string) (int, bool) {
+			metaCfg, err := configfile.Load(issuegraphDir)
 			if err != nil || metaCfg == nil || metaCfg.DoltServerPort <= 0 {
 				return 0, false
 			}
 			fmt.Fprintf(os.Stderr, "Warning: dolt_server_port in metadata.json is deprecated (can cause cross-project data leakage).\n")
-			fmt.Fprintf(os.Stderr, "  The port file (.beads/dolt-server.port) is now the primary source.\n")
-			fmt.Fprintf(os.Stderr, "  Remove dolt_server_port from .beads/metadata.json to silence this warning.\n")
+			fmt.Fprintf(os.Stderr, "  The port file (.issuegraph/dolt-server.port) is now the primary source.\n")
+			fmt.Fprintf(os.Stderr, "  Remove dolt_server_port from .issuegraph/metadata.json to silence this warning.\n")
 			return metaCfg.DoltServerPort, true
 		},
 	},
@@ -869,24 +869,24 @@ func PortSourceLabels() []string {
 //
 // The port file (dolt-server.port) is written by Start() with the actual
 // listening port, so already-running-server connections use the right port.
-func DefaultConfig(beadsDir string) *Config {
+func DefaultConfig(issuegraphDir string) *Config {
 	// In shared mode, use the shared server directory for port resolution
 	sharedMode := false
 	if IsSharedServerMode() {
 		if sharedDir, err := SharedServerDir(); err == nil {
-			beadsDir = sharedDir
+			issuegraphDir = sharedDir
 			sharedMode = true
 		}
 	}
 
 	cfg := &Config{
-		BeadsDir: beadsDir,
-		Host:     "127.0.0.1",
-		Mode:     ResolveServerMode(beadsDir),
+		IssueGraphDir: issuegraphDir,
+		Host:          "127.0.0.1",
+		Mode:          ResolveServerMode(issuegraphDir),
 	}
 
 	for _, src := range portSources {
-		if port, ok := src.resolve(beadsDir); ok {
+		if port, ok := src.resolve(issuegraphDir); ok {
 			cfg.Port = port
 			cfg.PortSource = src.source
 			cfg.PortSharedServer = sharedMode
@@ -907,25 +907,25 @@ func DefaultConfig(beadsDir string) *Config {
 	// another machine.
 	if cfg.Mode == ServerModeExternal {
 		fc := &configfile.Config{}
-		if _, err := os.Stat(configfile.ConfigPath(beadsDir)); err == nil {
-			if loaded, loadErr := configfile.Load(beadsDir); loadErr == nil && loaded != nil {
+		if _, err := os.Stat(configfile.ConfigPath(issuegraphDir)); err == nil {
+			if loaded, loadErr := configfile.Load(issuegraphDir); loadErr == nil && loaded != nil {
 				fc = loaded
 			}
 		}
 		if !configfile.IsLocalHostString(fc.GetDoltServerHost()) {
-			// The legacy BEADS_DOLT_PORT override is not in
+			// The legacy ISSUEGRAPH_DOLT_PORT override is not in
 			// portSources but the storage layer honors it ahead of
 			// persisted sources; resolve it the same way here so
 			// credentials/probes and the eventual connection agree
-			// on the port. BEADS_DOLT_SERVER_PORT (PortSourceEnv)
+			// on the port. ISSUEGRAPH_DOLT_SERVER_PORT (PortSourceEnv)
 			// still wins over the legacy spelling.
 			if cfg.PortSource != PortSourceEnv {
-				if p, err := strconv.Atoi(strings.TrimSpace(os.Getenv("BEADS_DOLT_PORT"))); err == nil && p > 0 {
+				if p, err := strconv.Atoi(strings.TrimSpace(os.Getenv("ISSUEGRAPH_DOLT_PORT"))); err == nil && p > 0 {
 					cfg.Port = p
 					cfg.PortSource = PortSourceEnv
 				}
 			}
-			// The gitignored port file is bd's bookkeeping for a
+			// The gitignored port file is issuegraph's bookkeeping for a
 			// bd-owned LOCAL server; pairing it with a remote host
 			// dials the remote machine on a stale local ephemeral
 			// port. Discard it and resume the precedence chain so
@@ -938,7 +938,7 @@ func DefaultConfig(beadsDir string) *Config {
 					if src.source == PortSourcePortFile {
 						continue
 					}
-					if port, ok := src.resolve(beadsDir); ok {
+					if port, ok := src.resolve(issuegraphDir); ok {
 						cfg.Port = port
 						cfg.PortSource = src.source
 						cfg.PortSharedServer = sharedMode
@@ -959,10 +959,10 @@ func DefaultConfig(beadsDir string) *Config {
 	return cfg
 }
 
-// IsRunning checks if a managed server is running for this beadsDir.
+// IsRunning checks if a managed server is running for this issuegraphDir.
 // Returns a State with Running=true if a valid dolt process is found.
-func IsRunning(beadsDir string) (*State, error) {
-	data, err := os.ReadFile(pidPath(beadsDir))
+func IsRunning(issuegraphDir string) (*State, error) {
+	data, err := os.ReadFile(pidPath(issuegraphDir))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &State{Running: false}, nil
@@ -973,31 +973,31 @@ func IsRunning(beadsDir string) (*State, error) {
 	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
 	if err != nil {
 		// Corrupt PID file implies stale state; clear the port file too.
-		_ = os.Remove(pidPath(beadsDir))
-		_ = os.Remove(portPath(beadsDir))
+		_ = os.Remove(pidPath(issuegraphDir))
+		_ = os.Remove(portPath(issuegraphDir))
 		return &State{Running: false}, nil
 	}
 
 	// Check if process is alive
 	if !isProcessAlive(pid) {
 		// Process is dead — clear all tracked state for this server.
-		_ = os.Remove(pidPath(beadsDir))
-		_ = os.Remove(portPath(beadsDir))
+		_ = os.Remove(pidPath(issuegraphDir))
+		_ = os.Remove(portPath(issuegraphDir))
 		return &State{Running: false}, nil
 	}
 
 	// Verify it's actually a dolt sql-server process
 	if !isDoltProcess(pid) {
 		// PID was reused by another process
-		_ = os.Remove(pidPath(beadsDir))
-		_ = os.Remove(portPath(beadsDir))
+		_ = os.Remove(pidPath(issuegraphDir))
+		_ = os.Remove(portPath(issuegraphDir))
 		return &State{Running: false}, nil
 	}
 
 	// Read actual port from port file; fall back to config-derived port.
-	port := readPortFile(beadsDir)
+	port := readPortFile(issuegraphDir)
 	if port == 0 {
-		cfg := DefaultConfig(beadsDir)
+		cfg := DefaultConfig(issuegraphDir)
 		port = cfg.Port
 	}
 	if port == 0 {
@@ -1011,14 +1011,14 @@ func IsRunning(beadsDir string) (*State, error) {
 				_ = proc.Kill()
 			}
 		}
-		_ = os.Remove(pidPath(beadsDir))
+		_ = os.Remove(pidPath(issuegraphDir))
 		return &State{Running: false}, nil
 	}
 	return &State{
 		Running: true,
 		PID:     pid,
 		Port:    port,
-		DataDir: ResolveDoltDir(beadsDir),
+		DataDir: ResolveDoltDir(issuegraphDir),
 	}, nil
 }
 
@@ -1028,11 +1028,11 @@ func IsRunning(beadsDir string) (*State, error) {
 //
 // When metadata.json specifies an explicit dolt_server_port (indicating an
 // external/shared server, e.g. managed by systemd), EnsureRunning will NOT
-// start a new server. The external server's lifecycle is not bd's
+// start a new server. The external server's lifecycle is not issuegraph's
 // responsibility — starting a per-project server would conflict with (or
 // kill) the shared server. See GH#2554.
-func EnsureRunning(beadsDir string) (int, error) {
-	port, _, err := EnsureRunningDetailed(beadsDir)
+func EnsureRunning(issuegraphDir string) (int, error) {
+	port, _, err := EnsureRunningDetailed(issuegraphDir)
 	return port, err
 }
 
@@ -1040,8 +1040,8 @@ func EnsureRunning(beadsDir string) (int, error) {
 // server was started (startedByUs=true) vs. an already-running server was
 // adopted (startedByUs=false). Callers that need to clean up auto-started
 // servers (e.g. test teardown) should use this variant.
-func EnsureRunningDetailed(beadsDir string) (port int, startedByUs bool, err error) {
-	serverDir := resolveServerDir(beadsDir)
+func EnsureRunningDetailed(issuegraphDir string) (port int, startedByUs bool, err error) {
+	serverDir := resolveServerDir(issuegraphDir)
 
 	// Inform when an orchestrator is also running on this machine
 	if IsSharedServerMode() && os.Getenv("GT_ROOT") != "" {
@@ -1060,44 +1060,44 @@ func EnsureRunningDetailed(beadsDir string) (port int, startedByUs bool, err err
 	// If the server mode is External (explicit port in metadata.json,
 	// shared server mode, etc.), do not start a per-project server —
 	// it would conflict with the external one.
-	mode := ResolveServerMode(beadsDir)
+	mode := ResolveServerMode(issuegraphDir)
 	if mode == ServerModeExternal {
-		cfg := DefaultConfig(beadsDir)
-		if host, ok := externalNonLocalhostHost(beadsDir); ok {
+		cfg := DefaultConfig(issuegraphDir)
+		if host, ok := externalNonLocalhostHost(issuegraphDir); ok {
 			// Configured for a non-localhost external server:
-			// "bd dolt start" is not the right advice (GH#3518).
-			return 0, false, fmt.Errorf("Dolt server at %s:%d is unreachable, and bd will not "+
+			// "issuegraph dolt start" is not the right advice (GH#3518).
+			return 0, false, fmt.Errorf("Dolt server at %s:%d is unreachable, and issuegraph will not "+
 				"start a local server because an external one is configured.\n\n"+
 				"Verify the external server is running and reachable from this host:\n"+
 				"  nc -zv %s %d  # or curl %s:%d for an HTTP-style check\n"+
-				"  bd dolt status   # detailed external-server check",
+				"  issuegraph dolt status   # detailed external-server check",
 				host, cfg.Port, host, cfg.Port, host, cfg.Port)
 		}
 		return 0, false, fmt.Errorf("Dolt server is not running on port %d, and auto-start is suppressed "+
 			"because the server is externally managed (dolt.auto-start: false or explicit port configured).\n\n"+
-			"Start the external server, or enable auto-start to allow bd to manage the server.\n"+
-			"  To start manually: bd dolt start\n"+
-			"  To check status: bd dolt status", cfg.Port)
+			"Start the external server, or enable auto-start to allow issuegraph to manage the server.\n"+
+			"  To start manually: issuegraph dolt start\n"+
+			"  To check status: issuegraph dolt status", cfg.Port)
 	}
 
 	// Defense-in-depth: if dolt.auto-start is explicitly disabled in
 	// config.yaml or env, never spawn a server even if the caller
 	// somehow reached this point (e.g. stale AutoStart=true in config).
 	if IsAutoStartDisabled() {
-		cfg := DefaultConfig(beadsDir)
-		if host, ok := externalNonLocalhostHost(beadsDir); ok {
+		cfg := DefaultConfig(issuegraphDir)
+		if host, ok := externalNonLocalhostHost(issuegraphDir); ok {
 			return 0, false, fmt.Errorf("Configured Dolt server at %s:%d is unreachable, and auto-start "+
-				"is disabled (dolt.auto-start: false in config.yaml or BEADS_DOLT_AUTO_START=0).\n\n"+
-				"This is an external server; bd will not start it. Verify it is running:\n"+
+				"is disabled (dolt.auto-start: false in config.yaml or ISSUEGRAPH_DOLT_AUTO_START=0).\n\n"+
+				"This is an external server; issuegraph will not start it. Verify it is running:\n"+
 				"  nc -zv %s %d  # or curl %s:%d for an HTTP-style check\n"+
-				"  bd dolt status   # detailed external-server check",
+				"  issuegraph dolt status   # detailed external-server check",
 				host, cfg.Port, host, cfg.Port, host, cfg.Port)
 		}
 		return 0, false, fmt.Errorf("Dolt server unreachable (port %d) and auto-start is disabled "+
-			"(dolt.auto-start: false in config.yaml or BEADS_DOLT_AUTO_START=0).\n\n"+
+			"(dolt.auto-start: false in config.yaml or ISSUEGRAPH_DOLT_AUTO_START=0).\n\n"+
 			"Start the server manually or enable auto-start.\n"+
-			"  To start manually: bd dolt start\n"+
-			"  To check status: bd dolt status", cfg.Port)
+			"  To start manually: issuegraph dolt start\n"+
+			"  To check status: issuegraph dolt status", cfg.Port)
 	}
 
 	s, err := Start(serverDir)
@@ -1110,8 +1110,8 @@ func EnsureRunningDetailed(beadsDir string) (port int, startedByUs bool, err err
 // doltServerLogLevel is the --loglevel value passed to `dolt sql-server`.
 //
 // Dolt's sql-server logs every new connection and connection close at INFO
-// level (`msg=NewConnection` / `msg=ConnectionClosed`). Because beads opens
-// a fresh MySQL connection for each `bd` invocation, a busy project can
+// level (`msg=NewConnection` / `msg=ConnectionClosed`). Because issuegraph opens
+// a fresh MySQL connection for each `issuegraph` invocation, a busy project can
 // produce millions of lines of connection churn noise, which in one field
 // report filled dolt-server.log with ~380 MB of useless entries, generated
 // significant btrfs write pressure, and buried real error signals.
@@ -1169,11 +1169,11 @@ func buildDoltServerArgs(host string, port int, debug bool, profDir string) []st
 // doltServerConfigFileName is the YAML config Start() writes when the
 // resolved external dolt binary supports auto_gc_behavior.archive_level
 // (see SupportsArchiveLevelConfig). It lives alongside the other gitignored
-// server state files in beadsDir, not inside the Dolt data directory.
+// server state files in issuegraphDir, not inside the Dolt data directory.
 const doltServerConfigFileName = "dolt-server-config.yaml"
 
-func doltServerConfigPath(beadsDir string) string {
-	return filepath.Join(beadsDir, doltServerConfigFileName)
+func doltServerConfigPath(issuegraphDir string) string {
+	return filepath.Join(issuegraphDir, doltServerConfigFileName)
 }
 
 // doltCfgDirName mirrors commands.DefaultCfgDirName in the pinned dolt
@@ -1196,7 +1196,7 @@ var ErrMultipleDoltCfgDirs = errors.New("multiple .doltcfg directories detected"
 // ../.doltcfg holding privileges.db/branch_control.db — would otherwise
 // silently fall back to a fresh $data_dir/.doltcfg under --config mode:
 // existing users and branch controls abandoned, new passwordless root
-// (gastownhall/beads#4986).
+// (borg0ai/dx-issuegraph#4986).
 //
 // doltDir is the server's data directory (== process cwd, since neither
 // --data-dir nor --doltcfg-dir are ever passed). Mirrors Dolt exactly:
@@ -1217,7 +1217,7 @@ var ErrMultipleDoltCfgDirs = errors.New("multiple .doltcfg directories detected"
 // filepath.EvalSymlinks here keeps this resolution consistent with what
 // the child process itself does; skipping it would let a symlinked data
 // directory miss the very parent .doltcfg this function exists to find,
-// re-abandoning existing privileges/branch-control (gastownhall/beads#4986
+// re-abandoning existing privileges/branch-control (borg0ai/dx-issuegraph#4986
 // round 3).
 //
 // Returns an absolute path.
@@ -1268,7 +1268,7 @@ func resolveCfgDir(doltDir string) (string, error) {
 // equivalent to buildDoltServerArgs' CLI flags (host, port, log level), plus
 // auto_gc_behavior.archive_level: 0 so this managed server's background
 // auto-GC writes classic Snappy table files instead of zstd archives
-// (gastownhall/beads#4986). Auto-GC itself is left enabled (archive_level's
+// (borg0ai/dx-issuegraph#4986). Auto-GC itself is left enabled (archive_level's
 // sibling "enable" key is omitted, which Dolt defaults to true). cfgDir must
 // be pre-resolved via resolveCfgDir — --config mode skips Dolt's own
 // flag-mode .doltcfg discovery entirely, so this is the one place that
@@ -1319,12 +1319,12 @@ func buildDoltServerArgsWithConfig(configPath string, debug bool, profDir string
 
 // Start explicitly starts a dolt sql-server for the project.
 // Returns the State of the started server, or an error.
-func Start(beadsDir string) (*State, error) {
-	cfg := DefaultConfig(beadsDir)
-	doltDir := ResolveDoltDir(beadsDir)
+func Start(issuegraphDir string) (*State, error) {
+	cfg := DefaultConfig(issuegraphDir)
+	doltDir := ResolveDoltDir(issuegraphDir)
 
 	// Acquire exclusive lock to prevent concurrent starts
-	lockF, err := os.OpenFile(lockPath(beadsDir), os.O_CREATE|os.O_RDWR, 0600)
+	lockF, err := os.OpenFile(lockPath(issuegraphDir), os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		return nil, fmt.Errorf("creating lock file: %w", err)
 	}
@@ -1332,14 +1332,14 @@ func Start(beadsDir string) (*State, error) {
 
 	if err := lockfile.FlockExclusiveNonBlocking(lockF); err != nil {
 		if lockfile.IsLocked(err) {
-			// Another bd process is starting the server — wait for it
+			// Another issuegraph process is starting the server — wait for it
 			if err := lockfile.FlockExclusiveBlocking(lockF); err != nil {
 				return nil, fmt.Errorf("waiting for server start lock: %w", err)
 			}
 			defer func() { _ = lockfile.FlockUnlock(lockF) }()
 
 			// Lock acquired — check if server is now running
-			state, err := IsRunning(beadsDir)
+			state, err := IsRunning(issuegraphDir)
 			if err != nil {
 				return nil, err
 			}
@@ -1355,16 +1355,16 @@ func Start(beadsDir string) (*State, error) {
 	}
 
 	// Re-check after acquiring lock (double-check pattern)
-	if state, _ := IsRunning(beadsDir); state != nil && state.Running {
+	if state, _ := IsRunning(issuegraphDir); state != nil && state.Running {
 		return state, nil
 	}
 
 	// Clean up orphaned dolt sql-server processes INSIDE the lock.
 	// This MUST happen under the lock to prevent a race where one process
 	// kills a server that another process is in the middle of starting
-	// (PID file not yet written). Without this, concurrent bd processes
+	// (PID file not yet written). Without this, concurrent issuegraph processes
 	// can cause journal corruption (GH#2430).
-	if killed, killErr := KillStaleServers(beadsDir); killErr == nil && len(killed) > 0 {
+	if killed, killErr := KillStaleServers(issuegraphDir); killErr == nil && len(killed) > 0 {
 		fmt.Fprintf(os.Stderr, "Info: cleaned up %d orphaned dolt sql-server process(es)\n", len(killed))
 	}
 
@@ -1378,7 +1378,7 @@ func Start(beadsDir string) (*State, error) {
 	// the resolved external dolt is new enough to safely accept
 	// auto_gc_behavior.archive_level: 0. This is what keeps this managed
 	// server's background auto-GC producing Snappy table files instead of
-	// zstd archives (gastownhall/beads#4986). On an older/undetectable dolt
+	// zstd archives (borg0ai/dx-issuegraph#4986). On an older/undetectable dolt
 	// we fail closed and keep the existing CLI-flag launch unchanged — never
 	// risk a refuse-to-start over an unrecognized YAML key.
 	useArchiveLevelConfig := SupportsArchiveLevelConfig(doltBin)
@@ -1399,8 +1399,8 @@ func Start(beadsDir string) (*State, error) {
 	debug := IsDebugMode()
 	var profDir string
 	if debug {
-		profDir = DebugProfileDir(beadsDir)
-		if err := os.MkdirAll(profDir, config.BeadsDirPerm); err != nil {
+		profDir = DebugProfileDir(issuegraphDir)
+		if err := os.MkdirAll(profDir, config.IssueGraphDirPerm); err != nil {
 			return nil, fmt.Errorf("creating pprof directory %s: %w", profDir, err)
 		}
 	}
@@ -1421,7 +1421,7 @@ func Start(beadsDir string) (*State, error) {
 		// Rotate the log if it has grown past the configured ceiling. This is a
 		// startup-only check — dolt owns the fd directly once launched, so we can
 		// only intervene between runs. See logrotate.go for the caveat discussion.
-		maybeRotateLog(beadsDir)
+		maybeRotateLog(issuegraphDir)
 
 		// Resolve .doltcfg once, before the port retry loop — it does not
 		// depend on the port, and an ambiguous both-exist result must fail
@@ -1436,7 +1436,7 @@ func Start(beadsDir string) (*State, error) {
 		}
 
 		// Open log file
-		logFile, err := os.OpenFile(logPath(beadsDir), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600) //nolint:gosec // G304: logPath derives from user-configured beadsDir
+		logFile, err := os.OpenFile(logPath(issuegraphDir), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600) //nolint:gosec // G304: logPath derives from user-configured issuegraphDir
 		if err != nil {
 			return nil, fmt.Errorf("opening log file: %w", err)
 		}
@@ -1449,15 +1449,15 @@ func Start(beadsDir string) (*State, error) {
 
 		if explicitPort {
 			// Explicit port: check for conflicts and adopt existing servers.
-			adoptPID, reclaimErr := reclaimPort(cfg.Host, actualPort, beadsDir)
+			adoptPID, reclaimErr := reclaimPort(cfg.Host, actualPort, issuegraphDir)
 			if reclaimErr != nil {
 				_ = logFile.Close()
 				return nil, fmt.Errorf("cannot start dolt server on port %d: %w", actualPort, reclaimErr)
 			}
 			if adoptPID > 0 {
 				_ = logFile.Close()
-				_ = os.WriteFile(pidPath(beadsDir), []byte(strconv.Itoa(adoptPID)), 0600)
-				_ = writePortFile(beadsDir, actualPort)
+				_ = os.WriteFile(pidPath(issuegraphDir), []byte(strconv.Itoa(adoptPID)), 0600)
+				_ = writePortFile(issuegraphDir, actualPort)
 				return &State{Running: true, PID: adoptPID, Port: actualPort, DataDir: doltDir}, nil
 			}
 		}
@@ -1494,7 +1494,7 @@ func Start(beadsDir string) (*State, error) {
 				// below), so a relative configPath would resolve against the
 				// wrong directory (matches the sibling dbproxy/server path,
 				// which abs's its configPath in NewDoltServer).
-				absConfigPath, absErr := filepath.Abs(doltServerConfigPath(beadsDir))
+				absConfigPath, absErr := filepath.Abs(doltServerConfigPath(issuegraphDir))
 				if absErr != nil {
 					lastErr = fmt.Errorf("resolving managed sql-server config path: %w", absErr)
 					if !explicitPort {
@@ -1559,30 +1559,30 @@ func Start(beadsDir string) (*State, error) {
 		if lastErr != nil {
 			// GH#3290 / bd-6dnrw.6: unclean-shutdown manifest corruption is
 			// detected here but never auto-repaired — reinitializing .dolt is
-			// destructive, so repair stays behind explicit bd doctor --fix.
-			if dirs, detErr := detectCorruptManifest(beadsDir, doltDir); detErr == nil && len(dirs) > 0 {
+			// destructive, so repair stays behind explicit issuegraph doctor --fix.
+			if dirs, detErr := detectCorruptManifest(issuegraphDir, doltDir); detErr == nil && len(dirs) > 0 {
 				return nil, fmt.Errorf("failed to start dolt server after %d attempts: %w\n"+
 					"Corrupt manifest with no recoverable data detected (GH#3290) in:\n  %s\n"+
-					"Run 'bd doctor --fix' to back up the corrupt database(s) and reinitialize.\nCheck logs: %s",
-					attempts, lastErr, strings.Join(dirs, "\n  "), logPath(beadsDir))
+					"Run 'issuegraph doctor --fix' to back up the corrupt database(s) and reinitialize.\nCheck logs: %s",
+					attempts, lastErr, strings.Join(dirs, "\n  "), logPath(issuegraphDir))
 			}
 			return nil, fmt.Errorf("failed to start dolt server after %d attempts: %w\nCheck logs: %s",
-				attempts, lastErr, logPath(beadsDir))
+				attempts, lastErr, logPath(issuegraphDir))
 		}
 	}
 
 	// Write PID and port files
-	if err := os.WriteFile(pidPath(beadsDir), []byte(strconv.Itoa(pid)), 0600); err != nil {
+	if err := os.WriteFile(pidPath(issuegraphDir), []byte(strconv.Itoa(pid)), 0600); err != nil {
 		if proc, findErr := os.FindProcess(pid); findErr == nil {
 			_ = proc.Kill()
 		}
 		return nil, fmt.Errorf("writing PID file: %w", err)
 	}
-	if err := writePortFile(beadsDir, actualPort); err != nil {
+	if err := writePortFile(issuegraphDir, actualPort); err != nil {
 		if proc, findErr := os.FindProcess(pid); findErr == nil {
 			_ = proc.Kill()
 		}
-		_ = os.Remove(pidPath(beadsDir))
+		_ = os.Remove(pidPath(issuegraphDir))
 		return nil, fmt.Errorf("writing port file: %w", err)
 	}
 
@@ -1591,14 +1591,14 @@ func Start(beadsDir string) (*State, error) {
 		if proc, findErr := os.FindProcess(pid); findErr == nil {
 			_ = proc.Kill()
 		}
-		_ = os.Remove(pidPath(beadsDir))
-		_ = os.Remove(portPath(beadsDir))
-		if hasJournalCorruption, logErr := logHasCorruptJournalError(logPath(beadsDir)); logErr == nil && hasJournalCorruption {
+		_ = os.Remove(pidPath(issuegraphDir))
+		_ = os.Remove(portPath(issuegraphDir))
+		if hasJournalCorruption, logErr := logHasCorruptJournalError(logPath(issuegraphDir)); logErr == nil && hasJournalCorruption {
 			return nil, fmt.Errorf("server started (PID %d) but not accepting connections on port %d: %w\n\n%s",
-				pid, actualPort, err, corruptJournalRecoveryHint(beadsDir))
+				pid, actualPort, err, corruptJournalRecoveryHint(issuegraphDir))
 		}
 		return nil, fmt.Errorf("server started (PID %d) but not accepting connections on port %d: %w\nCheck logs: %s",
-			pid, actualPort, err, logPath(beadsDir))
+			pid, actualPort, err, logPath(issuegraphDir))
 	}
 
 	return &State{
@@ -1610,7 +1610,7 @@ func Start(beadsDir string) (*State, error) {
 }
 
 // EnsureGlobalDatabase connects to the shared Dolt server and creates the
-// beads_global database if it doesn't already exist. This is idempotent and
+// issuegraph_global database if it doesn't already exist. This is idempotent and
 // safe to call on every shared server init. Schema initialization and config
 // seeding (issue prefix, project ID) are handled by the store layer when the
 // global database is first opened with CreateIfMissing=true.
@@ -1639,7 +1639,7 @@ func EnsureGlobalDatabase(host string, port int, user, password string) error {
 	}
 
 	// CREATE DATABASE IF NOT EXISTS is idempotent — safe on every call.
-	// GlobalDatabaseName is a constant ("beads_global"), not user input.
+	// GlobalDatabaseName is a constant ("issuegraph_global"), not user input.
 	_, err = db.ExecContext(ctx, fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", GlobalDatabaseName)) //nolint:gosec // G201: constant database name
 	if err != nil {
 		errLower := strings.ToLower(err.Error())
@@ -1705,7 +1705,7 @@ func FlushWorkingSet(host string, port int) error {
 		var hasChanges bool
 		row := db.QueryRowContext(ctx, fmt.Sprintf("SELECT COUNT(*) > 0 FROM `%s`.dolt_status", dbName))
 		if err := row.Scan(&hasChanges); err != nil {
-			// dolt_status may not exist for non-beads databases; skip
+			// dolt_status may not exist for non-issuegraph databases; skip
 			continue
 		}
 		if !hasChanges {
@@ -1740,34 +1740,34 @@ func FlushWorkingSet(host string, port int) error {
 // ErrServerNotRunning after cleaning up any leftover state files.
 // Callers should use errors.Is(err, ErrServerNotRunning) to distinguish
 // this expected condition from real failures.
-func Stop(beadsDir string) error {
-	return StopWithForce(beadsDir, false)
+func Stop(issuegraphDir string) error {
+	return StopWithForce(issuegraphDir, false)
 }
 
 // StopWithForce is like Stop but with an optional force flag.
-func StopWithForce(beadsDir string, force bool) error {
-	state, err := IsRunning(beadsDir)
+func StopWithForce(issuegraphDir string, force bool) error {
+	state, err := IsRunning(issuegraphDir)
 	if err != nil {
 		return err
 	}
 	if !state.Running {
 		// Server not running — still clean up any leftover state files
-		// so bd dolt status won't report stale state (GH#2670).
+		// so issuegraph dolt status won't report stale state (GH#2670).
 		// Join cleanup errors with the sentinel so callers can still use
 		// errors.Is(err, ErrServerNotRunning) while operators see filesystem issues.
-		cleanupErr := cleanupStateFiles(beadsDir)
+		cleanupErr := cleanupStateFiles(issuegraphDir)
 		return errors.Join(ErrServerNotRunning, cleanupErr)
 	}
 
 	// Flush uncommitted working set changes before stopping the server.
 	// This prevents data loss when changes have been written but not yet committed.
-	cfg := DefaultConfig(beadsDir)
+	cfg := DefaultConfig(issuegraphDir)
 	if flushErr := FlushWorkingSet(cfg.Host, state.Port); flushErr != nil {
 		fmt.Fprintf(os.Stderr, "Warning: could not flush working set before stop: %v\n", flushErr)
 	}
 
 	if err := gracefulStop(state.PID, 5*time.Second); err != nil {
-		return errors.Join(err, cleanupStateFiles(beadsDir))
+		return errors.Join(err, cleanupStateFiles(issuegraphDir))
 	}
 
 	// In debug mode, rotate cpu.pprof → cpu-<timestamp>.pprof so the next
@@ -1775,13 +1775,13 @@ func StopWithForce(beadsDir string, force bool) error {
 	// after a graceful (SIGTERM) exit — SIGKILL skips pkg/profile's
 	// deferred flush, leaving nothing to rotate. Best-effort.
 	if IsDebugMode() {
-		rotateDebugProfile(beadsDir)
+		rotateDebugProfile(issuegraphDir)
 	}
 
-	return cleanupStateFiles(beadsDir)
+	return cleanupStateFiles(issuegraphDir)
 }
 
-// sanitizeInheritedFDs marks descriptors bd inherited but did not open
+// sanitizeInheritedFDs marks descriptors issuegraph inherited but did not open
 // close-on-exec, so the detached sql-server does not pin them for its whole
 // lifetime (GH#4634). It is a free function rather than an inline call because
 // the spawn path shadows the debug package with a local `debug bool`.
@@ -1795,9 +1795,9 @@ func sanitizeInheritedFDs() {
 // Returns a joined error for non-NotExist removal failures so callers
 // can surface filesystem problems while still treating "already clean"
 // as success. Logs non-NotExist errors at debug level (GH#2670).
-func cleanupStateFiles(beadsDir string) error {
+func cleanupStateFiles(issuegraphDir string) error {
 	var errs []error
-	for _, path := range []string{pidPath(beadsDir), portPath(beadsDir)} {
+	for _, path := range []string{pidPath(issuegraphDir), portPath(issuegraphDir)} {
 		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 			debug.Logf("failed to remove server state file %s: %v", path, err)
 			errs = append(errs, err)
@@ -1806,21 +1806,21 @@ func cleanupStateFiles(beadsDir string) error {
 	return errors.Join(errs...)
 }
 
-func StateFilePaths(beadsDir string) []string {
+func StateFilePaths(issuegraphDir string) []string {
 	return []string{
-		pidPath(beadsDir),
-		portPath(beadsDir),
-		lockPath(beadsDir),
-		logPath(beadsDir),
-		logPath(beadsDir) + ".1",
-		DebugProfileDir(beadsDir),
-		doltServerConfigPath(beadsDir),
+		pidPath(issuegraphDir),
+		portPath(issuegraphDir),
+		lockPath(issuegraphDir),
+		logPath(issuegraphDir),
+		logPath(issuegraphDir) + ".1",
+		DebugProfileDir(issuegraphDir),
+		doltServerConfigPath(issuegraphDir),
 	}
 }
 
-func RemoveStateFiles(beadsDir string) []error {
+func RemoveStateFiles(issuegraphDir string) []error {
 	var errs []error
-	for _, path := range StateFilePaths(beadsDir) {
+	for _, path := range StateFilePaths(issuegraphDir) {
 		if err := os.RemoveAll(path); err != nil {
 			errs = append(errs, err)
 		}
@@ -1829,40 +1829,40 @@ func RemoveStateFiles(beadsDir string) []error {
 }
 
 // LogPath returns the path to the server log file.
-func LogPath(beadsDir string) string {
-	return logPath(beadsDir)
+func LogPath(issuegraphDir string) string {
+	return logPath(issuegraphDir)
 }
 
-func LockPath(beadsDir string) string {
-	return lockPath(beadsDir)
+func LockPath(issuegraphDir string) string {
+	return lockPath(issuegraphDir)
 }
 
 // killStaleServersForDir finds and kills orphan dolt sql-server processes for
 // the current repo's Dolt data directory that are not tracked by the canonical
-// PID file. Only processes that beads started (tracked via the PID file) are
+// PID file. Only processes that issuegraph started (tracked via the PID file) are
 // eligible for cleanup. Externally-managed servers are never killed.
 //
 // A process is considered "external" (never kill) when any of:
 //   - ResolveServerMode() returns ServerModeExternal (explicit port, shared server, etc.)
-//   - No PID file exists (beads has no record of starting a server)
-func killStaleServersForDir(beadsDir string, allPIDs []int, inDir func(int, string) bool, kill func(int) error) ([]int, error) {
+//   - No PID file exists (issuegraph has no record of starting a server)
+func killStaleServersForDir(issuegraphDir string, allPIDs []int, inDir func(int, string) bool, kill func(int) error) ([]int, error) {
 	if len(allPIDs) == 0 {
 		return nil, nil
 	}
 
 	// If auto-start is disabled the server is externally managed (e.g., by
-	// systemd or a manual bd dolt start), so we must not kill any processes.
-	// IsAutoStartDisabled covers the BEADS_DOLT_AUTO_START env var and
+	// systemd or a manual issuegraph dolt start), so we must not kill any processes.
+	// IsAutoStartDisabled covers the ISSUEGRAPH_DOLT_AUTO_START env var and
 	// dolt.auto-start config; ResolveServerMode covers explicit port/shared
 	// server/embedded configurations. Both indicate "not our server" (GH#2641).
-	if IsAutoStartDisabled() || ResolveServerMode(beadsDir) == ServerModeExternal {
+	if IsAutoStartDisabled() || ResolveServerMode(issuegraphDir) == ServerModeExternal {
 		return nil, nil
 	}
 
-	serverDir := resolveServerDir(beadsDir)
+	serverDir := resolveServerDir(issuegraphDir)
 
 	// Read the canonical PID from the PID file. If there is no PID file,
-	// beads has no record of having started a server for this directory,
+	// issuegraph has no record of having started a server for this directory,
 	// so there is nothing stale to clean up. This prevents killing
 	// externally-started servers (systemd, other repos sharing a data dir).
 	var canonicalPID int
@@ -1872,14 +1872,14 @@ func killStaleServersForDir(beadsDir string, allPIDs []int, inDir func(int, stri
 		}
 	}
 	if canonicalPID == 0 {
-		// No valid PID file → no beads-owned server to compare against.
+		// No valid PID file → no issuegraph-owned server to compare against.
 		// Nothing is stale from our perspective.
 		return nil, nil
 	}
 
 	// The canonical PID itself is alive and tracked — never kill it.
 	// Only kill OTHER dolt processes in our data dir (orphans from a
-	// previous beads-started server that lost its PID file tracking).
+	// previous issuegraph-started server that lost its PID file tracking).
 	ownedDoltDir := ResolveDoltDir(serverDir)
 
 	var killed []int
@@ -1904,16 +1904,16 @@ func killStaleServersForDir(beadsDir string, allPIDs []int, inDir func(int, stri
 // current repo's Dolt data directory that are not tracked by the canonical PID
 // file. Returns the PIDs of killed processes.
 //
-// When auto-start is disabled (BEADS_DOLT_AUTO_START=0 or dolt.auto-start:
+// When auto-start is disabled (ISSUEGRAPH_DOLT_AUTO_START=0 or dolt.auto-start:
 // false), this function is a no-op — the dolt server is externally managed
-// and must not be killed by bd (GH#2641).
-func KillStaleServers(beadsDir string) ([]int, error) {
+// and must not be killed by issuegraph (GH#2641).
+func KillStaleServers(issuegraphDir string) ([]int, error) {
 	if IsAutoStartDisabled() {
 		return nil, nil
 	}
 	allPIDs := listDoltProcessPIDs()
 	return killStaleServersForDir(
-		beadsDir,
+		issuegraphDir,
 		allPIDs,
 		isProcessInDir,
 		func(pid int) error {
@@ -1930,7 +1930,7 @@ func KillStaleServers(beadsDir string) ([]int, error) {
 // with a MySQL handshake. Draining the handshake before closing the probe
 // connection makes Close() send TCP FIN instead of RST, which prevents the
 // dolt sql-server process from interpreting probe closes as aborted MySQL
-// handshakes and crashing (see gastownhall/beads#4132, #4133).
+// handshakes and crashing (see borg0ai/dx-issuegraph#4132, #4133).
 //
 // A dial that succeeds but never greets (TCP listener accepting, MySQL
 // engine not yet writing) is not treated as ready: this function keeps
@@ -1959,8 +1959,8 @@ func ensureDoltIdentity() error {
 	}
 
 	// Try to get identity from git
-	gitName := "beads"
-	gitEmail := "beads@localhost"
+	gitName := "issuegraph"
+	gitEmail := "issuegraph@localhost"
 
 	if out, err := exec.Command("git", "config", "user.name").Output(); err == nil {
 		if name := strings.TrimSpace(string(out)); name != "" {
@@ -1983,13 +1983,13 @@ func ensureDoltIdentity() error {
 	return nil
 }
 
-// bdDoltMarker is written after a current bd process creates or acknowledges a
+// issuegraphDoltMarker is written after a current issuegraph process creates or acknowledges a
 // local Dolt repository. Its absence in an existing .dolt/ directory indicates
-// the database was created by a pre-0.56 bd version (which used embedded mode).
+// the database was created by a pre-0.56 issuegraph version (which used embedded mode).
 // Those databases are incompatible with the current server-only architecture.
-const bdDoltMarker = ".bd-dolt-ok"
+const issuegraphDoltMarker = ".bd-dolt-ok"
 
-// MarkDoltDirCompatible writes the canonical bd compatibility marker when
+// MarkDoltDirCompatible writes the canonical issuegraph compatibility marker when
 // doltDir contains a local Dolt repository. It no-ops when there is no .dolt/
 // directory, which lets server and repair paths call it defensively.
 func MarkDoltDirCompatible(doltDir string) error {
@@ -2005,7 +2005,7 @@ func MarkDoltDirCompatible(doltDir string) error {
 	} else if !info.IsDir() {
 		return fmt.Errorf("dolt metadata path %s is not a directory", dotDolt)
 	}
-	markerPath := filepath.Join(doltDir, bdDoltMarker)
+	markerPath := filepath.Join(doltDir, issuegraphDoltMarker)
 	if _, err := os.Stat(markerPath); err == nil {
 		return nil
 	} else if !os.IsNotExist(err) {
@@ -2021,7 +2021,7 @@ func MarkDoltDirCompatible(doltDir string) error {
 // If .dolt/ exists, seeds the .bd-dolt-ok marker for existing working databases.
 // See GH#2137 for background on pre-0.56 database compatibility.
 func ensureDoltInit(doltDir string) error {
-	if err := os.MkdirAll(doltDir, config.BeadsDirPerm); err != nil {
+	if err := os.MkdirAll(doltDir, config.IssueGraphDirPerm); err != nil {
 		return fmt.Errorf("creating dolt directory: %w", err)
 	}
 
@@ -2049,7 +2049,7 @@ func ensureDoltInit(doltDir string) error {
 }
 
 // RecoverPreV56DoltDir removes and reinitializes a dolt database that was
-// created by a pre-0.56 bd version. Call this during version upgrade detection
+// created by a pre-0.56 issuegraph version. Call this during version upgrade detection
 // (e.g., from autoMigrateOnVersionBump when previousVersion < 0.56).
 //
 // Pre-0.56 databases used embedded Dolt mode with a different Dolt library
@@ -2063,12 +2063,12 @@ func RecoverPreV56DoltDir(doltDir string) (bool, error) {
 		return false, nil // No .dolt/ directory — nothing to recover
 	}
 
-	markerPath := filepath.Join(doltDir, bdDoltMarker)
+	markerPath := filepath.Join(doltDir, issuegraphDoltMarker)
 	if _, err := os.Stat(markerPath); err == nil {
 		return false, nil // Marker exists — database is from 0.56+
 	}
 
-	fmt.Fprintf(os.Stderr, "Detected dolt database from an older bd version (pre-0.56).\n")
+	fmt.Fprintf(os.Stderr, "Detected dolt database from an older issuegraph version (pre-0.56).\n")
 	fmt.Fprintf(os.Stderr, "Rebuilding dolt database at %s ...\n", doltDir)
 
 	if err := os.RemoveAll(dotDolt); err != nil {
@@ -2085,7 +2085,7 @@ func RecoverPreV56DoltDir(doltDir string) (bool, error) {
 }
 
 // IsPreV56DoltDir returns true if doltDir contains a .dolt/ directory that
-// was NOT created by bd 0.56+ (missing .bd-dolt-ok marker). These databases
+// was NOT created by issuegraph 0.56+ (missing .bd-dolt-ok marker). These databases
 // were created by the old embedded Dolt mode and may be incompatible.
 // Used by doctor checks to detect potentially problematic dolt databases.
 func IsPreV56DoltDir(doltDir string) bool {
@@ -2093,7 +2093,7 @@ func IsPreV56DoltDir(doltDir string) bool {
 	if _, err := os.Stat(dotDolt); os.IsNotExist(err) {
 		return false // No .dolt/ at all
 	}
-	markerPath := filepath.Join(doltDir, bdDoltMarker)
+	markerPath := filepath.Join(doltDir, issuegraphDoltMarker)
 	_, err := os.Stat(markerPath)
 	return os.IsNotExist(err)
 }

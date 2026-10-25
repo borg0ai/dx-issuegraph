@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 func TestPreparePublicCreateRequestNormalizesAcceptedFieldsAndIgnoresDerivedFields(t *testing.T) {
@@ -23,7 +23,7 @@ func TestPreparePublicCreateRequestNormalizesAcceptedFieldsAndIgnoresDerivedFiel
 	}}
 
 	prepared, err := PreparePublicCreateRequest(request, PublicCreateContext{
-		IssuePrefix: "bd", CustomStatuses: []string{"custom"}, CustomTypes: []string{"custom-type"},
+		IssuePrefix: "issuegraph", CustomStatuses: []string{"custom"}, CustomTypes: []string{"custom-type"},
 	})
 	if err != nil {
 		t.Fatalf("PreparePublicCreateRequest() error = %v", err)
@@ -37,7 +37,7 @@ func TestPreparePublicCreateRequestCarriesSourceRepo(t *testing.T) {
 	prepared, err := PreparePublicCreateRequest(publicops.CreateRequest{Actor: "actor", Issue: &publicops.Issue{
 		ID: "bd-source-repo", Title: "title", IssueType: types.TypeTask, Priority: 2,
 		SourceSystem: "github", SourceRepo: "other/repo",
-	}}, PublicCreateContext{IssuePrefix: "bd"})
+	}}, PublicCreateContext{IssuePrefix: "issuegraph"})
 	if err != nil {
 		t.Fatalf("PreparePublicCreateRequest() error = %v", err)
 	}
@@ -108,7 +108,7 @@ func TestPreparePublicCreateRequestRejectsDependencyDuplicatesAndSelfEdges(t *te
 		{"duplicate reverse edge", publicops.CreateRequest{Actor: "a", Issue: &publicops.Issue{ID: "bd-new", Title: "x", IssueType: types.TypeTask, Priority: 2}, Dependencies: []publicops.CreateDependency{{TargetID: "bd-target", Type: types.DepBlocks, Reverse: true}, {TargetID: "bd-target", Type: types.DepBlocks, Reverse: true}}}, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := PreparePublicCreateRequest(tc.request, PublicCreateContext{IssuePrefix: "bd"})
+			_, err := PreparePublicCreateRequest(tc.request, PublicCreateContext{IssuePrefix: "issuegraph"})
 			if !errors.Is(err, storage.ErrValidation) {
 				t.Fatalf("error = %v, want ErrValidation", err)
 			}
@@ -130,7 +130,7 @@ func TestPreparePublicCreateRequestAllowsOppositeDependencyDirections(t *testing
 		},
 	}
 
-	if _, err := PreparePublicCreateRequest(request, PublicCreateContext{IssuePrefix: "bd"}); err != nil {
+	if _, err := PreparePublicCreateRequest(request, PublicCreateContext{IssuePrefix: "issuegraph"}); err != nil {
 		t.Fatalf("PreparePublicCreateRequest() error = %v, want nil", err)
 	}
 }
@@ -327,7 +327,7 @@ func TestClassifyPublicCreateErrorPreservesDeterministicIdentities(t *testing.T)
 //
 // The override exists because config.yaml's `issue-prefix` beats the
 // database's and no implementation can see config.yaml. Without it the two
-// `bd create` routes disagreed about which ids a workspace may mint: the
+// `issuegraph create` routes disagreed about which ids a workspace may mint: the
 // direct route refused `bd-123` in a workspace configured for `app`, while the
 // proxied route checked only the server database's prefix and created it.
 func TestPreparePublicCreateRequestHonorsTheCallerSuppliedIDPrefix(t *testing.T) {
@@ -338,8 +338,8 @@ func TestPreparePublicCreateRequestHonorsTheCallerSuppliedIDPrefix(t *testing.T)
 			IDPrefix: prefix,
 		}
 	}
-	// The substrate says "bd"; the caller says the workspace is "app".
-	context := PublicCreateContext{IssuePrefix: "bd"}
+	// The substrate says "issuegraph"; the caller says the workspace is "app".
+	context := PublicCreateContext{IssuePrefix: "issuegraph"}
 
 	if _, err := PreparePublicCreateRequest(newRequest("app-1", "app"), context); err != nil {
 		t.Errorf("an id matching the CALLER's prefix was refused: %v", err)

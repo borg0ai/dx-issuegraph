@@ -21,11 +21,11 @@ import (
 )
 
 const (
-	modulePath          = "github.com/steveyegge/beads"
+	modulePath          = "github.com/borg0ai/dx-issuegraph"
 	minimumVersion      = "v0.9.1"
 	maximumVersion      = "v1.1.2"
 	proxyURL            = "https://proxy.golang.org"
-	githubRepository    = "gastownhall/beads"
+	githubRepository    = "borg0ai/dx-issuegraph"
 	expectedVersions    = 122
 	expectedRepoOnly    = 49
 	expectedRepoPre     = 3
@@ -157,7 +157,7 @@ func generate(path string) error {
 		}
 		releaseByVersion[r.TagName] = r
 	}
-	tmp, err := os.MkdirTemp("", "beads-release-catalog-")
+	tmp, err := os.MkdirTemp("", "issuegraph-release-catalog-")
 	if err != nil {
 		return err
 	}
@@ -311,7 +311,7 @@ func catalogEntry(download downloadJSON, release *githubRelease, tagHash string)
 		HTMLURL:        release.HTMLURL,
 		SourceRelation: relation,
 	}
-	want := "beads_" + strings.TrimPrefix(download.Version, "v") + "_linux_amd64.tar.gz"
+	want := "issuegraph_" + strings.TrimPrefix(download.Version, "v") + "_linux_amd64.tar.gz"
 	for _, asset := range release.Assets {
 		if asset.Name != want {
 			continue
@@ -460,7 +460,7 @@ func validateEntryProvenance(entry Entry) (hasRelease, hasAsset bool, err error)
 		return true, false, nil
 	}
 	a := r.LinuxAMD64Asset
-	want := "beads_" + strings.TrimPrefix(entry.Version, "v") + "_linux_amd64.tar.gz"
+	want := "issuegraph_" + strings.TrimPrefix(entry.Version, "v") + "_linux_amd64.tar.gz"
 	if a.Size <= 0 || a.Name != want || !assetRE.MatchString(a.Digest) {
 		return true, false, fmt.Errorf("%s: invalid release asset", entry.Version)
 	}

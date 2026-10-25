@@ -226,7 +226,7 @@ func TestRoleCasesHonorsTheFixturePolicy(t *testing.T) {
 	}
 }
 
-const roleBundleProbeEnv = "BEADS_ROLE_BUNDLE_PROBE"
+const roleBundleProbeEnv = "ISSUEGRAPH_ROLE_BUNDLE_PROBE"
 
 // TestRoleContractBundleAllNilSkipsEveryContract proves the partial-backend
 // promise from the empty end: a bundle that supplies nothing runs nothing,

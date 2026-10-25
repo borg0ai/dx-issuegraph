@@ -1,5 +1,5 @@
 -- Ignored migration 0027: ensure wisps.current_revision exists on every clone
--- (be-hs42e.2 / gastownhall/beads#6134).
+-- (be-hs42e.2 / borg0ai/dx-issuegraph#6134).
 --
 -- Numbered 0026 on main until the v1.3.0 forward-port merge, which brought in
 -- release/1.3.0's own 0026 (dep_rekey_dedup_marker). That one is in the

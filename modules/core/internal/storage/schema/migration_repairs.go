@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
 )
 
 // Pre-migration repairs run immediately before a specific pending migration
@@ -365,8 +365,8 @@ const wispsTableDDLForMigration0047 = `CREATE TABLE IF NOT EXISTS wisps (
     await_id VARCHAR(255) DEFAULT '',
     timeout_ns BIGINT DEFAULT 0,
     waiters TEXT DEFAULT '',
-    hook_bead VARCHAR(255) DEFAULT '',
-    role_bead VARCHAR(255) DEFAULT '',
+    hook_issue VARCHAR(255) DEFAULT '',
+    role_issue VARCHAR(255) DEFAULT '',
     agent_state VARCHAR(32) DEFAULT '',
     last_activity DATETIME,
     role_type VARCHAR(32) DEFAULT '',
@@ -589,8 +589,8 @@ func firstNonNullString(cols ...sql.NullString) string {
 // individually. Definitions mirror the current bootstrap schema.
 func ensureIssuesRigColumns(ctx context.Context, db DBConn) error {
 	columns := []struct{ name, definition string }{
-		{"hook_bead", "VARCHAR(255) DEFAULT ''"},
-		{"role_bead", "VARCHAR(255) DEFAULT ''"},
+		{"hook_issue", "VARCHAR(255) DEFAULT ''"},
+		{"role_issue", "VARCHAR(255) DEFAULT ''"},
 		{"agent_state", "VARCHAR(32) DEFAULT ''"},
 		{"last_activity", "DATETIME"},
 		{"role_type", "VARCHAR(32) DEFAULT ''"},

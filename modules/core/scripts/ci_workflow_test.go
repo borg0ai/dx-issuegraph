@@ -207,10 +207,10 @@ func TestPRCIGateRequiresJSWasmHookExecution(t *testing.T) {
 	if !contains(gate.Needs, "check-cmd-bd-puregeo-tests") {
 		t.Errorf("ci-gate does not require js/wasm hook job: %v", gate.Needs)
 	}
-	if got := gateEnv["CHECK_CMD_BD_PUREGEO_TESTS"]; got != "${{ needs.check-cmd-bd-puregeo-tests.result }}" {
+	if got := gateEnv["CHECK_CMD_ISSUEGRAPH_PUREGEO_TESTS"]; got != "${{ needs.check-cmd-bd-puregeo-tests.result }}" {
 		t.Errorf("ci-gate js/wasm hook result = %q", got)
 	}
-	if !strings.Contains(gateEnv["CI_GATE_REQUIRED"], "CHECK_CMD_BD_PUREGEO_TESTS") {
+	if !strings.Contains(gateEnv["CI_GATE_REQUIRED"], "CHECK_CMD_ISSUEGRAPH_PUREGEO_TESTS") {
 		t.Errorf("ci-gate required set omits js/wasm hook job")
 	}
 }
@@ -219,7 +219,7 @@ func TestPRCIGateRequiresGeneratedHookTimeoutProcessBoundary(t *testing.T) {
 	const (
 		jobName     = "pr-preflight-platforms"
 		stepName    = "Exercise generated Git hook timeout process boundary"
-		stepCommand = "go test '-tags=gms_pure_go' -count=1 -run '^TestGeneratedHookTimeoutProcessBoundary$' ./modules/cli"
+		stepCommand = "go test '-tags=gms_pure_go' -count=1 -run '^TestGeneratedHookTimeoutProcessBoundary$' ./apps/cli"
 		gateKey     = "PR_PREFLIGHT_PLATFORMS"
 	)
 
@@ -258,7 +258,7 @@ func TestStorageDomainUOWJobsUseNestedTimeoutBudgets(t *testing.T) {
 		"go test -tags gms_pure_go -race -count=1 -timeout %dm -v ./internal/storage/domain/... ./internal/storage/uow/... ./internal/tracker/...",
 		storageTimeoutMinutes)
 	doctorCommand := fmt.Sprintf(
-		"go test -tags gms_pure_go -race -count=1 -timeout %dm -v ./modules/cli/doctor/fix/",
+		"go test -tags gms_pure_go -race -count=1 -timeout %dm -v ./apps/cli/doctor/fix/",
 		doctorTimeoutMinutes)
 
 	for _, workflowName := range []string{"pr.yml", "main.yml"} {
@@ -294,11 +294,11 @@ func TestStorageDomainUOWJobsUseNestedTimeoutBudgets(t *testing.T) {
 	}
 }
 
-func TestMacOSTestJobsReuseWorkspaceBDBinary(t *testing.T) {
+func TestMacOSTestJobsReuseWorkspaceIssueGraphBinary(t *testing.T) {
 	const (
-		workspaceBDBinary = "${{ github.workspace }}/bd"
-		buildCommand      = "go build -v -tags gms_pure_go ./modules/cli"
-		// -timeout=30m is pinned on both lanes because ./modules/cli has outgrown
+		workspaceIssueGraphBinary = "${{ github.workspace }}/issuegraph"
+		buildCommand              = "go build -v -tags gms_pure_go ./apps/cli"
+		// -timeout=30m is pinned on both lanes because ./apps/cli has outgrown
 		// `go test`'s 10m per-package default (#6091, and wy-5b5fbl before it —
 		// that default is what made these legs flaky). In main.yml it sits on
 		// the invocation rather than in matrix.test-flags, so editing the
@@ -324,7 +324,7 @@ func TestMacOSTestJobsReuseWorkspaceBDBinary(t *testing.T) {
 	assertStepRunsExactly(t, prMacOS, "Build", buildCommand)
 	assertStepRunsExactly(t, prMacOS, "Test", prTestCommand)
 	assertStepsBefore(t, prMacOS, []string{"Build"}, []string{"Test"})
-	assertStepEnvValue(t, prMacOS, "Test", "BEADS_TEST_BD_BINARY", workspaceBDBinary)
+	assertStepEnvValue(t, prMacOS, "Test", "ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY", workspaceIssueGraphBinary)
 
 	mainTest := workflows["main.yml"].job(t, "test")
 	assertStepRunsExactly(t, mainTest, "Build", buildCommand)
@@ -344,15 +344,15 @@ func TestMacOSTestJobsReuseWorkspaceBDBinary(t *testing.T) {
 		got[1].OS != macOSRunner || got[1].Coverage || got[1].TestFlags != mainMacOSTestFlags {
 		t.Errorf("main test matrix include = %+v, want macOS non-coverage entry with %s", got, mainMacOSTestFlags)
 	}
-	assertStepEnvValue(t, mainTest, "Test", "BEADS_TEST_BD_BINARY", workspaceBDBinary)
+	assertStepEnvValue(t, mainTest, "Test", "ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY", workspaceIssueGraphBinary)
 
 	for workflowName, workflow := range workflows {
 		for jobName, job := range workflow.Jobs {
 			for _, step := range job.Steps {
-				if step.Env["BEADS_TEST_BD_BINARY"] == workspaceBDBinary &&
+				if step.Env["ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY"] == workspaceIssueGraphBinary &&
 					!(workflowName == "pr.yml" && jobName == "test-macos" && step.Name == "Test") &&
 					!(workflowName == "main.yml" && jobName == "test" && step.Name == "Test") {
-					t.Errorf("%s job %q step %q has unexpected workspace bd binary override", workflowName, jobName, step.Name)
+					t.Errorf("%s job %q step %q has unexpected workspace issuegraph binary override", workflowName, jobName, step.Name)
 				}
 			}
 		}
@@ -544,7 +544,7 @@ func TestGoCacheOwnershipTopology(t *testing.T) {
 	assertStepsBefore(t, mainArtifacts, []string{"Build reusable Linux artifacts", "Upload build artifacts"}, []string{"Save Go module cache", "Save non-race Go build cache"})
 
 	mainEmbedded := workflows["main.yml"].job(t, "build-embedded")
-	embeddedRaceBuilds := []string{"Build embedded bd binary", "Build embedded storage test binary", "Build embedded cmd test binary"}
+	embeddedRaceBuilds := []string{"Build embedded issuegraph binary", "Build embedded storage test binary", "Build embedded cmd test binary"}
 	assertStepsBefore(t, mainEmbedded, []string{"Restore Go module cache", "Restore race Go build cache"}, embeddedRaceBuilds)
 	assertStepsBefore(t, mainEmbedded, append(embeddedRaceBuilds, "Upload binaries"), []string{"Save race Go build cache"})
 
@@ -580,13 +580,13 @@ func TestGoCacheOwnershipTopology(t *testing.T) {
 		[]string{"Restore Go module cache"}, []string{"Type-check every module under examples/"})
 
 	prRiskEmbedded := workflows["pr-risk.yml"].job(t, "build-embedded")
-	prRiskNonRaceBuilds := []string{"Build proxied bd subprocess binary", "Build server Dolt conformance test binary"}
+	prRiskNonRaceBuilds := []string{"Build proxied issuegraph subprocess binary", "Build server Dolt conformance test binary"}
 	assertStepsBefore(t, prRiskEmbedded, []string{"Restore Go module cache"}, append(append([]string{}, embeddedRaceBuilds...), prRiskNonRaceBuilds...))
 	assertStepsBefore(t, prRiskEmbedded, []string{"Restore race Go build cache"}, embeddedRaceBuilds)
 	assertStepsBefore(t, prRiskEmbedded, []string{"Restore non-race Go build cache"}, prRiskNonRaceBuilds)
 
 	assertGoCacheEnv(t, workflows["main.yml"].job(t, "build-artifacts"), "Build reusable Linux artifacts", "non-race")
-	for _, stepName := range []string{"Build embedded bd binary", "Build embedded storage test binary", "Build embedded cmd test binary"} {
+	for _, stepName := range []string{"Build embedded issuegraph binary", "Build embedded storage test binary", "Build embedded cmd test binary"} {
 		assertGoCacheEnv(t, workflows["main.yml"].job(t, "build-embedded"), stepName, "race")
 	}
 	assertGoCacheEnv(t, workflows["main.yml"].job(t, "test"), "Build", "non-race")
@@ -598,10 +598,10 @@ func TestGoCacheOwnershipTopology(t *testing.T) {
 	assertGoCacheEnv(t, workflows["pr.yml"].job(t, "test-macos"), "Build", "non-race")
 	assertGoCacheEnv(t, workflows["pr.yml"].job(t, "test-macos"), "Test", "race")
 	assertGoCacheEnv(t, workflows["pr.yml"].job(t, "worktree-remove-windows"), "Run native Windows worktree removal boundary tests", "non-race")
-	for _, stepName := range []string{"Build embedded bd binary", "Build embedded storage test binary", "Build embedded cmd test binary"} {
+	for _, stepName := range []string{"Build embedded issuegraph binary", "Build embedded storage test binary", "Build embedded cmd test binary"} {
 		assertGoCacheEnv(t, workflows["pr-risk.yml"].job(t, "build-embedded"), stepName, "race")
 	}
-	for _, stepName := range []string{"Build proxied bd subprocess binary", "Build server Dolt conformance test binary"} {
+	for _, stepName := range []string{"Build proxied issuegraph subprocess binary", "Build server Dolt conformance test binary"} {
 		assertGoCacheEnv(t, workflows["pr-risk.yml"].job(t, "build-embedded"), stepName, "non-race")
 	}
 	for _, workflowName := range []string{"pr.yml", "pr-risk.yml"} {
@@ -701,7 +701,7 @@ func TestPRRiskGateReachesFullServerDoltStorageSuite(t *testing.T) {
 	// federation_test.go Fatals instead of silently skipping when this is set
 	// and the server it expects isn't reachable -- this job's whole point is
 	// a real PASS/FAIL, not a hidden self-skip if its own setup regresses.
-	assertStepEnvValue(t, job, "Test", "BEADS_TEST_ENV_RUN_DOLT", "1")
+	assertStepEnvValue(t, job, "Test", "ISSUEGRAPH_TEST_ENV_RUN_DOLT", "1")
 
 	// test-server-storage itself is untouched: conformance keeps its own
 	// dedicated job and timeout budget; this is an additive sibling, not a
@@ -852,17 +852,17 @@ type goCacheStep struct {
 }
 
 func goModuleCacheKey() string {
-	return "beads-go-mod-" + goCacheSchema + "-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}"
+	return "issuegraph-go-mod-" + goCacheSchema + "-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}"
 }
 
 func goModuleCacheRestoreKeys() string {
-	return "beads-go-mod-" + goCacheSchema + "-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-"
+	return "issuegraph-go-mod-" + goCacheSchema + "-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-"
 }
 
 func goBuildCachePrefix(profile string) string {
 	// The base tag identifies the cache topology. Go's content-addressed
 	// cache includes compiler options, so extra tags can safely share it.
-	return "beads-go-build-" + goCacheSchema + "-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-" + goBaseTag + "-" + profile + "-"
+	return "issuegraph-go-build-" + goCacheSchema + "-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-base-" + goBaseTag + "-" + profile + "-"
 }
 
 func goBuildCacheKey(profile string) string {

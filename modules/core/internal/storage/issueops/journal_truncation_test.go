@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 func rowsAt(seqs ...int64) []storage.EventsJournalRow {
@@ -92,7 +92,7 @@ func TestComputeEventsTruncation(t *testing.T) {
 			head:  10,
 		},
 		{
-			// Defense in depth: bd's own prune is prefix-only, so this shape can
+			// Defense in depth: issuegraph's own prune is prefix-only, so this shape can
 			// only come from a restored/hand-edited table or a future prune path
 			// that forgets the rule. Either way it is silent record loss unless
 			// the read refuses it. Since reports the last seq servable from the
@@ -175,7 +175,7 @@ func TestComputeEventsTruncation(t *testing.T) {
 }
 
 // TestComputeEventsTruncationSkipsHeadReadWhenContiguous pins the hot path:
-// `bd events tail --follow` polls once a second, so a healthy resume must not
+// `issuegraph events tail --follow` polls once a second, so a healthy resume must not
 // pay for the counter read. The interior-gap sweep is a pass over rows already
 // in memory and must not add a query either.
 func TestComputeEventsTruncationSkipsHeadReadWhenContiguous(t *testing.T) {

@@ -17,10 +17,10 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/storage/depid"
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 func TestIsDriverReadTimeout(t *testing.T) {
@@ -66,15 +66,15 @@ func TestDepFixtureIssueCountIncludesChainTargets(t *testing.T) {
 
 func TestResolveExecutablePathReturnsAbsolutePath(t *testing.T) {
 	tmp := t.TempDir()
-	bd := writeNativeBDTestExecutable(t, tmp)
+	issuegraph := writeNativeIssueGraphTestExecutable(t, tmp)
 	t.Chdir(tmp)
 
-	got, err := resolveExecutablePath("./bd")
+	got, err := resolveExecutablePath("./issuegraph")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != bd {
-		t.Fatalf("got %q, want %q", got, bd)
+	if got != issuegraph {
+		t.Fatalf("got %q, want %q", got, issuegraph)
 	}
 }
 
@@ -89,7 +89,7 @@ func TestParseFlagsDefaultsSyntheticWorkspaceToFullSeed(t *testing.T) {
 }
 
 func TestParseFlagsDefaultsExistingWorkspaceToNoSeed(t *testing.T) {
-	cfg, err := parseFlags([]string{"--workspace", "/tmp/existing-beads-workspace"})
+	cfg, err := parseFlags([]string{"--workspace", "/tmp/existing-issuegraph-workspace"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestParseFlagsDefaultsExistingWorkspaceToNoSeed(t *testing.T) {
 }
 
 func TestParseFlagsPreservesExplicitExistingWorkspaceSeedMode(t *testing.T) {
-	cfg, err := parseFlags([]string{"--workspace", "/tmp/existing-beads-workspace", "--seed-mode", "full"})
+	cfg, err := parseFlags([]string{"--workspace", "/tmp/existing-issuegraph-workspace", "--seed-mode", "full"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,23 +111,23 @@ func TestParseFlagsPreservesExplicitExistingWorkspaceSeedMode(t *testing.T) {
 func TestCleanEnvUsesHostKeySemantics(t *testing.T) {
 	env := []string{
 		"FIRST=keep-first",
-		"beads_dir=drop-on-windows",
-		"BEADS_DIR=drop-canonical-first",
+		"issuegraph_dir=drop-on-windows",
+		"ISSUEGRAPH_DIR=drop-canonical-first",
 		"ALLOWED=keep-duplicate-first",
 		"MALFORMED",
 		"BeAdS_DoLt_PoRt=drop-on-windows",
-		"BEADS_DOLT_PORT=drop-canonical",
-		"BEADS_DIR=drop-canonical-second",
+		"ISSUEGRAPH_DOLT_PORT=drop-canonical",
+		"ISSUEGRAPH_DIR=drop-canonical-second",
 		"BEADſ_DIR=keep-unicode-near-collision",
 		"ALLOWED=keep-duplicate-second",
 		"=C:=keep-windows-drive-entry",
 		"LAST=keep-last",
 	}
 
-	got := cleanEnv(slices.Clone(env), "BEADS_DIR", "BEADS_DOLT_PORT")
+	got := cleanEnv(slices.Clone(env), "ISSUEGRAPH_DIR", "ISSUEGRAPH_DOLT_PORT")
 	want := []string{
 		"FIRST=keep-first",
-		"beads_dir=drop-on-windows",
+		"issuegraph_dir=drop-on-windows",
 		"ALLOWED=keep-duplicate-first",
 		"MALFORMED",
 		"BeAdS_DoLt_PoRt=drop-on-windows",
@@ -154,11 +154,11 @@ func TestCleanEnvUsesHostKeySemantics(t *testing.T) {
 
 func TestBenchmarkCommandBuildersStripDoltEnvOverrides(t *testing.T) {
 	windowsSpellings := map[string]string{
-		"BEADS_DIR":                "beads_dir",
-		"BEADS_DOLT_SERVER_PORT":   "BeAdS_DoLt_SeRvEr_PoRt",
-		"BEADS_DOLT_PORT":          "beads_dolt_port",
-		"BEADS_DOLT_SERVER_HOST":   "BeAdS_DoLt_SeRvEr_HoSt",
-		"BEADS_DOLT_SERVER_SOCKET": "beads_dolt_server_socket",
+		"ISSUEGRAPH_DIR":                "issuegraph_dir",
+		"ISSUEGRAPH_DOLT_SERVER_PORT":   "BeAdS_DoLt_SeRvEr_PoRt",
+		"ISSUEGRAPH_DOLT_PORT":          "issuegraph_dolt_port",
+		"ISSUEGRAPH_DOLT_SERVER_HOST":   "BeAdS_DoLt_SeRvEr_HoSt",
+		"ISSUEGRAPH_DOLT_SERVER_SOCKET": "issuegraph_dolt_server_socket",
 	}
 	for _, key := range subprocessEnvDenylist {
 		ambientKey := key
@@ -171,18 +171,18 @@ func TestBenchmarkCommandBuildersStripDoltEnvOverrides(t *testing.T) {
 		}
 		t.Setenv(ambientKey, "ambient-"+strings.ToLower(key))
 	}
-	const allowedAmbient = "BEADS_REPRO_TIMEOUTS_ALLOWED_AMBIENT=present"
+	const allowedAmbient = "ISSUEGRAPH_REPRO_TIMEOUTS_ALLOWED_AMBIENT=present"
 	allowedKey, allowedValue, _ := strings.Cut(allowedAmbient, "=")
 	t.Setenv(allowedKey, allowedValue)
 
-	cfg := config{BDPath: filepath.Join(t.TempDir(), "bd")}
+	cfg := config{IssueGraphPath: filepath.Join(t.TempDir(), "issuegraph")}
 	ws := &workspace{Dir: t.TempDir()}
 	j := job{
 		Kind: "env",
 		Argv: []string{"status"},
 		Env: []string{
-			"BEADS_REPRO_TIMEOUTS_CONTROLLED=one",
-			"BEADS_REPRO_TIMEOUTS_CONTROLLED_SECOND=two",
+			"ISSUEGRAPH_REPRO_TIMEOUTS_CONTROLLED=one",
+			"ISSUEGRAPH_REPRO_TIMEOUTS_CONTROLLED_SECOND=two",
 		},
 		Sh: "printf test",
 	}
@@ -199,11 +199,11 @@ func TestBenchmarkCommandBuildersStripDoltEnvOverrides(t *testing.T) {
 		wantSuffix []string
 	}{
 		{
-			name:       "bd",
-			build:      newBDCommand,
-			wantPath:   cfg.BDPath,
-			wantArgs:   []string{cfg.BDPath, "status"},
-			wantSuffix: append([]string{"BD_NON_INTERACTIVE=1"}, j.Env...),
+			name:       "issuegraph",
+			build:      newIssueGraphCommand,
+			wantPath:   cfg.IssueGraphPath,
+			wantArgs:   []string{cfg.IssueGraphPath, "status"},
+			wantSuffix: append([]string{"ISSUEGRAPH_NON_INTERACTIVE=1"}, j.Env...),
 		},
 		{
 			name:     "shell",
@@ -211,8 +211,8 @@ func TestBenchmarkCommandBuildersStripDoltEnvOverrides(t *testing.T) {
 			wantPath: shellPath,
 			wantArgs: []string{"sh", "-c", j.Sh},
 			wantSuffix: append([]string{
-				"BD_NON_INTERACTIVE=1",
-				"BD_BIN=" + cfg.BDPath,
+				"ISSUEGRAPH_NON_INTERACTIVE=1",
+				"ISSUEGRAPH_BIN=" + cfg.IssueGraphPath,
 			}, j.Env...),
 		},
 	}
@@ -249,30 +249,30 @@ func TestBenchmarkCommandBuildersStripDoltEnvOverrides(t *testing.T) {
 
 func TestControlQueryScriptPreservesReadyProbeFailure(t *testing.T) {
 	tmp := t.TempDir()
-	bd := filepath.Join(tmp, "bd")
-	if err := os.WriteFile(bd, []byte("#!/bin/sh\necho ready failed >&2\nexit 17\n"), 0o755); err != nil {
+	issuegraph := filepath.Join(tmp, "issuegraph")
+	if err := os.WriteFile(issuegraph, []byte("#!/bin/sh\necho ready failed >&2\nexit 17\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	cfg := config{BDPath: bd, Timeout: time.Second}
+	cfg := config{IssueGraphPath: issuegraph, Timeout: time.Second}
 	ws := &workspace{Dir: tmp}
 	result := runShell(context.Background(), cfg, ws, controlQueryJobs(1)[0])
 	if result.Err == "" {
-		t.Fatalf("expected control query shell to fail when bd ready fails; stderr=%q", result.StderrTail)
+		t.Fatalf("expected control query shell to fail when issuegraph ready fails; stderr=%q", result.StderrTail)
 	}
 	if !strings.Contains(result.StderrTail, "ready failed") {
 		t.Fatalf("stderr tail = %q, want ready probe stderr", result.StderrTail)
 	}
 }
 
-func writeNativeBDTestExecutable(t *testing.T, directory string) string {
+func writeNativeIssueGraphTestExecutable(t *testing.T, directory string) string {
 	t.Helper()
 
 	sourcePath, err := os.Executable()
 	if err != nil {
 		t.Fatalf("resolve current test executable: %v", err)
 	}
-	targetPath := filepath.Join(directory, nativeBDExecutableName())
+	targetPath := filepath.Join(directory, nativeIssueGraphExecutableName())
 
 	source, err := os.Open(sourcePath)
 	if err != nil {
@@ -294,11 +294,11 @@ func writeNativeBDTestExecutable(t *testing.T, directory string) string {
 	return targetPath
 }
 
-func nativeBDExecutableName() string {
+func nativeIssueGraphExecutableName() string {
 	if runtime.GOOS == "windows" {
-		return "bd.exe"
+		return "issuegraph.exe"
 	}
-	return "bd"
+	return "issuegraph"
 }
 
 func TestScenarioNamesAllIncludesEveryAdvertisedScenario(t *testing.T) {

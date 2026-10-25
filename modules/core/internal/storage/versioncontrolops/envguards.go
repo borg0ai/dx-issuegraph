@@ -1,12 +1,12 @@
 package versioncontrolops
 
 import (
-	"github.com/steveyegge/beads/internal/githooksenv"
-	"github.com/steveyegge/beads/internal/gittraceenv"
+	"github.com/borg0ai/dx-issuegraph/internal/githooksenv"
+	"github.com/borg0ai/dx-issuegraph/internal/gittraceenv"
 )
 
 // withRemoteEnvGuards runs fn — an engine statement that can touch a
-// git-protocol remote (CALL DOLT_PUSH/DOLT_FETCH/DOLT_CLONE) — with bd's
+// git-protocol remote (CALL DOLT_PUSH/DOLT_FETCH/DOLT_CLONE) — with issuegraph's
 // process environment made safe for the git plumbing Dolt spawns in-process:
 //
 //   - client-side git hooks disabled (githooksenv, GH#3724/GH#4272): a

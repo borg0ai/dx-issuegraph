@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // bd-pkim8: RejectStaleUpserts is the transactional half of the import stale
-// guard. modules/cli's filterStaleImportIssues reads local updated_at before the
+// guard. apps/cli's filterStaleImportIssues reads local updated_at before the
 // batch write, so a local update committing in between would be silently
 // overwritten; with the option set, the upsert itself keeps the stored row
 // when it is strictly newer than the incoming one.
@@ -124,7 +124,7 @@ func TestCreateIssuesRejectStaleUpserts(t *testing.T) {
 	})
 
 	t.Run("equal_timestamp_empty_notes_does_not_wipe_local_notes", func(t *testing.T) {
-		// bd-hj85c incident shape: local `bd update --notes` lands in the
+		// bd-hj85c incident shape: local `issuegraph update --notes` lands in the
 		// same second as the snapshot being imported. The incoming row has
 		// no notes; the populated local notes must survive, while the tie
 		// row's aux data (which never bumps updated_at) still merges.

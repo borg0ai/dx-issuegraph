@@ -7,8 +7,8 @@ import (
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	mysql "github.com/go-sql-driver/mysql"
 
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func missingTable(table string) error {
@@ -115,7 +115,7 @@ func unionOverBrokenWispPlane(t *testing.T, hydrateErr error) (sqlmock.Sqlmock, 
 // TestSearchUnionBrokenWispPlaneIsAnError is the merged-path twin of
 // TestSearchAcrossEphemeralBrokenWispPlaneIsAnError. The ephemeral branch is
 // reachable only with an explicit filter; the union is what an ordinary
-// `bd list` runs, so this is the guard most searches actually depend on.
+// `issuegraph list` runs, so this is the guard most searches actually depend on.
 func TestSearchUnionBrokenWispPlaneIsAnError(t *testing.T) {
 	for _, missing := range []string{"wisp_labels", "leases"} {
 		t.Run(missing, func(t *testing.T) {

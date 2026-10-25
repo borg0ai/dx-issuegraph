@@ -106,7 +106,7 @@ title = "Deploy {{version}} to {{environment}}"
 
 ## Step Types
 
-A step's `type` sets the issue type of the bead it creates: `task`
+A step's `type` sets the issue type of the issue it creates: `task`
 (default), `bug`, `feature`, `epic`, or `chore`. Any other value falls back
 to `task`. Human sign-offs and async waits are expressed with a
 `[steps.gate]` block, not a step type — see [Gates](/workflows/gates).
@@ -182,8 +182,8 @@ title = "Security scan before {step.title}"
 ## Formula Locations
 
 Formulas are searched in order:
-1. `.beads/formulas/` (project-level)
-2. `~/.beads/formulas/` (user-level)
+1. `.issuegraph/formulas/` (project-level)
+2. `~/.issuegraph/formulas/` (user-level)
 
 `issuegraph formula list` shows everything visible on the search paths.
 
@@ -203,7 +203,7 @@ issuegraph mol pour <proto-id> --dry-run
 
 ## Creating Custom Formulas
 
-1. Create file: `.beads/formulas/my-workflow.formula.toml`
+1. Create file: `.issuegraph/formulas/my-workflow.formula.toml`
 2. Define structure (see examples above)
 3. Use with: `issuegraph cook my-workflow` then `issuegraph mol pour <proto-id>`
 

@@ -23,47 +23,47 @@ func seedStaging(t *testing.T, root string) {
 	t.Helper()
 	writeFile(t, filepath.Join(root, "build", "cli-docs", "index.md"), `---
 title: CLI Reference
-description: Generated reference for every bd command
+description: Generated reference for every issuegraph command
 ---
 
 <!-- AUTO-GENERATED: do not edit manually -->
 
-Generated from `+"`bd help --docs-root`"+`.
+Generated from `+"`issuegraph help --docs-root`"+`.
 
 ## Commands
 
-- [`+"`bd create`"+`](./create.md)
-- [`+"`bd show`"+`](./show.md)
+- [`+"`issuegraph create`"+`](./create.md)
+- [`+"`issuegraph show`"+`](./show.md)
 `)
 	writeFile(t, filepath.Join(root, "build", "cli-docs", "show.md"), `---
-title: "bd show"
+title: "issuegraph show"
 description: "Show an issue"
 ---
 
 <!-- AUTO-GENERATED: do not edit manually -->
 
-Generated from `+"`bd help --doc show`"+`.
+Generated from `+"`issuegraph help --doc show`"+`.
 
 Show an issue
 
 `+"```"+`
-bd show <id>
+issuegraph show <id>
 `+"```"+`
 `)
 	writeFile(t, filepath.Join(root, "build", "cli-docs", "create.md"), `---
-title: "bd create"
+title: "issuegraph create"
 ---
 
 <!-- AUTO-GENERATED: do not edit manually -->
 
 Create an issue
 `)
-	writeFile(t, filepath.Join(root, "docs", "CLI_REFERENCE.md"), `# bd CLI reference
+	writeFile(t, filepath.Join(root, "docs", "CLI_REFERENCE.md"), `# issuegraph CLI reference
 
 Generated single-file reference.
 `)
 	writeFile(t, filepath.Join(root, "docs", "docs.json"), `{
-  "name": "Beads Documentation",
+  "name": "IssueGraph Documentation",
   "navigation": {
     "groups": [
       {
@@ -110,7 +110,7 @@ func TestRunTransformsPagesToMintlifyForm(t *testing.T) {
 	if strings.Contains(got, "<!--") {
 		t.Errorf("show.md still contains an HTML comment (invalid in Mintlify MDX):\n%s", got)
 	}
-	if !strings.Contains(got, "bd show <id>") {
+	if !strings.Contains(got, "issuegraph show <id>") {
 		t.Errorf("show.md lost its usage fence:\n%s", got)
 	}
 
@@ -174,7 +174,7 @@ func TestRunSplicesNavAndPreservesOtherGroups(t *testing.T) {
 }
 
 // Mintlify's prebuild re-serializes markdown and dedents indented prose, so a
-// line whose first token is `export` or `import` — legal CommonMark in bd's
+// line whose first token is `export` or `import` — legal CommonMark in issuegraph's
 // generic output — lands at column 0 and gets parsed as an MDX ESM block,
 // failing the whole page (reproduced on /cli-reference/mail). docsmint must
 // neutralize such lines outside code fences.
@@ -182,12 +182,12 @@ func TestRunNeutralizesMDXESMHazardLines(t *testing.T) {
 	root := t.TempDir()
 	seedStaging(t, root)
 	writeFile(t, filepath.Join(root, "build", "cli-docs", "mail.md"), `---
-title: "bd mail"
+title: "issuegraph mail"
 ---
 
 Examples:
   # Configure delegation (one-time setup)
-  export BEADS_MAIL_DELEGATE="gt mail"
+  export ISSUEGRAPH_MAIL_DELEGATE="gt mail"
   # or
   import something-that-looks-like-esm
 
@@ -216,7 +216,7 @@ Examples:
 			t.Errorf("line %d is a bare ESM-hazard outside a fence: %q", i+1, line)
 		}
 	}
-	if !strings.Contains(string(data), `export BEADS_MAIL_DELEGATE="gt mail"`) {
+	if !strings.Contains(string(data), `export ISSUEGRAPH_MAIL_DELEGATE="gt mail"`) {
 		t.Errorf("hazard line content was lost, not neutralized:\n%s", data)
 	}
 	if !strings.Contains(string(data), "  export FENCED_STAYS_VERBATIM=1") {
@@ -231,7 +231,7 @@ func TestRunLeavesFencedCommentAndLinkExamplesVerbatim(t *testing.T) {
 	root := t.TempDir()
 	seedStaging(t, root)
 	writeFile(t, filepath.Join(root, "build", "cli-docs", "fency.md"), `---
-title: "bd fency"
+title: "issuegraph fency"
 ---
 
 <!-- AUTO-GENERATED: do not edit manually -->
@@ -268,15 +268,15 @@ See [the index](./index.md).
 }
 
 // docs/CLI_REFERENCE.md is served by Mintlify as a hidden page but is emitted
-// by bd without docsmint's per-page transforms, so it carries the same MDX ESM
-// hazard (bare indented `export ...` from bd mail). docsmint must neutralize it.
+// by issuegraph without docsmint's per-page transforms, so it carries the same MDX ESM
+// hazard (bare indented `export ...` from issuegraph mail). docsmint must neutralize it.
 func TestRunNeutralizesSingleFileReferenceESMHazards(t *testing.T) {
 	root := t.TempDir()
 	seedStaging(t, root)
-	writeFile(t, filepath.Join(root, "docs", "CLI_REFERENCE.md"), `# bd CLI reference
+	writeFile(t, filepath.Join(root, "docs", "CLI_REFERENCE.md"), `# issuegraph CLI reference
 
 Examples:
-  export BEADS_MAIL_DELEGATE="gt mail"
+  export ISSUEGRAPH_MAIL_DELEGATE="gt mail"
 
 `+"```"+`
   export FENCED_STAYS_VERBATIM=1
@@ -292,7 +292,7 @@ Examples:
 		t.Fatal(err)
 	}
 	got := string(data)
-	if !strings.Contains(got, "`export BEADS_MAIL_DELEGATE=\"gt mail\"`") {
+	if !strings.Contains(got, "`export ISSUEGRAPH_MAIL_DELEGATE=\"gt mail\"`") {
 		t.Errorf("bare export line was not neutralized in CLI_REFERENCE.md:\n%s", got)
 	}
 	if !strings.Contains(got, "  export FENCED_STAYS_VERBATIM=1") {

@@ -5,13 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 // A configured credential command resolves the token into the username slot and marks
 // the connection as targeting a gateway server (with auto-start disabled).
 func TestApplyGatewayCredentialCommand(t *testing.T) {
-	t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", "printf tok-abc")
+	t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", "printf tok-abc")
 	cfg := &Config{}
 	applied, err := ApplyGatewayCredential(context.Background(), &configfile.Config{}, cfg)
 	if err != nil || !applied {
@@ -27,7 +27,7 @@ func TestApplyGatewayCredentialCommand(t *testing.T) {
 
 // An ExecCredential/OAuth-style JSON envelope resolves the token.
 func TestApplyGatewayCredentialJSONEnvelope(t *testing.T) {
-	t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", `printf '{"access_token":"tok-1","expires_in":300}'`)
+	t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", `printf '{"access_token":"tok-1","expires_in":300}'`)
 	cfg := &Config{}
 	if _, err := ApplyGatewayCredential(context.Background(), &configfile.Config{}, cfg); err != nil {
 		t.Fatal(err)
@@ -39,13 +39,13 @@ func TestApplyGatewayCredentialJSONEnvelope(t *testing.T) {
 
 // Fail-closed: a failing helper aborts and never leaves a fallback user.
 func TestApplyGatewayCredentialFailsClosed(t *testing.T) {
-	t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", "false")
+	t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", "false")
 	cfg := &Config{}
 	applied, err := ApplyGatewayCredential(context.Background(), &configfile.Config{}, cfg)
 	if err == nil {
 		t.Fatal("expected an error when the helper fails")
 	}
-	if !strings.Contains(err.Error(), "BEADS_DOLT_CREDENTIAL_COMMAND") {
+	if !strings.Contains(err.Error(), "ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND") {
 		t.Fatalf("error should name the command var, got %v", err)
 	}
 	if applied || cfg.ServerUser != "" || cfg.Gateway {
@@ -56,7 +56,7 @@ func TestApplyGatewayCredentialFailsClosed(t *testing.T) {
 // A caller/flag-preset ServerUser wins and the helper is never run (a failing command
 // doubles as an exec detector — no error means it never executed).
 func TestApplyGatewayCredentialPresetWins(t *testing.T) {
-	t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", "false")
+	t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", "false")
 	cfg := &Config{ServerUser: "preset"}
 	applied, err := ApplyGatewayCredential(context.Background(), &configfile.Config{}, cfg)
 	if err != nil {
@@ -70,7 +70,7 @@ func TestApplyGatewayCredentialPresetWins(t *testing.T) {
 // A token containing a DSN-breaking character (: @ /) is refused, not mis-placed as
 // username/password.
 func TestApplyGatewayCredentialRejectsBadCharToken(t *testing.T) {
-	t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", "printf tok@host")
+	t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", "printf tok@host")
 	cfg := &Config{}
 	applied, err := ApplyGatewayCredential(context.Background(), &configfile.Config{}, cfg)
 	if err == nil {
@@ -83,7 +83,7 @@ func TestApplyGatewayCredentialRejectsBadCharToken(t *testing.T) {
 
 // Not configured: no-op, config untouched.
 func TestApplyGatewayCredentialNotConfigured(t *testing.T) {
-	t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", "")
+	t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", "")
 	cfg := &Config{}
 	applied, err := ApplyGatewayCredential(context.Background(), &configfile.Config{}, cfg)
 	if err != nil || applied {
@@ -102,7 +102,7 @@ func TestApplyResolvedConfigGatewayCredential(t *testing.T) {
 		return &configfile.Config{DoltMode: configfile.DoltModeServer}
 	}
 	t.Run("server mode: command sets username + gateway", func(t *testing.T) {
-		t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", "printf tok-xyz")
+		t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", "printf tok-xyz")
 		cfg := &Config{}
 		if err := applyResolvedConfig(context.Background(), t.TempDir(), serverCfg(), cfg); err != nil {
 			t.Fatal(err)
@@ -112,7 +112,7 @@ func TestApplyResolvedConfigGatewayCredential(t *testing.T) {
 		}
 	})
 	t.Run("server mode: no command falls back to static user", func(t *testing.T) {
-		t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", "")
+		t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", "")
 		cfg := &Config{}
 		if err := applyResolvedConfig(context.Background(), t.TempDir(), serverCfg(), cfg); err != nil {
 			t.Fatal(err)
@@ -124,11 +124,11 @@ func TestApplyResolvedConfigGatewayCredential(t *testing.T) {
 	t.Run("embedded mode: command is not run even when set", func(t *testing.T) {
 		// Neutralize any ambient server-mode signal so an embedded metadata config really
 		// resolves to embedded mode on this box/CI.
-		t.Setenv("BEADS_DOLT_SERVER_MODE", "")
-		t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "")
+		t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
 		// A failing command doubles as an exec detector: if the gate let it run, the
 		// open would error. It must not, because an embedded store presents no username.
-		t.Setenv("BEADS_DOLT_CREDENTIAL_COMMAND", "false")
+		t.Setenv("ISSUEGRAPH_DOLT_CREDENTIAL_COMMAND", "false")
 		cfg := &Config{}
 		if err := applyResolvedConfig(context.Background(), t.TempDir(), &configfile.Config{}, cfg); err != nil {
 			t.Fatalf("embedded open must not run the credential command: %v", err)

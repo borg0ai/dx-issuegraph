@@ -1,13 +1,13 @@
 package db
 
 import (
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // TestEventsJournal_IsDoltIgnored asserts the journal table is registered in
 // dolt_ignore (so it is node-local working-set state) and therefore never shows
-// up in dolt_status — the signal bd's auto-commit path uses to decide what to
+// up in dolt_status — the signal issuegraph's auto-commit path uses to decide what to
 // stage/commit.
 func (s *testSuite) TestEventsJournal_IsDoltIgnored() {
 	s.journalEnabled = true
@@ -16,9 +16,9 @@ func (s *testSuite) TestEventsJournal_IsDoltIgnored() {
 
 	var ignored bool
 	err := s.Runner().QueryRowContext(ctx,
-		"SELECT ignored FROM dolt_ignore WHERE pattern = 'bd_events_journal'").Scan(&ignored)
-	s.Require().NoError(err, "bd_events_journal must be registered in dolt_ignore")
-	s.True(ignored, "bd_events_journal must be ignored=true in dolt_ignore")
+		"SELECT ignored FROM dolt_ignore WHERE pattern = 'issuegraph_events_journal'").Scan(&ignored)
+	s.Require().NoError(err, "issuegraph_events_journal must be registered in dolt_ignore")
+	s.True(ignored, "issuegraph_events_journal must be ignored=true in dolt_ignore")
 
 	// Write a journal row, then confirm the ignored table never surfaces in
 	// dolt_status (which is what the auto-commit/add path consults).
@@ -26,7 +26,7 @@ func (s *testSuite) TestEventsJournal_IsDoltIgnored() {
 
 	var statusCount int
 	s.Require().NoError(s.Runner().QueryRowContext(ctx,
-		"SELECT COUNT(*) FROM dolt_status WHERE table_name = 'bd_events_journal'").Scan(&statusCount))
+		"SELECT COUNT(*) FROM dolt_status WHERE table_name = 'issuegraph_events_journal'").Scan(&statusCount))
 	s.Equal(0, statusCount, "ignored journal table must not appear in dolt_status")
 }
 
@@ -39,13 +39,13 @@ func (s *testSuite) TestEventsJournal_SurvivesCommitAndReset() {
 	defer func() { s.journalEnabled = false }()
 	ctx := s.Ctx()
 
-	_, err := s.Runner().ExecContext(ctx, "DELETE FROM bd_events_journal")
+	_, err := s.Runner().ExecContext(ctx, "DELETE FROM issuegraph_events_journal")
 	s.Require().NoError(err)
 	s.Require().NoError(s.issueRepo().Insert(ctx, newTestIssue("bd-sv-1", "t"), "actor", domain.InsertIssueOpts{}))
 
 	count := func() int {
 		var n int
-		s.Require().NoError(s.Runner().QueryRowContext(ctx, "SELECT COUNT(*) FROM bd_events_journal").Scan(&n))
+		s.Require().NoError(s.Runner().QueryRowContext(ctx, "SELECT COUNT(*) FROM issuegraph_events_journal").Scan(&n))
 		return n
 	}
 	s.Require().Equal(1, count(), "one journal row after the create")
@@ -73,14 +73,14 @@ func (s *testSuite) TestEventsJournal_TxAtomicity() {
 	defer func() { s.journalEnabled = false }()
 	ctx := s.Ctx()
 
-	_, err := s.Runner().ExecContext(ctx, "DELETE FROM bd_events_journal")
+	_, err := s.Runner().ExecContext(ctx, "DELETE FROM issuegraph_events_journal")
 	s.Require().NoError(err)
 	s.seedIssueRow("bd-atom-1")
 
 	journalCount := func() int {
 		var n int
 		s.Require().NoError(s.Runner().QueryRowContext(ctx,
-			"SELECT COUNT(*) FROM bd_events_journal WHERE issue_id = 'bd-atom-1'").Scan(&n))
+			"SELECT COUNT(*) FROM issuegraph_events_journal WHERE issue_id = 'bd-atom-1'").Scan(&n))
 		return n
 	}
 	statusOf := func() string {

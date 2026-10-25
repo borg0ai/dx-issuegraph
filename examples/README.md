@@ -13,8 +13,8 @@ This directory contains examples of how to integrate issuegraph with AI agents a
 ### Tools & Utilities
 - **[monitor-webui/](monitor-webui/)** - Standalone web interface for real-time issue monitoring and visualization
 - **[git-hooks/](git-hooks/)** - Pre-configured git hooks for automatic Dolt sync
-<!-- REMOVED (bd-4c74): branch-merge example - collision resolution no longer needed with hash IDs -->
-<!-- REMOVED (bd-9ni.5): markdown-to-jsonl, github-import, jira-import converters - issuegraph import removed; use native issuegraph jira/linear/gitlab sync -->
+<!-- REMOVED (issuegraph-4c74): branch-merge example - collision resolution no longer needed with hash IDs -->
+<!-- REMOVED (issuegraph-9ni.5): markdown-to-jsonl, github-import, jira-import converters - issuegraph import removed; use native issuegraph jira/linear/gitlab sync -->
 
 ### Workflow Patterns
 - **[contributor-workflow/](contributor-workflow/)** - OSS contributor setup with separate planning repo
@@ -38,7 +38,7 @@ cd bash-agent
 cd git-hooks
 ./install.sh
 
-# REMOVED (bd-4c74): branch-merge demo - hash IDs eliminate collision resolution
+# REMOVED (issuegraph-4c74): branch-merge demo - hash IDs eliminate collision resolution
 ```
 
 ## Creating Your Own Agent

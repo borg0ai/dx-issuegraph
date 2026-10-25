@@ -3,10 +3,10 @@ package github
 import (
 	"testing"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// TestPushFieldsEqual is the regression test for gastownhall/beads#4214:
+// TestPushFieldsEqual is the regression test for borg0ai/dx-issuegraph#4214:
 // without a content comparator, GitHub push re-PATCHed every issue on every
 // run. PushFieldsEqual must report "no change" when the pushable fields
 // (title, body, state, label set) already match GitHub, and "changed"
@@ -117,7 +117,7 @@ func TestPushFieldsEqual(t *testing.T) {
 }
 
 // TestPushContentHash covers the local content fingerprint used to skip the
-// per-issue GitHub fetch on a no-op push (gastownhall/beads#4214). It must be
+// per-issue GitHub fetch on a no-op push (borg0ai/dx-issuegraph#4214). It must be
 // stable for identical content (and label reordering), and must change whenever
 // any pushable field changes, so the engine never skips a needed update.
 func TestPushContentHash(t *testing.T) {

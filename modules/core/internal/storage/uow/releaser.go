@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ReleaserSource is the capability accessor a unit-of-work provider offers for
@@ -67,6 +67,6 @@ func (r *releaser) Release(ctx context.Context, req publicops.ReleaseRequest) (p
 		if err != nil || !wrote {
 			return result, "", err
 		}
-		return result, fmt.Sprintf("bd: unclaim %s", req.IssueID), nil
+		return result, fmt.Sprintf("issuegraph: unclaim %s", req.IssueID), nil
 	})
 }

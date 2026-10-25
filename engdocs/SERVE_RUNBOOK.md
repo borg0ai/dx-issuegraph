@@ -3,7 +3,7 @@
 Last reviewed: 2026-08-10
 
 Freshness source: `internal/httpapi/server.go`,
-`internal/httpapi/events_watch.go`, `modules/cli/serve.go` and
+`internal/httpapi/events_watch.go`, `apps/cli/serve.go` and
 `internal/httpapi/auth.go` — the operating-envelope constants, the fields their
 `event` emitters write, and the flag, posture and token-file rules.
 
@@ -54,7 +54,7 @@ The host in `--addr` must be a numeric IP literal; a DNS name is refused.
 stdout gets exactly one line, at bind time, and nothing else:
 
 ```
-bd serve: listening on http://127.0.0.1:7777
+issuegraph serve: listening on http://127.0.0.1:7777
 ```
 
 That is how a caller who asked for an ephemeral port discovers it — read one
@@ -81,14 +81,14 @@ issuegraph serve --addr 127.0.0.1:7777 --auth-token-file /run/secrets/bd-tokens
 ```
 
 Every operation except `GET /healthz` then requires
-`Authorization: Bearer <token>`. `GET /v0/beads/context` is **not** exempt — it
+`Authorization: Bearer <token>`. `GET /v0/issuegraph/context` is **not** exempt — it
 reports the repo root, the issuegraph directory and the database name. `/healthz` is
 the one exemption, because a kubelet probe presents no credential and a
 liveness endpoint that 401s is a pod that restarts forever.
 
 The file holds **one token per line, and every non-empty line is accepted**.
 There is no `--auth-token` flag: an argument is readable out of `ps` by every
-local user. `BEADS_SERVE_TOKEN_FILE` is the environment fallback, and it
+local user. `ISSUEGRAPH_SERVE_TOKEN_FILE` is the environment fallback, and it
 applies only when the flag was not passed.
 
 **Rotation is a file rewrite, with no restart.** Write the new token alongside
@@ -129,7 +129,7 @@ that can reach it gets full read and claim access.
 
 ```
 issuegraph serve --addr 0.0.0.0:7777 --auth-token-file /run/secrets/bd-tokens \
-         --allowed-host bd.internal.example
+         --allowed-host issuegraph.internal.example
 ```
 
 `--insecure-no-auth` is the explicit, auditable way to bind beyond loopback
@@ -142,8 +142,8 @@ two are different sentences — one names the missing credential, the other name
 the missing TLS:
 
 ```
-bd serve: WARNING: --insecure-no-auth binds 0.0.0.0:7777 beyond loopback with no authentication. Any peer that can reach it can read every issue and claim work as any actor.
-bd serve: WARNING: 0.0.0.0:7777 is bound beyond loopback with bearer authentication but NO TLS. Tokens and issue data travel in plaintext; deploy it inside a trusted network boundary.
+issuegraph serve: WARNING: --insecure-no-auth binds 0.0.0.0:7777 beyond loopback with no authentication. Any peer that can reach it can read every issue and claim work as any actor.
+issuegraph serve: WARNING: 0.0.0.0:7777 is bound beyond loopback with bearer authentication but NO TLS. Tokens and issue data travel in plaintext; deploy it inside a trusted network boundary.
 ```
 
 **There is still no TLS.** Even with a token, the credential and every issue
@@ -168,14 +168,14 @@ page.
 | Probe | Route | What green means |
 |---|---|---|
 | Liveness | `GET /healthz` | The process is running. |
-| Readiness | `GET /v0/beads/ready?limit=1` | The process is running **and** the database answered. |
+| Readiness | `GET /v0/issuegraph/ready?limit=1` | The process is running **and** the database answered. |
 
 `/healthz` answers from the process and never touches the database. It stays
 green while the database is unreachable, wedged, or idle-stopped — which is what
 makes it a correct liveness probe and a useless readiness probe. Do not wire it
 to a load balancer's readiness check.
 
-`GET /v0/beads/ready?limit=1` is a real query with a one-row bound. 200 means
+`GET /v0/issuegraph/ready?limit=1` is a real query with a one-row bound. 200 means
 ready; 503 means live but not ready, and its `code` says which kind:
 `db_unavailable` for a connectivity failure, `busy` for contention or slot
 saturation. Both carry `Retry-After`; a probe should treat either as not-ready
@@ -187,7 +187,7 @@ whole-request deadline as its worst case, so give it a timeout well under that
 
 **On a server started with `--auth-token-file`, the readiness probe needs the
 token and the liveness probe does not.** `/healthz` is the one auth-exempt
-route; `GET /v0/beads/ready` is not, so an unauthenticated readiness probe gets
+route; `GET /v0/issuegraph/ready` is not, so an unauthenticated readiness probe gets
 a `401` — never a 503 — and a load balancer reading only the status class will
 book a healthy server as permanently not-ready. Give the readiness probe an
 `Authorization: Bearer` header, and alert on `event=auth_refused` with
@@ -266,7 +266,7 @@ bound connections: Go spawns a goroutine per connection, and one parked on a
 full semaphore still holds its goroutine, file descriptor and buffers. Excess
 connections wait in the kernel accept backlog instead of in Go memory.
 
-`maxWatchStreams = 48` caps `GET /v0/beads/events:watch`, the one operation
+`maxWatchStreams = 48` caps `GET /v0/issuegraph/events:watch`, the one operation
 whose requests last hours, and it sits **16 connections below `maxConns`
 deliberately**. `LimitListener` hands a connection slot back only when the
 connection closes — after the handler returns, and therefore after the stream
@@ -309,7 +309,7 @@ whole-request deadline for the same reason, and each read is bounded by its own
 15s deadline instead — short because it also bounds how long a stream can go
 without a heartbeat and how long it can ignore a shutdown, not because a page of
 1000 journal rows should ever take that long. Tell accumulating consumers to
-poll `GET /v0/beads/events`, which is never refused for capacity.
+poll `GET /v0/issuegraph/events`, which is never refused for capacity.
 
 ## Shutdown, and the ambiguous claim
 
@@ -357,11 +357,11 @@ so an impatient caller does not spike the signal an operator alerts on.
 
 ## Request log
 
-One structured line per request on **stderr**, prefixed `bd serve: ` and a UTC
+One structured line per request on **stderr**, prefixed `issuegraph serve: ` and a UTC
 timestamp from the standard logger:
 
 ```
-bd serve: 2026/08/01 05:17:42 event=request request_id=8f3a1c07-000042 op=listReadyWork method=GET path=/v0/beads/ready status=200 code="" duration_ms=12.480 sem_wait_ms=0.031 uow_ms=11.902 conns=1 remote_addr=127.0.0.1:54321
+issuegraph serve: 2026/08/01 05:17:42 event=request request_id=8f3a1c07-000042 op=listReadyWork method=GET path=/v0/issuegraph/ready status=200 code="" duration_ms=12.480 sem_wait_ms=0.031 uow_ms=11.902 conns=1 remote_addr=127.0.0.1:54321
 ```
 
 Fields, in order:
@@ -415,8 +415,8 @@ gives the shape, the `request_error` line gives the cause.
 
 | Message | Cause |
 |---|---|
-| `bd serve requires a Dolt SQL server; this workspace uses embedded Dolt` | Permanent. The embedded backend commits outside the SQL transaction on a separate connection, so this server's per-request atomicity would be a lie there. Refused by `serveDatabaseSource`, which is the only thing refusing it — see "Workspace modes" in the design doc. |
-| `bd serve is unavailable under strict readonly` | `--readonly`, or `readonly` in config. Every server this command binds publishes the issue-claim operation and the advertised capability set is a property of the build, not of the flags on the process that started it — so the alternatives were a server advertising a claim it always fails (the store source, where the read-only open reaches the claimer) or a `--readonly` that quietly bought nothing (the provider source, which builds its own writable connection). Drop the flag to serve. |
+| `issuegraph serve requires a Dolt SQL server; this workspace uses embedded Dolt` | Permanent. The embedded backend commits outside the SQL transaction on a separate connection, so this server's per-request atomicity would be a lie there. Refused by `serveDatabaseSource`, which is the only thing refusing it — see "Workspace modes" in the design doc. |
+| `issuegraph serve is unavailable under strict readonly` | `--readonly`, or `readonly` in config. Every server this command binds publishes the issue-claim operation and the advertised capability set is a property of the build, not of the flags on the process that started it — so the alternatives were a server advertising a claim it always fails (the store source, where the read-only open reaches the claimer) or a `--readonly` that quietly bought nothing (the provider source, which builds its own writable connection). Drop the flag to serve. |
 | `--addr "localhost:7777": host must be a numeric IP literal, not a name — use 127.0.0.1 rather than localhost` | `--addr` was given a DNS name. |
 | `--addr "0.0.0.0:7777" binds beyond loopback, which requires --allow-non-loopback (and, with it, --auth-token-file)` | A non-loopback `--addr` without the flag. |
 | `--allow-non-loopback requires --auth-token-file (or the explicit --insecure-no-auth): every peer that can reach the address gets full read and claim access` | Binding beyond loopback with no credential and no waiver. |
@@ -429,7 +429,7 @@ The five auth and bind refusals above are raised by `resolveServeConfig` before
 serve opens its database source or listener, independent of the workspace, so
 they read the same in every workspace mode. (The root command's
 `PersistentPreRunE` still resolves the workspace first, so a directory with no
-beads database answers `no beads database found` ahead of any of them.) And
+issuegraph database answers `no issuegraph database found` ahead of any of them.) And
 `httpapi.Listen` re-checks the same rules, so a second caller of the package
 cannot assemble a `Config` that serves the whole surface to a network with no
 credential.

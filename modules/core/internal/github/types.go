@@ -2,7 +2,7 @@
 //
 // This package handles all interactions with GitHub's issue tracking system,
 // including fetching, creating, and updating issues. It provides bidirectional
-// mapping between GitHub's data model and Beads' internal types.
+// mapping between GitHub's data model and IssueGraph' internal types.
 package github
 
 import (
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // API configuration constants.
@@ -174,7 +174,7 @@ type PushStats struct {
 // A conflict occurs when both the local and GitHub versions have been modified
 // since the last sync.
 type Conflict struct {
-	IssueID           string    // Beads issue ID
+	IssueID           string    // IssueGraph issue ID
 	LocalUpdated      time.Time // When the local version was last modified
 	GitHubUpdated     time.Time // When the GitHub version was last modified
 	GitHubExternalRef string    // URL to the GitHub issue
@@ -182,7 +182,7 @@ type Conflict struct {
 	GitHubID          int       // GitHub's global issue ID
 }
 
-// IssueConversion holds the result of converting a GitHub issue to Beads.
+// IssueConversion holds the result of converting a GitHub issue to IssueGraph.
 // It includes the issue and any dependencies that should be created.
 type IssueConversion struct {
 	Issue        *types.Issue
@@ -194,7 +194,7 @@ type IssueConversion struct {
 type DependencyInfo struct {
 	FromGitHubNumber int    // GitHub number of the dependent issue
 	ToGitHubNumber   int    // GitHub number of the dependency target
-	Type             string // Beads dependency type (blocks, related, parent-child)
+	Type             string // IssueGraph dependency type (blocks, related, parent-child)
 }
 
 // Valid GitHub issue states.
@@ -220,7 +220,7 @@ func parseLabelPrefix(label string) (prefix, value string) {
 	return "", label
 }
 
-// PriorityMapping maps priority label values to beads priority (0-4).
+// PriorityMapping maps priority label values to issuegraph priority (0-4).
 // This is the single source of truth for priority mappings.
 var PriorityMapping = map[string]int{
 	"critical": 0, // P0
@@ -230,7 +230,7 @@ var PriorityMapping = map[string]int{
 	"none":     4, // P4
 }
 
-// StatusMapping maps status label values to beads status strings.
+// StatusMapping maps status label values to issuegraph status strings.
 // This is the single source of truth for status mappings.
 var StatusMapping = map[string]string{
 	"open":        "open",
@@ -240,7 +240,7 @@ var StatusMapping = map[string]string{
 	"closed":      "closed",
 }
 
-// typeMapping maps type label values to beads issue type strings.
+// typeMapping maps type label values to issuegraph issue type strings.
 // This is the single source of truth for type mappings.
 var typeMapping = map[string]string{
 	"bug":         "bug",
@@ -255,7 +255,7 @@ var typeMapping = map[string]string{
 	"enhancement": "feature",
 }
 
-// getPriorityFromLabel returns the beads priority for a priority label value.
+// getPriorityFromLabel returns the issuegraph priority for a priority label value.
 // Returns -1 if the value is not recognized.
 func getPriorityFromLabel(value string) int {
 	if p, ok := PriorityMapping[strings.ToLower(value)]; ok {
@@ -264,13 +264,13 @@ func getPriorityFromLabel(value string) int {
 	return -1
 }
 
-// getStatusFromLabel returns the beads status for a status label value.
+// getStatusFromLabel returns the issuegraph status for a status label value.
 // Returns empty string if the value is not recognized.
 func getStatusFromLabel(value string) string {
 	return StatusMapping[strings.ToLower(value)]
 }
 
-// getTypeFromLabel returns the beads issue type for a type label value.
+// getTypeFromLabel returns the issuegraph issue type for a type label value.
 // Returns empty string if the value is not recognized.
 func getTypeFromLabel(value string) string {
 	return typeMapping[strings.ToLower(value)]

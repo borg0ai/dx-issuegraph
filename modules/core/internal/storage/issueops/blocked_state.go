@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // DBTX is the minimal statement-execution surface the blocked-state
@@ -64,7 +64,7 @@ const waitsForGateBlockedSQL = `
 		OR (
 		  -- also_blocks (GH#3783/GH#3875): a waits-for edge collapsed from a
 		  -- redundant needs/depends_on blocks edge onto this same spawner
-		  -- (modules/cli/cook.go collectDependencies) additionally carries classic
+		  -- (apps/cli/cook.go collectDependencies) additionally carries classic
 		  -- blocking semantics — it must block while the spawner itself is
 		  -- open, not only while the spawner has an open parent-child child.
 		  -- This closes the pre-fanout window where the waiter could become
@@ -212,7 +212,7 @@ func markIsBlockedPassForIssuesInTx(ctx context.Context, tx DBTX, ids []string) 
 // correlated EXISTS per outer row — was re-executed per row by the engine:
 // ~4 s per 200-id batch on committed, indexed data, and unbounded (>69 min
 // observed on dolt 2.1.8) over a large uncommitted working set, where every
-// probe re-read the uncommitted overlay (gastownhall/beads#6288).
+// probe re-read the uncommitted overlay (borg0ai/dx-issuegraph#6288).
 //
 // The batch IN-list therefore appears more than once per statement — the
 // outer row filter plus one per union leg; expandBatchTemplate repeats the

@@ -415,7 +415,7 @@ func expectOnePendingMigration(t *testing.T, mock sqlmock.Sqlmock) {
 		// The v53 pre-repair probes the six rig/agent columns on issues and
 		// then the local wisp_dependencies table; this mocked world has all
 		// issue columns and no local wisp_dependencies table, so no ALTERs follow.
-		for _, col := range []string{"hook_bead", "role_bead", "agent_state", "last_activity", "role_type", "rig"} {
+		for _, col := range []string{"hook_issue", "role_issue", "agent_state", "last_activity", "role_type", "rig"} {
 			mock.ExpectQuery(`SELECT COUNT\(\*\) FROM INFORMATION_SCHEMA\.COLUMNS`).
 				WithArgs("issues", col).
 				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
@@ -534,7 +534,7 @@ func expectDoltStatusRows(mock sqlmock.Sqlmock) {
 // #4566 pre-flight guard and gets refused: the cursor is one migration behind,
 // `issues` is dirty in the working set, and the pending (latest) migration
 // touches `issues`. This is the interrupted-fresh-bootstrap shape from
-// gastownhall/beads#5012 — a previous attempt's step debris, read by a retry.
+// borg0ai/dx-issuegraph#5012 — a previous attempt's step debris, read by a retry.
 // It relies on the latest migration touching `issues`; if a future latest
 // migration stops doing so, sqlmock will fail loudly on the unexpected query
 // flow and this helper should dirty a table that migration does touch.
@@ -656,7 +656,7 @@ func TestMigrateUpWithLockDirtyGuardStaysFatalWithoutHeal(t *testing.T) {
 }
 
 // TestMigrateUpWithLockFreshBootstrapHealResetsAndRetries is the unit-level
-// regression for gastownhall/beads#5012: with WithFreshBootstrapHeal (the
+// regression for borg0ai/dx-issuegraph#5012: with WithFreshBootstrapHeal (the
 // caller created the database within this init), a #4566 guard refusal is
 // healed under the held migration lock — DOLT_RESET('--hard') discards the
 // interrupted bootstrap's working-set debris and the pass re-runs to

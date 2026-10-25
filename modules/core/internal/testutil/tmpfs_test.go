@@ -16,9 +16,9 @@ func TestTempDirInMemory(t *testing.T) {
 		t.Fatalf("TempDirInMemory() did not create valid directory: %v", err)
 	}
 
-	// Verify it's a beads test directory
-	if !strings.Contains(filepath.Base(tmpDir), "beads-test") {
-		t.Errorf("Expected directory name to contain 'beads-test', got: %s", tmpDir)
+	// Verify it's a issuegraph test directory
+	if !strings.Contains(filepath.Base(tmpDir), "issuegraph-test") {
+		t.Errorf("Expected directory name to contain 'issuegraph-test', got: %s", tmpDir)
 	}
 
 	// On Linux CI, verify we're using /dev/shm if available

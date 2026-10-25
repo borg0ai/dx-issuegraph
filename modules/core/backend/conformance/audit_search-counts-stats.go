@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // Audit cases for the "search-counts-stats" slice. Each case encodes a strange
@@ -141,7 +141,7 @@ func testAuditSearchIssuesWithCounts(t *testing.T, f Factory) {
 // the edge's created_at as NULL/zero stayed green. SQLite does exactly that when a
 // dependency created_at bound as a Go time.Time is stored in t.String() form and
 // strftime cannot parse it — the reason the DSN must set _time_format=datetime. The
-// batch/import path (CreateIssuesWithFullOptions, i.e. `bd import`) binds dep.CreatedAt
+// batch/import path (CreateIssuesWithFullOptions, i.e. `issuegraph import`) binds dep.CreatedAt
 // verbatim, so it is the path that exposes the divergence. GetDependencies returns the
 // target issues, not the edges, so it cannot witness the edge timestamp; assert the
 // rendered edge created_at equals the value that was imported.
@@ -162,8 +162,8 @@ func testAuditReadyWorkDepCreatedAtParity(t *testing.T, f Factory) {
 		}),
 	}, "a", storage.BatchCreateOptions{SkipPrefixValidation: true}))
 
-	// Rendered path: SearchIssuesWithCounts (bd list --with-counts) and
-	// GetReadyWorkWithCounts (bd ready) share ScanReadyWorkRowWithCounts, which parses
+	// Rendered path: SearchIssuesWithCounts (issuegraph list --with-counts) and
+	// GetReadyWorkWithCounts (issuegraph ready) share ScanReadyWorkRowWithCounts, which parses
 	// deps_json into issue.Dependencies. The rendered created_at must be the real
 	// imported timestamp, not the zero time a NULL DATE_FORMAT would unmarshal to.
 	items, err := s.SearchIssuesWithCounts(c, "", types.IssueFilter{})
@@ -487,7 +487,7 @@ func testAuditSearchSortTieBreakSurvivesReversal(t *testing.T, f Factory) {
 // NULL ordering. sqlbuild/sort.go leads those keys with an explicit (col IS NULL)
 // term precisely "so the contract does not depend on a driver's default NULL
 // ordering", but the slice pins only the closed sort in its default direction.
-// The unassigned rows are created exactly as `bd create` leaves them, so the case
+// The unassigned rows are created exactly as `issuegraph create` leaves them, so the case
 // pins the observable order without prescribing a NULL-vs-empty-string encoding.
 func testAuditSearchSortNullsDirectional(t *testing.T, f Factory) {
 	s := f(t)

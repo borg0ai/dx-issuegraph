@@ -1,11 +1,11 @@
 ---
-title: "bd ship"
-description: "Ship a capability to satisfy cross-project dependencies."
+title: "issuegraph ship"
+description: "Publish a capability for cross-project dependencies"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc ship`.
+Generated from `issuegraph help --doc ship`.
 
 Ship a capability to satisfy cross-project dependencies.
 
@@ -15,18 +15,18 @@ This command:
   3. Adds provides:&lt;capability&gt; label
 
 External projects can depend on this capability using:
-  bd dep add &lt;issue&gt; external:&lt;project&gt;:&lt;capability&gt;
+  issuegraph dep add &lt;issue&gt; external:&lt;project&gt;:&lt;capability&gt;
 
 The capability is resolved when the external project has a closed issue
 with the provides:&lt;capability&gt; label.
 
 Examples:
-  bd ship mol-run-assignee              # Ship the mol-run-assignee capability
-  bd ship mol-run-assignee --force      # Ship even if issue is not closed
-  bd ship mol-run-assignee --dry-run    # Preview without making changes
+  issuegraph ship mol-run-assignee              # Ship the mol-run-assignee capability
+  issuegraph ship mol-run-assignee --force      # Ship even if issue is not closed
+  issuegraph ship mol-run-assignee --dry-run    # Preview without making changes
 
 ```
-bd ship <capability> [flags]
+issuegraph ship <capability> [flags]
 ```
 
 **Flags:**

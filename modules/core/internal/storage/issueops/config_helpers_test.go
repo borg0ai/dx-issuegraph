@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func TestReopenCategoryInTx(t *testing.T) {
@@ -48,7 +48,7 @@ func TestReopenCategoryInTx(t *testing.T) {
 		db, mock, tx := beginMockTx(t)
 		defer db.Close()
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT name, category FROM custom_statuses ORDER BY name")).
-			WillReturnError(errors.New("Error 1146 (42S02): Table 'beads.custom_statuses' doesn't exist"))
+			WillReturnError(errors.New("Error 1146 (42S02): Table 'issuegraph.custom_statuses' doesn't exist"))
 		mock.ExpectQuery(regexp.QuoteMeta("SELECT value FROM config WHERE `key` = ?")).
 			WithArgs("status.custom").
 			WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow("archived:done"))
@@ -248,8 +248,8 @@ func TestParseCommaSeparatedList(t *testing.T) {
 	}
 }
 
-// TestMergeWithYAMLCustomTypes pins the gastownhall/beads#4024 overlay
-// semantics: project-extension types declared in .beads/config.yaml must
+// TestMergeWithYAMLCustomTypes pins the borg0ai/dx-issuegraph#4024 overlay
+// semantics: project-extension types declared in .issuegraph/config.yaml must
 // union-add to whatever the database side already declared, with duplicates
 // removed and order preserved (DB types first, then YAML-only types).
 func TestMergeWithYAMLCustomTypes(t *testing.T) {

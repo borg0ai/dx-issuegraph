@@ -1,11 +1,11 @@
 ---
-title: "bd query"
-description: "Query issues using a simple query language that supports compound filters,"
+title: "issuegraph query"
+description: "Query issues using a simple query language"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc query`.
+Generated from `issuegraph help --doc query`.
 
 Query issues using a simple query language that supports compound filters,
 boolean operators, and date-relative expressions.
@@ -28,7 +28,7 @@ Boolean operators (case-insensitive):
   (expr)            Grouping with parentheses
 
 Supported fields:
-  status            Stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues stay "open"; use 'bd blocked' to find them
+  status            Stored status (open, in_progress, blocked, deferred, closed). Note: dependency-blocked issues stay "open"; use 'issuegraph blocked' to find them
   priority          Priority level (0-4)
   type              Issue type (bug, feature, task, epic, chore, decision)
   assignee          Assigned user (use "none" for unassigned)
@@ -55,18 +55,18 @@ Date values:
   Natural language: tomorrow, "next monday", "in 3 days"
 
 Examples:
-  bd query "status=open AND priority&gt;1"
-  bd query "status=open AND priority&lt;=2 AND updated&gt;7d"
-  bd query "(status=open OR status=blocked) AND priority&lt;2"
-  bd query "type=bug AND label=urgent"
-  bd query "NOT status=closed"
-  bd query "assignee=none AND type=task"
-  bd query "created&gt;30d AND status!=closed"
-  bd query "label=frontend OR label=backend"
-  bd query "title=authentication AND priority=0"
+  issuegraph query "status=open AND priority&gt;1"
+  issuegraph query "status=open AND priority&lt;=2 AND updated&gt;7d"
+  issuegraph query "(status=open OR status=blocked) AND priority&lt;2"
+  issuegraph query "type=bug AND label=urgent"
+  issuegraph query "NOT status=closed"
+  issuegraph query "assignee=none AND type=task"
+  issuegraph query "created&gt;30d AND status!=closed"
+  issuegraph query "label=frontend OR label=backend"
+  issuegraph query "title=authentication AND priority=0"
 
 ```
-bd query [expression] [flags]
+issuegraph query [expression] [flags]
 ```
 
 **Flags:**
@@ -77,6 +77,6 @@ bd query [expression] [flags]
       --long          Show detailed multi-line output for each issue
       --offset int    Skip the first N matching results (0-based). Only supported under --proxied-server.
       --parse-only    Only parse the query and show the AST (for debugging)
-  -r, --reverse       Reverse sort order
+  -r, --reverse       Invert the sort field's default direction (created/updated/closed default to newest-first, so --sort updated --reverse is oldest-first)
       --sort string   Sort by field: priority, created, updated, closed, status, id, title, type, assignee
 ```

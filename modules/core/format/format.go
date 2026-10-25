@@ -1,14 +1,14 @@
-// Package format provides public formatting functions for beads issues.
+// Package format provides public formatting functions for issuegraph issues.
 // These functions are used by gt and other consumers to render issue
-// output without depending on the bd CLI.
+// output without depending on the issuegraph CLI.
 package format
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // PrettyIssue formats a single issue in the standard one-line list format.

@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // errRollbackProbe is the sentinel a journal test returns from a transaction
@@ -37,7 +37,7 @@ type jrow struct {
 func readJournalRows(t *testing.T, store *DoltStore) []jrow {
 	t.Helper()
 	rows, err := store.db.QueryContext(context.Background(),
-		`SELECT seq, op, issue_id FROM bd_events_journal ORDER BY seq ASC`)
+		`SELECT seq, op, issue_id FROM issuegraph_events_journal ORDER BY seq ASC`)
 	if err != nil {
 		t.Fatalf("query journal: %v", err)
 	}
@@ -58,7 +58,7 @@ func readJournalRows(t *testing.T, store *DoltStore) []jrow {
 
 func clearJournal(t *testing.T, store *DoltStore) {
 	t.Helper()
-	if _, err := store.db.ExecContext(context.Background(), "DELETE FROM bd_events_journal"); err != nil {
+	if _, err := store.db.ExecContext(context.Background(), "DELETE FROM issuegraph_events_journal"); err != nil {
 		t.Fatalf("clear journal: %v", err)
 	}
 }
@@ -69,7 +69,7 @@ func journalActorFor(t *testing.T, store *DoltStore, op, id string) (string, boo
 	t.Helper()
 	var actor string
 	err := store.db.QueryRowContext(context.Background(),
-		`SELECT actor FROM bd_events_journal WHERE op = ? AND issue_id = ? ORDER BY seq DESC LIMIT 1`,
+		`SELECT actor FROM issuegraph_events_journal WHERE op = ? AND issue_id = ? ORDER BY seq DESC LIMIT 1`,
 		op, id).Scan(&actor)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", false
@@ -95,7 +95,7 @@ func hasOpFor(rows []jrow, op, id string) bool {
 func journalDepDeltas(t *testing.T, store *DoltStore) []string {
 	t.Helper()
 	rows, err := store.db.QueryContext(context.Background(),
-		`SELECT op, issue_id, dep_json FROM bd_events_journal ORDER BY seq ASC`)
+		`SELECT op, issue_id, dep_json FROM issuegraph_events_journal ORDER BY seq ASC`)
 	if err != nil {
 		t.Fatalf("query journal: %v", err)
 	}
@@ -387,13 +387,13 @@ func TestEventsJournal_SeamEntryPoints(t *testing.T) {
 		}
 		for _, seq := range commentSeqs {
 			if seq <= createSeq {
-				t.Fatalf("comment op at seq %d must follow the create at seq %d — a consumer must not be told about a comment on a bead it has not seen created", seq, createSeq)
+				t.Fatalf("comment op at seq %d must follow the create at seq %d — a consumer must not be told about a comment on a issue it has not seen created", seq, createSeq)
 			}
 		}
 		// The payload must carry the replayable text, not just a snapshot.
 		var payloads []issueops.EventComment
 		crows, err := store.db.QueryContext(ctx,
-			`SELECT comment_json FROM bd_events_journal WHERE op = 'comment' AND issue_id = ? ORDER BY seq`, "test-ct-comments")
+			`SELECT comment_json FROM issuegraph_events_journal WHERE op = 'comment' AND issue_id = ? ORDER BY seq`, "test-ct-comments")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -542,7 +542,7 @@ func TestEventsJournal_DeleteRelationshipDeltas(t *testing.T) {
 }
 
 // TestEventsJournal_CascadeDeleteJournalsEveryChild asserts a cascade delete
-// records every bead it removes — the finding the decorator design could not
+// records every issue it removes — the finding the decorator design could not
 // cover.
 func TestEventsJournal_CascadeDeleteJournalsEveryChild(t *testing.T) {
 	store, cleanup := setupTestStore(t)
@@ -665,7 +665,7 @@ func TestEventsJournal_DependencySnapshotsFollowBlockedState(t *testing.T) {
 	readLast := func() (types.Issue, issueops.EventDep) {
 		t.Helper()
 		var issueJSON, depJSON []byte
-		if err := store.db.QueryRowContext(ctx, `SELECT issue_json, dep_json FROM bd_events_journal ORDER BY seq DESC LIMIT 1`).Scan(&issueJSON, &depJSON); err != nil {
+		if err := store.db.QueryRowContext(ctx, `SELECT issue_json, dep_json FROM issuegraph_events_journal ORDER BY seq DESC LIMIT 1`).Scan(&issueJSON, &depJSON); err != nil {
 			t.Fatalf("read journal: %v", err)
 		}
 		var issue types.Issue
@@ -699,8 +699,8 @@ func TestEventsJournal_DependencySnapshotsFollowBlockedState(t *testing.T) {
 }
 
 // TestEventsJournal_DerivedBlockedStateChanges proves that mutations affecting
-// another bead's persisted readiness emit a post-recompute update for that
-// bead. Without these rows, cursor consumers retain stale is_blocked values
+// another issue's persisted readiness emit a post-recompute update for that
+// issue. Without these rows, cursor consumers retain stale is_blocked values
 // until a later full reconciliation.
 func TestEventsJournal_DerivedBlockedStateChanges(t *testing.T) {
 	store, cleanup := setupTestStore(t)
@@ -740,7 +740,7 @@ func TestEventsJournal_DerivedBlockedStateChanges(t *testing.T) {
 	assertJournalUpdate := func(tb testing.TB, id string, wantBlocked bool) {
 		tb.Helper()
 		rows, err := store.db.QueryContext(ctx,
-			`SELECT issue_json FROM bd_events_journal WHERE op = 'update' AND issue_id = ? ORDER BY seq`, id)
+			`SELECT issue_json FROM issuegraph_events_journal WHERE op = 'update' AND issue_id = ? ORDER BY seq`, id)
 		if err != nil {
 			tb.Fatal(err)
 		}
@@ -834,7 +834,7 @@ func TestEventsJournal_CommentPayloads(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rows, err := store.db.QueryContext(ctx, `SELECT op, comment_json FROM bd_events_journal ORDER BY seq ASC`)
+	rows, err := store.db.QueryContext(ctx, `SELECT op, comment_json FROM issuegraph_events_journal ORDER BY seq ASC`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -957,7 +957,7 @@ func TestEventsJournal_ActorAttribution(t *testing.T) {
 	}
 
 	// storage.DeleteIssue is the ACTORLESS SYSTEM SURFACE — the interface gc
-	// decay, molecule cleanup and `bd doctor --fix` reach for, which has no
+	// decay, molecule cleanup and `issuegraph doctor --fix` reach for, which has no
 	// request behind it and no actor to record. Its row is empty by contract,
 	// not by omission: the role-path case below is what pins the attributed
 	// half, and the two together are the whole of the 0066 promise.
@@ -970,7 +970,7 @@ func TestEventsJournal_ActorAttribution(t *testing.T) {
 }
 
 // TestEventsJournal_DeleteRoleAttributesTheRequester is the #5985 regression:
-// `bd delete <id> --force --actor A` must land `actor = A` on the delete row AND
+// `issuegraph delete <id> --force --actor A` must land `actor = A` on the delete row AND
 // on the cascade dep_remove rows the same request produces.
 //
 // It goes through the ROLE (store.Deleter()), which is what every user-initiated

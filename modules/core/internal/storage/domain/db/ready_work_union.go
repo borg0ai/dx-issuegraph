@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/storage/domain"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func (r *issueSQLRepositoryImpl) getReadyWorkIDPage(ctx context.Context, filter types.WorkFilter) (idSrcPage, bool, error) {
@@ -34,7 +34,7 @@ func (r *issueSQLRepositoryImpl) getReadyWorkIDPage(ctx context.Context, filter 
 
 	if !wispsEmpty {
 		// The ephemeral predicate applies to wisps too: the wisps table also
-		// holds non-ephemeral NoHistory beads (ephemeral=0), so forcing
+		// holds non-ephemeral NoHistory issuegraph (ephemeral=0), so forcing
 		// IncludeEphemeral here would leak true ephemerals into default ready
 		// work — issueops.getReadyWispsInTx filters them the same way.
 		wispPreds, err := r.buildReadyWorkPredicates(ctx, filter, wispsFilterTables)

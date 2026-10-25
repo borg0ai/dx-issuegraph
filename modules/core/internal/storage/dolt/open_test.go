@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 )
 
 // TestResolveAutoStart verifies all conditions that govern the AutoStart decision.
@@ -22,8 +22,8 @@ import (
 func TestResolveAutoStart(t *testing.T) {
 	tests := []struct {
 		name             string
-		testMode         string // BEADS_TEST_MODE to set; "" leaves it unset/empty
-		autoStartEnv     string // BEADS_DOLT_AUTO_START to set; "" leaves it unset/empty
+		testMode         string // ISSUEGRAPH_TEST_MODE to set; "" leaves it unset/empty
+		autoStartEnv     string // ISSUEGRAPH_DOLT_AUTO_START to set; "" leaves it unset/empty
 		doltAutoStartCfg string // raw value of "dolt.auto-start" from config.yaml
 		currentValue     bool   // AutoStart value supplied by caller
 		wantAutoStart    bool
@@ -33,17 +33,17 @@ func TestResolveAutoStart(t *testing.T) {
 			wantAutoStart: true,
 		},
 		{
-			name:          "disabled when BEADS_TEST_MODE=1",
+			name:          "disabled when ISSUEGRAPH_TEST_MODE=1",
 			testMode:      "1",
 			wantAutoStart: false,
 		},
 		{
-			name:          "disabled when BEADS_DOLT_AUTO_START=0",
+			name:          "disabled when ISSUEGRAPH_DOLT_AUTO_START=0",
 			autoStartEnv:  "0",
 			wantAutoStart: false,
 		},
 		{
-			name:          "enabled when BEADS_DOLT_AUTO_START=1",
+			name:          "enabled when ISSUEGRAPH_DOLT_AUTO_START=1",
 			autoStartEnv:  "1",
 			wantAutoStart: true,
 		},
@@ -63,7 +63,7 @@ func TestResolveAutoStart(t *testing.T) {
 			wantAutoStart:    false,
 		},
 		{
-			name:          "test mode wins over BEADS_DOLT_AUTO_START=1",
+			name:          "test mode wins over ISSUEGRAPH_DOLT_AUTO_START=1",
 			testMode:      "1",
 			autoStartEnv:  "1",
 			wantAutoStart: false,
@@ -87,7 +87,7 @@ func TestResolveAutoStart(t *testing.T) {
 			wantAutoStart: false,
 		},
 		{
-			name:          "BEADS_DOLT_AUTO_START=0 overrides caller true",
+			name:          "ISSUEGRAPH_DOLT_AUTO_START=0 overrides caller true",
 			autoStartEnv:  "0",
 			currentValue:  true,
 			wantAutoStart: false,
@@ -96,8 +96,8 @@ func TestResolveAutoStart(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("BEADS_TEST_MODE", tc.testMode)
-			t.Setenv("BEADS_DOLT_AUTO_START", tc.autoStartEnv)
+			t.Setenv("ISSUEGRAPH_TEST_MODE", tc.testMode)
+			t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", tc.autoStartEnv)
 
 			got := resolveAutoStart(tc.currentValue, tc.doltAutoStartCfg, ServerModeOwned)
 			if got != tc.wantAutoStart {
@@ -114,50 +114,50 @@ func TestResolveAutoStart(t *testing.T) {
 // configured external server is transiently unreachable.
 //
 // Regression for the case where ApplyCLIAutoStart hardcoded ServerModeOwned
-// and bypassed resolveAutoStart's external-mode check, so any bd command in
+// and bypassed resolveAutoStart's external-mode check, so any issuegraph command in
 // an external-mode repo could spawn a fallback embedded server when the
 // configured server didn't respond (e.g. during a service cutover).
 func TestApplyCLIAutoStart_RespectsExternalMode(t *testing.T) {
-	t.Setenv("BEADS_DOLT_SERVER_MODE", "")
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
-	t.Setenv("BEADS_DOLT_AUTO_START", "")
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 
-	beadsDir := t.TempDir()
+	issuegraphDir := t.TempDir()
 	// metadata.json with explicit dolt_server_port → ServerModeExternal.
 	cfg := configfile.DefaultConfig()
 	cfg.DoltMode = configfile.DoltModeServer
 	cfg.DoltServerPort = 3399
-	if err := cfg.Save(beadsDir); err != nil {
+	if err := cfg.Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata.json: %v", err)
 	}
 
-	if got := doltserver.ResolveServerMode(beadsDir); got != doltserver.ServerModeExternal {
+	if got := doltserver.ResolveServerMode(issuegraphDir); got != doltserver.ServerModeExternal {
 		t.Fatalf("ResolveServerMode = %v, want External (preflight)", got)
 	}
 
 	// No config.yaml dolt.auto-start set — relies entirely on External-
 	// mode suppression. Pre-fix this would return AutoStart=true (default).
 	storeCfg := &Config{}
-	ApplyCLIAutoStart(beadsDir, storeCfg)
+	ApplyCLIAutoStart(issuegraphDir, storeCfg)
 	if storeCfg.AutoStart {
 		t.Errorf("ApplyCLIAutoStart set AutoStart=true in external-mode repo; want false (shadow database protection)")
 	}
 }
 
 func TestApplyCLIAutoStart_DisableAutoStartWins(t *testing.T) {
-	t.Setenv("BEADS_DOLT_SERVER_MODE", "")
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
-	t.Setenv("BEADS_DOLT_AUTO_START", "")
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
+	t.Setenv("ISSUEGRAPH_DOLT_AUTO_START", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 
-	beadsDir := t.TempDir()
-	if err := configfile.DefaultConfig().Save(beadsDir); err != nil {
+	issuegraphDir := t.TempDir()
+	if err := configfile.DefaultConfig().Save(issuegraphDir); err != nil {
 		t.Fatalf("save metadata.json: %v", err)
 	}
 
 	storeCfg := &Config{DisableAutoStart: true}
-	ApplyCLIAutoStart(beadsDir, storeCfg)
+	ApplyCLIAutoStart(issuegraphDir, storeCfg)
 	if storeCfg.AutoStart {
 		t.Fatal("DisableAutoStart should suppress CLI auto-start defaults")
 	}
@@ -171,17 +171,17 @@ func TestConfigConstructorsRejectNonDoltBackends(t *testing.T) {
 		"mystery",
 	} {
 		t.Run(backend, func(t *testing.T) {
-			beadsDir := t.TempDir()
-			if err := (&configfile.Config{Backend: backend}).Save(beadsDir); err != nil {
+			issuegraphDir := t.TempDir()
+			if err := (&configfile.Config{Backend: backend}).Save(issuegraphDir); err != nil {
 				t.Fatalf("save metadata: %v", err)
 			}
 
 			constructors := map[string]func() (*DoltStore, error){
 				"standard": func() (*DoltStore, error) {
-					return NewFromConfigWithOptions(t.Context(), beadsDir, &Config{DisableAutoStart: true})
+					return NewFromConfigWithOptions(t.Context(), issuegraphDir, &Config{DisableAutoStart: true})
 				},
 				"cli": func() (*DoltStore, error) {
-					return NewFromConfigWithCLIOptions(t.Context(), beadsDir, &Config{DisableAutoStart: true})
+					return NewFromConfigWithCLIOptions(t.Context(), issuegraphDir, &Config{DisableAutoStart: true})
 				},
 			}
 			for name, construct := range constructors {
@@ -195,7 +195,7 @@ func TestConfigConstructorsRejectNonDoltBackends(t *testing.T) {
 						t.Fatalf("constructor error = %v, want backend mismatch", err)
 					}
 					if backend == configfile.BackendPostgres || backend == configfile.BackendMySQL {
-						for _, want := range []string{"no longer supported", "was not opened or modified", "bd help init-safety"} {
+						for _, want := range []string{"no longer supported", "was not opened or modified", "issuegraph help init-safety"} {
 							if !strings.Contains(err.Error(), want) {
 								t.Errorf("removed-backend constructor error missing %q: %v", want, err)
 							}
@@ -209,14 +209,14 @@ func TestConfigConstructorsRejectNonDoltBackends(t *testing.T) {
 
 func TestCLIDirUsesSharedDoltRootInSharedServerMode(t *testing.T) {
 	sharedRoot := t.TempDir()
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
-	t.Setenv("BEADS_SHARED_SERVER_DIR", sharedRoot)
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
+	t.Setenv("ISSUEGRAPH_SHARED_SERVER_DIR", sharedRoot)
 
 	store := &DoltStore{
-		serverMode: true,
-		beadsDir:   filepath.Join(t.TempDir(), ".beads"),
-		dbPath:     filepath.Join(t.TempDir(), ".beads", "dolt"),
-		database:   "shared_db",
+		serverMode:    true,
+		issuegraphDir: filepath.Join(t.TempDir(), ".issuegraph"),
+		dbPath:        filepath.Join(t.TempDir(), ".issuegraph", "dolt"),
+		database:      "shared_db",
 	}
 
 	want := filepath.Join(sharedRoot, "dolt", "shared_db")
@@ -226,14 +226,14 @@ func TestCLIDirUsesSharedDoltRootInSharedServerMode(t *testing.T) {
 }
 
 func TestCLIDirUsesDbPathOutsideSharedServerMode(t *testing.T) {
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "0")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "0")
 
-	dbPath := filepath.Join(t.TempDir(), ".beads", "dolt")
+	dbPath := filepath.Join(t.TempDir(), ".issuegraph", "dolt")
 	store := &DoltStore{
-		serverMode: true,
-		beadsDir:   filepath.Join(t.TempDir(), ".beads"),
-		dbPath:     dbPath,
-		database:   "local_db",
+		serverMode:    true,
+		issuegraphDir: filepath.Join(t.TempDir(), ".issuegraph"),
+		dbPath:        dbPath,
+		database:      "local_db",
 	}
 
 	want := filepath.Join(dbPath, "local_db")
@@ -244,26 +244,26 @@ func TestCLIDirUsesDbPathOutsideSharedServerMode(t *testing.T) {
 
 func TestApplyResolvedConfig(t *testing.T) {
 	t.Run("fills server config for legacy metadata without dolt_mode", func(t *testing.T) {
-		beadsDir := t.TempDir()
+		issuegraphDir := t.TempDir()
 		fileCfg := &configfile.Config{
 			Backend:      configfile.BackendDolt,
-			DoltDatabase: "beads_codex",
+			DoltDatabase: "issuegraph_codex",
 			ProjectID:    "proj-123",
 		}
 		cfg := &Config{}
 
-		if err := applyResolvedConfig(context.Background(), beadsDir, fileCfg, cfg); err != nil {
+		if err := applyResolvedConfig(context.Background(), issuegraphDir, fileCfg, cfg); err != nil {
 			t.Fatalf("applyResolvedConfig: %v", err)
 		}
 
-		if cfg.BeadsDir != beadsDir {
-			t.Fatalf("BeadsDir = %q, want %q", cfg.BeadsDir, beadsDir)
+		if cfg.IssueGraphDir != issuegraphDir {
+			t.Fatalf("IssueGraphDir = %q, want %q", cfg.IssueGraphDir, issuegraphDir)
 		}
-		if cfg.Path != fileCfg.DatabasePath(beadsDir) {
-			t.Fatalf("Path = %q, want %q", cfg.Path, fileCfg.DatabasePath(beadsDir))
+		if cfg.Path != fileCfg.DatabasePath(issuegraphDir) {
+			t.Fatalf("Path = %q, want %q", cfg.Path, fileCfg.DatabasePath(issuegraphDir))
 		}
-		if cfg.Database != "beads_codex" {
-			t.Fatalf("Database = %q, want beads_codex", cfg.Database)
+		if cfg.Database != "issuegraph_codex" {
+			t.Fatalf("Database = %q, want issuegraph_codex", cfg.Database)
 		}
 		if cfg.ServerHost != fileCfg.GetDoltServerHost() {
 			t.Fatalf("ServerHost = %q, want %q", cfg.ServerHost, fileCfg.GetDoltServerHost())
@@ -271,18 +271,18 @@ func TestApplyResolvedConfig(t *testing.T) {
 		if cfg.ServerUser != fileCfg.GetDoltServerUser() {
 			t.Fatalf("ServerUser = %q, want %q", cfg.ServerUser, fileCfg.GetDoltServerUser())
 		}
-		wantPort := doltserver.DefaultConfig(beadsDir).Port
+		wantPort := doltserver.DefaultConfig(issuegraphDir).Port
 		if cfg.ServerPort != wantPort {
 			t.Fatalf("ServerPort = %d, want %d", cfg.ServerPort, wantPort)
 		}
 	})
 
 	t.Run("warns when data-dir set in server mode (GH#2438)", func(t *testing.T) {
-		beadsDir := t.TempDir()
+		issuegraphDir := t.TempDir()
 		fileCfg := &configfile.Config{
 			Backend:      configfile.BackendDolt,
 			DoltMode:     configfile.DoltModeServer,
-			DoltDatabase: "beads_CodeWriter7",
+			DoltDatabase: "issuegraph_CodeWriter7",
 			DoltDataDir:  "/some/stale/path",
 		}
 		cfg := &Config{}
@@ -292,7 +292,7 @@ func TestApplyResolvedConfig(t *testing.T) {
 		r, w, _ := os.Pipe()
 		os.Stderr = w
 
-		if err := applyResolvedConfig(context.Background(), beadsDir, fileCfg, cfg); err != nil {
+		if err := applyResolvedConfig(context.Background(), issuegraphDir, fileCfg, cfg); err != nil {
 			t.Fatalf("applyResolvedConfig: %v", err)
 		}
 
@@ -311,11 +311,11 @@ func TestApplyResolvedConfig(t *testing.T) {
 	})
 
 	t.Run("no warning when data-dir empty in server mode", func(t *testing.T) {
-		beadsDir := t.TempDir()
+		issuegraphDir := t.TempDir()
 		fileCfg := &configfile.Config{
 			Backend:      configfile.BackendDolt,
 			DoltMode:     configfile.DoltModeServer,
-			DoltDatabase: "beads_CodeWriter7",
+			DoltDatabase: "issuegraph_CodeWriter7",
 		}
 		cfg := &Config{}
 
@@ -323,7 +323,7 @@ func TestApplyResolvedConfig(t *testing.T) {
 		r, w, _ := os.Pipe()
 		os.Stderr = w
 
-		if err := applyResolvedConfig(context.Background(), beadsDir, fileCfg, cfg); err != nil {
+		if err := applyResolvedConfig(context.Background(), issuegraphDir, fileCfg, cfg); err != nil {
 			t.Fatalf("applyResolvedConfig: %v", err)
 		}
 
@@ -338,25 +338,25 @@ func TestApplyResolvedConfig(t *testing.T) {
 	})
 
 	t.Run("preserves caller overrides", func(t *testing.T) {
-		beadsDir := t.TempDir()
+		issuegraphDir := t.TempDir()
 		fileCfg := &configfile.Config{
 			Backend:      configfile.BackendDolt,
-			DoltDatabase: "beads_codex",
+			DoltDatabase: "issuegraph_codex",
 		}
 		cfg := &Config{
-			BeadsDir:   "/override/.beads",
-			Database:   "caller_db",
-			ServerHost: "10.0.0.9",
-			ServerPort: 15432,
-			ServerUser: "custom",
+			IssueGraphDir: "/override/.issuegraph",
+			Database:      "caller_db",
+			ServerHost:    "10.0.0.9",
+			ServerPort:    15432,
+			ServerUser:    "custom",
 		}
 
-		if err := applyResolvedConfig(context.Background(), beadsDir, fileCfg, cfg); err != nil {
+		if err := applyResolvedConfig(context.Background(), issuegraphDir, fileCfg, cfg); err != nil {
 			t.Fatalf("applyResolvedConfig: %v", err)
 		}
 
-		if cfg.BeadsDir != "/override/.beads" {
-			t.Fatalf("BeadsDir override lost: %q", cfg.BeadsDir)
+		if cfg.IssueGraphDir != "/override/.issuegraph" {
+			t.Fatalf("IssueGraphDir override lost: %q", cfg.IssueGraphDir)
 		}
 		if cfg.Database != "caller_db" {
 			t.Fatalf("Database override lost: %q", cfg.Database)
@@ -373,8 +373,8 @@ func TestApplyResolvedConfig(t *testing.T) {
 	})
 
 	t.Run("pool timeouts populate from env vars (bd-vz0y9)", func(t *testing.T) {
-		t.Setenv("BEADS_DOLT_POOL_READ_TIMEOUT", "90s")
-		t.Setenv("BEADS_DOLT_POOL_WRITE_TIMEOUT", "45")
+		t.Setenv("ISSUEGRAPH_DOLT_POOL_READ_TIMEOUT", "90s")
+		t.Setenv("ISSUEGRAPH_DOLT_POOL_WRITE_TIMEOUT", "45")
 		cfg := &Config{}
 
 		if err := applyResolvedConfig(context.Background(), t.TempDir(), &configfile.Config{Backend: configfile.BackendDolt}, cfg); err != nil {
@@ -390,7 +390,7 @@ func TestApplyResolvedConfig(t *testing.T) {
 	})
 
 	t.Run("caller-set pool timeouts win over env vars", func(t *testing.T) {
-		t.Setenv("BEADS_DOLT_POOL_READ_TIMEOUT", "90s")
+		t.Setenv("ISSUEGRAPH_DOLT_POOL_READ_TIMEOUT", "90s")
 		cfg := &Config{PoolReadTimeout: 2 * time.Minute}
 
 		if err := applyResolvedConfig(context.Background(), t.TempDir(), &configfile.Config{Backend: configfile.BackendDolt}, cfg); err != nil {
@@ -403,18 +403,18 @@ func TestApplyResolvedConfig(t *testing.T) {
 	})
 
 	t.Run("propagates ServerPortSource and ServerPortSharedServer alongside ServerPort (be-9tju)", func(t *testing.T) {
-		t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-		t.Setenv("BEADS_DOLT_PORT", "")
-		t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
-		t.Setenv("BEADS_DOLT_SERVER_MODE", "")
-		beadsDir := t.TempDir()
-		if err := doltserver.EnsurePortFile(beadsDir, 14567); err != nil {
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+		t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+		t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "")
+		issuegraphDir := t.TempDir()
+		if err := doltserver.EnsurePortFile(issuegraphDir, 14567); err != nil {
 			t.Fatalf("EnsurePortFile: %v", err)
 		}
 		fileCfg := &configfile.Config{Backend: configfile.BackendDolt}
 		cfg := &Config{}
 
-		if err := applyResolvedConfig(context.Background(), beadsDir, fileCfg, cfg); err != nil {
+		if err := applyResolvedConfig(context.Background(), issuegraphDir, fileCfg, cfg); err != nil {
 			t.Fatalf("applyResolvedConfig: %v", err)
 		}
 
@@ -430,18 +430,18 @@ func TestApplyResolvedConfig(t *testing.T) {
 	})
 
 	t.Run("chained through applyConfigDefaults: port-file resolution is never mislabeled caller-explicit (be-9tju)", func(t *testing.T) {
-		t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-		t.Setenv("BEADS_DOLT_PORT", "")
-		t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
-		t.Setenv("BEADS_DOLT_SERVER_MODE", "")
-		beadsDir := t.TempDir()
-		if err := doltserver.EnsurePortFile(beadsDir, 14567); err != nil {
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+		t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+		t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "")
+		issuegraphDir := t.TempDir()
+		if err := doltserver.EnsurePortFile(issuegraphDir, 14567); err != nil {
 			t.Fatalf("EnsurePortFile: %v", err)
 		}
 		fileCfg := &configfile.Config{Backend: configfile.BackendDolt}
 		cfg := &Config{}
 
-		if err := applyResolvedConfig(context.Background(), beadsDir, fileCfg, cfg); err != nil {
+		if err := applyResolvedConfig(context.Background(), issuegraphDir, fileCfg, cfg); err != nil {
 			t.Fatalf("applyResolvedConfig: %v", err)
 		}
 		applyConfigDefaults(cfg)
@@ -454,41 +454,41 @@ func TestApplyResolvedConfig(t *testing.T) {
 		}
 	})
 
-	t.Run("legacy BEADS_DOLT_PORT redirects away from a non-authoritative port-file port (be-9tju)", func(t *testing.T) {
-		t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-		t.Setenv("BEADS_DOLT_PORT", "43211")
-		t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
-		t.Setenv("BEADS_DOLT_SERVER_MODE", "")
-		beadsDir := t.TempDir()
-		if err := doltserver.EnsurePortFile(beadsDir, 14567); err != nil {
+	t.Run("legacy ISSUEGRAPH_DOLT_PORT redirects away from a non-authoritative port-file port (be-9tju)", func(t *testing.T) {
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+		t.Setenv("ISSUEGRAPH_DOLT_PORT", "43211")
+		t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "")
+		issuegraphDir := t.TempDir()
+		if err := doltserver.EnsurePortFile(issuegraphDir, 14567); err != nil {
 			t.Fatalf("EnsurePortFile: %v", err)
 		}
 		fileCfg := &configfile.Config{Backend: configfile.BackendDolt}
 		cfg := &Config{}
 
-		if err := applyResolvedConfig(context.Background(), beadsDir, fileCfg, cfg); err != nil {
+		if err := applyResolvedConfig(context.Background(), issuegraphDir, fileCfg, cfg); err != nil {
 			t.Fatalf("applyResolvedConfig: %v", err)
 		}
 		applyConfigDefaults(cfg)
 
 		if cfg.ServerPort != 43211 {
-			t.Fatalf("ServerPort = %d, want 43211 (legacy BEADS_DOLT_PORT must override a non-authoritative port-file-resolved port — regression of hq-27t bug class)", cfg.ServerPort)
+			t.Fatalf("ServerPort = %d, want 43211 (legacy ISSUEGRAPH_DOLT_PORT must override a non-authoritative port-file-resolved port — regression of hq-27t bug class)", cfg.ServerPort)
 		}
 		if cfg.ServerPortSource != doltserver.PortSourceEnv {
 			t.Fatalf("ServerPortSource = %q, want %q", cfg.ServerPortSource, doltserver.PortSourceEnv)
 		}
 	})
 
-	t.Run("genuinely caller-explicit ServerPort still outranks ambient BEADS_DOLT_SERVER_PORT env (be-wf9a.1 regression safety)", func(t *testing.T) {
-		t.Setenv("BEADS_DOLT_SERVER_PORT", "43211")
-		t.Setenv("BEADS_DOLT_PORT", "")
-		t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
-		t.Setenv("BEADS_DOLT_SERVER_MODE", "")
-		beadsDir := t.TempDir()
+	t.Run("genuinely caller-explicit ServerPort still outranks ambient ISSUEGRAPH_DOLT_SERVER_PORT env (be-wf9a.1 regression safety)", func(t *testing.T) {
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "43211")
+		t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+		t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
+		t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "")
+		issuegraphDir := t.TempDir()
 		fileCfg := &configfile.Config{Backend: configfile.BackendDolt}
 		cfg := &Config{ServerPort: 15000}
 
-		if err := applyResolvedConfig(context.Background(), beadsDir, fileCfg, cfg); err != nil {
+		if err := applyResolvedConfig(context.Background(), issuegraphDir, fileCfg, cfg); err != nil {
 			t.Fatalf("applyResolvedConfig: %v", err)
 		}
 		applyConfigDefaults(cfg)

@@ -2,7 +2,7 @@
 //
 // This package handles all interactions with Linear's issue tracking system,
 // including fetching, creating, and updating issues. It provides bidirectional
-// mapping between Linear's data model and Beads' internal types.
+// mapping between Linear's data model and IssueGraph' internal types.
 package linear
 
 import (
@@ -319,7 +319,7 @@ type PushStats struct {
 // A conflict occurs when both the local and Linear versions have been modified
 // since the last sync.
 type Conflict struct {
-	IssueID           string    // Beads issue ID
+	IssueID           string    // IssueGraph issue ID
 	LocalUpdated      time.Time // When the local version was last modified
 	LinearUpdated     time.Time // When the Linear version was last modified
 	LinearExternalRef string    // URL to the Linear issue
@@ -327,7 +327,7 @@ type Conflict struct {
 	LinearInternalID  string    // Linear's internal UUID (for API updates)
 }
 
-// IssueConversion holds the result of converting a Linear issue to Beads.
+// IssueConversion holds the result of converting a Linear issue to IssueGraph.
 // It includes the issue and any dependencies that should be created.
 type IssueConversion struct {
 	Issue        interface{} // *types.Issue - avoiding circular import
@@ -339,7 +339,7 @@ type IssueConversion struct {
 type DependencyInfo struct {
 	FromLinearID string // Linear identifier of the dependent issue (e.g., "TEAM-123")
 	ToLinearID   string // Linear identifier of the dependency target
-	Type         string // Beads dependency type (blocks, related, duplicates, parent-child)
+	Type         string // IssueGraph dependency type (blocks, related, duplicates, parent-child)
 	Source       string // Linear relationship origin: parent or relation
 }
 

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage/doltutil"
-	"github.com/steveyegge/beads/internal/storage/schema"
-	"github.com/steveyegge/beads/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
 // TestDoltNew_RemoteMigrateGate_BlocksReopen is a full-chain integration test:
@@ -22,7 +22,7 @@ import (
 // It covers both ways the database can be detected as remote-backed, reusing one
 // CREATE/DROP DATABASE cycle (consecutive create/drop cycles destabilize the test
 // dolt server, so a second integration test is deliberately avoided):
-//   - disk path (gastownhall/beads#4268): a CLI remote persisted in .dolt/config
+//   - disk path (borg0ai/dx-issuegraph#4268): a CLI remote persisted in .dolt/config
 //     while the SQL dolt_remotes table is still empty — the state of a freshly
 //     (auto-)started server before syncCLIRemotesToSQL runs;
 //   - SQL path: a remote registered in dolt_remotes.
@@ -133,13 +133,13 @@ func initLocalDoltRepoForRemote(t *testing.T, dir string) {
 // TestDoltStore_hasPersistedCLIRemote verifies the on-disk remote probe the #4259
 // gate uses in server mode: it must detect a remote persisted in .dolt/config even
 // when nothing is registered in the SQL dolt_remotes table — the state of a freshly
-// (auto-)started server before syncCLIRemotesToSQL runs (gastownhall/beads#4268).
+// (auto-)started server before syncCLIRemotesToSQL runs (borg0ai/dx-issuegraph#4268).
 // It needs only the dolt binary, not the test server.
 func TestDoltStore_hasPersistedCLIRemote(t *testing.T) {
 	testutil.RequireDoltBinary(t)
 
 	root := t.TempDir()
-	// serverMode + empty beadsDir makes CLIDir() == filepath.Join(dbPath, database),
+	// serverMode + empty issuegraphDir makes CLIDir() == filepath.Join(dbPath, database),
 	// independent of shared-server resolution.
 	s := &DoltStore{dbPath: root, database: "testdb", serverMode: true}
 

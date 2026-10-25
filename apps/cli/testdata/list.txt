@@ -1,0 +1,7 @@
+# Test issuegraph list command
+issuegraph init --prefix test
+issuegraph create 'First issue'
+issuegraph create 'Second issue'
+issuegraph list
+stdout 'First issue'
+stdout 'Second issue'

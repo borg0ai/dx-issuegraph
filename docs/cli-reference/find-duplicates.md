@@ -1,40 +1,40 @@
 ---
-title: "bd find-duplicates"
-description: "Find issues that are semantically similar but not exact duplicates."
+title: "issuegraph find-duplicates"
+description: "Find semantically similar issues using text analysis or AI"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc find-duplicates`.
+Generated from `issuegraph help --doc find-duplicates`.
 
 Find issues that are semantically similar but not exact duplicates.
 
-Unlike 'bd duplicates' which finds exact content matches, find-duplicates
+Unlike 'issuegraph duplicates' which finds exact content matches, find-duplicates
 uses text similarity or AI to find issues that discuss the same topic
 with different wording.
 
 Approaches:
   mechanical  Token-based text similarity (default, no API key needed)
-  ai          LLM-based semantic comparison (requires ANTHROPIC_API_KEY or ai.api_key)
+  ai          LLM-based semantic comparison (requires ANTHROPIC_API_KEY, MINIMAX_API_KEY, or ai.api_key)
 
 The mechanical approach tokenizes titles and descriptions, then computes
 Jaccard similarity between all issue pairs. It's fast and free but may
 miss semantically similar issues with very different wording.
 
-The AI approach sends candidate pairs to Claude for semantic comparison.
+The AI approach sends candidate pairs to an Anthropic-compatible model for semantic comparison.
 It first uses mechanical pre-filtering to reduce the number of API calls,
 then asks the LLM to judge whether the remaining pairs are true duplicates.
 
 Examples:
-  bd find-duplicates                       # Mechanical similarity (default)
-  bd find-duplicates --threshold 0.4       # Lower threshold = more results
-  bd find-duplicates --method ai           # Use AI for semantic comparison
-  bd find-duplicates --status open         # Only check open issues
-  bd find-duplicates --limit 20            # Show top 20 pairs
-  bd find-duplicates --json                # JSON output
+  issuegraph find-duplicates                       # Mechanical similarity (default)
+  issuegraph find-duplicates --threshold 0.4       # Lower threshold = more results
+  issuegraph find-duplicates --method ai           # Use AI for semantic comparison
+  issuegraph find-duplicates --status open         # Only check open issues
+  issuegraph find-duplicates --limit 20            # Show top 20 pairs
+  issuegraph find-duplicates --json                # JSON output
 
 ```
-bd find-duplicates [flags]
+issuegraph find-duplicates [flags]
 ```
 
 **Aliases:** find-dups
@@ -43,6 +43,7 @@ bd find-duplicates [flags]
 
 ```
   -n, --limit int         Maximum number of pairs to show (default 50)
+      --max-rows int      Hard upper bound on rows fetched from storage. Returns a non-zero exit (code 2) and an error to stderr if exceeded. 0 disables (the default). Overrides ISSUEGRAPH_MAX_ROWS for this invocation. Useful in CI/agent rigs that want a circuit breaker against pathological queries. Not supported under --proxied-server: an explicit --max-rows or ISSUEGRAPH_MAX_ROWS cap errors out rather than silently going unenforced.
       --method string     Detection method: mechanical, ai (default "mechanical")
       --model string      AI model to use (only with --method ai; default from config ai.model)
   -s, --status string     Filter by status (default: non-closed)

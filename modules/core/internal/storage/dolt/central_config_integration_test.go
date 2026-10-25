@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 )
 
 // TestApplyCentralConfigDefaults_WiresIntoOpenPath verifies that the
@@ -31,7 +31,7 @@ func TestApplyCentralConfigDefaults_WiresIntoOpenPath(t *testing.T) {
 	}
 
 	// Point to our temp central config.
-	t.Setenv("BEADS_CENTRAL_CONFIG", centralPath)
+	t.Setenv("ISSUEGRAPH_CENTRAL_CONFIG", centralPath)
 
 	// Start with an empty project config (no server fields set).
 	fileCfg := configfile.DefaultConfig()
@@ -55,7 +55,7 @@ func TestApplyCentralConfigDefaults_WiresIntoOpenPath(t *testing.T) {
 // TestApplyCentralConfigDefaults_MissingFileIsNoOp verifies that a
 // missing central config file does not error or modify the project config.
 func TestApplyCentralConfigDefaults_MissingFileIsNoOp(t *testing.T) {
-	t.Setenv("BEADS_CENTRAL_CONFIG", "/nonexistent/path/server.json")
+	t.Setenv("ISSUEGRAPH_CENTRAL_CONFIG", "/nonexistent/path/server.json")
 
 	fileCfg := configfile.DefaultConfig()
 	fileCfg.DoltServerHost = "project.local"
@@ -84,7 +84,7 @@ func TestApplyCentralConfigDefaults_ProjectOverrides(t *testing.T) {
 		t.Fatalf("write central config: %v", err)
 	}
 
-	t.Setenv("BEADS_CENTRAL_CONFIG", centralPath)
+	t.Setenv("ISSUEGRAPH_CENTRAL_CONFIG", centralPath)
 
 	fileCfg := configfile.DefaultConfig()
 	fileCfg.DoltServerHost = "project.local"

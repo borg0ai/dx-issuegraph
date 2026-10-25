@@ -13,8 +13,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/steveyegge/beads/internal/testutil"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/testutil"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // TestCredentialCLIRoutingE2ESharedServer verifies that shared-server mode can
@@ -82,8 +82,8 @@ func TestCredentialCLIRoutingE2ESharedServer(t *testing.T) {
 		t.Fatal("dolt sql-server did not become ready within timeout")
 	}
 
-	projectBeadsDir := filepath.Join(baseDir, "project", ".beads")
-	clientDataDir := filepath.Join(projectBeadsDir, "dolt")
+	projectIssueGraphDir := filepath.Join(baseDir, "project", ".issuegraph")
+	clientDataDir := filepath.Join(projectIssueGraphDir, "dolt")
 	clientTestdbDir := filepath.Join(clientDataDir, "testdb")
 	if err := os.MkdirAll(clientTestdbDir, 0o755); err != nil {
 		t.Fatalf("failed to create client testdb dir: %v", err)
@@ -98,18 +98,18 @@ func TestCredentialCLIRoutingE2ESharedServer(t *testing.T) {
 	}
 	require.NotContains(t, string(output), "origin", "stale per-project CLI dir should not contain the shared remote")
 
-	t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
-	t.Setenv("BEADS_SHARED_SERVER_DIR", sharedServerDir)
-	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
-	t.Setenv("BEADS_DOLT_PORT", "")
-	t.Setenv("BEADS_TEST_MODE", "")
+	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "1")
+	t.Setenv("ISSUEGRAPH_SHARED_SERVER_DIR", sharedServerDir)
+	t.Setenv("ISSUEGRAPH_DOLT_SERVER_PORT", "")
+	t.Setenv("ISSUEGRAPH_DOLT_PORT", "")
+	t.Setenv("ISSUEGRAPH_TEST_MODE", "")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	store, err := New(ctx, &Config{
 		Path:            clientDataDir,
-		BeadsDir:        projectBeadsDir,
+		IssueGraphDir:   projectIssueGraphDir,
 		Database:        "testdb",
 		ServerHost:      "127.0.0.1",
 		ServerPort:      port,

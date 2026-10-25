@@ -343,7 +343,7 @@ func TestFKCascadeRepairWithAutoResolvableConflicts(t *testing.T) {
 }
 
 // TestFKCascadeRepairRefusesUnknownTable proves the repair's allowlist: a
-// foreign-key violation on a table bd does not own is left untouched for the
+// foreign-key violation on a table issuegraph does not own is left untouched for the
 // operator and the pull fails instead of guessing.
 func TestFKCascadeRepairRefusesUnknownTable(t *testing.T) {
 	store, cleanup := setupTestStore(t)
@@ -368,10 +368,10 @@ func TestFKCascadeRepairRefusesUnknownTable(t *testing.T) {
 	peerBranch := seedFKCascadeDivergence(ctx, t, db, tc)
 
 	if err := settleForcedMerge(ctx, t, store, peerBranch); err == nil {
-		t.Fatal("expected the pull to fail on a violation bd cannot repair, but it succeeded")
+		t.Fatal("expected the pull to fail on a violation issuegraph cannot repair, but it succeeded")
 	}
 
-	// Nothing was committed: the table bd does not own keeps its row on the
+	// Nothing was committed: the table issuegraph does not own keeps its row on the
 	// peer branch and the current branch never absorbed the merge.
 	var rows int
 	if err := db.QueryRowContext(ctx, fmt.Sprintf(tc.orphanQuery, tc.name)).Scan(&rows); err != nil {

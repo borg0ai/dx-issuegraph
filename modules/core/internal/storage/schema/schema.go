@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
 	"golang.org/x/term"
 )
 
@@ -101,23 +101,23 @@ func (e *SchemaSkewError) Error() string {
 func (e *SchemaSkewError) UserMessage() string {
 	return e.Error() + "\n" +
 		"\n" +
-		"  Your bd binary is stale. Queries for dropped or renamed columns will fail\n" +
+		"  Your issuegraph binary is stale. Queries for dropped or renamed columns will fail\n" +
 		"  with cryptic SQL errors (e.g. \"column X could not be found in any table in scope\").\n" +
 		"\n" +
 		"  Rebuild from main:\n" +
-		"    CGO_ENABLED=0 go build -tags gms_pure_go ./modules/cli\n" +
+		"    CGO_ENABLED=0 go build -tags gms_pure_go ./apps/cli\n" +
 		"\n" +
-		"  Or install the latest release:\n" +
-		"    CGO_ENABLED=0 go install -tags gms_pure_go github.com/steveyegge/beads/modules/cli@latest\n" +
+		"  Or upgrade to the latest release through your package manager:\n" +
+		"    brew upgrade issuegraph | nix profile upgrade issuegraph | scoop update issuegraph\n" +
 		"\n" +
 		"  To proceed despite the risk (some read commands may still work):\n" +
-		"    BD_IGNORE_SCHEMA_SKEW=1 bd <command>\n" +
-		"    bd --ignore-schema-skew <command>\n"
+		"    ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 issuegraph <command>\n" +
+		"    issuegraph --ignore-schema-skew <command>\n"
 }
 
 // EscapeHint returns the escape-hatch string for JSON error output.
 func (e *SchemaSkewError) EscapeHint() string {
-	return "BD_IGNORE_SCHEMA_SKEW=1 bd <command>  or  bd --ignore-schema-skew <command>"
+	return "ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 issuegraph <command>  or  issuegraph --ignore-schema-skew <command>"
 }
 
 // IsSchemaSkewError reports whether err (or any error it wraps) is a
@@ -129,7 +129,7 @@ func IsSchemaSkewError(err error) bool {
 
 // checkSchemaSkew queries the DB's current schema version and returns a
 // *SchemaSkewError if the DB is ahead of the binary. Returns nil for a fresh
-// DB (version=0) or when BD_IGNORE_SCHEMA_SKEW=1 (prints a warning instead).
+// DB (version=0) or when ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 (prints a warning instead).
 func checkSchemaSkew(ctx context.Context, db DBConn) error {
 	// CurrentVersion treats a missing schema_migrations table as version 0, so
 	// this is safe to call before migrations have created the table: a
@@ -143,7 +143,7 @@ func checkSchemaSkew(ctx context.Context, db DBConn) error {
 	if currentVersion == 0 || currentVersion <= LatestVersion() {
 		return nil
 	}
-	if os.Getenv("BD_IGNORE_SCHEMA_SKEW") == "1" {
+	if os.Getenv("ISSUEGRAPH_IGNORE_SCHEMA_SKEW") == "1" {
 		fmt.Fprintf(os.Stderr,
 			"Warning: schema skew ignored — database (v%d) is ahead of binary (v%d); some queries may fail\n",
 			currentVersion, LatestVersion())
@@ -172,7 +172,7 @@ type SchemaBehindError struct {
 }
 
 func (e *SchemaBehindError) Error() string {
-	return fmt.Sprintf("schema version mismatch: database is at v%d, binary expects v%d, and the read-only open cannot migrate it; run any bd write command in that workspace to migrate, or set BD_IGNORE_SCHEMA_SKEW=1 to read anyway (queries touching newer schema may fail)",
+	return fmt.Sprintf("schema version mismatch: database is at v%d, binary expects v%d, and the read-only open cannot migrate it; run any issuegraph write command in that workspace to migrate, or set ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 to read anyway (queries touching newer schema may fail)",
 		e.DBVersion, e.BinaryVersion)
 }
 
@@ -187,7 +187,7 @@ func IsSchemaBehindError(err error) bool {
 // version is behind the binary's. Used by read-only opens, which skip
 // MigrateUp by design (bd-6dnrw.32) — the paths that previously auto-migrated
 // foreign databases (GH#3231) now need a clear open-time failure instead of
-// unknown-column errors at query time. BD_IGNORE_SCHEMA_SKEW=1 downgrades it
+// unknown-column errors at query time. ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 downgrades it
 // to a warning, mirroring forward drift. A fresh DB (version 0) is reported
 // as behind too: it has no readable schema at all.
 func CheckBehindDrift(ctx context.Context, db *sql.DB) error {
@@ -200,7 +200,7 @@ func CheckBehindDrift(ctx context.Context, db *sql.DB) error {
 	if currentVersion >= LatestVersion() {
 		return nil
 	}
-	if os.Getenv("BD_IGNORE_SCHEMA_SKEW") == "1" {
+	if os.Getenv("ISSUEGRAPH_IGNORE_SCHEMA_SKEW") == "1" {
 		fmt.Fprintf(os.Stderr,
 			"Warning: schema skew ignored — database (v%d) is behind binary (v%d) and was opened read-only; some queries may fail\n",
 			currentVersion, LatestVersion())
@@ -334,8 +334,8 @@ var doltIgnorePatterns = []string{
 	// version-gated: they have never existed on the versioned plane, so
 	// asserting the pattern before 0064 runs is what keeps the CREATE from
 	// landing as tracked-at-HEAD in the first place.
-	"bd_events_journal",
-	"bd_events_seq",
+	"issuegraph_events_journal",
+	"issuegraph_events_seq",
 	"ignored_schema_migrations",
 	"leases",
 	"local_metadata",
@@ -615,7 +615,7 @@ func MigrateUp(ctx context.Context, db DBConn) (int, error) {
 	// COMMITTED the ignored-lane cursor table: dolt_ignore only exempts
 	// tables that were never tracked, so the pattern above is inert there and
 	// the table stays permanently dirty, wedging every pull
-	// (gastownhall/beads#4356). Untracking it is a one-time repair, but it
+	// (borg0ai/dx-issuegraph#4356). Untracking it is a one-time repair, but it
 	// belongs here rather than in a numbered migration for the same reason
 	// the seed does — the affected databases are at-latest, so the
 	// short-circuit below would skip it — plus one the seed does not have: a
@@ -632,7 +632,7 @@ func MigrateUp(ctx context.Context, db DBConn) (int, error) {
 	// HEAD. Reporting 0 told DoltStore.Open not to rebuild the pool it had
 	// already pinned to the pre-migration session root (be-itm5: that
 	// connection serves stale reads and does not self-heal on retry), and
-	// told `bd migrate` to print "already at vN" and skip commandDidWrite
+	// told `issuegraph migrate` to print "already at vN" and skip commandDidWrite
 	// immediately after minting a fleet-visible commit. The heal's own log
 	// line, not this counter, is what tells an operator WHAT happened.
 	reconciled := 0
@@ -870,7 +870,7 @@ func migrationWorkNeeded(ctx context.Context, db DBConn) (bool, error) {
 		return true, nil
 	}
 	// A database already at the latest numbered migration still needs work if it
-	// predates the content_hash column (gastownhall/beads#4259 reporter fix No.2).
+	// predates the content_hash column (borg0ai/dx-issuegraph#4259 reporter fix No.2).
 	// Without this, MigrateUp short-circuits before migrate() runs the idempotent
 	// ALTER, so the recording/detection surface is never installed on exactly the
 	// already-upgraded databases the fix is meant to protect.
@@ -1261,7 +1261,7 @@ func (m migrationSource) hasContentHashColumn(ctx context.Context, db DBConn) (b
 }
 
 // ensureContentHashColumn adds the content_hash column to an existing cursor
-// table that predates it (gastownhall/beads#4259 reporter fix No.2: record a
+// table that predates it (borg0ai/dx-issuegraph#4259 reporter fix No.2: record a
 // per-migration content hash so two clones at the same MAX(version) but with
 // divergent migration content are detectable). Fresh tables already have it via
 // bootstrapSQL; this idempotently upgrades older databases without a numbered
@@ -1371,7 +1371,7 @@ func (m migrationSource) currentVersion(ctx context.Context, db DBConn) (int, er
 	// the clone-local tables they describe — arrives claiming at-latest with
 	// no wisps tables. atLatest() then short-circuits migrationWorkNeeded()
 	// and the series never re-runs, surfacing much later and much further away
-	// as "table not found: wisp_dependencies" on `bd close`.
+	// as "table not found: wisp_dependencies" on `issuegraph close`.
 	//
 	// A contradicted cursor is disbelieved only back to the floor of whatever
 	// sentinel is missing, not all the way to zero: the absence of a sentinel

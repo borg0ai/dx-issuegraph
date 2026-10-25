@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 )
 
-// HasRepository reports whether beadsDir contains an embedded Dolt repository.
+// HasRepository reports whether issuegraphDir contains an embedded Dolt repository.
 // It owns the adapter's coarse .dolt marker probe: the marker must be a
 // non-symlink directory with at least one entry, but entry names and private
 // repository files are never interpreted or opened.
-func HasRepository(beadsDir string) bool {
-	root := filepath.Join(beadsDir, "embeddeddolt")
+func HasRepository(issuegraphDir string) bool {
+	root := filepath.Join(issuegraphDir, "embeddeddolt")
 	info, err := os.Lstat(root)
 	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return false

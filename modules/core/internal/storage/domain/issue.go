@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/steveyegge/beads/internal/idgen"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/dberrors"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/validation"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/idgen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/validation"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 type InsertIssueOpts struct {
@@ -76,7 +76,7 @@ type IssueSQLRepository interface {
 	GetReadyWorkWithCounts(ctx context.Context, filter types.WorkFilter) (SearchCountsPage, error)
 	GetDescendants(ctx context.Context, rootID string, filter types.IssueFilter) ([]*types.Issue, error)
 	// Delete and DeleteByIDs take actor for the reason Close/Reopen/Claim do:
-	// the events journal records one row per removed bead and the identity that
+	// the events journal records one row per removed issue and the identity that
 	// asked for the removal is only known above this seam. A caller with no
 	// request behind it passes "" (system/unknown), never a placeholder.
 	Delete(ctx context.Context, id string, opts IssueTableOpts, actor string) error
@@ -158,7 +158,7 @@ type DeleteIssuesResult struct {
 	EventsCount       int
 	ReferencesUpdated int
 	// OrphanedIssues is NOT POPULATED BY ANY PATH TODAY, and is kept only
-	// because `bd wisp gc --json` publishes it (always null) and this commit is
+	// because `issuegraph wisp gc --json` publishes it (always null) and this commit is
 	// not changing that command's wire shape.
 	//
 	// It once described a force-delete policy this layer never implemented: the
@@ -289,7 +289,7 @@ type UpdateSpec struct {
 	Reparent        *string
 
 	// ExpectedAssignee and ExpectedStatus are the bd-wsqvw compare-and-set
-	// guards (`bd update --if-assignee/--if-status`): when non-nil, the whole
+	// guards (`issuegraph update --if-assignee/--if-status`): when non-nil, the whole
 	// update applies only if the issue's current assignee/status equals the
 	// expected value, else ApplyUpdate refuses with
 	// storage.ErrAssigneeMismatch/ErrStatusMismatch and nothing is written. A
@@ -635,7 +635,7 @@ func (u *issueUseCaseImpl) claim(ctx context.Context, id, actor string, useWisp 
 	// Composed here rather than on the typed error, for the reason
 	// issueops.ClaimIssueInTx gives: ClaimConflictError passes its wrapped
 	// refusal through unchanged, so the fragments have to be in the wrapped
-	// error or beads.ParseClaimConflict recovers nothing. This is the
+	// error or issuegraph.ParseClaimConflict recovers nothing. This is the
 	// domain-stack twin of that producer and must answer the same three ways
 	// (bd-at6rc).
 	refusal := fmt.Errorf("%w%s%s", storage.ErrNotClaimable, storage.NotClaimableStatusFragment, row.CurrentStatus)
@@ -648,11 +648,11 @@ func (u *issueUseCaseImpl) claim(ctx context.Context, id, actor string, useWisp 
 		case row.CurrentStatus == types.StatusOpen:
 			// Never name a release command here (wy-yuclk): copy that names
 			// one gets pattern-matched by batch agents into an unclaim+claim
-			// steamroller of live claims. bd reclaim is safe to name because
+			// steamroller of live claims. issuegraph reclaim is safe to name because
 			// it only recovers claims whose lease has already expired. The
 			// parseable " by <assignee>" tail is deliberately absent, so the
 			// holder is recovered from the typed field instead.
-			refusal = fmt.Errorf("%w: already assigned to %q — coordinate with the holder; if their claim is abandoned (crashed agent), lease expiry will surface it for bd reclaim", storage.ErrAlreadyClaimed, row.CurrentAssignee)
+			refusal = fmt.Errorf("%w: already assigned to %q — coordinate with the holder; if their claim is abandoned (crashed agent), lease expiry will surface it for issuegraph reclaim", storage.ErrAlreadyClaimed, row.CurrentAssignee)
 		default:
 			refusal = fmt.Errorf("%w%s%s", storage.ErrAlreadyClaimed, storage.ClaimedByFragment, row.CurrentAssignee)
 		}
@@ -1112,7 +1112,7 @@ func (u *issueUseCaseImpl) applyGraph(ctx context.Context, plan GraphPlan, actor
 	// not pass ParentID to u.create: graph nodes with parent_key/parent_id
 	// receive top-level hash (or counter) IDs and have their parent linkage
 	// added as a separate parent-child dep below. This matches embedded
-	// executeGraphApply (modules/cli/graph_apply.go) and lets children precede
+	// executeGraphApply (apps/cli/graph_apply.go) and lets children precede
 	// parents in plan order — keyToID is only consulted after every node
 	// has minted its ID.
 	for i, node := range plan.Nodes {
@@ -1273,7 +1273,7 @@ func (u *issueUseCaseImpl) applyGraph(ctx context.Context, plan GraphPlan, actor
 		}
 
 		// Per-node inline deps in stable order for this phase, resolved by the
-		// same shared builder as the embedded executeGraphApply (modules/cli/graph_apply.go).
+		// same shared builder as the embedded executeGraphApply (apps/cli/graph_apply.go).
 		for _, node := range plan.Nodes {
 			for _, nd := range node.Deps {
 				dep, err := types.NewGraphNodeDependency(keyToID[node.Key], nd.Type, nd.Target, keyToID)
@@ -1895,7 +1895,7 @@ func (u *issueUseCaseImpl) Unclaim(ctx context.Context, id, actor string, force 
 // twin of Unclaim and runs the SAME transition (assignee cleared, status
 // reopened, started_at cleared, lease dropped, row_lock rewritten, "unclaimed"
 // event recorded) because both reach the one classic implementation in
-// issueops — which is what makes `bd unclaim --if-assignee` behave identically
+// issueops — which is what makes `issuegraph unclaim --if-assignee` behave identically
 // on the proxied-server and embedded backends.
 func (u *issueUseCaseImpl) UnclaimIfAssignee(ctx context.Context, id, actor, expectedAssignee string) error {
 	if id == "" {

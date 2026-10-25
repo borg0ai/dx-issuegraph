@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/httpapi/apigen"
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/httpapi/apigen"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // The request body's member vocabulary. The schema is
@@ -31,7 +31,7 @@ const (
 var addCommentRequestMembers = []string{addCommentAuthorMember, addCommentTextMember}
 
 // handleAddComment appends one comment to the thread an issue owns:
-// POST /v0/beads/issues/{id}/comments, and the write `bd comment` spells.
+// POST /v0/issuegraph/issues/{id}/comments, and the write `issuegraph comment` spells.
 //
 // WHAT IS NOT HERE. Which plane the anchor lives on, whether a history entry is
 // recorded, and the atomicity of the append are all issueops.Commenter's, held
@@ -103,7 +103,7 @@ func (s *Server) handleAddComment(w http.ResponseWriter, r *http.Request) {
 // it is checked for SHAPE only and its one content rule — blank after trimming —
 // is left to the role, which is rememberMemory's posture for the same reason:
 // routing it through the role keeps one definition of what a comment is, so
-// `bd comment` and this endpoint refuse the same input with the same sentence.
+// `issuegraph comment` and this endpoint refuse the same input with the same sentence.
 func (s *Server) addCommentRequest(w http.ResponseWriter, r *http.Request, id string) (issueops.AddCommentRequest, bool) {
 	members, res := decodeJSONObjectBody(w, r)
 	if res != nil {
@@ -219,7 +219,7 @@ func (s *Server) acceptIssueID(w http.ResponseWriter, r *http.Request, id string
 // stronger rules; an empty issue id, which cannot arrive because a ServeMux
 // wildcard does not match an empty segment and a bad id is already the 404; and
 // a blank body, which is the only one a client can reach. It carries the role's
-// own sentence, which is what makes `bd comment` and this endpoint say the same
+// own sentence, which is what makes `issuegraph comment` and this endpoint say the same
 // thing about the same input.
 func (s *Server) failAddComment(w http.ResponseWriter, r *http.Request, err error) {
 	if !errors.Is(err, storage.ErrValidation) {

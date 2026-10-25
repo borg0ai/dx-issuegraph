@@ -23,8 +23,8 @@ import (
 var validIdentifier = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 const (
-	commitName  = "beads"
-	commitEmail = "beads@local"
+	commitName  = "issuegraph"
+	commitEmail = "issuegraph@local"
 )
 
 // OpenSQL opens an embedded Dolt database at dir. The returned cleanup
@@ -78,7 +78,7 @@ func OpenSQL(ctx context.Context, dir, database, branch string) (*sql.DB, func()
 		if !validIdentifier.MatchString(database) {
 			msg := fmt.Sprintf("invalid database name: %q", database)
 			if strings.ContainsRune(database, '-') {
-				msg += "; hyphens are not allowed in embedded mode — replace with underscores in .beads/metadata.json dolt_database field, or run 'bd doctor'"
+				msg += "; hyphens are not allowed in embedded mode — replace with underscores in .issuegraph/metadata.json dolt_database field, or run 'issuegraph doctor'"
 			}
 			return nil, nil, errors.Join(errors.New(msg), cleanup())
 		}

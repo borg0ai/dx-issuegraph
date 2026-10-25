@@ -113,7 +113,7 @@ func TestReadEnvOverride(t *testing.T) {
 }
 
 // TestResolveAbsolutizesBareEnvValue regression-tests the bug both cross-
-// vendor reviewers flagged: a bare, separator-free BEADS_DOLT_BIN value
+// vendor reviewers flagged: a bare, separator-free ISSUEGRAPH_DOLT_BIN value
 // (e.g. "dolt-next", no "/" in it) is resolved two DIFFERENT ways by
 // os.Stat (cwd-relative) and by exec.CommandContext/the OS exec syscalls
 // (PATH search) if left as-is. Without absolutizing in Resolve, validation
@@ -166,7 +166,7 @@ func TestResolveAbsolutizesBareEnvValue(t *testing.T) {
 }
 
 // TestResolveCompletesWindowsExeExtension regression-tests the review
-// finding that BEADS_DOLT_BIN=C:\tools\dolt reported "not found" while
+// finding that ISSUEGRAPH_DOLT_BIN=C:\tools\dolt reported "not found" while
 // dolt.exe sat right there: os.Lstat has no PATHEXT concept, so an
 // explicit path spelled without its extension (the way operators type
 // paths everywhere else on Windows) must be completed via exec.LookPath

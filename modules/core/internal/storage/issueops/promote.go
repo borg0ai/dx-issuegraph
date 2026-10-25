@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 //nolint:gosec // G201: table names are hardcoded constants
@@ -129,7 +129,7 @@ func PromoteFromEphemeralInTx(ctx context.Context, tx DBTX, id string, actor str
 		return fmt.Errorf("recompute is_blocked after promote for %s: %w", id, err)
 	}
 
-	// The bead keeps its ID across promotion; only its plane changes. Journal
+	// The issue keeps its ID across promotion; only its plane changes. Journal
 	// one update carrying the now-durable snapshot, after derived blocked-state
 	// maintenance has settled.
 	if err := RecordEventInTx(ctx, tx, EventUpdate, id, actor); err != nil {

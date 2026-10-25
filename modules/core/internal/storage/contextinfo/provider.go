@@ -1,8 +1,8 @@
 package contextinfo
 
 import (
-	"github.com/steveyegge/beads/internal/storage/domain"
-	domainfs "github.com/steveyegge/beads/internal/storage/domain/fs"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	domainfs "github.com/borg0ai/dx-issuegraph/internal/storage/domain/fs"
 )
 
 type ContextProvider interface {
@@ -24,7 +24,7 @@ var _ ContextProvider = (*contextProviderImpl)(nil)
 func (p *contextProviderImpl) ContextUseCase() domain.ContextUseCase {
 	if p.contextUseCase == nil {
 		p.contextUseCase = domain.NewContextUseCase(
-			domainfs.NewContextRepository(domainfs.NewBeadsDirFSRepository(p.workDir, domain.BeadsDirTemplates{})),
+			domainfs.NewContextRepository(domainfs.NewIssueGraphDirFSRepository(p.workDir, domain.IssueGraphDirTemplates{})),
 			p.version,
 		)
 	}

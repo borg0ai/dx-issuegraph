@@ -116,7 +116,7 @@ func TestCheckSchemaSkew_ThreeAhead_ReturnsSchemaSkewError(t *testing.T) {
 }
 
 func TestCheckSchemaSkew_EscapeHatch_ReturnsNilAndWarns(t *testing.T) {
-	t.Setenv("BD_IGNORE_SCHEMA_SKEW", "1")
+	t.Setenv("ISSUEGRAPH_IGNORE_SCHEMA_SKEW", "1")
 
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -149,7 +149,7 @@ func TestCheckSchemaSkew_EscapeHatch_ReturnsNilAndWarns(t *testing.T) {
 	_ = r.Close()
 
 	if gotErr != nil {
-		t.Fatalf("checkSchemaSkew = %v, want nil when BD_IGNORE_SCHEMA_SKEW=1", gotErr)
+		t.Fatalf("checkSchemaSkew = %v, want nil when ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1", gotErr)
 	}
 
 	wantWarning := fmt.Sprintf(
@@ -241,18 +241,18 @@ func TestSchemaSkewError_UserMessage_ExactCopy(t *testing.T) {
 	e := &SchemaSkewError{DBVersion: 45, BinaryVersion: 42}
 	want := "schema version mismatch: database is at v45, binary knows up to v42 (3 migrations ahead)\n" +
 		"\n" +
-		"  Your bd binary is stale. Queries for dropped or renamed columns will fail\n" +
+		"  Your issuegraph binary is stale. Queries for dropped or renamed columns will fail\n" +
 		"  with cryptic SQL errors (e.g. \"column X could not be found in any table in scope\").\n" +
 		"\n" +
 		"  Rebuild from main:\n" +
-		"    CGO_ENABLED=0 go build -tags gms_pure_go ./modules/cli\n" +
+		"    CGO_ENABLED=0 go build -tags gms_pure_go ./apps/cli\n" +
 		"\n" +
-		"  Or install the latest release:\n" +
-		"    CGO_ENABLED=0 go install -tags gms_pure_go github.com/steveyegge/beads/modules/cli@latest\n" +
+		"  Or upgrade to the latest release through your package manager:\n" +
+		"    brew upgrade issuegraph | nix profile upgrade issuegraph | scoop update issuegraph\n" +
 		"\n" +
 		"  To proceed despite the risk (some read commands may still work):\n" +
-		"    BD_IGNORE_SCHEMA_SKEW=1 bd <command>\n" +
-		"    bd --ignore-schema-skew <command>\n"
+		"    ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 issuegraph <command>\n" +
+		"    issuegraph --ignore-schema-skew <command>\n"
 	if got := e.UserMessage(); got != want {
 		t.Errorf("UserMessage() mismatch.\ngot:\n%s\nwant:\n%s", got, want)
 	}
@@ -260,7 +260,7 @@ func TestSchemaSkewError_UserMessage_ExactCopy(t *testing.T) {
 
 func TestSchemaSkewError_EscapeHint_ExactCopy(t *testing.T) {
 	e := &SchemaSkewError{DBVersion: 45, BinaryVersion: 42}
-	want := "BD_IGNORE_SCHEMA_SKEW=1 bd <command>  or  bd --ignore-schema-skew <command>"
+	want := "ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 issuegraph <command>  or  issuegraph --ignore-schema-skew <command>"
 	if got := e.EscapeHint(); got != want {
 		t.Errorf("EscapeHint() = %q\nwant:         %q", got, want)
 	}

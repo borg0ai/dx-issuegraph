@@ -7,17 +7,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/issueops"
 )
 
-// These cover the transport half of POST /v0/beads/issues:batchCreate — the
+// These cover the transport half of POST /v0/issuegraph/issues:batchCreate — the
 // body shape, the refusals this operation owns, and how a role refusal is named
 // on the wire. Everything below the wire is the role's, pinned by
 // backend/conformance/batch_creator_contract.go at all three backends.
 
-const batchCreatePath = "/v0/beads/issues:batchCreate"
+const batchCreatePath = "/v0/issuegraph/issues:batchCreate"
 
 func newBatchCreateServer(t *testing.T, creator *roleBatchCreator) *testServer {
 	t.Helper()
@@ -184,7 +184,7 @@ func TestBatchCreateNamesARoleRefusalInTheServersOwnWords(t *testing.T) {
 			name: "an absent edge target is a 400, not a 404",
 			err: fmt.Errorf("create batch item 1: %w: create: dependency target does not exist: "+
 				"Error 1452 (23000): Cannot add or update a child row: a foreign key constraint fails "+
-				"(`beads`.`dependencies`): %w", storage.ErrValidation, storage.ErrNotFound),
+				"(`issuegraph`.`dependencies`): %w", storage.ErrValidation, storage.ErrNotFound),
 			wantDetail: "a dependency target names no issue in this workspace; nothing was created",
 		},
 		{
@@ -302,14 +302,14 @@ func TestBatchCreateIsNotReachableByOtherMethods(t *testing.T) {
 }
 
 // TestBatchCreateDoesNotShadowTheClaimRoute pins the one routing risk the new
-// path carries: both are POSTs under /v0/beads/issues, and the claim's pattern
+// path carries: both are POSTs under /v0/issuegraph/issues, and the claim's pattern
 // is a wildcard wide enough to have swallowed this one had the separating slash
 // not been there.
 func TestBatchCreateDoesNotShadowTheClaimRoute(t *testing.T) {
 	issues := &fakeIssues{issue: seededIssue("bd-1", "alice", types.StatusInProgress)}
 	ts, _ := newClaimServer(t, issues)
 
-	resp := ts.claim(t, "/v0/beads/issues/bd-1:claim", `{"actor":"alice"}`)
+	resp := ts.claim(t, "/v0/issuegraph/issues/bd-1:claim", `{"actor":"alice"}`)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("claim status = %d, want 200: %s", resp.StatusCode, readAll(t, resp))
 	}

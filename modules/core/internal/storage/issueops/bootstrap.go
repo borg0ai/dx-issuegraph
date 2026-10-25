@@ -3,8 +3,8 @@ package issueops
 import (
 	"context"
 
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // This file holds the store-backed bodies behind issueops.Bootstrapper and
@@ -29,7 +29,7 @@ import (
 // shared database is the ordinary case for a bts-provisioned server, and a
 // refusal decided outside the transaction that writes is one both racers pass.
 //
-// The per-clone bookkeeping `bd init` seeds alongside the identity is not here
+// The per-clone bookkeeping `issuegraph init` seeds alongside the identity is not here
 // and not on the role; see issueops.Bootstrapper for why.
 func BootstrapInTx(ctx context.Context, tx DBTX, req publicops.BootstrapRequest) (publicops.BootstrapResult, error) {
 	prefix, projectID, err := verifyIdentityInTx(ctx, tx)

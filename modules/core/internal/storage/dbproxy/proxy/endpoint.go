@@ -15,16 +15,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/steveyegge/beads/internal/atomicfile"
-	"github.com/steveyegge/beads/internal/configfile"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/fdhygiene"
-	"github.com/steveyegge/beads/internal/lockfile"
-	"github.com/steveyegge/beads/internal/procid"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/identity"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/pidfile"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/server"
-	"github.com/steveyegge/beads/internal/storage/dbproxy/util"
+	"github.com/borg0ai/dx-issuegraph/internal/atomicfile"
+	"github.com/borg0ai/dx-issuegraph/internal/configfile"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/fdhygiene"
+	"github.com/borg0ai/dx-issuegraph/internal/lockfile"
+	"github.com/borg0ai/dx-issuegraph/internal/procid"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/identity"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/pidfile"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/server"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/dbproxy/util"
 )
 
 type ErrUpstreamMismatch struct {
@@ -272,7 +272,7 @@ func GetCreateDatabaseProxyServerEndpoint(rootDir string, opts OpenOpts) (Endpoi
 		case discovery.status == adoptionLegacy:
 			recordPath := pidfile.Path(rootDir, PIDFileName)
 			return Endpoint{}, fmt.Errorf(
-				"legacy proxy record %s is protected by held lock %s; stop the pre-upgrade proxy with the old bd binary or wait for its idle exit, then quarantine the record manually by renaming %s to %s.stale-<unix-timestamp> before retrying",
+				"legacy proxy record %s is protected by held lock %s; stop the pre-upgrade proxy with the old issuegraph binary or wait for its idle exit, then quarantine the record manually by renaming %s to %s.stale-<unix-timestamp> before retrying",
 				recordPath,
 				filepath.Join(rootDir, LockFileName),
 				recordPath,
@@ -432,7 +432,7 @@ func forkExecChild(rootDir string, opts OpenOpts, port int, stopEpoch string, lo
 
 	self, err := ResolveExecutable()
 	if err != nil {
-		return nil, fmt.Errorf("locate bd executable: %w", err)
+		return nil, fmt.Errorf("locate issuegraph executable: %w", err)
 	}
 
 	idleTimeout := opts.IdleTimeout
@@ -636,7 +636,7 @@ func readAndDial(rootDir string) adoptionResult {
 	// add a dial-and-close TCP probe of the data port here: the proxy dials
 	// its backend for every accepted client connection BEFORE any bytes flow
 	// (handleConn), so a zero-byte probe costs the shared dolt server a full
-	// MySQL session on every bd invocation while proving nothing the control
+	// MySQL session on every issuegraph invocation while proving nothing the control
 	// port did not — ListenAndServe binds the data listener before the
 	// control listener exists, so an identity reply carrying this DataPort
 	// already implies the data listener is bound (wy-s8ytnw).
@@ -668,7 +668,7 @@ func quarantineForSpawn(rootDir string, discovery adoptionResult) error {
 		)
 	case adoptionLegacy:
 		log.Printf(
-			"dbproxy: quarantining legacy proxy record %s; a pre-upgrade proxy may still be running and must be stopped with the old bd binary if it does not idle-exit",
+			"dbproxy: quarantining legacy proxy record %s; a pre-upgrade proxy may still be running and must be stopped with the old issuegraph binary if it does not idle-exit",
 			pidfile.Path(rootDir, PIDFileName),
 		)
 	case adoptionMalformed:
@@ -861,7 +861,7 @@ func unverifiableProcessError(
 	}
 	stopGuidance := "stop the recorded process with the binary that started it"
 	if checks.LegacyProxy && checks.LiveEstablished {
-		stopGuidance = "stop the pre-upgrade proxy with the old bd binary"
+		stopGuidance = "stop the pre-upgrade proxy with the old issuegraph binary"
 	}
 	return &unverifiableLifecycleError{message: fmt.Sprintf(
 		"%s refused for unverifiable%s process pid %d recorded at %s: %v; %s, then quarantine the record manually by renaming %s to %s.stale-<unix-timestamp> before retrying",

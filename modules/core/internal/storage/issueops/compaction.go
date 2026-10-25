@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 const (
@@ -102,7 +102,7 @@ func ApplyCompactionInTx(ctx context.Context, tx *sql.Tx, issueID string, tier i
 // compaction_snapshots before a destructive compaction overwrites it. The row
 // is tagged with the tier the issue is being compacted *to* (so a later restore
 // of a tier-N issue finds the pre-N content) and is the source of truth for
-// bd restore. Callers MUST invoke this before clearing/overwriting the fields
+// issuegraph restore. Callers MUST invoke this before clearing/overwriting the fields
 // so the archive captures the originals.
 func SnapshotIssueInTx(ctx context.Context, tx *sql.Tx, issueID string, tier int) error {
 	snap := types.IssueSnapshot{CompactionLevel: tier}

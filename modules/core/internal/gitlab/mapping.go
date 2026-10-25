@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
-// MappingConfig configures how GitLab fields map to beads fields.
+// MappingConfig configures how GitLab fields map to issuegraph fields.
 type MappingConfig struct {
-	PriorityMap  map[string]int    // priority label value → beads priority (0-4)
-	StateMap     map[string]string // GitLab state → beads status
-	LabelTypeMap map[string]string // type label value → beads issue type
+	PriorityMap  map[string]int    // priority label value → issuegraph priority (0-4)
+	StateMap     map[string]string // GitLab state → issuegraph status
+	LabelTypeMap map[string]string // type label value → issuegraph issue type
 }
 
 // DefaultMappingConfig returns the default mapping configuration.
@@ -32,8 +32,8 @@ func DefaultMappingConfig() *MappingConfig {
 
 	return &MappingConfig{
 		PriorityMap: priorityMap,
-		// StateMap maps GitLab states to beads statuses
-		// Note: GitLab uses "opened"/"closed"/"reopened", beads uses "open"/"closed"
+		// StateMap maps GitLab states to issuegraph statuses
+		// Note: GitLab uses "opened"/"closed"/"reopened", issuegraph uses "open"/"closed"
 		StateMap: map[string]string{
 			"opened":   StatusMapping["open"],
 			"closed":   StatusMapping["closed"],
@@ -57,7 +57,7 @@ func priorityFromLabels(labels []string, config *MappingConfig) int {
 	return 2 // Default to medium
 }
 
-// statusFromLabelsAndState determines beads status from GitLab labels and state.
+// statusFromLabelsAndState determines issuegraph status from GitLab labels and state.
 // GitLab's closed state takes precedence over status labels.
 func statusFromLabelsAndState(labels []string, state string, config *MappingConfig) string {
 	// Closed state always wins
@@ -85,7 +85,7 @@ func statusFromLabelsAndState(labels []string, state string, config *MappingConf
 		}
 	}
 
-	// Default: map GitLab state to beads status
+	// Default: map GitLab state to issuegraph status
 	if s, ok := config.StateMap[state]; ok {
 		return s
 	}
@@ -113,8 +113,8 @@ func typeFromLabels(labels []string, config *MappingConfig) string {
 	return "task" // Default to task
 }
 
-// GitLabIssueToBeads converts a GitLab Issue to a beads Issue.
-func GitLabIssueToBeads(gl *Issue, config *MappingConfig) *IssueConversion {
+// GitLabIssueToIssueGraph converts a GitLab Issue to a issuegraph Issue.
+func GitLabIssueToIssueGraph(gl *Issue, config *MappingConfig) *IssueConversion {
 	webURL := gl.WebURL
 	sourceSystem := fmt.Sprintf("gitlab:%d:%d", gl.ProjectID, gl.IID)
 
@@ -157,8 +157,8 @@ func GitLabIssueToBeads(gl *Issue, config *MappingConfig) *IssueConversion {
 	}
 }
 
-// BeadsIssueToGitLabFields converts a beads Issue to GitLab API update fields.
-func BeadsIssueToGitLabFields(issue *types.Issue, config *MappingConfig) map[string]interface{} {
+// IssueGraphIssueToGitLabFields converts a issuegraph Issue to GitLab API update fields.
+func IssueGraphIssueToGitLabFields(issue *types.Issue, config *MappingConfig) map[string]interface{} {
 	fields := map[string]interface{}{
 		"title":       issue.Title,
 		"description": issue.Description,
@@ -197,9 +197,9 @@ func BeadsIssueToGitLabFields(issue *types.Issue, config *MappingConfig) map[str
 		fields["weight"] = *issue.EstimatedMinutes / 60
 	}
 
-	// Set state_event so the GitLab issue state tracks the bead. On update this
+	// Set state_event so the GitLab issue state tracks the issue. On update this
 	// closes or reopens the issue; on create GitLab's POST /issues ignores
-	// state_event, so a closed bead is created open and closed by a follow-up
+	// state_event, so a closed issue is created open and closed by a follow-up
 	// update in Tracker.CreateIssue.
 	if issue.Status == types.StatusClosed {
 		fields["state_event"] = "close"
@@ -210,7 +210,7 @@ func BeadsIssueToGitLabFields(issue *types.Issue, config *MappingConfig) map[str
 	return fields
 }
 
-// priorityToLabel converts beads priority (0-4) to GitLab priority label value.
+// priorityToLabel converts issuegraph priority (0-4) to GitLab priority label value.
 func priorityToLabel(priority int) string {
 	switch priority {
 	case 0:

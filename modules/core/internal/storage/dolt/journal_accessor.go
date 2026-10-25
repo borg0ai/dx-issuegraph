@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/steveyegge/beads/internal/storage"
-	"github.com/steveyegge/beads/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/storage"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 )
 
 // DoltStore reads and prunes the durable events journal through its own
-// transaction helpers so the `bd events` CLI works against a server-mode
+// transaction helpers so the `issuegraph events` CLI works against a server-mode
 // store the same way it does against the embedded store.
 var (
 	_ storage.EventsJournalAccessor    = (*DoltStore)(nil)

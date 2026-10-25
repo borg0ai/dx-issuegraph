@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	storageissueops "github.com/steveyegge/beads/internal/storage/issueops"
-	"github.com/steveyegge/beads/internal/types"
-	"github.com/steveyegge/beads/internal/workapi"
-	publicops "github.com/steveyegge/beads/issueops"
+	storageissueops "github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/workapi"
+	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
 
 // ReadyClaimerSource is the capability accessor a unit-of-work provider offers
@@ -52,7 +52,7 @@ func (c *readyClaimer) ClaimNext(ctx context.Context, request publicops.ClaimNex
 	if err != nil {
 		return publicops.ClaimNextResult{}, err
 	}
-	// Wake expired dated defers before selecting, so a bead whose snooze just
+	// Wake expired dated defers before selecting, so a issue whose snooze just
 	// ended is claimable the moment its date passes rather than after some
 	// other session lists the front. Advisory, in a UOW of its own: a failed
 	// sweep must not cost the claim.
@@ -66,8 +66,8 @@ func (c *readyClaimer) ClaimNext(ctx context.Context, request publicops.ClaimNex
 			return publicops.ClaimNextResult{}, "", nil
 		}
 		// The same id-bearing message the store-backed sibling writes. The
-		// proxied route used to spell it "bd: ready --claim <id>" while the
-		// direct route wrote "bd: claim ready <id>"; one operation gets one
+		// proxied route used to spell it "issuegraph: ready --claim <id>" while the
+		// direct route wrote "issuegraph: claim ready <id>"; one operation gets one
 		// entry, so the role settles it on the spelling both other backends
 		// already used.
 		return publicops.ClaimNextResult{Claimed: claimed},

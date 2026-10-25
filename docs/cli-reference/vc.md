@@ -1,35 +1,35 @@
 ---
-title: "bd vc"
-description: "Version control operations for the beads database."
+title: "issuegraph vc"
+description: "Version control operations"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
-Generated from `bd help --doc vc`.
+Generated from `issuegraph help --doc vc`.
 
-Version control operations for the beads database.
+Version control operations for the issuegraph database.
 
 These commands provide git-like version control for your issue data, including branching, merging, and
 viewing history.
 
-Note: 'bd history', 'bd diff', and 'bd branch' also work for quick access.
+Note: 'issuegraph history', 'issuegraph diff', and 'issuegraph branch' also work for quick access.
 This subcommand provides additional operations like merge and commit.
 
 ```
-bd vc [flags]
+issuegraph vc [command]
 ```
 
-## bd vc commit
+## issuegraph vc commit
 
 Create a new Dolt commit with all current changes.
 
 Examples:
-  bd vc commit -m "Added new feature issues"
-  bd vc commit --message "Fixed priority on several issues"
-  echo "Multi-line message" | bd vc commit --stdin
+  issuegraph vc commit -m "Added new feature issues"
+  issuegraph vc commit --message "Fixed priority on several issues"
+  echo "Multi-line message" | issuegraph vc commit --stdin
 
 ```
-bd vc commit [flags]
+issuegraph vc commit [flags]
 ```
 
 **Flags:**
@@ -39,7 +39,7 @@ bd vc commit [flags]
       --stdin            Read commit message from stdin
 ```
 
-## bd vc merge
+## issuegraph vc merge
 
 Merge the specified branch into the current branch.
 
@@ -47,12 +47,12 @@ If there are merge conflicts, they will be reported. You can resolve
 conflicts with --strategy.
 
 Examples:
-  bd vc merge feature-xyz                    # Merge feature-xyz into current branch
-  bd vc merge feature-xyz --strategy ours    # Merge, preferring our changes on conflict
-  bd vc merge feature-xyz --strategy theirs  # Merge, preferring their changes on conflict
+  issuegraph vc merge feature-xyz                    # Merge feature-xyz into current branch
+  issuegraph vc merge feature-xyz --strategy ours    # Merge, preferring our changes on conflict
+  issuegraph vc merge feature-xyz --strategy theirs  # Merge, preferring their changes on conflict
 
 ```
-bd vc merge <branch> [flags]
+issuegraph vc merge <branch> [flags]
 ```
 
 **Flags:**
@@ -61,13 +61,13 @@ bd vc merge <branch> [flags]
       --strategy string   Conflict resolution strategy: 'ours' or 'theirs'
 ```
 
-## bd vc status
+## issuegraph vc status
 
 Show the current branch, commit hash, and any uncommitted changes.
 
 Examples:
-  bd vc status
+  issuegraph vc status
 
 ```
-bd vc status [flags]
+issuegraph vc status [flags]
 ```

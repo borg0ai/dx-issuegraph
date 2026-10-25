@@ -14,7 +14,7 @@ import (
 // RoleFiresHooks, and it exists because the instance-level pins were not enough.
 //
 // That switch is the only thing standing between a store-derived role and a
-// `bd serve` that runs a user's subprocess per landed mutation: httpapi.Listen
+// `issuegraph serve` that runs a user's subprocess per landed mutation: httpapi.Listen
 // sweeps every configured role through it and refuses the ones it recognizes. A
 // role the switch does not know about is ADMITTED — served, silently, firing the
 // workspace's scripts for as long as the process is up.

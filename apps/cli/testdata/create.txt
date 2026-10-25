@@ -1,0 +1,5 @@
+# Test issuegraph create command
+issuegraph init --prefix test
+issuegraph create 'Test issue'
+stdout 'Created issue:'
+stdout 'test-'

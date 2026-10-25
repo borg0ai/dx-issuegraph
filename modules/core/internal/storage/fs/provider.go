@@ -1,15 +1,15 @@
 package fs
 
 import (
-	"github.com/steveyegge/beads/internal/storage/domain"
-	domainfs "github.com/steveyegge/beads/internal/storage/domain/fs"
+	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
+	domainfs "github.com/borg0ai/dx-issuegraph/internal/storage/domain/fs"
 )
 
 type FileSystemProvider interface {
-	BeadsDirFSUseCase() domain.BeadsDirFSUseCase
+	IssueGraphDirFSUseCase() domain.IssueGraphDirFSUseCase
 }
 
-func NewFileSystemProvider(workDir string, templates domain.BeadsDirTemplates, adapters domain.BeadsDirFSAdapters) FileSystemProvider {
+func NewFileSystemProvider(workDir string, templates domain.IssueGraphDirTemplates, adapters domain.IssueGraphDirFSAdapters) FileSystemProvider {
 	return &fileSystemProviderImpl{
 		workDir:   workDir,
 		templates: templates,
@@ -18,20 +18,20 @@ func NewFileSystemProvider(workDir string, templates domain.BeadsDirTemplates, a
 }
 
 type fileSystemProviderImpl struct {
-	workDir           string
-	templates         domain.BeadsDirTemplates
-	adapters          domain.BeadsDirFSAdapters
-	beadsDirFSUseCase domain.BeadsDirFSUseCase
+	workDir                string
+	templates              domain.IssueGraphDirTemplates
+	adapters               domain.IssueGraphDirFSAdapters
+	issuegraphDirFSUseCase domain.IssueGraphDirFSUseCase
 }
 
 var _ FileSystemProvider = (*fileSystemProviderImpl)(nil)
 
-func (p *fileSystemProviderImpl) BeadsDirFSUseCase() domain.BeadsDirFSUseCase {
-	if p.beadsDirFSUseCase == nil {
-		p.beadsDirFSUseCase = domain.NewBeadsDirFSUseCase(
-			domainfs.NewBeadsDirFSRepository(p.workDir, p.templates),
+func (p *fileSystemProviderImpl) IssueGraphDirFSUseCase() domain.IssueGraphDirFSUseCase {
+	if p.issuegraphDirFSUseCase == nil {
+		p.issuegraphDirFSUseCase = domain.NewIssueGraphDirFSUseCase(
+			domainfs.NewIssueGraphDirFSRepository(p.workDir, p.templates),
 			p.adapters,
 		)
 	}
-	return p.beadsDirFSUseCase
+	return p.issuegraphDirFSUseCase
 }

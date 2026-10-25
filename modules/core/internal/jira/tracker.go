@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/steveyegge/beads/internal/config"
-	"github.com/steveyegge/beads/internal/debug"
-	"github.com/steveyegge/beads/internal/tracker"
-	"github.com/steveyegge/beads/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/config"
+	"github.com/borg0ai/dx-issuegraph/internal/debug"
+	"github.com/borg0ai/dx-issuegraph/internal/tracker"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 func init() {
@@ -27,9 +27,9 @@ type Tracker struct {
 	jiraURL          string
 	projectKeys      []string                          // one or more project keys (first is primary)
 	apiVersion       string                            // "2" or "3" (default: "3")
-	statusMap        map[string]string                 // beads status → Jira status name (from jira.status_map.* config)
-	typeMap          map[string]string                 // beads type → Jira type (from jira.type_map.* config)
-	priorityMap      map[string]string                 // beads priority → Jira priority name (from jira.priority_map.* config)
+	statusMap        map[string]string                 // issuegraph status → Jira status name (from jira.status_map.* config)
+	typeMap          map[string]string                 // issuegraph type → Jira type (from jira.type_map.* config)
+	priorityMap      map[string]string                 // issuegraph priority → Jira priority name (from jira.priority_map.* config)
 	customFields     map[string]interface{}            // Jira field name/id → value (from jira.custom_fields.* config)
 	typeCustomFields map[string]map[string]interface{} // Jira issue type → Jira field name/id → value
 }
@@ -92,7 +92,7 @@ func (t *Tracker) Init(ctx context.Context, store tracker.Store) error {
 	t.client.APIVersion = apiVersion
 
 	// Load optional custom status map from all jira.status_map.* config keys.
-	// Using GetAllConfig supports arbitrary (including custom) beads status names.
+	// Using GetAllConfig supports arbitrary (including custom) issuegraph status names.
 	if allConfig, err := t.store.GetAllConfig(ctx); err == nil {
 		const statusPrefix = "jira.status_map."
 		statusMap := make(map[string]string)
@@ -287,7 +287,7 @@ func (t *Tracker) UpdateIssue(ctx context.Context, externalID string, issue *typ
 	return &ti, nil
 }
 
-// applyTransition finds and applies the Jira workflow transition matching the given beads status.
+// applyTransition finds and applies the Jira workflow transition matching the given issuegraph status.
 // If no matching transition is available (e.g., the issue is already in the target state or the
 // workflow doesn't permit the path), it silently succeeds.
 func (t *Tracker) applyTransition(ctx context.Context, key string, status types.Status) error {
@@ -437,14 +437,14 @@ func jiraToTrackerIssue(ji *Issue, priorityMap map[string]string) tracker.Tracke
 }
 
 // jiraPriorityToNumeric converts a Jira priority name to a numeric value (0=highest, 4=lowest).
-// If priorityMap is non-nil, it checks the custom mapping first (inverted: find which beads
+// If priorityMap is non-nil, it checks the custom mapping first (inverted: find which issuegraph
 // priority key maps to a Jira name matching the input).
 func jiraPriorityToNumeric(name string, priorityMap map[string]string) int {
-	// Check custom map first (inverted lookup: find beads key whose value matches name).
+	// Check custom map first (inverted lookup: find issuegraph key whose value matches name).
 	if priorityMap != nil {
-		for beadsKey, jiraName := range priorityMap {
+		for issuegraphKey, jiraName := range priorityMap {
 			if strings.EqualFold(name, jiraName) {
-				if v, err := strconv.Atoi(beadsKey); err == nil && v >= 0 && v <= 4 {
+				if v, err := strconv.Atoi(issuegraphKey); err == nil && v >= 0 && v <= 4 {
 					return v
 				}
 			}

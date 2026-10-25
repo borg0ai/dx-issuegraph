@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/steveyegge/beads/memoryops"
+	"github.com/borg0ai/dx-issuegraph/memoryops"
 )
 
 // This file holds the contract every implementation of memoryops.Memories must
@@ -28,7 +28,7 @@ import (
 // exactly one of them:
 //
 //	settings rows        issue_prefix, custom.*
-//	generic kv rows      kv.* written by `bd kv set`
+//	generic kv rows      kv.* written by `issuegraph kv set`
 //	memory rows          kv.memory.*
 //	the trap class       kv.memory.<a settings name> — a memory that SHADOWS a
 //	                     setting, which is a memory, while the setting is not
@@ -102,7 +102,7 @@ func seedMemoriesAllFourClasses(t *testing.T, ctx context.Context, fixture Memor
 		settingKey:   "custom." + fixture.IssuePrefix + "-setting",
 		settingValue: "a settings row, not a memory",
 		genericKey:   "kv." + fixture.IssuePrefix + "-generic",
-		genericValue: "a bd kv row, not a memory",
+		genericValue: "a issuegraph kv row, not a memory",
 		memoryKey:    "kv.memory." + fixture.IssuePrefix + "-neighbor",
 		memoryValue:  "a memory that no case under test names",
 		// The trap: a memory CALLED issue_prefix. Its storage key differs from
@@ -215,7 +215,7 @@ func RunMemoriesRememberDerivesTheKeyWhenAbsent(t *testing.T, ctx context.Contex
 // memory stays recallable under the exact bytes the caller used.
 //
 // The key carries a space, a dot and a non-ASCII character on purpose: every
-// one of them is something a slugifier would eat, and `bd remember --key` has
+// one of them is something a slugifier would eat, and `issuegraph remember --key` has
 // always accepted all three.
 func RunMemoriesRememberWithExplicitKeyStoresVerbatim(t *testing.T, ctx context.Context, fixture MemoriesFixture) {
 	t.Helper()
@@ -296,7 +296,7 @@ func RunMemoriesRememberRefusesEmptyContent(t *testing.T, ctx context.Context, f
 // pin that. Remember used to accept any non-empty string, so `--key "   "`
 // minted a row no memory operation could ever name again: enumerated by List
 // forever, unrecallable, unforgettable, reachable only through
-// `bd config unset` on the raw storage key. The write door accepted what every
+// `issuegraph config unset` on the raw storage key. The write door accepted what every
 // read door refused, and the HTTP surface inherited the split exactly — POST
 // accepted the key that GET and DELETE answered 400 for.
 //
@@ -350,7 +350,7 @@ func RunMemoriesRememberRefusesAnUnderivableKey(t *testing.T, ctx context.Contex
 // RunMemoriesRecallAnswersTheStoredValue pins that Recall reads THIS plane and
 // only this plane, against a table holding all four classes.
 //
-// The shadow leg is the sharp one: `bd recall issue_prefix` answers the MEMORY
+// The shadow leg is the sharp one: `issuegraph recall issue_prefix` answers the MEMORY
 // called issue_prefix, not the workspace's issue prefix. A body that trimmed
 // the wrong number of bytes, or looked the user key up unprefixed, would serve
 // the workspace's identity as a user's note.
@@ -406,7 +406,7 @@ func RunMemoriesRecallReportsAMissAsNotFoundNotAnError(t *testing.T, ctx context
 // a caller see past it: List enumerates the key, because the ROW exists.
 //
 // That is the same same-answer-different-row shape the settings contract pins
-// for `bd config get`, and stating it is what keeps a backend from "fixing" it
+// for `issuegraph config get`, and stating it is what keeps a backend from "fixing" it
 // on one leg and making the answer depend on the route.
 func RunMemoriesRecallConflatesStoredEmptyWithAbsent(t *testing.T, ctx context.Context, fixture MemoriesFixture) {
 	t.Helper()
@@ -440,7 +440,7 @@ func RunMemoriesRecallConflatesStoredEmptyWithAbsent(t *testing.T, ctx context.C
 //
 // Each of the three bugs it catches produces a plausible answer through the
 // role: a LIKE-shaped delete takes the adjacent memory with it, a delete
-// composed from the short prefix takes the `bd kv` row instead, and an
+// composed from the short prefix takes the `issuegraph kv` row instead, and an
 // unanchored match takes the settings row. This is the Deleter bug family, and
 // the analog of it went 59 green cases undetected.
 func RunMemoriesForgetRemovesExactlyTheNamedRow(t *testing.T, ctx context.Context, fixture MemoriesFixture) {
@@ -454,7 +454,7 @@ func RunMemoriesForgetRemovesExactlyTheNamedRow(t *testing.T, ctx context.Contex
 	for _, row := range [][2]string{
 		{"kv.memory." + target, "the memory being forgotten"},
 		{"kv.memory." + adjacent, "the memory that must survive"},
-		{generic, "a bd kv value that must survive"},
+		{generic, "a issuegraph kv value that must survive"},
 	} {
 		if err := fixture.SetConfig(ctx, row[0], row[1]); err != nil {
 			t.Fatalf("seed %q out of band: %v", row[0], err)
@@ -468,7 +468,7 @@ func RunMemoriesForgetRemovesExactlyTheNamedRow(t *testing.T, ctx context.Contex
 
 	assertMemoriesRawAbsent(t, ctx, fixture, "kv.memory."+target)
 	assertMemoriesRawValue(t, ctx, fixture, "kv.memory."+adjacent, "the memory that must survive")
-	assertMemoriesRawValue(t, ctx, fixture, generic, "a bd kv value that must survive")
+	assertMemoriesRawValue(t, ctx, fixture, generic, "a issuegraph kv value that must survive")
 	assertMemoriesNeighborsSurvived(t, ctx, fixture, neighbors)
 
 	// And through the role, because a delete that also broke the read would
@@ -480,7 +480,7 @@ func RunMemoriesForgetRemovesExactlyTheNamedRow(t *testing.T, ctx context.Contex
 // RunMemoriesForgetNeverTouchesTheSettingsPlane is foldable into the case above
 // and kept separate because its failure mode deserves its own name: a
 // de-prefixing bug here does not lose a note, it RE-KEYS THE WORKSPACE. Every
-// bead created before the write and every bead created after it would disagree
+// issue created before the write and every issue created after it would disagree
 // about their own namespace, with nothing to reconcile them.
 func RunMemoriesForgetNeverTouchesTheSettingsPlane(t *testing.T, ctx context.Context, fixture MemoriesFixture) {
 	t.Helper()
@@ -498,7 +498,7 @@ func RunMemoriesForgetNeverTouchesTheSettingsPlane(t *testing.T, ctx context.Con
 }
 
 // RunMemoriesForgetReportsTheForgottenValue pins memoryops.ForgetResult.Value:
-// what `bd forget` prints is the content of the row it removed, read in the
+// what `issuegraph forget` prints is the content of the row it removed, read in the
 // same transaction as the delete.
 func RunMemoriesForgetReportsTheForgottenValue(t *testing.T, ctx context.Context, fixture MemoriesFixture) {
 	t.Helper()
@@ -639,7 +639,7 @@ func RunMemoriesListReturnsOnlyTheMemoryPlane(t *testing.T, ctx context.Context,
 // storage form separates the two: "kv." matches every row before the strip and
 // none after it.
 //
-// The failure it catches is route-dependent answers: `bd memories memory` would
+// The failure it catches is route-dependent answers: `issuegraph memories memory` would
 // return the ENTIRE plane on the leg that folded over storage keys, because
 // every storage key contains "kv.memory.", while the other leg returned genuine
 // matches. That is the wrong-boundary bug family this file's own header names.
@@ -662,7 +662,7 @@ func RunMemoriesListSearchMatchesTheUserKeyNotTheStorageKey(t *testing.T, ctx co
 // memoryops.ListRequest.Search's "the folding is THIS ROLE'S": the raw term the
 // user typed goes in, and matching is case-insensitive on both sides.
 //
-// The shipped `bd memories` lowercased the term at the front door, so a second
+// The shipped `issuegraph memories` lowercased the term at the front door, so a second
 // door passing it through raw would have reported an empty plane. This case
 // passes an UPPERCASE term at a lowercase value and vice versa, which is the
 // pair that fails if either fold is missing.
