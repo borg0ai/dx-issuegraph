@@ -68,7 +68,7 @@ driver instead of patching around it in issuegraph.
 
 A live application of this rule: `issuegraph doctor` support for embedded mode is
 enabled one subcommand at a time, each human-vetted (GH#3794). Do not lift the
-embedded-mode gate in `modules/cli/doctor.go` wholesale, and keep database-layer
+embedded-mode gate in `apps/cli/doctor.go` wholesale, and keep database-layer
 checks and fixes server-gated until the driver interface covers them.
 
 ## Agent Warning: Interactive Commands
