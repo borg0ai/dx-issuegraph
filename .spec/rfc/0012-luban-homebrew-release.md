@@ -45,7 +45,7 @@ architectures.
 
 The `shipify` skill produces the versioned native archives and `SHA256SUMS`
 and publishes them to the GitHub Release; the repository has no release
-workflow ([0019](0019-shipify-only-release.md)). Remove npm package metadata,
+workflow ([0019](completed/0019-shipify-only-release.md)). Remove npm package metadata,
 postinstall/launcher code, and npm package tests. The GitHub Release is the
 immutable source of binary assets.
 

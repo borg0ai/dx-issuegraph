@@ -27,7 +27,7 @@ GO_TEST_PARALLEL="${GO_TEST_PARALLEL:-4}"
 # just under). No single test is at fault, so the panic names whichever one was
 # in flight and reads like a hang when it is really the whole package running out
 # of clock. 30m is what every other -race lane here already gives this same code:
-# main.yml's integration package and apps/cli shards, ci-measurements.yml,
+# main.yml's integration package and apps/cli shards and
 # nightly.yml. Splitting or de-slowing apps/cli is the real fix and belongs on main
 # — this only stops the clock from being the thing that fails.
 ci_time "pr-core go test" -- \

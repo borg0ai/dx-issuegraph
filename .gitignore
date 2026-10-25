@@ -69,7 +69,7 @@ result
 .direnv
 .envrc
 
-# GoReleaser build artifacts
+# Release build artifacts
 dist/
 Formula/issuegraph.rb
 .zig-cache/

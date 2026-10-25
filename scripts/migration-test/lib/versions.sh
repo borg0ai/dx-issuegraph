@@ -105,7 +105,7 @@ declare -Ar STRICT_RELEASE_ASSETS=(
     # darwin/arm64: reviewed 2026-08-29 (ga-9sghx) so the corpus can run
     # natively on Apple Silicon. Every asset below was confirmed to exist via
     # `gh release view <version> -R borg0ai/dx-issuegraph`, and every checksum was
-    # taken from that release's own goreleaser-published SHA256SUMS (the
+    # taken from that release's own published SHA256SUMS (the
     # same provenance as the linux|amd64 entries above).
     ["v0.17.0|darwin|arm64"]="issuegraph_0.17.0_darwin_arm64.tar.gz"
     ["v0.49.6|darwin|arm64"]="issuegraph_0.49.6_darwin_arm64.tar.gz"

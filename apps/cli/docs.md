@@ -16,7 +16,7 @@ The CLI is built on the Cobra framework and consists of command implementations 
 
 - **Server Communication**: Commands use RPC client logic to communicate with the Dolt server (PersistentPreRun hook), allowing the CLI to operate either in server mode (delegating to the Dolt server) or embedded mode (local database operations).
 
-- **Version Reporting**: The version command (`@/apps/cli/version.go`) reports full build information - it resolves git commit and branch from ldflags set at build time via the Makefile (`@/Makefile`) and goreleaser config (`@/.goreleaser.yml`). This enables users to identify exactly what code their binary was built from.
+- **Version Reporting**: The version command (`@/apps/cli/version.go`) reports full build information - it resolves git commit and branch from ldflags set at build time via the Makefile (`@/Makefile`) and the release build. This enables users to identify exactly what code their binary was built from.
 
 - **Release Pipeline Integration**: The version infrastructure here integrates directly with releases, which run through the `shipify` skill. Version information is injected during builds by build automation, ensuring consistency across all distribution channels (GitHub releases, Homebrew, Nix, Scoop).
 

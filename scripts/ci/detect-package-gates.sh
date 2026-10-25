@@ -69,12 +69,12 @@ esac
 while IFS= read -r path; do
     [[ -n "$path" ]] || continue
     case "$path" in
-        integrations/issuegraph-mcp/*|scripts/ci/package-mcp.sh|scripts/ci/detect-package-gates.sh|.github/workflows/pr.yml|.github/workflows/main.yml|.github/workflows/pr-risk.yml|.github/workflows/ci-measurements.yml|Makefile)
+        integrations/issuegraph-mcp/*|scripts/ci/package-mcp.sh|scripts/ci/detect-package-gates.sh|.github/workflows/pr.yml|.github/workflows/main.yml|.github/workflows/pr-risk.yml|Makefile)
             mcp_package=true
             ;;
     esac
     case "$path" in
-        scripts/ci/detect-package-gates.sh|.github/workflows/pr.yml|.github/workflows/main.yml|.github/workflows/pr-risk.yml|.github/workflows/ci-measurements.yml|Makefile)
+        scripts/ci/detect-package-gates.sh|.github/workflows/pr.yml|.github/workflows/main.yml|.github/workflows/pr-risk.yml|Makefile)
             mcp_package=true
             ;;
     esac

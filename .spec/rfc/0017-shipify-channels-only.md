@@ -26,7 +26,7 @@ supported ways to install than there are.
 
 - The only release path is the `shipify` skill: GitHub Release assets plus the
   three channel pull requests; nothing else publishes anywhere. The repository
-  itself holds no release workflow ([0019](0019-shipify-only-release.md)).
+  itself holds no release workflow ([0019](completed/0019-shipify-only-release.md)).
 - Remove the PyPI publish path: the `release-package-mcp` and `publish-pypi`
   jobs (they lived in `release.yml`, which 0019 deletes), `.github/workflows/test-pypi.yml`,
   and the `PYPI_API_TOKEN` dependency.

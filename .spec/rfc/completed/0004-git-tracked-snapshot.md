@@ -1,8 +1,8 @@
 # RFC 0004: Git 跟踪完整本地 issue 快照 (child of 0001)
 
-**Status:** Approved
+**Status:** Implemented
 
-**Parent:** [0001](0001-issuegraph-local-git.md)
+**Parent:** [0001](../0001-issuegraph-local-git.md)
 
 ## Summary
 
@@ -18,11 +18,11 @@
 
 ## Non-goals
 
-不将 Dolt 数据目录直接放入 Git；不定义产品级远程同步；不让快照充当多写者并发协议；不迁移产品目录（RFC [0006](0006-issuegraph-monorepo.md)）。
+不将 Dolt 数据目录直接放入 Git；不定义产品级远程同步；不让快照充当多写者并发协议；不迁移产品目录（RFC [0006](../0006-issuegraph-monorepo.md)）。
 
 ## Design
 
-快照写入仓库根 `.issuegraph/issues.jsonl`，同目录 `manifest.json` 列出完整 id 集合和格式版本。Git 忽略规则必须跟踪这两个文件。导出使用原子替换，避免中断时留下半份快照。新增 `issuegraph snapshot restore` 命令：先验证格式、完整性和 manifest，再在单一事务中 upsert 全集并删除快照中不存在的 id；缺少 manifest 或校验失败时不改数据库。现有 `.beads/issues.jsonl` upsert 导入不再作为完整恢复路径。快照生成可由本地写入流程或 Git hook 触发，细节必须保持不依赖远程网络；Git hooks 机制由 RFC [0007](0007-git-hooks.md) 决定。
+快照写入仓库根 `.issuegraph/issues.jsonl`，同目录 `manifest.json` 列出完整 id 集合和格式版本。Git 忽略规则必须跟踪这两个文件。导出使用原子替换，避免中断时留下半份快照。新增 `issuegraph snapshot restore` 命令：先验证格式、完整性和 manifest，再在单一事务中 upsert 全集并删除快照中不存在的 id；缺少 manifest 或校验失败时不改数据库。现有 `.beads/issues.jsonl` upsert 导入不再作为完整恢复路径。快照生成可由本地写入流程或 Git hook 触发，细节必须保持不依赖远程网络；Git hooks 机制由 RFC [0007](../0007-git-hooks.md) 决定。
 
 ## Acceptance
 

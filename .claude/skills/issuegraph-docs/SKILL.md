@@ -187,8 +187,8 @@ To change wording in any of them, edit the Go source (`Short:`, `Long:`,
 `Example:` strings) and run `./scripts/generate-cli-docs.sh` (which runs both
 stages). To change the Mintlify page form itself (comment markers, link
 style, nav), edit `tools/docsmint` and its tests. The drift gates
-(`generate-cli-docs.sh --check`, `scripts/check-cli-docs-drift.sh` in PR CI,
-and the docs-autofix bot) fail or auto-fix any hand edit.
+(`generate-cli-docs.sh --check` and `scripts/check-cli-docs-drift.sh` in PR CI)
+fail on any hand edit.
 
 **The docs describe the pinned release, not main.** `docs/cli-docs.pin`
 names the release tag the whole docs corpus targets; the pipeline builds issuegraph

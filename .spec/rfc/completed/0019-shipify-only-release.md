@@ -1,8 +1,8 @@
 # RFC 0019: Release only through shipify, with no release machinery in the repository (child of 0001)
 
-**Status:** Approved
+**Status:** Implemented
 
-**Parent:** [0001](0001-issuegraph-local-git.md)
+**Parent:** [0001](../0001-issuegraph-local-git.md)
 
 ## Summary
 
@@ -10,8 +10,8 @@ The repository contains no release workflow, release tooling, or release
 documentation. Every release is performed by the `shipify` skill, which reads
 `~/.shipify/setting.json`, bumps versions, tags, builds and publishes the GitHub
 Release assets for macOS, Linux and Windows, and opens one pull request per
-channel repository ([0012](0012-luban-homebrew-release.md),
-[0015](0015-cangjie-nix-release.md), [0016](0016-shennong-bucket-release.md)).
+channel repository ([0012](../0012-luban-homebrew-release.md),
+[0015](../0015-cangjie-nix-release.md), [0016](../0016-shennong-bucket-release.md)).
 GoReleaser is removed.
 
 ## Problem
