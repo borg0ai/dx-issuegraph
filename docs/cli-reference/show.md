@@ -18,7 +18,8 @@ issuegraph show [id...] [--id=<id>...] [--current] [flags]
 **Flags:**
 
 ```
-      --as-of string         Show issue as it existed at a specific commit hash or branch (requires Dolt)
+      --as-of string         Show issue as it existed at a specific commit hash or branch (requires Dolt; commit hashes must be the full 32-character hash from 'issuegraph history', not a prefix)
+      --brief-deps           Reduce each dependency to its identity fields in JSON output (--json only; drops description, design, notes and acceptance criteria)
       --children             Show only the children of this issue
       --current              Show the currently active issue (in-progress, hooked, or last touched)
       --id stringArray       Issue ID (use for IDs that look like flags, e.g., --id=gt--xyz)

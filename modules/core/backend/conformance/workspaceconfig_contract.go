@@ -43,7 +43,7 @@ import (
 //
 // NOT here: which SOURCE owns a key, and the multi-source views over it
 // (`issuegraph config show`, `drift`, `apply`, `validate`). That is front-door routing
-// over files on the client's machine; modules/cli/config_test.go pins it.
+// over files on the client's machine; apps/cli/config_test.go pins it.
 
 // WorkspaceConfigFixture supplies adapter-specific storage access for the
 // settings assertions. Every field is named and typed exactly like the

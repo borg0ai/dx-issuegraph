@@ -166,7 +166,6 @@ func init() {
 	registerSelectiveSyncFlags(adoSyncCmd)
 
 	// Register ado command with root
-	rootCmd.AddCommand(adoCmd)
 }
 
 // getADOConfig returns Azure DevOps configuration from issuegraph config or environment.

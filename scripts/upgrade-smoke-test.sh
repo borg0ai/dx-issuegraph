@@ -67,7 +67,7 @@ if [ -n "${1:-}" ]; then
     PREV_VERSION="$1"
 else
     # Default: fetch the latest release tag before the current version
-    CURRENT_VERSION=$(grep 'Version = ' "$PROJECT_ROOT/modules/cli/version.go" \
+    CURRENT_VERSION=$(grep 'Version = ' "$PROJECT_ROOT/apps/cli/version.go" \
         | head -1 | sed 's/.*"\(.*\)".*/\1/')
     # Try to get the previous release tag from git
     PREV_VERSION=$(git -C "$PROJECT_ROOT" tag --sort=-version:refname \
@@ -144,7 +144,7 @@ build_candidate() {
 
     local candidate="$CACHE_DIR/issuegraph-candidate-$$"
     echo -e "${YELLOW}Building candidate binary...${NC}" >&2
-    (cd "$PROJECT_ROOT" && go build -o "$candidate" github.com/borg0ai/dx-issuegraph/modules/cli) >&2
+    (cd "$PROJECT_ROOT" && go build -o "$candidate" github.com/borg0ai/dx-issuegraph/apps/cli) >&2
     echo "$candidate"
 }
 

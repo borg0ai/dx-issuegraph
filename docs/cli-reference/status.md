@@ -1,6 +1,6 @@
 ---
 title: "issuegraph status"
-description: "Show a quick snapshot of the issue database state and statistics."
+description: "Show issue database overview and statistics"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -21,10 +21,13 @@ Use cases:
   - Onboarding for new contributors
   - Integration with shell prompts or CI/CD
   - Daily standup reference
+  - Fast CI status checks that don't need blocked-count accuracy
 
 Examples:
   issuegraph status                    # Show summary with activity
   issuegraph status --no-activity      # Skip git activity (faster)
+  issuegraph status --no-blocked       # Skip slow blocked-count scan (faster)
+  issuegraph stats --no-blocked --json # JSON output without blocked count
   issuegraph status --json             # JSON format output
   issuegraph status --assigned         # Show issues assigned to current user
   issuegraph stats                     # Alias for issuegraph status
@@ -40,5 +43,6 @@ issuegraph status [flags]
 ```
       --all           Show all issues (default behavior)
       --assigned      Show issues assigned to current user
-      --no-activity   Skip git activity tracking (faster)
+      --no-activity   Skip git activity summary (faster)
+      --no-blocked    Skip blocked-count computation (faster on large rigs; not supported in proxied-server mode)
 ```

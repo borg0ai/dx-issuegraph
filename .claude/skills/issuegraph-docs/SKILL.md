@@ -176,7 +176,7 @@ Never hand-edit a generated file. The generated surfaces are:
 
 - `docs/cli-reference/*.md` and the CLI Reference pages array inside
   `docs/docs.json` — issuegraph emits vendor-neutral pages (`issuegraph help --docs-root`,
-  from the Cobra command strings in `modules/cli/*.go`) into an uncommitted
+  from the Cobra command strings in `apps/cli/*.go`) into an uncommitted
   staging tree, and `tools/docsmint` post-processes them into the committed
   Mintlify form. issuegraph itself never emits Mintlify (or any site-generator)
   specifics; that lives in docsmint.

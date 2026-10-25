@@ -18,7 +18,7 @@ import (
 
 // issuegraphImport runs "issuegraph import" with extra args. Returns combined output.
 // issuegraph import writes status lines like "Imported N issues" to stderr
-// (see modules/cli/import.go), so callers grepping for those need both streams.
+// (see apps/cli/import.go), so callers grepping for those need both streams.
 func issuegraphImport(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"import"}, args...)

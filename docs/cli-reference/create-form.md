@@ -1,6 +1,6 @@
 ---
 title: "issuegraph create-form"
-description: "Create a new issue using an interactive terminal form."
+description: "Create a new issue using an interactive form"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -28,5 +28,5 @@ issuegraph create-form [flags]
 **Flags:**
 
 ```
-      --parent string   Parent issue ID for creating a hierarchical child (e.g., 'issuegraph-a3f8e9')
+      --parent string   Parent issue ID for creating a hierarchical child (e.g., 'bd-a3f8e9')
 ```

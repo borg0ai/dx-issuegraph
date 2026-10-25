@@ -104,7 +104,7 @@ func Initialize() error {
 		issuegraphEnvConfigPath = filepath.Clean(filepath.Join(issuegraphDirEnv, "config.yaml"))
 	}
 	// A issuegraph checkout usually has its own `.issuegraph/config.yaml` (untracked developer
-	// state) that sets non-default values. In `go test` — especially for `modules/cli` —
+	// state) that sets non-default values. In `go test` — especially for `apps/cli` —
 	// we want to avoid unintentionally picking up that repo-local config, while still
 	// allowing tests to load config.yaml from temp repos.
 	//
@@ -328,8 +328,8 @@ func Initialize() error {
 	// Auto-export: optional JSONL export after mutations for viewers,
 	// interchange, and backup. It is not cross-machine sync; Dolt remotes are
 	// the source of truth for sync. Viewer integrations can opt in explicitly.
-	v.SetDefault("export.auto", false)
-	v.SetDefault("export.interval", "60s")
+	v.SetDefault("export.auto", true)
+	v.SetDefault("export.interval", "0s")
 	v.SetDefault("export.path", "issues.jsonl") // relative to .issuegraph/; canonical name
 	v.SetDefault("export.git-add", false)
 

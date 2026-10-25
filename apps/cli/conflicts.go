@@ -383,7 +383,7 @@ func commitMergeResolution(ctx context.Context, msg, preHead string) error {
 	}
 	// Same unwrap rule as conflictInspector: RecomputeBlockedAfterMerge lives
 	// on the concrete Dolt store, not on DoltStorage. Route through the shared
-	// helper (modules/cli/vc.go) so the package has one declaration of the optional
+	// helper (apps/cli/vc.go) so the package has one declaration of the optional
 	// interface, and never skip silently (issuegraph vc merge's else branch, wy-163oy).
 	if rs, ok := blockedAfterMergeRecomputerFor(store); ok {
 		if err := rs.RecomputeBlockedAfterMerge(ctx, preHead); err != nil {

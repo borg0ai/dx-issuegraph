@@ -1,6 +1,6 @@
 ---
 title: "issuegraph edit"
-description: "Edit an issue field using your configured $EDITOR."
+description: "Edit an issue field in $EDITOR"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -12,11 +12,11 @@ Edit an issue field using your configured $EDITOR.
 By default, edits the description. Use flags to edit other fields.
 
 Examples:
-  issuegraph edit issuegraph-42                    # Edit description
-  issuegraph edit issuegraph-42 --title            # Edit title
-  issuegraph edit issuegraph-42 --design           # Edit design notes
-  issuegraph edit issuegraph-42 --notes            # Edit notes
-  issuegraph edit issuegraph-42 --acceptance       # Edit acceptance criteria
+  issuegraph edit bd-42                    # Edit description
+  issuegraph edit bd-42 --title            # Edit title
+  issuegraph edit bd-42 --design           # Edit design notes
+  issuegraph edit bd-42 --notes            # Edit notes
+  issuegraph edit bd-42 --acceptance       # Edit acceptance criteria
 
 ```
 issuegraph edit [id] [flags]

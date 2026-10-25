@@ -1,22 +1,27 @@
 ---
 title: "issuegraph audit"
-description: "Audit log entries are appended to .issuegraph/interactions.jsonl."
+description: "Record and label agent interactions (append-only JSONL)"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
 
 Generated from `issuegraph help --doc audit`.
 
-Audit log entries are appended to .issuegraph/interactions.jsonl.
+Record explicit agent/tool interaction audit entries in .issuegraph/interactions.jsonl.
 
-Each line is one event. This file is intended to be versioned in git and used for:
+This optional JSONL sidecar is disabled by default. Enable it with:
+
+  issuegraph config set audit.enabled true
+
+Issue history is always recorded in the database and is visible with
+issuegraph history &lt;id&gt; --events. The JSONL sidecar is for explicit interaction capture:
 - auditing ("why did the agent do that?")
 - dataset generation (SFT/RL fine-tuning)
 
 Entries are append-only. Labeling creates a new "label" entry that references a parent entry.
 
 ```
-issuegraph audit [flags]
+issuegraph audit [command]
 ```
 
 ## issuegraph audit label
@@ -47,7 +52,7 @@ issuegraph audit record [flags]
 ```
       --error string       Error string (llm_call/tool_call)
       --exit-code int      Exit code (tool_call) (default -1)
-      --issue-id string    Related issue id (issuegraph-...)
+      --issue-id string    Related issue id (bd-...)
       --kind string        Entry kind (e.g. llm_call, tool_call, label)
       --model string       Model name (llm_call)
       --prompt string      Prompt text (llm_call)

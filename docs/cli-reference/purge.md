@@ -1,6 +1,6 @@
 ---
 title: "issuegraph purge"
-description: "Permanently delete closed ephemeral issuegraph and their associated data."
+description: "Delete closed ephemeral issuegraph to reclaim space"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}

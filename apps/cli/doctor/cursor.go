@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/borg0ai/dx-issuegraph/modules/cli/setup"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/setup"
 )
 
 // CheckCursor reports whether issuegraph-managed Cursor agent hooks are installed.

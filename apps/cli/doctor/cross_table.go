@@ -3,7 +3,7 @@ package doctor
 import (
 	"fmt"
 
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
 )
 
 // CheckCrossTableDuplicates detects IDs that exist in both the issues and

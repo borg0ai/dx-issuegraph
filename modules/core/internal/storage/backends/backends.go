@@ -2,7 +2,7 @@
 // return storage.DoltStorage directly.
 //
 // OSS IssueGraph registers no alternate backend. A downstream distribution adds a
-// registrant package and blank-imports it from modules/cli; shared validation,
+// registrant package and blank-imports it from apps/cli; shared validation,
 // discovery, and store dispatch then recognize the name without modification.
 // The Dolt family remains hand-wired because proxied mode returns a unit of
 // work provider rather than a store.

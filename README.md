@@ -6,12 +6,11 @@
 
 **Distributed graph issue tracker for AI agents, powered by [Dolt](https://github.com/dolthub/dolt).**
 
-**Platforms:** macOS, Linux, Windows, FreeBSD
+**Platforms:** macOS, Linux, Windows
 
 [![License](https://img.shields.io/github/license/borg0ai/dx-issuegraph)](LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/borg0ai/dx-issuegraph)](https://goreportcard.com/report/github.com/borg0ai/dx-issuegraph)
 [![Release](https://img.shields.io/github/v/release/borg0ai/dx-issuegraph)](https://github.com/borg0ai/dx-issuegraph/releases)
-[![npm version](https://img.shields.io/npm/v/@borg0ai/issuegraph)](https://www.npmjs.com/package/@borg0ai/issuegraph)
 [![PyPI](https://img.shields.io/pypi/v/issuegraph-mcp)](https://pypi.org/project/issuegraph-mcp/)
 
 **Docs:** https://github.com/borg0ai/dx-issuegraph/tree/main/docs/
@@ -31,8 +30,7 @@ flowchart LR
 ## ⚡ Quick Start
 
 ```bash
-# Install issuegraph CLI (system-wide - don't clone this repo into your project)
-curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
+# Install issuegraph CLI first (see Installation below; don't clone this repo into your project)
 
 # Initialize in YOUR project
 cd your-project
@@ -99,14 +97,28 @@ IssueGraph supports hierarchical IDs for epics:
 
 ## 📦 Installation
 
+Install through the package manager for your OS. IssueGraph is not distributed any other way.
+
+**macOS (Homebrew):**
+
 ```bash
-brew install issuegraph           # macOS / Linux (recommended)
-npm install -g @borg0ai/issuegraph     # Node.js users
+brew install systembugtj/luban-homebrew/issuegraph
 ```
 
-**Other methods:** [install script](docs/getting-started/installation.md#quick-install-script-all-platforms) | [go install](docs/getting-started/installation.md#a-note-on-go-install-capability) | [from source](docs/getting-started/installation.md#build-dependencies-contributors-only) | [Windows](docs/getting-started/installation.md#windows-11) | [Arch AUR](docs/getting-started/installation.md#linux)
+**Linux (Nix):**
 
-**Requirements:** macOS, Linux, Windows, or FreeBSD. See [docs/getting-started/installation.md](docs/getting-started/installation.md) for complete installation guide.
+```bash
+nix profile install github:systembugtj/cangjie-nix#issuegraph
+```
+
+**Windows (Scoop):**
+
+```powershell
+scoop bucket add shennong https://github.com/systembugtj/shennong-bucket
+scoop install shennong/issuegraph
+```
+
+Each channel installs the matching archive from the tagged GitHub Release and pins its SHA-256 from the release `SHA256SUMS`.
 
 **Upgrading?** Replacing the binary is not always the whole story. Short
 version: sync remote-backed databases with your current `issuegraph`, back up with
@@ -115,16 +127,7 @@ version: sync remote-backed databases with your current `issuegraph`, back up wi
 migration on a remote-backed database, exactly one designated clone runs
 `issuegraph migrate` and `issuegraph dolt push`; other clones install the new binary
 and run `issuegraph bootstrap`. See the full
-[upgrade guide](https://github.com/borg0ai/dx-issuegraph/tree/main/docs/getting-started/upgrading)
-or [docs/getting-started/installation.md](docs/getting-started/installation.md#updating-issuegraph).
-
-### Security And Verification
-
-Before trusting any downloaded binary, verify its checksum against the release `checksums.txt`.
-
-The install scripts verify release checksums before install. For manual installs, do this verification yourself before first run.
-
-On macOS, `scripts/install.sh` preserves the downloaded signature by default. Local ad-hoc re-signing is explicit opt-in via `ISSUEGRAPH_INSTALL_RESIGN_MACOS=1`.
+[upgrade guide](https://github.com/borg0ai/dx-issuegraph/tree/main/docs/getting-started/upgrading).
 
 See [docs/reference/antivirus.md](docs/reference/antivirus.md) for Windows AV false-positive guidance and verification workflow.
 
@@ -137,10 +140,14 @@ IssueGraph uses [Dolt](https://github.com/dolthub/dolt) as its database. Two mod
 - **Server** — `issuegraph init --server`. Connects to an external `dolt sql-server`
   for multiple concurrent writers; data lives in `.issuegraph/dolt/`.
 
-Cross-machine sync uses `issuegraph dolt push` / `issuegraph dolt pull` against
-`refs/dolt/data` on your git remote; `.issuegraph/issues.jsonl` is an export for
-viewers and interchange, not the source of truth or a backup. Back up and
-migrate between modes with `issuegraph backup`; reclaim space with `issuegraph prune` /
+Every write also refreshes a complete snapshot, `.issuegraph/issues.jsonl` plus
+`.issuegraph/manifest.json`, which Git tracks. To move issues to another clone,
+commit and push those two files with Git yourself, then run
+`issuegraph snapshot restore` there: it validates the manifest and makes the local
+database equal to the snapshot, deleting issues the snapshot no longer lists.
+IssueGraph itself never runs Git or contacts a remote for this. Turn the snapshot
+off with `issuegraph config set export.auto false`. Back up and migrate between
+modes with `issuegraph backup`; reclaim space with `issuegraph prune` /
 `issuegraph purge`.
 
 Full detail — connection flags, sockets, maintenance, backup, and migration —
@@ -160,10 +167,10 @@ schema version mismatch: database is at v45, binary knows up to v42 (3 migration
   with cryptic SQL errors (e.g. "column X could not be found in any table in scope").
 
   Rebuild from main:
-    CGO_ENABLED=0 go build -tags gms_pure_go ./modules/cli
+    CGO_ENABLED=0 go build -tags gms_pure_go ./apps/cli
 
-  Or install the latest release:
-    CGO_ENABLED=0 go install -tags gms_pure_go github.com/borg0ai/dx-issuegraph/modules/cli@latest
+  Or upgrade to the latest release through your package manager:
+    brew upgrade issuegraph | nix profile upgrade issuegraph | scoop update issuegraph
 
   To proceed despite the risk (some read commands may still work):
     ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 issuegraph <command>

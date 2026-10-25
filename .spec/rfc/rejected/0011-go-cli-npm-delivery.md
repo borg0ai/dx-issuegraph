@@ -1,10 +1,13 @@
 # RFC 0011: `@borg0ai/issuegraph` npm installer (child of 0001)
 
-**Status:** Draft
+**Status:** Superseded
 
-**Parent:** [0001](0001-issuegraph-local-git.md)
+**Parent:** [0001](../0001-issuegraph-local-git.md)
 
 ## Summary
+
+**Superseded by RFC 0012.** The npm CLI installer distribution proposal is
+withdrawn; retain the remaining text as historical context.
 
 Publish `apps/cli` to npm as `@borg0ai/issuegraph`. Its installer CLI is named
 `ig-installer`; it downloads the exact versioned IssueGraph Go executable for

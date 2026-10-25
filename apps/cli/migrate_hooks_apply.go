@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 )
 
 type hookMigrationMode struct {

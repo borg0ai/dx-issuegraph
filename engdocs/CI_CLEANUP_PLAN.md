@@ -93,11 +93,11 @@ Initial artifact set:
 
 | Artifact | Producer | Consumers |
 |---|---|---|
-| `bd-linux-gms-pure` | Linux build stage | PR/main smoke, package checks, cross-version smoke candidate, `modules/cli` subprocess tests through `BEADS_TEST_BD_BINARY`. |
+| `bd-linux-gms-pure` | Linux build stage | PR/main smoke, package checks, cross-version smoke candidate, `apps/cli` subprocess tests through `BEADS_TEST_BD_BINARY`. |
 | `linux-integration-packages-*` | Linux build stage or integration setup | No-short integration package shards. |
-| `linux-integration-cmd-bd-tests-*` | Linux build stage or integration setup | `modules/cli` integration shards. |
-| `embedded-test-binaries` | Embedded build stage when applicable | Embedded storage and `modules/cli` shards. Existing workflow already follows this pattern. |
-| `bd-cmd-test-linux-integration-race` | Future measured build stage | Candidate replacement for `go test` compilation in `modules/cli` integration shards. |
+| `linux-integration-cmd-bd-tests-*` | Linux build stage or integration setup | `apps/cli` integration shards. |
+| `embedded-test-binaries` | Embedded build stage when applicable | Embedded storage and `apps/cli` shards. Existing workflow already follows this pattern. |
+| `bd-cmd-test-linux-integration-race` | Future measured build stage | Candidate replacement for `go test` compilation in `apps/cli` integration shards. |
 
 Do not share Linux artifacts with macOS or Windows jobs. Platform-specific
 main/release jobs need their own build stages if they should reuse artifacts.
@@ -270,15 +270,15 @@ Selectable measurement suites:
   stable Go package shards. Each shard uploads the package list and JUnit
   output so wall-clock tails can drive the promotion shard count.
 - `linux-integration-hybrid-sharded`: the measured next iteration after
-  package sharding exposed `modules/cli` as the tail. It keeps six package shards for
-  everything except `modules/cli`, then runs `modules/cli` across eight top-level test
+  package sharding exposed `apps/cli` as the tail. It keeps six package shards for
+  everything except `apps/cli`, then runs `apps/cli` across eight top-level test
   name shards.
 - `linux-integration-hybrid-16-sharded`: follow-up measurement for the same
-  hybrid shape, but with `modules/cli` split across sixteen top-level test name
+  hybrid shape, but with `apps/cli` split across sixteen top-level test name
   shards.
 - `linux-integration-hybrid-prebuilt-sharded`: follow-up measurement that
   prebuilds one `bd` subprocess binary, then runs the hybrid shape with six
-  package shards and eight `modules/cli` test-name shards.
+  package shards and eight `apps/cli` test-name shards.
 - `linux-integration-coverage`: same integration shape with coverage generation
   and a coverage summary, but no threshold.
 - `cross-version-smoke`: one previous-release smoke sample, optionally pinned
@@ -370,7 +370,7 @@ Failure modes from this batch:
   repeated `fatal: empty ident name not allowed`, and in `internal/storage/dolt`
   on missing `depends_on_external`.
 - `linux-integration` and `linux-integration-coverage`: both reported
-  `modules/cli TestAutoMigrateOnVersionBump_NoDatabase` through gotestsum and failed
+  `apps/cli TestAutoMigrateOnVersionBump_NoDatabase` through gotestsum and failed
   three `internal/storage/dolt` routing tests because `depends_on_external` was
   missing from the queried schema.
 - `cross-version-smoke`: the workflow did not pass an explicit release tag and
@@ -434,7 +434,7 @@ First sharded run: 26569078396, commit
 
 | Shard | Go test time | Result | Read |
 |---:|---:|---|---|
-| 1/6 | 542s | Pass | Tail shard; contains `modules/cli` and `internal/doltserver`. |
+| 1/6 | 542s | Pass | Tail shard; contains `apps/cli` and `internal/doltserver`. |
 | 2/6 | 179s | Pass | Contains `internal/storage/dolt`; no longer the tail under package sharding. |
 | 3/6 | 174s | Fail | `internal/beads` duplicate `TestMain`; fixed after this run by moving integration setup behind the existing package `TestMain`. |
 | 4/6 | 174s | Pass | Package shard is in the same range as shards 2/3. |
@@ -454,7 +454,7 @@ commit `bc78a25a8c3773012c476ecd9adb275770e75f05`.
 | 6/6 | 61s | Pass |
 
 Package sharding is useful but not enough by itself: the full wall-clock tail is
-still the `modules/cli` shard. The next optimization should split `modules/cli` by
+still the `apps/cli` shard. The next optimization should split `apps/cli` by
 top-level test names, then keep package sharding for the remaining packages.
 The `linux-integration-hybrid-sharded` measurement suite implements that next
 shape.
@@ -470,21 +470,21 @@ First hybrid run: 26596629423, commit
 | Packages | 4/6 | 14s | 173s | 218s | Pass |
 | Packages | 5/6 | 13s | 37s | 81s | Pass |
 | Packages | 6/6 | 13s | 73s | 115s | Pass |
-| `modules/cli` | 1/8 | 186s | 352s | 567s | Pass |
-| `modules/cli` | 2/8 | 185s | 356s | 570s | Pass |
-| `modules/cli` | 3/8 | 183s | 356s | 570s | Pass |
-| `modules/cli` | 4/8 | 184s | 378s | 596s | Pass |
-| `modules/cli` | 5/8 | 188s | 375s | 592s | Pass |
-| `modules/cli` | 6/8 | 184s | 363s | 576s | Pass |
-| `modules/cli` | 7/8 | 149s | 299s | 479s | Pass |
-| `modules/cli` | 8/8 | 174s | 339s | 539s | Pass |
+| `apps/cli` | 1/8 | 186s | 352s | 567s | Pass |
+| `apps/cli` | 2/8 | 185s | 356s | 570s | Pass |
+| `apps/cli` | 3/8 | 183s | 356s | 570s | Pass |
+| `apps/cli` | 4/8 | 184s | 378s | 596s | Pass |
+| `apps/cli` | 5/8 | 188s | 375s | 592s | Pass |
+| `apps/cli` | 6/8 | 184s | 363s | 576s | Pass |
+| `apps/cli` | 7/8 | 149s | 299s | 479s | Pass |
+| `apps/cli` | 8/8 | 174s | 339s | 539s | Pass |
 
 This proved the hybrid split is structurally valid, but it also exposed a
 measurement-specific inefficiency: `go test -list` was spending 149-188s per
-`modules/cli` shard just to discover test names. The workflow now uses the
+`apps/cli` shard just to discover test names. The workflow now uses the
 build-tag-aware `scripts/ci/go-list-test-names` AST helper instead. Local
 validation confirmed the helper exactly matched `go test -list '^Test'` for
-`./modules/cli` under `integration,gms_pure_go` and excludes `TestMain`.
+`./apps/cli` under `integration,gms_pure_go` and excludes `TestMain`.
 
 Follow-up hybrid run with AST-based test discovery: 26597526345, commit
 `4721974f3fa97889b6d34012c533b6a5c44bc012`.
@@ -497,19 +497,19 @@ Follow-up hybrid run with AST-based test discovery: 26597526345, commit
 | Packages | 4/6 | 16s | 167s | 216s | Pass |
 | Packages | 5/6 | 14s | 37s | 80s | Pass |
 | Packages | 6/6 | 12s | 76s | 122s | Pass |
-| `modules/cli` | 1/8 | 16s | 486s | 536s | Pass |
-| `modules/cli` | 2/8 | 16s | 465s | 507s | Pass |
-| `modules/cli` | 3/8 | 15s | 474s | 518s | Pass |
-| `modules/cli` | 4/8 | 15s | 501s | 545s | Pass |
-| `modules/cli` | 5/8 | 16s | 488s | 531s | Pass |
-| `modules/cli` | 6/8 | 16s | 500s | 545s | Pass |
-| `modules/cli` | 7/8 | 18s | 548s | 597s | Pass |
-| `modules/cli` | 8/8 | 17s | 483s | 534s | Pass |
+| `apps/cli` | 1/8 | 16s | 486s | 536s | Pass |
+| `apps/cli` | 2/8 | 16s | 465s | 507s | Pass |
+| `apps/cli` | 3/8 | 15s | 474s | 518s | Pass |
+| `apps/cli` | 4/8 | 15s | 501s | 545s | Pass |
+| `apps/cli` | 5/8 | 16s | 488s | 531s | Pass |
+| `apps/cli` | 6/8 | 16s | 500s | 545s | Pass |
+| `apps/cli` | 7/8 | 18s | 548s | 597s | Pass |
+| `apps/cli` | 8/8 | 17s | 483s | 534s | Pass |
 
 AST discovery removed the explicit list-time tax, but overall wall-clock did
 not materially improve because `go test -list` had also warmed package
 compilation. The next measurement should keep the package split and compare a
-sixteen-way `modules/cli` split. If the sixteen-way tail remains close to ten
+sixteen-way `apps/cli` split. If the sixteen-way tail remains close to ten
 minutes, the next optimization should be duration-weighted assignment or a
 prebuilt shared test binary rather than more count-based shards.
 
@@ -524,24 +524,24 @@ Sixteen-way hybrid run: 26598339170, commit
 | Packages | 4/6 | 11s | 168s | 207s | Pass |
 | Packages | 5/6 | 15s | 38s | 81s | Pass |
 | Packages | 6/6 | 12s | 64s | 108s | Pass |
-| `modules/cli` | 1/16 | 18s | 334s | 383s | Pass |
-| `modules/cli` | 2/16 | 14s | 473s | 517s | Pass |
-| `modules/cli` | 3/16 | 17s | 480s | 530s | Pass |
-| `modules/cli` | 4/16 | 14s | 503s | 546s | Pass |
-| `modules/cli` | 5/16 | 15s | 508s | 553s | Pass |
-| `modules/cli` | 6/16 | 15s | 480s | 524s | Pass |
-| `modules/cli` | 7/16 | 15s | 485s | 533s | Pass |
-| `modules/cli` | 8/16 | 18s | 476s | 522s | Pass |
-| `modules/cli` | 9/16 | 17s | 467s | 517s | Pass |
-| `modules/cli` | 10/16 | 17s | 380s | 428s | Pass |
-| `modules/cli` | 11/16 | 14s | 482s | 529s | Pass |
-| `modules/cli` | 12/16 | 18s | 497s | 547s | Pass |
-| `modules/cli` | 13/16 | 19s | 472s | 521s | Pass |
-| `modules/cli` | 14/16 | 16s | 481s | 528s | Pass |
-| `modules/cli` | 15/16 | 16s | 479s | 530s | Pass |
-| `modules/cli` | 16/16 | 19s | 474s | 523s | Pass |
+| `apps/cli` | 1/16 | 18s | 334s | 383s | Pass |
+| `apps/cli` | 2/16 | 14s | 473s | 517s | Pass |
+| `apps/cli` | 3/16 | 17s | 480s | 530s | Pass |
+| `apps/cli` | 4/16 | 14s | 503s | 546s | Pass |
+| `apps/cli` | 5/16 | 15s | 508s | 553s | Pass |
+| `apps/cli` | 6/16 | 15s | 480s | 524s | Pass |
+| `apps/cli` | 7/16 | 15s | 485s | 533s | Pass |
+| `apps/cli` | 8/16 | 18s | 476s | 522s | Pass |
+| `apps/cli` | 9/16 | 17s | 467s | 517s | Pass |
+| `apps/cli` | 10/16 | 17s | 380s | 428s | Pass |
+| `apps/cli` | 11/16 | 14s | 482s | 529s | Pass |
+| `apps/cli` | 12/16 | 18s | 497s | 547s | Pass |
+| `apps/cli` | 13/16 | 19s | 472s | 521s | Pass |
+| `apps/cli` | 14/16 | 16s | 481s | 528s | Pass |
+| `apps/cli` | 15/16 | 16s | 479s | 530s | Pass |
+| `apps/cli` | 16/16 | 19s | 474s | 523s | Pass |
 
-The sixteen-way split reduced the runner-time `modules/cli` tail only from 597s to
+The sixteen-way split reduced the runner-time `apps/cli` tail only from 597s to
 553s, while the overall workflow took about 14m22s because the wider matrix
 queued. This is not enough improvement to justify more count-based sharding for
 `main`.
@@ -551,7 +551,7 @@ about 140-144s in the first test that called a `go build` helper for that
 shard. The subprocess test helpers now honor `BEADS_TEST_BD_BINARY` before
 falling back to per-process builds. The next measurement is
 `linux-integration-hybrid-prebuilt-sharded`, which prebuilds one `bd` binary
-and reuses it across eight `modules/cli` shards.
+and reuses it across eight `apps/cli` shards.
 
 Prebuilt-binary hybrid run: 26599616086, commit
 `4d186ad8024f4ab2d1315ff3d4c51da19429f42c`.
@@ -565,14 +565,14 @@ Prebuilt-binary hybrid run: 26599616086, commit
 | Packages | 4/6 | 13s | 176s | 223s | Pass |
 | Packages | 5/6 | 11s | 36s | 75s | Pass |
 | Packages | 6/6 | 12s | 77s | 121s | Pass |
-| `modules/cli` | 1/8 | 15s | 333s | 380s | Pass |
-| `modules/cli` | 2/8 | 15s | 330s | 376s | Pass |
-| `modules/cli` | 3/8 | 18s | 331s | 380s | Pass |
-| `modules/cli` | 4/8 | 16s | 331s | 378s | Pass |
-| `modules/cli` | 5/8 | 16s | 330s | 386s | Pass |
-| `modules/cli` | 6/8 | 18s | 341s | 392s | Pass |
-| `modules/cli` | 7/8 | 16s | 344s | 394s | Pass |
-| `modules/cli` | 8/8 | 14s | 337s | 383s | Pass |
+| `apps/cli` | 1/8 | 15s | 333s | 380s | Pass |
+| `apps/cli` | 2/8 | 15s | 330s | 376s | Pass |
+| `apps/cli` | 3/8 | 18s | 331s | 380s | Pass |
+| `apps/cli` | 4/8 | 16s | 331s | 378s | Pass |
+| `apps/cli` | 5/8 | 16s | 330s | 386s | Pass |
+| `apps/cli` | 6/8 | 18s | 341s | 392s | Pass |
+| `apps/cli` | 7/8 | 16s | 344s | 394s | Pass |
+| `apps/cli` | 8/8 | 14s | 337s | 383s | Pass |
 
 Repeat prebuilt-binary hybrid run: 26604010187, commit
 `c0ca395d6f332d1ee6b22f5257c56aec296bd648`.
@@ -586,23 +586,23 @@ Repeat prebuilt-binary hybrid run: 26604010187, commit
 | Packages | 4/6 | 12s | 172s | 216s | Pass |
 | Packages | 5/6 | 13s | 36s | 80s | Pass |
 | Packages | 6/6 | 12s | 73s | 112s | Pass |
-| `modules/cli` | 1/8 | 16s | 345s | 400s | Pass |
-| `modules/cli` | 2/8 | 15s | 329s | 373s | Pass |
-| `modules/cli` | 3/8 | 19s | 259s | 308s | Pass |
-| `modules/cli` | 4/8 | 17s | 337s | 391s | Pass |
-| `modules/cli` | 5/8 | 15s | 340s | 394s | Pass |
-| `modules/cli` | 6/8 | 16s | 331s | 383s | Pass |
-| `modules/cli` | 7/8 | 16s | 326s | 372s | Pass |
-| `modules/cli` | 8/8 | 16s | 356s | 410s | Pass |
+| `apps/cli` | 1/8 | 16s | 345s | 400s | Pass |
+| `apps/cli` | 2/8 | 15s | 329s | 373s | Pass |
+| `apps/cli` | 3/8 | 19s | 259s | 308s | Pass |
+| `apps/cli` | 4/8 | 17s | 337s | 391s | Pass |
+| `apps/cli` | 5/8 | 15s | 340s | 394s | Pass |
+| `apps/cli` | 6/8 | 16s | 331s | 383s | Pass |
+| `apps/cli` | 7/8 | 16s | 326s | 372s | Pass |
+| `apps/cli` | 8/8 | 16s | 356s | 410s | Pass |
 
 The repeat run passed and remained below the target: about 11m38s from dispatch
 creation to completion, and about 10m41s from first job start to completion.
-The `modules/cli` tail was 410s, compared to 394s in the first prebuilt sample.
+The `apps/cli` tail was 410s, compared to 394s in the first prebuilt sample.
 This prebuilt eight-way hybrid is now the first promoted every-`main` Linux
 no-short integration shape in `.github/workflows/main.yml`: six package shards
-exclude `modules/cli`, eight `modules/cli` shards split by top-level test name, and all
+exclude `apps/cli`, eight `apps/cli` shards split by top-level test name, and all
 shards consume the `ci-build-artifacts` `bd-linux-gms-pure` binary. Further
-optimization should target precompiling the `modules/cli` test binary itself or
+optimization should target precompiling the `apps/cli` test binary itself or
 reducing the remaining slow test bodies, not adding more count-based shards.
 
 ## Package Gates
@@ -627,7 +627,7 @@ name, not the `beads` alias.
 Wrapper command sequence:
 
 ```bash
-go build -tags gms_pure_go -o /tmp/bd-mcp-test ./modules/cli
+go build -tags gms_pure_go -o /tmp/bd-mcp-test ./apps/cli
 cd integrations/beads-mcp
 uv sync --all-groups --locked
 uv run ruff check src/beads_mcp tests
@@ -645,7 +645,7 @@ packaging cleanup adds one. Build the native binary expected by
 Wrapper command sequence:
 
 ```bash
-go build -tags gms_pure_go -o npm-package/bin/bd ./modules/cli
+go build -tags gms_pure_go -o npm-package/bin/bd ./apps/cli
 cd npm-package
 npm install
 npm run test:all
@@ -774,5 +774,5 @@ artifacts, so `postinstall` URLs are populated before the package is published.
 - Whether no-CGO should become a full all-package gate or remain focused.
 - Coverage thresholds for promoted main suites.
 - Final sharding strategy for macOS, integration, and embedded jobs.
-- Whether to promote a precompiled `modules/cli` test binary after measurement.
+- Whether to promote a precompiled `apps/cli` test binary after measurement.
 - npm lockfile policy for `npm-package`.

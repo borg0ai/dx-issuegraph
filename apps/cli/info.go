@@ -8,7 +8,7 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/borg0ai/dx-issuegraph/internal/workapi"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/spf13/cobra"
 )
 
@@ -1037,7 +1037,7 @@ var versionChanges = []VersionChange{
 			"FIX: hq- prefix routing - Correctly finds town root for routes.jsonl",
 			"FIX: Pre-migration orphan cleanup - Avoids chicken-and-egg failures",
 			"CHANGED: CLI command consolidation - Reduced top-level surface area",
-			"CHANGED: Code organization - Split large modules/cli files to meet 800-line limit",
+			"CHANGED: Code organization - Split large apps/cli files to meet 800-line limit",
 		},
 	},
 	{

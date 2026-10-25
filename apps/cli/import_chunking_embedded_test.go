@@ -24,7 +24,7 @@ import (
 // because it never actually stores rows or computes readiness.
 //
 // They require cgo and are skipped unless ISSUEGRAPH_TEST_EMBEDDED_DOLT=1, following
-// the modules/cli embedded-test convention (see import_embedded_test.go,
+// the apps/cli embedded-test convention (see import_embedded_test.go,
 // create_embedded_test.go). The shared helpers (setImportChunkSize,
 // recordImportPauses, setImportProgressBuffer, chunkTestIssues) live in
 // import_chunking_test.go and are reused here.

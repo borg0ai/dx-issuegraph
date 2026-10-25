@@ -63,7 +63,7 @@ func testMainInner(m *testing.M) int {
 	// suite's own temp root (e.g. a SIGKILLed run) — see
 	// borg0ai/dx-issuegraph mybd-q6cz / #5631.
 	swept := doltserver.SweepSuiteTestServers(root)
-	code = doltserver.ApplyLeakPolicy("modules/cli/doctor/fix", code, swept)
+	code = doltserver.ApplyLeakPolicy("apps/cli/doctor/fix", code, swept)
 	os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 	os.Unsetenv("ISSUEGRAPH_TEST_MODE")
 	os.Unsetenv("ISSUEGRAPH_TEST_SERVER")

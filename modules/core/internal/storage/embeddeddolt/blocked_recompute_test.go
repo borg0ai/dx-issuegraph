@@ -70,7 +70,7 @@ func TestEmbeddedRecomputeAllBlockedWiring(t *testing.T) {
 // stringified one.
 //
 // 'issuegraph sync' classifies this condition as retryable from that sentinel alone
-// (modules/cli/sync.go, isRecomputeDirtyGraphErr, wy-mlnz2). The embedded path
+// (apps/cli/sync.go, isRecomputeDirtyGraphErr, wy-mlnz2). The embedded path
 // returns the guard error through withConn's errors.Join, which preserves the
 // chain today — but nothing failed if someone rewrote that as a %v wrap, which
 // would silently demote a concurrent writer's transient dirty working set back

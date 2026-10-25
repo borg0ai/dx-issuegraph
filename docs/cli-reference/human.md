@@ -1,6 +1,6 @@
 ---
 title: "issuegraph human"
-description: "Display a focused help menu showing only the most common commands."
+description: "Show essential commands for human users"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -15,13 +15,14 @@ This command shows the ~15 essential commands that human users need most often.
 For the full command list, run: issuegraph --help
 
 SUBCOMMANDS:
-  human list              List all human-needed issuegraph (issues with 'human' label)
+  human list              List human-needed issuegraph (issues with 'human' label; hides closed by default)
   human respond &lt;id&gt;      Respond to a human-needed issue (adds comment and closes)
   human dismiss &lt;id&gt;      Dismiss a human-needed issue permanently
   human stats             Show summary statistics for human-needed issuegraph
 
 ```
 issuegraph human [flags]
+issuegraph human [command]
 ```
 
 ## issuegraph human dismiss
@@ -29,13 +30,15 @@ issuegraph human [flags]
 Dismiss a human-needed issue permanently without responding.
 
 The issue is closed with a "Dismissed" reason and optional note.
+The reason can be given as positional arguments or --reason.
 
 Examples:
-  issuegraph human dismiss issuegraph-123
-  issuegraph human dismiss issuegraph-123 --reason "No longer applicable"
+  issuegraph human dismiss bd-123
+  issuegraph human dismiss bd-123 "No longer applicable"
+  issuegraph human dismiss bd-123 --reason "No longer applicable"
 
 ```
-issuegraph human dismiss <issue-id> [flags]
+issuegraph human dismiss <issue-id> [reason...] [flags]
 ```
 
 **Flags:**
@@ -46,13 +49,18 @@ issuegraph human dismiss <issue-id> [flags]
 
 ## issuegraph human list
 
-List all issues labeled with 'human' tag.
+List issues labeled with 'human' tag.
 
-These are issues that require human intervention or input.
+These are issues that require human intervention or input. Every
+human-labeled issue shows regardless of type (including gates and wisps).
+By default closed, pinned, and other done/frozen issuegraph are hidden; use
+--status to select specific statuses, or --status=all to include every
+status.
 
 Examples:
   issuegraph human list
-  issuegraph human list --status=open
+  issuegraph human list --status=closed
+  issuegraph human list --status=all
   issuegraph human list --json
 
 ```
@@ -62,7 +70,7 @@ issuegraph human list [flags]
 **Flags:**
 
 ```
-  -s, --status string   Filter by status (open, closed, etc.)
+  -s, --status string   Filter by status (open, closed, etc.; comma-separated for multiple, 'all' for every status)
 ```
 
 ## issuegraph human respond
@@ -70,19 +78,24 @@ issuegraph human list [flags]
 Respond to a human-needed issue by adding a comment and closing it.
 
 The response is added as a comment and the issue is closed with reason "Responded".
+The response text can be given as positional arguments, --response, --file, or --stdin.
 
 Examples:
-  issuegraph human respond issuegraph-123 --response "Use OAuth2 for authentication"
-  issuegraph human respond issuegraph-123 -r "Approved, proceed with implementation"
+  issuegraph human respond bd-123 "Use OAuth2 for authentication"
+  issuegraph human respond bd-123 -r "Approved, proceed with implementation"
+  issuegraph human respond bd-123 --file response.md
+  echo "Approved" | issuegraph human respond bd-123 --stdin
 
 ```
-issuegraph human respond <issue-id> [flags]
+issuegraph human respond <issue-id> [response...] [flags]
 ```
 
 **Flags:**
 
 ```
-  -r, --response string   Response text (required)
+      --file string       Read response text from file
+  -r, --response string   Response text
+      --stdin             Read response text from stdin
 ```
 
 ## issuegraph human stats

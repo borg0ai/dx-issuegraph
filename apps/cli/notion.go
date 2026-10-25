@@ -148,7 +148,6 @@ func init() {
 		notionStatusCmd,
 		notionSyncCmd,
 	)
-	rootCmd.AddCommand(notionCmd)
 }
 
 func getNotionConfig() notionConfig {

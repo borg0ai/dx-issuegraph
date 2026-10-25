@@ -32,7 +32,7 @@ import (
 //
 // What is deliberately NOT here:
 //   - the mapping from flags to a request, which is `issuegraph count`'s job and is
-//     pinned in modules/cli/count_filter_test.go;
+//     pinned in apps/cli/count_filter_test.go;
 //   - the filter CONSTRUCTION, which all three share through one builder and
 //     which internal/workapi/count_test.go pins directly, including the
 //     --include-infra cardinality parity with `issuegraph list` (GH#4387);

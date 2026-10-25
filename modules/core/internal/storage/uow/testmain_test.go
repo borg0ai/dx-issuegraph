@@ -41,7 +41,7 @@ func testMainInner(m *testing.M) int {
 
 	// Pin TMPDIR under a suite-owned root so every t.TempDir() — including
 	// the storeRootDir a provider serves — is nested under something the
-	// post-run sweep may vouch for. Same pattern as modules/cli/doctor's TestMain.
+	// post-run sweep may vouch for. Same pattern as apps/cli/doctor's TestMain.
 	root, pinErr := testutil.PinSuiteTempRoot(suiteRootPrefix + "*")
 	if pinErr != nil {
 		fmt.Fprintf(os.Stderr, "FATAL: suite temp root: %v\n", pinErr)

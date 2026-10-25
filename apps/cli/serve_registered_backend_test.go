@@ -62,7 +62,7 @@ func TestServeAnswersFromARegisteredBackendStore(t *testing.T) {
 	// process. A serve that opened a handle of its own would leak it — nothing
 	// closes it — and double the backend's pools against a workspace some
 	// backends hold an exclusive lock on. Counting here catches it wherever it
-	// is spelled, because every store factory in modules/cli dispatches through this
+	// is spelled, because every store factory in apps/cli dispatches through this
 	// same registry (newDoltStoreFromConfig, newReadOnlyStoreFromConfig).
 	var opens atomic.Int64
 	backends.Register(name, backends.Backend{
@@ -328,7 +328,7 @@ func startServeInProcess(t *testing.T, dir, issuegraphDir string) (string, <-cha
 	// in-process test that resolved (or failed to resolve) a workspace leaves
 	// that verdict cached, and this command would serve it instead of the
 	// tempdir above ("no .issuegraph directory found", deterministic in Main's
-	// modules/cli shard 8 ordering). Reset on the way out too, so this test's
+	// apps/cli shard 8 ordering). Reset on the way out too, so this test's
 	// soon-to-be-deleted tempdir isn't the next test's cached workspace.
 	issuegraph.ResetCaches()
 	git.ResetCaches()

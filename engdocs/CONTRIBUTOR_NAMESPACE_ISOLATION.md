@@ -135,7 +135,7 @@ accordingly:
    func DetermineTargetRepo(config *RoutingConfig, userRole UserRole, repoPath string)
    ```
 
-4. **Contributor Setup Wizard** (`modules/cli/init_contributor.go`):
+4. **Contributor Setup Wizard** (`apps/cli/init_contributor.go`):
    ```bash
    issuegraph init --contributor
    ```
@@ -149,7 +149,7 @@ accordingly:
 
 1. **Actual Routing in `issuegraph create`** (bd-6x6g):
    ```go
-   // modules/cli/create.go:181
+   // apps/cli/create.go:181
    // TODO(bd-6x6g): Switch to target repo for multi-repo support
    // For now, we just log the target repo in debug mode
    if repoPath != "." {
@@ -171,7 +171,7 @@ accordingly:
 Make `issuegraph create` actually route to the target repo:
 
 ```go
-// In modules/cli/create.go, after DetermineTargetRepo()
+// In apps/cli/create.go, after DetermineTargetRepo()
 if repoPath != "." {
     // Switch store to target repo
     targetIssueGraphDir := expandPath(repoPath)

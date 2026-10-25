@@ -80,7 +80,7 @@ func TestRememberForwardsBothDocumentedMembers(t *testing.T) {
 // the role as the empty string, which is what tells it to derive one, and the
 // response is where the caller learns the answer.
 //
-// The handler must not derive: memoryapi.DeriveKey is importable from modules/cli
+// The handler must not derive: memoryapi.DeriveKey is importable from apps/cli
 // for the CLI's desire path, so a handler could call it — and then two places
 // would decide where a memory lands.
 func TestRememberWithoutAKeyLeavesTheDerivationToTheRole(t *testing.T) {

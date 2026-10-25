@@ -1,6 +1,6 @@
 ---
 title: "issuegraph promote"
-description: "Promote a wisp (ephemeral issue) to a permanent issue."
+description: "Promote a wisp to a permanent issue"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}

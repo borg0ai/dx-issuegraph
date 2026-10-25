@@ -7,7 +7,7 @@ import (
 )
 
 // This file is the single source of truth for the user-facing removed-backend
-// and unknown-backend messages. modules/cli, the public issuegraph package, and the Dolt
+// and unknown-backend messages. apps/cli, the public issuegraph package, and the Dolt
 // store must all fail closed with the same text, so the wording is deliberately
 // centralized here.
 //

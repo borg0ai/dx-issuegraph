@@ -1,6 +1,6 @@
 ---
 title: "issuegraph where"
-description: "Show the active issuegraph database location, including redirect information."
+description: "Show active issuegraph location"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}

@@ -28,8 +28,8 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/borg0ai/dx-issuegraph/issueops"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/setup"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/setup"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -796,7 +796,7 @@ Non-interactive mode (--non-interactive or ISSUEGRAPH_NON_INTERACTIVE=1):
 		// This prevents accidental re-initialization. --force and
 		// --reinit-local both bypass this local-only guard; they do NOT
 		// authorize cross-boundary operations on remote history (see
-		// CheckRemoteSafety at modules/cli/init_safety.go and
+		// CheckRemoteSafety at apps/cli/init_safety.go and
 		// engdocs/adr/0002-init-safety-invariants.md).
 		if !reinitLocal {
 			if err := checkExistingIssueGraphData(prefix); err != nil {

@@ -1,6 +1,6 @@
 ---
 title: "issuegraph repo"
-description: "Configure and manage multiple repository support for multi-repo hydration."
+description: "Manage multiple repository configuration"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -28,7 +28,7 @@ Examples:
   issuegraph repo sync                       # Sync from all configured repos
 
 ```
-issuegraph repo [flags]
+issuegraph repo [command]
 ```
 
 ## issuegraph repo add

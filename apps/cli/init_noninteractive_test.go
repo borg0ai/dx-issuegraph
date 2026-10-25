@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 )
 
 // TestIsNonInteractiveInit tests the non-interactive detection logic.
@@ -131,38 +130,40 @@ func TestIsNonInteractiveInitPrecedence(t *testing.T) {
 	}
 }
 
-func TestInitNonInteractiveAutoExportDefaultOffAndOptIn(t *testing.T) {
+func TestInitNonInteractiveSnapshotDefaultOnAndOptOut(t *testing.T) {
 	issuegraph := buildIssueGraphForInitTests(t)
 	dir := t.TempDir()
 
 	runIssueGraphForAutoExportInitTest(t, issuegraph, dir, "init", "--prefix", "test", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 
-	if got := strings.TrimSpace(runIssueGraphStdoutForAutoExportInitTest(t, issuegraph, dir, "config", "get", "export.auto")); got != "false" {
-		t.Fatalf("export.auto default = %q, want false", got)
+	if got := strings.TrimSpace(runIssueGraphStdoutForAutoExportInitTest(t, issuegraph, dir, "config", "get", "export.auto")); got != "true" {
+		t.Fatalf("export.auto default = %q, want true", got)
 	}
 	if got := strings.TrimSpace(runIssueGraphStdoutForAutoExportInitTest(t, issuegraph, dir, "config", "get", "export.git-add")); got != "false" {
 		t.Fatalf("export.git-add default = %q, want false", got)
 	}
 
-	runIssueGraphForAutoExportInitTest(t, issuegraph, dir, "create", "default-off issue", "-p", "2")
+	runIssueGraphForAutoExportInitTest(t, issuegraph, dir, "create", "snapshot issue", "-p", "2")
 	jsonlPath := filepath.Join(dir, ".issuegraph", "issues.jsonl")
-	if _, err := os.Stat(jsonlPath); !os.IsNotExist(err) {
-		t.Fatalf("default-off create wrote %s; stat err=%v", jsonlPath, err)
-	}
-
-	runIssueGraphForAutoExportInitTest(t, issuegraph, dir, "config", "set", "export.interval", "1ms")
-	runIssueGraphForAutoExportInitTest(t, issuegraph, dir, "config", "set", "export.auto", "true")
-	if got := strings.TrimSpace(runIssueGraphStdoutForAutoExportInitTest(t, issuegraph, dir, "config", "get", "export.auto")); got != "true" {
-		t.Fatalf("explicit export.auto = %q, want true", got)
-	}
-	time.Sleep(10 * time.Millisecond)
-	runIssueGraphForAutoExportInitTest(t, issuegraph, dir, "create", "explicit export issue", "-p", "2")
 	data, err := os.ReadFile(jsonlPath)
 	if err != nil {
-		t.Fatalf("explicit export.auto did not write %s: %v", jsonlPath, err)
+		t.Fatalf("default create did not write %s: %v", jsonlPath, err)
 	}
-	if !strings.Contains(string(data), "explicit export issue") {
-		t.Fatalf("JSONL export did not contain created issue:\n%s", data)
+	if !strings.Contains(string(data), "snapshot issue") {
+		t.Fatalf("snapshot JSONL did not contain created issue:\n%s", data)
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".issuegraph", snapshotManifestFile)); err != nil {
+		t.Fatalf("default create did not write the manifest: %v", err)
+	}
+
+	runIssueGraphForAutoExportInitTest(t, issuegraph, dir, "config", "set", "export.auto", "false")
+	runIssueGraphForAutoExportInitTest(t, issuegraph, dir, "create", "opted-out issue", "-p", "2")
+	data, err = os.ReadFile(jsonlPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "opted-out issue") {
+		t.Fatalf("export.auto=false still wrote the snapshot:\n%s", data)
 	}
 }
 

@@ -10,7 +10,6 @@ push_before_sha="${PUSH_BEFORE_SHA:-}"
 push_after_sha="${PUSH_AFTER_SHA:-${GITHUB_SHA:-HEAD}}"
 
 mcp_package=false
-npm_package=false
 reason=""
 changed_files=""
 
@@ -18,7 +17,6 @@ write_outputs() {
     if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
         {
             echo "mcp_package=$mcp_package"
-            echo "npm_package=$npm_package"
             echo "reason=$reason"
         } >>"$GITHUB_OUTPUT"
     fi
@@ -27,7 +25,6 @@ write_outputs() {
 run_all() {
     reason="$1"
     mcp_package=true
-    npm_package=true
     write_outputs
     echo "$reason"
     exit 0
@@ -72,24 +69,18 @@ esac
 while IFS= read -r path; do
     [[ -n "$path" ]] || continue
     case "$path" in
-        integrations/issuegraph-mcp/*|scripts/ci/package-mcp.sh|scripts/ci/detect-package-gates.sh|.github/workflows/pr.yml|.github/workflows/main.yml|.github/workflows/pr-risk.yml|.github/workflows/ci-measurements.yml|.github/workflows/release.yml|Makefile)
+        integrations/issuegraph-mcp/*|scripts/ci/package-mcp.sh|scripts/ci/detect-package-gates.sh|.github/workflows/pr.yml|.github/workflows/main.yml|.github/workflows/pr-risk.yml|.github/workflows/ci-measurements.yml|Makefile)
             mcp_package=true
-            ;;
-    esac
-    case "$path" in
-        apps/cli/*|scripts/ci/package-npm.sh|scripts/ci/detect-package-gates.sh|.github/workflows/pr.yml|.github/workflows/main.yml|.github/workflows/pr-risk.yml|.github/workflows/ci-measurements.yml|.github/workflows/release.yml|Makefile)
-            npm_package=true
             ;;
     esac
     case "$path" in
         scripts/ci/detect-package-gates.sh|.github/workflows/pr.yml|.github/workflows/main.yml|.github/workflows/pr-risk.yml|.github/workflows/ci-measurements.yml|Makefile)
             mcp_package=true
-            npm_package=true
             ;;
     esac
 done <<<"$changed_files"
 
-if [[ "$mcp_package" == "true" || "$npm_package" == "true" ]]; then
+if [[ "$mcp_package" == "true" ]]; then
     reason="package paths changed"
 else
     reason="no package-gate paths changed"
@@ -108,4 +99,3 @@ else
 fi
 echo "Package gates:"
 echo "  mcp_package=$mcp_package"
-echo "  npm_package=$npm_package"

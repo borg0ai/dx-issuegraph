@@ -130,7 +130,7 @@ func TestHookFiringStoreCompleteIssueOperationsFireOncePerCall(t *testing.T) {
 // TestHookFiringStoreCompleteIssueOperationsSnapshotIssue pins the clone at the
 // completion entry points: the real hook runner marshals the issue on its own
 // goroutine, and the CLI mutates the result object it handed in right after
-// completing (modules/cli close/update/reopen nil out .Dependencies), so handing
+// completing (apps/cli close/update/reopen nil out .Dependencies), so handing
 // the runner the caller's pointer is a data race with a nondeterministic
 // payload (bd-9wgv3).
 func TestHookFiringStoreCompleteIssueOperationsSnapshotIssue(t *testing.T) {

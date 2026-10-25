@@ -172,7 +172,7 @@ func TestSweepDeadSuiteRootsSelection(t *testing.T) {
 // TestSweepDeadSuiteRootsRestoresMarkerOnPartialRemoval covers the recovery
 // path for a removal that fails halfway. os.RemoveAll is not atomic and the
 // marker is an early casualty, so without the rewrite a root that could not
-// be fully deleted (a read-only Go module cache entry under modules/cli's isolated
+// be fully deleted (a read-only Go module cache entry under apps/cli's isolated
 // $HOME, say) would come back UNCLAIMED — and an unclaimed root is never
 // swept again, by design. The marker must go back naming the same dead owner.
 func TestSweepDeadSuiteRootsRestoresMarkerOnPartialRemoval(t *testing.T) {
@@ -217,7 +217,7 @@ func TestSweepDeadSuiteRootsRestoresMarkerOnPartialRemoval(t *testing.T) {
 }
 
 // TestSweepDeadSuiteRootsRemovesReadOnlyDirs pins removeSuiteRoot's chmod
-// walk: modules/cli's suite root doubles as an isolated $HOME and can hold
+// walk: apps/cli's suite root doubles as an isolated $HOME and can hold
 // read-only Go module cache directories, which plain os.RemoveAll refuses.
 func TestSweepDeadSuiteRootsRemovesReadOnlyDirs(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "root")
@@ -346,7 +346,7 @@ func TestApplyLeakPolicyForSuite(t *testing.T) {
 // lines. A PID alone is useless to whoever reads the CI log — the process is
 // long gone and the number identifies nothing — whereas the working directory
 // is the temp tree the leaked server was serving, which Go names after the
-// test that created it. Reporting it is what turns "modules/cli leaked a server"
+// test that created it. Reporting it is what turns "apps/cli leaked a server"
 // into a specific fixture to fix (wy-j2zc8q).
 func TestApplyLeakPolicyNamesTheLeakingDirectory(t *testing.T) {
 	const cwd = "/tmp/issuegraph-issuegraph-tests-xyz/TestLeakyFixture123/001/.issuegraph/dolt"
@@ -355,11 +355,11 @@ func TestApplyLeakPolicyNamesTheLeakingDirectory(t *testing.T) {
 	t.Run("the failure line", func(t *testing.T) {
 		t.Setenv(AllowLeakEnv, "")
 		var code int
-		out := captureStderr(t, func() { code = ApplyLeakPolicy("modules/cli", 0, swept) })
+		out := captureStderr(t, func() { code = ApplyLeakPolicy("apps/cli", 0, swept) })
 		if code != 1 {
 			t.Errorf("ApplyLeakPolicy() = %d, want 1", code)
 		}
-		if !strings.Contains(out, "FAIL: modules/cli leaked") {
+		if !strings.Contains(out, "FAIL: apps/cli leaked") {
 			t.Errorf("stderr = %q, want the FAIL line", out)
 		}
 		if !strings.Contains(out, "21881 cwd="+cwd) {
@@ -370,7 +370,7 @@ func TestApplyLeakPolicyNamesTheLeakingDirectory(t *testing.T) {
 	t.Run("the downgraded warning line", func(t *testing.T) {
 		t.Setenv(AllowLeakEnv, "1")
 		var code int
-		out := captureStderr(t, func() { code = ApplyLeakPolicy("modules/cli", 0, swept) })
+		out := captureStderr(t, func() { code = ApplyLeakPolicy("apps/cli", 0, swept) })
 		if code != 0 {
 			t.Errorf("ApplyLeakPolicy() = %d, want 0", code)
 		}

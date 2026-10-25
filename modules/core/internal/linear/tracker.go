@@ -699,7 +699,7 @@ func (t *Tracker) PrimaryClient() *Client {
 
 // getConfig reads a config value from storage, falling back to env var.
 // For yaml-only keys (e.g. linear.api_key), reads from config.yaml first
-// to match the behavior of modules/cli/linear.go:getLinearConfig().
+// to match the behavior of apps/cli/linear.go:getLinearConfig().
 func (t *Tracker) getConfig(ctx context.Context, key, envVar string) (string, error) {
 	// Secret keys are stored in config.yaml, not the Dolt database,
 	// to avoid leaking secrets when pushing to remotes.

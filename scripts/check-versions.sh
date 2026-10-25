@@ -9,10 +9,10 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 # Get the canonical version from version.go
-CANONICAL=$(grep 'Version = ' modules/cli/version.go | sed 's/.*"\(.*\)".*/\1/')
+CANONICAL=$(grep 'Version = ' apps/cli/version.go | sed 's/.*"\(.*\)".*/\1/')
 
 if [ -z "$CANONICAL" ]; then
-    echo -e "${RED}❌ Could not read version from modules/cli/version.go${NC}"
+    echo -e "${RED}❌ Could not read version from apps/cli/version.go${NC}"
     exit 1
 fi
 
@@ -20,10 +20,6 @@ echo "Canonical version (from version.go): $CANONICAL"
 echo ""
 
 MISMATCH=0
-
-# Base (prerelease-stripped) form. The Windows PE numeric fields must be purely
-# numeric, so they carry this rather than $CANONICAL.
-BASE_VERSION="${CANONICAL%%-*}"
 
 check_expected() {
     local _file=$1
@@ -52,12 +48,12 @@ check_version "integrations/issuegraph-mcp/src/issuegraph_mcp/__init__.py" \
     "$(grep '__version__ = ' integrations/issuegraph-mcp/src/issuegraph_mcp/__init__.py 2>/dev/null | sed 's/.*"\(.*\)".*/\1/')" \
     "MCP __init__.py"
 
-check_version "plugins/issuegraph/.claude-plugin/plugin.json" \
-    "$(jq -r '.version' plugins/issuegraph/.claude-plugin/plugin.json 2>/dev/null)" \
+check_version "issuegraph/.claude-plugin/plugin.json" \
+    "$(jq -r '.version' issuegraph/.claude-plugin/plugin.json 2>/dev/null)" \
     "Claude plugin.json"
 
-check_version "plugins/issuegraph/.codex-plugin/plugin.json" \
-    "$(jq -r '.version' plugins/issuegraph/.codex-plugin/plugin.json 2>/dev/null)" \
+check_version "issuegraph/.codex-plugin/plugin.json" \
+    "$(jq -r '.version' issuegraph/.codex-plugin/plugin.json 2>/dev/null)" \
     "Codex plugin.json"
 
 # update-versions.sh bumps this one too, but it was never gated here — so a
@@ -65,17 +61,17 @@ check_version "plugins/issuegraph/.codex-plugin/plugin.json" \
 # markers through v1.2.0) would silently no-op the bump's old->new sed, pass
 # this script, pass the pre-push hook and CI, and ship advertising the previous
 # version.
-check_version "plugins/issuegraph/.copilot-plugin/plugin.json" \
-    "$(jq -r '.version' plugins/issuegraph/.copilot-plugin/plugin.json 2>/dev/null)" \
+check_version "issuegraph/.copilot-plugin/plugin.json" \
+    "$(jq -r '.version' issuegraph/.copilot-plugin/plugin.json 2>/dev/null)" \
     "Copilot plugin.json"
 
 check_version ".claude-plugin/marketplace.json" \
     "$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json 2>/dev/null)" \
     "Claude marketplace.json"
 
-check_version "apps/cli/package.json" \
-    "$(jq -r '.version' apps/cli/package.json 2>/dev/null)" \
-    "npm package.json"
+check_version ".codex-plugin/plugin.json" \
+    "$(jq -r '.version' .codex-plugin/plugin.json 2>/dev/null)" \
+    "Root Codex plugin.json"
 
 # The release workflow's MCP package gate runs `uv sync --locked`, so a stale
 # lockfile fails the release only in the tag-triggered run — after the tag
@@ -107,7 +103,7 @@ fi
 
 # Tracked managed git-hook sections (.githooks/*): the BEGIN/END markers embed
 # the binary Version, and TestTrackedManagedHookSectionsMatchGenerator holds
-# them equal to the modules/cli/hooks.go generator output. A version bump that skips
+# them equal to the apps/cli/hooks.go generator output. A version bump that skips
 # them reddens main only after the push (that was the v1.2.0 bump), so gate the
 # markers here. Marker version only — full body equality stays the test's job.
 for hook in .githooks/*; do
@@ -125,58 +121,29 @@ for hook in .githooks/*; do
     done
 done
 
-# Windows PE resource metadata. gen-winres.sh re-derives winres.json's numeric
-# fields from version.go at build time, so those self-heal — but
-# manifest.xml's <assemblyIdentity> version is embedded verbatim with no
-# backstop, and update-versions.sh rewrites both with a sed anchored on the OLD
-# value, so a drifted file is a silent no-op. Gate them.
-#
-# The numeric fields (file_version/product_version, and the manifest's
-# four-part version) must be purely numeric, so they carry the base version:
-# for 1.1.0-rc.1 they read 1.1.0 while FileVersion/ProductVersion read the full
-# prerelease string.
-WINRES_JSON="modules/cli/winres/winres.json"
-for field in file_version product_version; do
-    check_expected "$WINRES_JSON" \
-        "$(jq -r ".RT_VERSION.\"#1\".\"0000\".fixed.$field" "$WINRES_JSON" 2>/dev/null)" \
-        "$BASE_VERSION" "winres.json $field"
-done
-for field in FileVersion ProductVersion; do
-    check_expected "$WINRES_JSON" \
-        "$(jq -r ".RT_VERSION.\"#1\".\"0000\".info.\"0409\".$field" "$WINRES_JSON" 2>/dev/null)" \
-        "$CANONICAL" "winres.json $field"
-done
-
-# Anchor on line start: the XML declaration on line 1 also carries a
-# version="1.0" attribute.
-check_expected "modules/cli/winres/manifest.xml" \
-    "$(grep -oE '^[[:space:]]*version="[0-9][^"]*"' modules/cli/winres/manifest.xml 2>/dev/null | head -1 | sed -E 's/.*"(.*)"/\1/')" \
-    "$BASE_VERSION.0" "manifest.xml assemblyIdentity version"
-
 echo ""
 
 if [ $MISMATCH -eq 1 ]; then
     echo -e "${RED}❌ Version mismatch detected!${NC}"
     echo ""
     echo "Note: re-running 'scripts/update-versions.sh $CANONICAL' will NOT fix"
-    echo "most of these. It derives the OLD version from modules/cli/version.go, which"
+    echo "most of these. It derives the OLD version from apps/cli/version.go, which"
     echo "already reads $CANONICAL, so its old->new substitutions rewrite"
     echo "$CANONICAL -> $CANONICAL and no-op on a file that drifted. Only the"
     echo ".githooks markers (rewritten wholesale) and uv.lock (regenerated) heal"
     echo "on a re-run."
     echo ""
     echo "Fix whichever applies:"
-    echo "  • modules/cli/version.go itself is wrong (you meant another version):"
+    echo "  • apps/cli/version.go itself is wrong (you meant another version):"
     echo "      scripts/update-versions.sh <intended-version>"
     echo "  • one gated file drifted: edit that file to $CANONICAL and re-run"
     echo "    this script."
-    echo "  • several drifted: set modules/cli/version.go back to the previous"
+    echo "  • several drifted: set apps/cli/version.go back to the previous"
     echo "    version, then scripts/update-versions.sh $CANONICAL to replay the"
     echo "    whole bump."
     exit 1
 else
     echo -e "${GREEN}✓ Version files in sync at: $CANONICAL${NC}"
     echo "  (Version files only — this script does not check docs. The docs"
-    echo "   release line and docs/cli-docs.pin are manual release steps; see"
-    echo "   RELEASING.md.)"
+    echo "   release line and docs/cli-docs.pin are updated by hand at release.)"
 fi

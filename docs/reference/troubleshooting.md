@@ -13,13 +13,18 @@ Common issues and solutions. For step-by-step runbooks, see the
 ```bash
 # Check if installed
 which issuegraph
-go list -f {{.Target}} github.com/borg0ai/dx-issuegraph/modules/cli
+go list -f {{.Target}} github.com/borg0ai/dx-issuegraph/apps/cli
 
 # Add Go bin to PATH (add to ~/.bashrc or ~/.zshrc)
 export PATH="$PATH:$(go env GOPATH)/bin"
 
-# Or reinstall with the recommended installer
-curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
+# Or reinstall with your package manager
+# macOS (Homebrew)
+brew install systembugtj/luban-homebrew/issuegraph
+# Linux (Nix)
+nix profile install github:systembugtj/cangjie-nix#issuegraph
+# Windows (Scoop)
+scoop bucket add shennong https://github.com/systembugtj/shennong-bucket && scoop install shennong/issuegraph
 ```
 
 ### Wrong version of issuegraph running
@@ -55,12 +60,12 @@ ahead of a newer package-manager install. Choose one installation method
 CGO/SQLite compatibility issue:
 
 ```bash
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
+CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/apps/cli@latest
 
 # Or if building from source
 git clone https://github.com/borg0ai/dx-issuegraph
 cd issuegraph
-CGO_ENABLED=1 go build -tags gms_pure_go -o issuegraph ./modules/cli
+CGO_ENABLED=1 go build -tags gms_pure_go -o issuegraph ./apps/cli
 sudo mv issuegraph /usr/local/bin/
 ```
 
@@ -817,36 +822,6 @@ protection → Ransomware protection → Controlled folder access → "Allow an
 app through Controlled folder access" → browse to `issuegraph.exe` (typically
 `%USERPROFILE%\go\bin\issuegraph.exe`). Then retry `issuegraph init`.
 
-### Windows: `ENOENT` when a Node program spawns `issuegraph`
-
-**Symptom:** An editor extension, MCP server, or script that shells out to
-`issuegraph` fails on Windows with `spawn issuegraph ENOENT`, even though `issuegraph` runs fine in
-the same terminal.
-
-The npm package installs `issuegraph` as a generated `issuegraph.cmd` shim, not as an
-executable named `issuegraph`. Node's `execFile()` and `spawn()` run their target
-directly instead of through a shell, so they never apply the `PATHEXT`
-resolution that finds `issuegraph.cmd` — and a batch file is not directly executable
-in the first place.
-
-**Solution:** Name the shim explicitly and give it a shell:
-
-```js
-const { execFile } = require('node:child_process');
-
-const isWindows = process.platform === 'win32';
-
-execFile(
-  isWindows ? 'issuegraph.cmd' : 'issuegraph',
-  ['ready', '--json'],
-  { shell: isWindows },
-  (err, stdout) => { /* ... */ },
-);
-```
-
-To avoid a shell — and the argument quoting that comes with it — spawn the
-native binary the shim wraps, at `node_modules/@borg0ai/issuegraph/bin/issuegraph.exe`.
-
 ### Windows: `/tmp` paths silently land in the drive root
 
 **Symptom:** An `issuegraph` command given a `/tmp/...` path reports success, but
@@ -878,9 +853,8 @@ any path argument, including `--db` and config values.
 
 ### macOS: Gatekeeper blocking execution
 
-1. Verify the downloaded binary checksum matches the release `checksums.txt`.
-2. If you used `scripts/install.sh`, note that macOS ad-hoc re-signing is
-   opt-in (`ISSUEGRAPH_INSTALL_RESIGN_MACOS=1`).
+1. Verify the downloaded binary checksum matches the release `SHA256SUMS`.
+2. Install through Homebrew, Nix or Scoop; they pin the release checksum.
 3. Approve the binary:
 
 ```bash

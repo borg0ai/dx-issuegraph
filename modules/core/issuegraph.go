@@ -230,7 +230,7 @@ type IssueClaimer interface {
 // below prove storage.DoltStorage satisfies each narrow surface. A store
 // decorator therefore MUST embed storage.DoltStorage — as HookFiringStore does —
 // which promotes these methods so the assertion reaches them THROUGH the
-// decorator. (This is unlike the modules/cli optional interfaces — StoreLocator,
+// decorator. (This is unlike the apps/cli optional interfaces — StoreLocator,
 // BackupStore, Flattener, … — which are NOT part of DoltStorage, do not promote,
 // and so genuinely need storage.UnwrapStore.) A former storage.UnwrapStore
 // fallback here was provably dead: whenever s satisfies storage.DoltStorage it
@@ -405,7 +405,7 @@ func OpenGated(ctx context.Context, issuegraphDir string, wait time.Duration) (S
 // the full engine interface, not the narrow Storage — so every capability
 // assertion (RemoteStore, SyncStore, VersionControlReader, EventQuerier,
 // ...) keeps working when an embedder switches from OpenFromConfig to
-// OpenGated, and it exposes Unwrap for the modules/cli optional interfaces
+// OpenGated, and it exposes Unwrap for the apps/cli optional interfaces
 // that genuinely need storage.UnwrapStore.
 type gatedStorage struct {
 	storage.DoltStorage

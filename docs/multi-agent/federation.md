@@ -321,6 +321,6 @@ issuegraph doctor --deep
 ## Reference
 
 - Configuration: See [Configuration](/reference/configuration) for all federation settings
-- Source: `modules/cli/federation.go`
+- Source: `apps/cli/federation.go`
 - Storage interfaces: `internal/storage/versioned.go`
 - Dolt implementation: `internal/storage/dolt/store.go`

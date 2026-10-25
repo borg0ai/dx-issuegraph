@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -75,15 +76,30 @@ func CheckCLIVersionLocalOnly(cliVersion string) DoctorCheck {
 	}
 }
 
-// installScriptCommand is the default upgrade/install command for non-Homebrew installations.
-const installScriptCommand = "curl -fsSL https://raw.githubusercontent.com/borg0ai/issuegraph/main/scripts/install.sh | bash"
+// installCommandFor returns the package-manager install command for an OS.
+// IssueGraph ships only through Homebrew (macOS), Nix (Linux) and Scoop (Windows).
+func installCommandFor(goos string) string {
+	switch goos {
+	case "windows":
+		return "scoop bucket add shennong https://github.com/systembugtj/shennong-bucket && scoop install shennong/issuegraph"
+	case "linux":
+		return "nix profile install github:systembugtj/cangjie-nix#issuegraph"
+	default:
+		return "brew install systembugtj/luban-homebrew/issuegraph"
+	}
+}
+
+// installCommand is the install command for the OS this binary runs on.
+func installCommand() string {
+	return installCommandFor(runtime.GOOS)
+}
 
 // getUpgradeCommand returns the appropriate upgrade command based on how issuegraph was installed.
-// Detects Homebrew on macOS/Linux, and falls back to the install script on all platforms.
+// Detects Homebrew by path, and otherwise falls back to the install command for the current OS.
 func getUpgradeCommand() string {
 	execPath, err := os.Executable()
 	if err != nil {
-		return installScriptCommand
+		return installCommand()
 	}
 
 	// Resolve symlinks to get the real path
@@ -108,8 +124,8 @@ func upgradeCommandForPath(execPath string) string {
 		return "brew upgrade issuegraph"
 	}
 
-	// Default to install script (works on all platforms including Windows via WSL/Git Bash)
-	return installScriptCommand
+	// Default to the package-manager command for this OS
+	return installCommand()
 }
 
 // localVersionFile is the gitignored file that stores the last issuegraph version used locally.

@@ -1,6 +1,6 @@
 ---
 title: "issuegraph hooks"
-description: "Install, uninstall, or list git hooks for issuegraph integration."
+description: "Manage git hooks for issuegraph integration"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -17,7 +17,7 @@ The hooks provide:
 - prepare-commit-msg: Add agent identity trailers for forensics
 
 ```
-issuegraph hooks [flags]
+issuegraph hooks [command]
 ```
 
 ## issuegraph hooks install
@@ -46,10 +46,10 @@ issuegraph hooks install [flags]
 **Flags:**
 
 ```
-      --issuegraph    Install hooks to .issuegraph/hooks/ (recommended for Dolt backend)
-      --chain    Chain with existing hooks (run them before issuegraph hooks)
-      --force    Overwrite existing hooks without backup
-      --shared   Install hooks to .issuegraph-hooks/ (versioned) instead of .git/hooks/
+      --chain        No-op, kept for compatibility (existing hook content always runs alongside the issuegraph section)
+      --force        No-op, kept for compatibility (section markers always preserve non-issuegraph content)
+      --issuegraph   Install hooks to .issuegraph/hooks/ (recommended for Dolt backend)
+      --shared       Install hooks to .issuegraph-hooks/ (versioned) instead of .git/hooks/
 ```
 
 ## issuegraph hooks list
@@ -72,8 +72,9 @@ Supported hooks:
   - post-checkout: Run chained hooks after branch checkout
   - prepare-commit-msg: Add agent identity trailers for forensics
 
-The thin shim pattern ensures hook logic is always in sync with the
-installed issuegraph version - upgrading issuegraph automatically updates hook behavior.
+The thin shim keeps delegated hook logic in sync with the installed issuegraph
+version. Upgrading issuegraph updates that delegated behavior. To adopt changes to the
+shim's generated shell policy, refresh it with 'issuegraph hooks install'.
 
 ```
 issuegraph hooks run <hook-name> [args...] [flags]

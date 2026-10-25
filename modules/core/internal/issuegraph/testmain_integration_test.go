@@ -45,7 +45,7 @@ func setupIntegrationTestMain(root string) (func(), error) {
 	modRoot := strings.TrimSpace(string(modRootOut))
 
 	testIssueGraphBinary := filepath.Join(root, binName)
-	cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", testIssueGraphBinary, "./modules/cli")
+	cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", testIssueGraphBinary, "./apps/cli")
 	cmd.Dir = modRoot
 	if out, err := cmd.CombinedOutput(); err != nil {
 		testutil.TerminateDoltContainer()

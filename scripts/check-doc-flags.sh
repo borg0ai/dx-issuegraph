@@ -72,8 +72,8 @@ SYNC_REFS=$(grep -rn 'issuegraph sync\b' \
     "$PROJECT_ROOT"/README.md \
     "$PROJECT_ROOT"/apps/cli/*.md \
     "$PROJECT_ROOT"/integrations/*/README.md \
-    "$PROJECT_ROOT"/plugins/issuegraph/skills/issuegraph/commands/*.md \
-    "$PROJECT_ROOT"/plugins/issuegraph/skills/issuegraph/resources/*.md \
+    "$PROJECT_ROOT"/issuegraph/skills/issuegraph/commands/*.md \
+    "$PROJECT_ROOT"/issuegraph/skills/issuegraph/resources/*.md \
     2>/dev/null \
     | grep -v 'CHANGELOG\|audit-sync-mode' \
     | grep -i 'deprecated\|no-op\|removed\|unknown-command' \
@@ -223,7 +223,7 @@ echo ""
 # --- Check 5: Plugin CLI reference must stay a pointer ---
 echo "=== Check 5: Plugin CLI reference pointer policy ==="
 
-PLUGIN_CLI_REF="$PROJECT_ROOT/plugins/issuegraph/skills/issuegraph/resources/CLI_REFERENCE.md"
+PLUGIN_CLI_REF="$PROJECT_ROOT/issuegraph/skills/issuegraph/resources/CLI_REFERENCE.md"
 if [ -f "$PLUGIN_CLI_REF" ]; then
     if grep -q 'This skill does not bundle a copied CLI command reference' "$PLUGIN_CLI_REF" \
         && grep -q 'docs/CLI_REFERENCE.md' "$PLUGIN_CLI_REF"; then
@@ -231,11 +231,11 @@ if [ -f "$PLUGIN_CLI_REF" ]; then
     else
         echo "FAIL: plugin CLI resource drifted from pointer policy"
         echo "  Expected pointer language and canonical docs/CLI_REFERENCE.md reference in:"
-        echo "  plugins/issuegraph/skills/issuegraph/resources/CLI_REFERENCE.md"
+        echo "  issuegraph/skills/issuegraph/resources/CLI_REFERENCE.md"
         ERRORS=$((ERRORS + 1))
     fi
 else
-    echo "FAIL: plugin CLI resource missing: plugins/issuegraph/skills/issuegraph/resources/CLI_REFERENCE.md"
+    echo "FAIL: plugin CLI resource missing: issuegraph/skills/issuegraph/resources/CLI_REFERENCE.md"
     ERRORS=$((ERRORS + 1))
 fi
 

@@ -7,7 +7,7 @@ Complete configuration reference for issuegraph.
 
 Last reviewed: 2026-08-28
 
-Freshness source: `modules/cli/main.go`, `modules/cli/config.go`, and `internal/configfile/`.
+Freshness source: `apps/cli/main.go`, `apps/cli/config.go`, and `internal/configfile/`.
 
 issuegraph has two complementary configuration systems:
 
@@ -395,65 +395,21 @@ federation:
 
 ## Integration Configuration
 
-Tracker settings are project-level config under the tracker's namespace; secrets (`jira.api_token`, `linear.api_key`, `github.token`, `gitlab.token`, `ado.pat`) are YAML-routed and better supplied as environment variables. Every tracker records `<tracker>.last_sync` automatically after a sync, enabling incremental syncs.
-
-### Jira
-
-```bash
-issuegraph config set jira.url "https://company.atlassian.net"
-issuegraph config set jira.project "PROJ"
-issuegraph config set jira.projects "PROJ1,PROJ2"   # Multiple projects (comma-separated)
-export JIRA_API_TOKEN="YOUR_TOKEN"          # or: issuegraph config set jira.api_token ...
-
-# Map issuegraph statuses to Jira statuses
-issuegraph config set jira.status_map.open "To Do"
-issuegraph config set jira.status_map.in_progress "In Progress"
-issuegraph config set jira.status_map.closed "Done"
-
-# Map issuegraph issue types to Jira issue types
-issuegraph config set jira.type_map.bug "Bug"
-issuegraph config set jira.type_map.feature "Story"
-issuegraph config set jira.type_map.task "Task"
-
-# Set Jira custom fields on pushed issues
-issuegraph config set jira.custom_fields.customfield_10042 '{"value":"AI Platform"}'
-issuegraph config set jira.custom_fields.Story.customfield_10042 '{"value":"AI Platform"}'
-```
-
-`jira.custom_fields.<field>` applies to every issue pushed to Jira. `jira.custom_fields.<JiraType>.<field>` applies only when the mapped Jira issue type matches `<JiraType>`; per-type fields override global fields with the same field key. Values beginning with `{` or `[` are sent as JSON (useful for select-like fields); other values are sent as strings. `jira.url`, `jira.project`/`jira.projects`, and `jira.api_token` fall back to the `JIRA_URL`, `JIRA_PROJECT`/`JIRA_PROJECTS`, and `JIRA_API_TOKEN` environment variables. See [issuegraph jira](/cli-reference/jira).
-
-### Linear
-
-```bash
-export LINEAR_API_KEY="lin_api_YOUR_API_KEY"    # Settings → API → Personal API keys
-
-issuegraph config set linear.team_id "team-uuid-here"
-issuegraph config set linear.team_ids "uuid-1,uuid-2"   # Multiple teams (or LINEAR_TEAM_IDS)
-```
-
-When `linear.team_ids` is set, `issuegraph linear sync` fetches issues from all listed teams; push with multiple teams configured requires an explicit `--team`. The singular `linear.team_id` remains supported.
-
-Mapping namespaces — `linear.priority_map.*` (Linear 0–4 → issuegraph 0–4), `linear.state_map.*` (Linear state types and custom state names → issuegraph statuses, e.g. `issuegraph config set linear.state_map.in_review in_progress`), `linear.label_type_map.*` (Linear labels → issuegraph issue types), and `linear.relation_map.*` (Linear relations → issuegraph dependencies; imported only when pulling with `--relations`) — are documented with defaults in [issuegraph linear](/cli-reference/linear).
-
-Staleness detection: after each successful pull, `issuegraph` writes a timestamp to `.issuegraph/last_pull` (a local-only, per-machine file covered by the `.issuegraph/.gitignore` template). `issuegraph linear sync --pull-if-stale` pulls only when data is older than the threshold (`--threshold`, default 20m), and a 5-minute debounce prevents agent loops. `issuegraph prime` and other core commands never contact Linear — run `issuegraph linear sync --pull-if-stale` from a session-start hook to keep data fresh in agent sessions.
+Local-first is the default: ordinary commands never contact external trackers. GitHub Issues sync requires an explicit GitHub command and repository. Authenticate with `gh auth login` or `GITHUB_TOKEN`; IssueGraph does not store GitHub tokens. Other tracker network commands are disabled. Existing tracker settings may remain in project config, but do not activate network access.
 
 ### GitHub
 
 ```bash
-issuegraph config set github.org "myorg"
+issuegraph config set github.owner "myorg"
 issuegraph config set github.repo "myrepo"
-export GITHUB_TOKEN="YOUR_TOKEN"    # or: issuegraph config set github.token ...
+gh auth login                       # or export GITHUB_TOKEN
 
 # Map issuegraph labels to GitHub labels
 issuegraph config set github.label_map.bug "bug"
 issuegraph config set github.label_map.feature "enhancement"
 ```
 
-See [issuegraph github](/cli-reference/github).
-
-### Azure DevOps
-
-Connection keys (`ado.pat`, `ado.org`, `ado.project`, `ado.projects`, `ado.url`) each have an `AZURE_DEVOPS_*` environment variable equivalent; config keys take priority over env vars. When `ado.projects` is set, `issuegraph ado sync` fetches work items from all listed projects in a single query. State maps default to the Agile process template (override with `ado.state_map.*` / `ado.type_map.*` for Scrum or CMMI), and priority mapping (ADO 1–4 ↔ issuegraph 0–4, with backlog collapsing to low) is automatic and not configurable. Full setup, mapping tables, and sync commands: [Azure DevOps integration](/integrations/azure-devops) and [issuegraph ado](/cli-reference/ado).
+Use `issuegraph github sync` to preview. Add `--apply` to write. See [issuegraph github](/cli-reference/github).
 
 ## Environment Variables
 

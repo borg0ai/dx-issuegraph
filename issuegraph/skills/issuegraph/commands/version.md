@@ -19,7 +19,7 @@ Display:
 - Compatibility status (✓ compatible or ⚠️ update needed)
 
 If versions are mismatched, provide instructions:
-- Update issuegraph CLI: `curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash`
+- Update issuegraph CLI: `brew upgrade issuegraph`, `nix profile upgrade issuegraph`, or `scoop update issuegraph`
 - Update plugin: `/plugin update issuegraph`
 - Restart Claude Code after updating
 

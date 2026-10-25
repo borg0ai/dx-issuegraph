@@ -22,13 +22,13 @@ func TestFmtCheckClean(t *testing.T) {
 }
 
 func TestFmtCheckReportsUnformattedFiles(t *testing.T) {
-	output, err := runFmtCheck(t, "printf '%s\\n' modules/cli/main.go internal/config/config.go\n")
+	output, err := runFmtCheck(t, "printf '%s\\n' apps/cli/main.go internal/config/config.go\n")
 	if got := processExitCode(err); got != 1 {
 		t.Fatalf("exit = %d, want 1; error=%v\n%s", got, err, output)
 	}
 	want := "Checking Go formatting...\n" +
 		"The following files are not properly formatted:\n" +
-		"modules/cli/main.go\n" +
+		"apps/cli/main.go\n" +
 		"internal/config/config.go\n\n" +
 		"Run 'make fmt' to fix formatting\n"
 	if output != want {

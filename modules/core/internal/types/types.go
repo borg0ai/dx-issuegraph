@@ -2331,7 +2331,7 @@ const (
 
 // ID prefix constants for molecule/wisp instantiation.
 // These prefixes are inserted into issue IDs: <project>-<prefix>-<id>
-// Used by: modules/cli/pour.go, modules/cli/wisp.go (ID generation)
+// Used by: apps/cli/pour.go, apps/cli/wisp.go (ID generation)
 const (
 	IDPrefixMol  = "mol"  // Persistent molecules (bd-mol-xxx)
 	IDPrefixWisp = "wisp" // Ephemeral wisps (issuegraph-wisp-xxx)

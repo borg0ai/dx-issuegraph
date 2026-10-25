@@ -1784,7 +1784,7 @@ func (f fakeLinearConfigReader) GetConfig(_ context.Context, key string) (string
 // wires linear.exclude_id_prefix / linear.exclude_id_patterns into
 // SyncOptions. The engine-side filter behavior (applying the rules to
 // individual issues) is tested by the TestEngineExcludeID* family in
-// internal/tracker/engine_test.go; this test exercises the modules/cli surface.
+// internal/tracker/engine_test.go; this test exercises the apps/cli surface.
 func TestApplyLinearExcludeIDConfig(t *testing.T) {
 	tests := []struct {
 		name         string

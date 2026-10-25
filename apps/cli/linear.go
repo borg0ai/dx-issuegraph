@@ -211,7 +211,6 @@ func init() {
 	linearCmd.AddCommand(linearSyncCmd)
 	linearCmd.AddCommand(linearStatusCmd)
 	linearCmd.AddCommand(linearTeamsCmd)
-	rootCmd.AddCommand(linearCmd)
 }
 
 func runLinearSync(cmd *cobra.Command, args []string) error {

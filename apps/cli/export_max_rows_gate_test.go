@@ -18,7 +18,7 @@ import (
 // inherited ISSUEGRAPH_MAX_ROWS env var abort the export mid-run and leave
 // an incomplete JSONL backup on disk.
 //
-// Today's filter construction lives at modules/cli/export.go:94-98:
+// Today's filter construction lives at apps/cli/export.go:94-98:
 //
 //	filter := types.IssueFilter{
 //	    Limit:         0,
@@ -42,7 +42,7 @@ import (
 //   - A future MaxRowsSource normalization step prepends a non-empty
 //     source string and tips ErrTooManyRows into the "cap fired" branch.
 //
-// Build tags: cgo (matches existing cgo modules/cli tests at e.g.
+// Build tags: cgo (matches existing cgo apps/cli tests at e.g.
 // export_test.go:1).
 func TestExport_FilterHasZeroMaxRows(t *testing.T) {
 	if testDoltServerPort == 0 {

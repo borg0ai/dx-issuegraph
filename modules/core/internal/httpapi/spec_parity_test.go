@@ -639,11 +639,11 @@ func TestDefaultsMatchCLIFlags(t *testing.T) {
 	sortFlag := regexp.MustCompile(`StringP\("sort",\s*"s",\s*"([a-z]+)"`)
 	src, err := os.ReadFile("../../../cli/ready.go")
 	if err != nil {
-		t.Fatalf("read modules/cli/ready.go: %v", err)
+		t.Fatalf("read apps/cli/ready.go: %v", err)
 	}
 	m := sortFlag.FindSubmatch(src)
 	if m == nil {
-		t.Fatalf("modules/cli/ready.go: no --sort flag registration found; re-point this guard at the CLI's default")
+		t.Fatalf("apps/cli/ready.go: no --sort flag registration found; re-point this guard at the CLI's default")
 	}
 	cliSort := string(m[1])
 

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/borg0ai/dx-issuegraph/internal/config"
 	"github.com/borg0ai/dx-issuegraph/internal/git"
 	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
@@ -16,7 +17,6 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/tracker"
 	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/borg0ai/dx-issuegraph/issueops"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -131,6 +131,9 @@ var configSetCmd = &cobra.Command{
 
 		key := args[0]
 		value := args[1]
+		if key == "github.token" {
+			return HandleError("github.token is not stored by IssueGraph; authenticate with 'gh auth login' or set GITHUB_TOKEN")
+		}
 
 		if msg, rejected := rejectProtectedConfigKey(key); rejected {
 			fmt.Fprintln(os.Stderr, msg)
@@ -829,6 +832,9 @@ Examples:
 		}
 
 		for _, p := range pairs {
+			if p.key == "github.token" {
+				return HandleError("github.token is not stored by IssueGraph; authenticate with 'gh auth login' or set GITHUB_TOKEN")
+			}
 			// The same refusal `issuegraph config set` makes, and it was MISSING here:
 			// `issuegraph config set-many issue_prefix=x` re-prefixed the workspace
 			// behind the guard the single-key verb enforces. This verb does not

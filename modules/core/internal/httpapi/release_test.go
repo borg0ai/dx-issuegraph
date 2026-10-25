@@ -18,7 +18,7 @@ import (
 //
 // What a fake cannot prove is that a REFUSED release left the claim standing,
 // and that is the property the whole non-idempotence argument rests on. That
-// lives in modules/cli's proxied-server integration test against real Dolt
+// lives in apps/cli's proxied-server integration test against real Dolt
 // (TestProxiedServerServeRelease). The role-level transition — what the row
 // looks like afterwards, the lease, the event — is owned against a real store
 // by internal/storage/uow/releaser_contract_test.go, which this slice cites

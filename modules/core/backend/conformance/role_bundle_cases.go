@@ -365,7 +365,7 @@ var roleContractCases = []roleContract{
 
 	// The accessor named here is not an accessor at all, alone among these
 	// rows. journalops.Journal is reached by TYPE ASSERTION on a store —
-	// `issuegraph serve` does exactly that (modules/cli/serve.go, serveJournalCursor) — or
+	// `issuegraph serve` does exactly that (apps/cli/serve.go, serveJournalCursor) — or
 	// through uow.EventsJournalCursorSource on a unit-of-work provider, because
 	// the journal is engine state on a dolt_ignored table that
 	// storage.DoltStorage does not publish. A backend that cannot read it

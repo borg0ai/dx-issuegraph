@@ -140,7 +140,7 @@ func runNoteProxiedServer(ctx context.Context, id, noteText string) error {
 // It cannot, and that is the point. proxiedMutateIssue hands its callback a
 // unit of work and an isWisp boolean, which is an invitation to pick a plane —
 // and the tag callback accepted it, choosing between AddWispLabel and AddLabel
-// exactly the way modules/cli/label_proxied_server.go used to before ga-26w10.
+// exactly the way apps/cli/label_proxied_server.go used to before ga-26w10.
 // A label edit is a patch, and issueops.Lifecycle is what applies one:
 // UpdateRequest.IssuePlaneOnly stays false, so the role resolves the plane
 // inside its own transaction and there is no boolean here to get backwards.
@@ -173,7 +173,7 @@ func runTagProxiedServer(ctx context.Context, id, label string) error {
 	}
 	// The role commits its own Dolt version inside the storage layer, so
 	// `--dolt-auto-commit batch` is deferred on the context rather than by
-	// blanking a commit message — see applyLabelEdit in modules/cli/label.go.
+	// blanking a commit message — see applyLabelEdit in apps/cli/label.go.
 	ctx, err = issueOpsContext(ctx)
 	if err != nil {
 		return HandleErrorRespectJSON("tag %s: %v", id, err)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -236,8 +237,16 @@ func (t *Tracker) BuildExternalRef(issue *tracker.TrackerIssue) string {
 
 // getConfig reads a config value from storage, falling back to env var.
 // For yaml-only keys (e.g. github.token), reads from config.yaml first
-// to match the behavior of modules/cli/github.go:getGitHubConfigValue().
+// to match the behavior of apps/cli/github.go:getGitHubConfigValue().
 func (t *Tracker) getConfig(ctx context.Context, key, envVar string) string {
+	if key == "github.token" {
+		if output, err := exec.CommandContext(ctx, "gh", "auth", "token").Output(); err == nil {
+			if token := strings.TrimSpace(string(output)); token != "" {
+				return token
+			}
+		}
+		return os.Getenv(envVar)
+	}
 	// Secret keys are stored in config.yaml, not the Dolt database,
 	// to avoid leaking secrets when pushing to remotes.
 	if config.IsYamlOnlyKey(key) {

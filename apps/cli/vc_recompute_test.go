@@ -54,7 +54,7 @@ func assertRecomputeReachesRaw(t *testing.T, decorated storage.DoltStorage, raw 
 	}
 }
 
-// The regression test for wy-163oy: modules/cli/vc.go asserted the optional
+// The regression test for wy-163oy: apps/cli/vc.go asserted the optional
 // interface on the store straight from getStore(), which is the
 // wireStorageDecorators chain, so the post-merge is_blocked recompute was
 // silently skipped on every rig carrying a hook layer.

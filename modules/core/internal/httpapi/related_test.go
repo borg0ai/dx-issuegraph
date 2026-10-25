@@ -20,7 +20,7 @@ import (
 // anchor is resolved against, which dependency tables the neighbors come from,
 // the pinned order, and the dropping of an edge whose far end this database
 // holds no row for are all issueops.Relations', held to on three legs by its own
-// contract and shown against real Dolt in modules/cli. What only these cases can show
+// contract and shown against real Dolt in apps/cli. What only these cases can show
 // is that the request a caller SENDS becomes the request the role RECEIVES, that
 // the role's answer reaches the wire in the shape the document promises, that
 // the single-anchor miss is a 404 rather than an empty page, and that each of

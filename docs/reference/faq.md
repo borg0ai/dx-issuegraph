@@ -220,21 +220,21 @@ issuegraph setup aider    # Aider
 
 `issuegraph setup` also supports copilot, gemini, factory, codex, mux, opencode, junie, windsurf, cody, and kilocode. See [IDE Setup](/getting-started/ide-setup) and the [integrations index](/integrations/index).
 
-### Can issuegraph import from GitHub Issues?
+### Can IssueGraph sync GitHub Issues?
 
-Yes — `issuegraph github sync --pull-only` imports issues in bulk (`issuegraph github pull <refs>` cherry-picks specific ones), and `issuegraph github sync` keeps issuegraph and GitHub in sync bidirectionally. See the [issuegraph github reference](/cli-reference/github).
+Yes, through explicit `issuegraph github import`, `issuegraph github export`, or `issuegraph github sync` commands. Local commands never contact GitHub. Sync previews changes by default; pass `--apply` to write. Authenticate with `gh auth login` or `GITHUB_TOKEN`. See the [GitHub CLI reference](/cli-reference/github).
 
 ## Migration
 
 ### How do I migrate from GitHub Issues, Jira, or Linear?
 
-IssueGraph has built-in bidirectional sync for all three — `issuegraph github`, `issuegraph jira`, and `issuegraph linear` each provide `sync` for bulk moves, plus `pull`/`push` for specific issues by ID (GitLab, Azure DevOps, and Notion are covered by `issuegraph gitlab`, `issuegraph ado`, and `issuegraph notion`). Configure credentials with `issuegraph config set` per the [CLI reference](/cli-reference/index), then run the sync in the pull direction: `issuegraph github sync --pull-only`, `issuegraph jira sync --pull`, or `issuegraph linear sync --pull`.
+IssueGraph keeps local issue data as its default. For GitHub, configure an explicit repository, authenticate with `gh auth login` or `GITHUB_TOKEN`, preview with `issuegraph github sync`, then use `--apply` to synchronize. Other tracker network commands are disabled. To migrate data from another tracker, export it as JSONL and run `issuegraph import <file>`.
 
 For any other tracker: export from it (usually CSV or JSON), convert to issuegraph's JSONL format, and run `issuegraph import <file>`. See [examples](https://github.com/borg0ai/dx-issuegraph/tree/main/examples) for scripting patterns.
 
 ### Can I export back out of issuegraph?
 
-For GitHub, Jira, and Linear, use the same integrations in the push direction — `issuegraph github sync --push-only`, `issuegraph jira sync --push`, or `issuegraph linear sync --push` for everything, or `issuegraph <tracker> push <ids>` for specific issuegraph. For anything else, `issuegraph export -o issues.jsonl` produces JSONL you can convert with a script and feed to the target system's API.
+For GitHub, use `issuegraph github export` or `issuegraph github sync --push-only --apply`. For other systems, `issuegraph export -o issues.jsonl` produces local JSONL that you can convert independently.
 
 ## Performance
 
@@ -277,9 +277,9 @@ Yes, three ways: `issuegraph query` for the built-in query language (compound fi
 
 ### Does issuegraph support Windows?
 
-Yes — native Windows support, no MSYS or MinGW required. A PowerShell script installs prebuilt releases, and everything works with Windows paths. See [Installation](/getting-started/installation#windows-11).
+Yes — native Windows support, no MSYS or MinGW required. Install it with Scoop, and everything works with Windows paths. See [Installation](/getting-started/installation#windows-scoop).
 
-Because `issuegraph.exe` is a native binary, two integration details catch people out: Node programs cannot spawn the npm `issuegraph.cmd` shim without a shell, and `/tmp` paths that reach `issuegraph` unconverted — from Node, scripts, or config values — resolve to the drive root, not Git Bash's `/tmp`. Both are covered under [Platform-Specific Issues](/reference/troubleshooting#platform-specific-issues).
+Because `issuegraph.exe` is a native binary, `/tmp` paths that reach `issuegraph` unconverted — from scripts or config values — resolve to the drive root, not Git Bash's `/tmp`. See [Platform-Specific Issues](/reference/troubleshooting#platform-specific-issues).
 
 ### Can I use issuegraph with git worktrees?
 

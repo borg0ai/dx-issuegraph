@@ -1,6 +1,6 @@
 ---
 title: "issuegraph priority"
-description: "Set the priority of an issue."
+description: "Set the priority of an issue"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -19,8 +19,8 @@ Priority levels:
   4 - Backlog (future ideas)
 
 Examples:
-  issuegraph priority issuegraph-123 0    # Critical
-  issuegraph priority issuegraph-123 2    # Medium
+  issuegraph priority bd-123 0    # Critical
+  issuegraph priority bd-123 2    # Medium
 
 ```
 issuegraph priority <id> <n> [flags]

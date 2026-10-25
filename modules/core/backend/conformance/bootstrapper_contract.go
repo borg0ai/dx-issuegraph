@@ -240,7 +240,7 @@ func RunBootstrapperLeavesTheSubstrateUntouchedWhenItCannotComplete(t *testing.T
 // then duplicates" — and embeddeddolt's reaches its transaction through
 // withConn, which mints no Dolt commit either. The commit they defer to is
 // commitInitState's CommitWithConfig(ctx, "issuegraph init") on the direct init route
-// in modules/cli/init.go. A store that started committing in-role would double-
+// in apps/cli/init.go. A store that started committing in-role would double-
 // record every `issuegraph init`, and that is what this zero forbids.
 //
 // A ZERO IS ONLY WORTH ASSERTING IF THE HOOK CAN MOVE, which is the question
@@ -263,7 +263,7 @@ func RunBootstrapperRecordsNoHistoryEntryOfItsOwn(t *testing.T, ctx context.Cont
 // RunBootstrapperRecordsExactlyOneHistoryEntry is the UNIT-OF-WORK half, and
 // the reason the split is ratified rather than queued for convergence.
 //
-// THE PROXIED INIT ROUTE HAS NO OTHER COMMIT POINT: modules/cli/init_proxied_server.go
+// THE PROXIED INIT ROUTE HAS NO OTHER COMMIT POINT: apps/cli/init_proxied_server.go
 // calls the role and stops, with no commitInitState equivalent behind it, so
 // the entry this body labels ("ONE VERSION-CONTROL ENTRY ... one entry rather
 // than one per key", uow/bootstrapper.go) is the only thing that versions the

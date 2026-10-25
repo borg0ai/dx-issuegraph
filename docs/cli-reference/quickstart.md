@@ -1,6 +1,6 @@
 ---
 title: "issuegraph quickstart"
-description: "Display a quick start guide showing common issuegraph workflows and patterns."
+description: "Quick start guide for issuegraph"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}

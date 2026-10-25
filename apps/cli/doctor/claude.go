@@ -345,7 +345,7 @@ func CheckBdInPath() DoctorCheck {
 			Detail:  "Claude hooks execute 'issuegraph prime' and won't work without issuegraph in PATH",
 			Fix: "Install issuegraph globally:\n" +
 				"  • Homebrew: brew install issuegraph\n" +
-				"  • Script: " + installScriptCommand + "\n" +
+				"  • Install: " + installCommand() + "\n" +
 				"  • Or add issuegraph to your PATH",
 		}
 	}
@@ -395,7 +395,7 @@ func CheckDocumentationBdPrimeReference(repoPath string) DoctorCheck {
 			Detail:  "Files: " + strings.Join(filesWithBdPrime, ", "),
 			Fix: "Upgrade issuegraph to get the 'issuegraph prime' command:\n" +
 				"  • Homebrew: brew upgrade issuegraph\n" +
-				"  • Script: " + installScriptCommand + "\n" +
+				"  • Install: " + installCommand() + "\n" +
 				"  Or remove 'issuegraph prime' references from documentation if using older version",
 		}
 	}

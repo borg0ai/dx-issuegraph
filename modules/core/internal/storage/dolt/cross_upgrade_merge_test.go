@@ -107,7 +107,7 @@ func TestCrossUpgradeBoundaryMerge(t *testing.T) {
 		if mergeErr == nil {
 			t.Fatal("merge across the PK boundary with stranded deltas converged cleanly; " +
 				"expected Dolt's different-primary-keys refusal (if Dolt learned to merge " +
-				"this, the recovery guidance in modules/cli/dolt.go may be obsolete)")
+				"this, the recovery guidance in apps/cli/dolt.go may be obsolete)")
 		}
 		if !dberrors.IsAncestorPKMismatch(mergeErr) {
 			t.Errorf("dberrors.IsAncestorPKMismatch must recognize the real refusal "+

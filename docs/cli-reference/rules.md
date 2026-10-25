@@ -10,7 +10,7 @@ Generated from `issuegraph help --doc rules`.
 Audit and compact Claude rules
 
 ```
-issuegraph rules [flags]
+issuegraph rules [command]
 ```
 
 ## issuegraph rules audit

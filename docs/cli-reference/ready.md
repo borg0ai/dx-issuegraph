@@ -1,6 +1,6 @@
 ---
 title: "issuegraph ready"
-description: "Show ready work (open issues with no active blockers)."
+description: "Show ready work (open, no active blockers)"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -15,7 +15,7 @@ GetReadyWork API which applies blocker-aware semantics to find truly claimable w
 Note: 'issuegraph list --ready' uses the same blocker-aware ready-work semantics.
 
 Use --mol to filter to a specific molecule's steps:
-  issuegraph ready --mol issuegraph-patrol   # Show ready steps within molecule
+  issuegraph ready --mol bd-patrol   # Show ready steps within molecule
 
 Use --gated to find molecules ready for gate-resume dispatch:
   issuegraph ready --gated           # Find molecules where a gate closed
@@ -33,17 +33,22 @@ issuegraph ready [flags]
 
 ```
   -a, --assignee string              Filter by assignee
+      --brief                        Omit the free-form text (description, design, acceptance criteria, notes, payload, waiters) from each row. Filters that read those fields still select on them. An omitted field is indistinguishable from an empty one; fetch a whole issue with issuegraph show. Requires --json, and cannot be combined with --claim, --gated, --mol or --explain.
       --claim                        Atomically claim the first ready issue matching the filters
       --exclude-label strings        Exclude issues that have ANY of these labels
       --exclude-type strings         Exclude issue types from results (comma-separated or repeatable, e.g., --exclude-type=convoy,epic)
       --explain                      Show dependency-aware reasoning for why issues are ready or blocked
+      --flat                         Alias for --plain, spelled the way issuegraph list spells it
       --gated                        Find molecules ready for gate-resume dispatch
       --has-metadata-key string      Filter issues that have this metadata key set
       --include-deferred             Include issues with future defer_until timestamps
       --include-ephemeral            Include ephemeral issues (wisps) in results
   -l, --label strings                Filter by labels (AND: must have ALL). Can combine with --label-any
       --label-any strings            Filter by labels (OR: must have AT LEAST ONE). Can combine with --label
+      --label-pattern string         Filter by label glob pattern (e.g., 'tech-*' matches tech-debt, tech-legacy)
+      --label-regex string           Filter by label regex pattern (e.g., 'tech-(debt|legacy)')
   -n, --limit int                    Maximum issues to show (use 0 for unlimited) (default 100)
+      --max-rows int                 Hard upper bound on rows fetched from storage. Returns a non-zero exit (code 2) and an error to stderr if exceeded. 0 disables (the default). Overrides ISSUEGRAPH_MAX_ROWS for this invocation. Useful in CI/agent rigs that want a circuit breaker against pathological queries. Not supported under --proxied-server: an explicit --max-rows or ISSUEGRAPH_MAX_ROWS cap errors out rather than silently going unenforced.
       --metadata-field stringArray   Filter by metadata field (key=value, repeatable)
       --mol string                   Filter to steps within a specific molecule
       --mol-type string              Filter by molecule type: swarm, patrol, or work

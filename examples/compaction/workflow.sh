@@ -23,7 +23,7 @@ if ! command -v issuegraph &> /dev/null; then
   echo "❌ Error: issuegraph command not found"
   echo
   echo "Install issuegraph:"
-  echo "  curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash"
+  echo "  Homebrew, Nix or Scoop (see the README Installation section)"
   echo
   exit 1
 fi

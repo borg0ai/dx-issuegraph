@@ -463,7 +463,7 @@ func startServeEventsJournalMaintenance(issuegraphDir string, source any) func()
 // runServe's own defer, and a registered backend's store by the same
 // PersistentPostRunE that opened it. None of those paths runs the auto-commit,
 // export or push maintenance: proxied mode never had it, and serve is excluded
-// from it by name (runsPostCommandMaintenance, modules/cli/main.go).
+// from it by name (runsPostCommandMaintenance, apps/cli/main.go).
 func serveListen(opts serveOptions, cfg httpapi.Config) error {
 	opts.applyTo(&cfg)
 
@@ -608,7 +608,7 @@ func serveDatabaseSource(issuegraphDir string) (serveDatabase, error) {
 // the server, which no client can discover before connecting. issuegraph already
 // answers this question the same way one layer down, where a backend that
 // cannot guarantee mutation-free access is turned away rather than opened
-// anyway (the proxy.readonly.unsupported refusal in modules/cli/main.go).
+// anyway (the proxy.readonly.unsupported refusal in apps/cli/main.go).
 //
 // The value is read from the global rather than a flag lookup because
 // `readonly` is also a config key, and PersistentPreRunE has already folded

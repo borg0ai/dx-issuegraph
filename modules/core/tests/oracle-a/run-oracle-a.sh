@@ -133,14 +133,14 @@ fi
 log "building REFERENCE issuegraph from $REF_REF ..."
 git -C "$REPO_ROOT" worktree add --detach "$REF_SRC" "$REF_SHA" >/dev/null 2>&1 \
   || die "git worktree add failed for $REF_SHA"
-( cd "$REF_SRC" && CGO_ENABLED=1 go build -tags "$BUILD_TAGS" -o "$REF_BIN" ./modules/cli ) \
+( cd "$REF_SRC" && CGO_ENABLED=1 go build -tags "$BUILD_TAGS" -o "$REF_BIN" ./apps/cli ) \
   || die "reference issuegraph build failed"
 [ -x "$REF_BIN" ] || die "reference issuegraph not produced at $REF_BIN"
 log "reference issuegraph : $REF_BIN ($($REF_BIN version 2>/dev/null | head -1))"
 
 # --- 2. candidate issuegraph from the working tree -------------------------------------------
 log "building CANDIDATE issuegraph from the working tree ..."
-( cd "$REPO_ROOT" && CGO_ENABLED=1 go build -tags "$BUILD_TAGS" -o "$CAND_BIN" ./modules/cli ) \
+( cd "$REPO_ROOT" && CGO_ENABLED=1 go build -tags "$BUILD_TAGS" -o "$CAND_BIN" ./apps/cli ) \
   || die "candidate issuegraph build failed"
 # restore any go.sum/go.mod build churn immediately (belt-and-suspenders; also in
 # cleanup) — restore-to-pre-run bytes, so a pre-existing user edit is preserved.

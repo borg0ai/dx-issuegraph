@@ -64,7 +64,7 @@ const waitsForGateBlockedSQL = `
 		OR (
 		  -- also_blocks (GH#3783/GH#3875): a waits-for edge collapsed from a
 		  -- redundant needs/depends_on blocks edge onto this same spawner
-		  -- (modules/cli/cook.go collectDependencies) additionally carries classic
+		  -- (apps/cli/cook.go collectDependencies) additionally carries classic
 		  -- blocking semantics — it must block while the spawner itself is
 		  -- open, not only while the spawner has an open parent-child child.
 		  -- This closes the pre-fanout window where the waiter could become

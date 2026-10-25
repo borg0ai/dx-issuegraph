@@ -255,7 +255,7 @@ func TestResolvePhysicalRootsProxied(t *testing.T) {
 func TestResolvePhysicalRootsIgnoresCentralConfig(t *testing.T) {
 	resetPhysicalRootEnv(t)
 
-	// CLI parity: modules/cli/main.go's hand-built store selection never applies
+	// CLI parity: apps/cli/main.go's hand-built store selection never applies
 	// central-config defaults, so the resolver must not either — a central
 	// dolt_mode=server must NOT promote a mode-less project workspace. The
 	// LIBRARY path is broader; that side is covered by LibraryOpenRootPath.
@@ -387,7 +387,7 @@ func TestResolvePhysicalRootsNoMetadataFallbacks(t *testing.T) {
 	})
 
 	t.Run("env server mode without metadata stays embedded", func(t *testing.T) {
-		// CLI parity: the nil-config branch in modules/cli/main.go rescues ONLY
+		// CLI parity: the nil-config branch in apps/cli/main.go rescues ONLY
 		// shared-server mode; ISSUEGRAPH_DOLT_SERVER_MODE without metadata does
 		// not change what the CLI opens, so it must not change the gate.
 		issuegraphDir := newTestIssueGraphDir(t)

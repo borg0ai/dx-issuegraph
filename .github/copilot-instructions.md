@@ -30,7 +30,7 @@
 
 ### Code Style
 - Run `make ci-pr-lint` before committing changes to Go or lint-controlled files
-- Follow existing patterns in `modules/cli/` for new commands
+- Follow existing patterns in `apps/cli/` for new commands
 - Add `--json` flag to all commands for programmatic use
 - Update docs when changing behavior
 
@@ -91,7 +91,7 @@ issuegraph dolt pull                   # Pull from Dolt remote
 
 ```
 issuegraph/
-├── modules/cli/              # CLI commands (add new commands here)
+├── apps/cli/              # CLI commands (add new commands here)
 ├── internal/
 │   ├── types/           # Core data types
 │   └── storage/         # Storage layer
@@ -113,9 +113,8 @@ Use the issuegraph MCP server for native function calls instead of shell command
 - See `integrations/issuegraph-mcp/README.md`
 
 ### Scripts
-- `./scripts/bump-version.sh <version> --commit` - Update all version files atomically
-- `./scripts/release.sh <version>` - Complete release workflow
-- `./scripts/update-homebrew.sh <version>` - Update Homebrew formula
+- `./scripts/update-versions.sh <version>` - Update all version files (no git operations)
+- Releases run through the `shipify` skill
 
 ### Key Documentation
 - **AGENTS.md** - Comprehensive AI agent guide (detailed workflows, advanced features)

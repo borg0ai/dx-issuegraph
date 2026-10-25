@@ -15,7 +15,7 @@ import (
 // TestSharedServerCfgNilHonorsSharedServer is a regression test for GH#3817.
 //
 // When the resolved issuegraphDir has no metadata.json/config.yaml, configfile.Load
-// returns (nil, nil). The shared-server override in modules/cli/main.go used to live
+// returns (nil, nil). The shared-server override in apps/cli/main.go used to live
 // only inside the `cfg != nil` branch, so an exported ISSUEGRAPH_DOLT_SHARED_SERVER
 // was silently ignored: doltCfg.ServerMode stayed false and newDoltStore fell
 // through to embeddeddolt.Open. With a leftover embedded data directory present

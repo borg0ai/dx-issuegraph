@@ -32,7 +32,7 @@ build_skip_pattern() {
 #
 # TIMEOUT is go test's PER-PACKAGE deadline — a hang backstop, not a
 # performance budget: it costs nothing while packages pass. The floor is set
-# by modules/cli, the slowest package: measured 2026-07-26 on a busy darwin fleet
+# by apps/cli, the slowest package: measured 2026-07-26 on a busy darwin fleet
 # box (wy-4mtr0), its default suite is ~1090s of test time across ~1490 tests
 # (mostly serial — subprocess tests that spawn issuegraph + embedded Dolt per
 # invocation, largely t.Setenv-bound so they cannot t.Parallel), giving
@@ -40,8 +40,8 @@ build_skip_pattern() {
 # in-test `go build` steps. 3m could never fit that, which made every
 # full-suite run FAIL with a package deadline panic naming no failing test.
 # 25m holds the measurement plus fleet-load headroom (the passing full-suite
-# acceptance run clocked modules/cli at 870s under -p 4 package concurrency).
-# Raise via TEST_TIMEOUT; don't lower it below modules/cli's measured runtime.
+# acceptance run clocked apps/cli at 870s under -p 4 package concurrency).
+# Raise via TEST_TIMEOUT; don't lower it below apps/cli's measured runtime.
 TIMEOUT="${TEST_TIMEOUT:-25m}"
 GO_TEST_PKG_PARALLEL="${GO_TEST_PKG_PARALLEL:-4}"
 GO_TEST_PARALLEL="${GO_TEST_PARALLEL:-4}"
@@ -89,18 +89,18 @@ if [[ ${#PACKAGES[@]} -eq 0 ]]; then
     PACKAGES=("github.com/borg0ai/dx-issuegraph/...")
 fi
 
-# Prebuild issuegraph once for subprocess-style tests (wy-4mtr0). modules/cli has a dozen
+# Prebuild issuegraph once for subprocess-style tests (wy-4mtr0). apps/cli has a dozen
 # test helpers that otherwise each `go build` the full issuegraph binary inside the
 # test run — on a busy machine those link steps alone can blow the package
 # deadline, and one helper used to silently fall back to a stale repo-root
 # ./issuegraph. CI already exports ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY from a prebuilt artifact
 # (.github/workflows/main.yml); this gives the local runner the same fast
 # path. A caller-supplied ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY always wins; skipped when the
-# requested packages cannot include modules/cli.
+# requested packages cannot include apps/cli.
 if [[ -z "${ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY:-}" ]]; then
     case " ${PACKAGES[*]} " in
-        # Any recursive pattern (./..., ./cmd/...) can expand to modules/cli.
-        *"..."* | *"modules/cli"*)
+        # Any recursive pattern (./..., ./cmd/...) can expand to apps/cli.
+        *"..."* | *"apps/cli"*)
             if [[ -n "${ISSUEGRAPH_TEST_ENV_ROOT:-}" ]]; then
                 PREBUILT_ISSUEGRAPH_DIR="$ISSUEGRAPH_TEST_ENV_ROOT/prebuilt-issuegraph"
             else
@@ -109,7 +109,7 @@ if [[ -z "${ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY:-}" ]]; then
             mkdir -p "$PREBUILT_ISSUEGRAPH_DIR"
             echo "Prebuilding issuegraph for subprocess tests..." >&2
             PREBUILT_ISSUEGRAPH_BIN="$PREBUILT_ISSUEGRAPH_DIR/issuegraph$(go env GOEXE)"
-            if go build -o "$PREBUILT_ISSUEGRAPH_BIN" github.com/borg0ai/dx-issuegraph/modules/cli; then
+            if go build -o "$PREBUILT_ISSUEGRAPH_BIN" github.com/borg0ai/dx-issuegraph/apps/cli; then
                 export ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY="$PREBUILT_ISSUEGRAPH_BIN"
                 echo "Prebuilt issuegraph: $ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY" >&2
             else

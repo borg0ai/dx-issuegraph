@@ -156,7 +156,7 @@ type Config struct {
 	// HookFiringStore -> InstrumentedStorage -> raw, so `store.IssueClaimer()`
 	// there returns a claimer that runs the workspace's on_update hook script
 	// for every claim it lands. That is precisely what this server documents it
-	// does not do (modules/cli/serve.go). Take the roles from BENEATH the hook layer:
+	// does not do (apps/cli/serve.go). Take the roles from BENEATH the hook layer:
 	//
 	//	src := store
 	//	if hooked, ok := src.(*storage.HookFiringStore); ok {
@@ -167,7 +167,7 @@ type Config struct {
 	//	... one per field below, all off the same src ...
 	//	httpapi.Listen(httpapi.Config{Reader: rd, Claimer: cl, /* and the rest */})
 	//
-	// modules/cli's serveIssueRoles is that loop, written out.
+	// apps/cli's serveIssueRoles is that loop, written out.
 	//
 	// Listen refuses a hook-firing role rather than trusting the paragraph
 	// above — see checkDatabaseSource.
@@ -180,7 +180,7 @@ type Config struct {
 	// Embedded Dolt is the backend that does not qualify (its commit runs
 	// outside the SQL transaction on a separate connection) and it is refused
 	// where the workspace is actually known: serveDatabaseSource in
-	// modules/cli/serve.go.
+	// apps/cli/serve.go.
 	//
 	// Unlike the provider path these are built ONCE, before Listen, rather than
 	// per request. The provider path rebuilds its roles per request for exactly
@@ -431,7 +431,7 @@ type Server struct {
 
 // ValidateBindAddr enforces the bind posture, following the policy the managed
 // Dolt child already lives under (validateManagedServerConfigPolicy in
-// modules/cli/proxied_server.go): the host must be a NUMERIC IP literal.
+// apps/cli/proxied_server.go): the host must be a NUMERIC IP literal.
 //
 // Hostnames are refused, "localhost" included. A name is not a listener
 // specification — it resolves to whatever the host's resolver says today, so
@@ -608,7 +608,7 @@ func Listen(cfg Config) (*Server, error) {
 // decorators and its accessors hand them out — that is what the accessors are
 // FOR — so the obvious `store.IssueClaimer()` on issuegraph's own storage chain returns
 // a claimer that fires the workspace's on_update hook for every claim it lands.
-// This server's contract says hooks do not fire (modules/cli/serve.go), and a
+// This server's contract says hooks do not fire (apps/cli/serve.go), and a
 // contract broken by the caller's most natural line is not a contract. Refusing
 // at Listen is the difference between a startup error naming the store to take
 // roles from and a server that has been quietly running a user's subprocess per

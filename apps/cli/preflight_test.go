@@ -135,7 +135,7 @@ func TestPreflightResult_WithWarning(t *testing.T) {
 	results := PreflightResult{
 		Checks: []CheckResult{
 			{Name: "Tests pass", Passed: true, Command: "go test ./..."},
-			{Name: "Nix hash current", Passed: false, Warning: true, Command: "git diff HEAD -- go.sum", Output: "go.sum changed"},
+			{Name: "Formatting", Passed: false, Warning: true, Command: "gofmt -l .", Output: "file needs formatting"},
 		},
 		Passed:  true, // Warnings don't fail the overall result
 		Summary: "1/2 checks passed, 1 warning(s)",
@@ -279,10 +279,9 @@ func TestRunIssueGraphPollutionCheck_Clean(t *testing.T) {
 	}
 }
 
-func TestRunVersionSyncCheck_ScriptFallback(t *testing.T) {
+func TestRunVersionSyncCheck_ScriptMissing(t *testing.T) {
 	// Run from a temp dir where scripts/check-versions.sh does not exist.
-	// The fallback inline logic should be used, resulting in a skipped result
-	// because version.go won't be found either.
+	// The check must skip rather than fail.
 	origDir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -294,15 +293,8 @@ func TestRunVersionSyncCheck_ScriptFallback(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	result := runVersionSyncCheck()
-	// Without version.go present, fallback should skip
-	if !result.Skipped {
-		// Could also pass if default.nix is also missing — both are acceptable fallback outcomes
-		if result.Passed && strings.Contains(result.Output, "not found") {
-			return // acceptable: nix not found skip
-		}
-	}
-	if result.Command == "scripts/check-versions.sh" {
-		t.Fatal("expected fallback logic, not script invocation")
+	if !result.Skipped || !result.Passed {
+		t.Fatalf("expected a skipped, non-failing result without the script, got %+v", result)
 	}
 }
 
@@ -331,15 +323,16 @@ func TestBuildPreflightChecklist(t *testing.T) {
 		wantAbsent  []string // substring present in no item
 	}{
 		{
-			name:        "issuegraph repo keeps rich Go+Nix checklist",
-			files:       map[string]string{"go.mod": issuegraphGoMod, "default.nix": "{}", ".issuegraph": ""},
-			wantContain: []string{"gms_pure_go", "Version sync", "Nix hash", "No issuegraph pollution"},
+			name:        "issuegraph repo keeps rich Go checklist",
+			files:       map[string]string{"go.mod": issuegraphGoMod, ".issuegraph": ""},
+			wantContain: []string{"gms_pure_go", "Version sync", "No issuegraph pollution"},
+			wantAbsent:  []string{"Nix hash"},
 		},
 		{
 			name:        "generic Go project gets plain go commands",
 			files:       map[string]string{"go.mod": otherGoMod},
 			wantContain: []string{"go test ./...", "golangci-lint run ./...", "gofmt -l ."},
-			wantAbsent:  []string{"gms_pure_go", "Version sync", "Nix hash"},
+			wantAbsent:  []string{"gms_pure_go", "Version sync"},
 		},
 		{
 			name:        "node project",

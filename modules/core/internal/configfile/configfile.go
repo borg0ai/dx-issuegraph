@@ -437,7 +437,7 @@ func (c *Config) HostImpliesServerMode() bool {
 }
 
 // IsLocalHostString reports whether host refers to the local machine, for
-// the purposes of mode inference. Mirrors the helpers in modules/cli/dolt.go
+// the purposes of mode inference. Mirrors the helpers in apps/cli/dolt.go
 // and internal/storage/dolt/store.go; kept private to this package to
 // limit the blast radius of GH#3545's fix — consolidating the (now four)
 // definitions is a separate cleanup.

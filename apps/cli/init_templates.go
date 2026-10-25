@@ -106,7 +106,7 @@ func renderInitConfigYAML(prefix string, noDbMode bool) []byte {
 #
 # Secret keys (stored in this file but prefer env vars to avoid git exposure):
 # - linear.api_key  → use LINEAR_API_KEY env var instead
-# - github.token    → use GITHUB_TOKEN env var instead
+# - github.token    → authenticate with gh auth login or use GITHUB_TOKEN
 `, prefixLine, noDbLine)
 	return []byte(body)
 }
@@ -173,8 +173,8 @@ Issues in IssueGraph are:
 Try IssueGraph in your own projects:
 
 ` + "```bash" + `
-# Install IssueGraph
-curl -sSL https://raw.githubusercontent.com/borg0ai/issuegraph/main/scripts/install.sh | bash
+# Install IssueGraph (macOS: Homebrew, Linux: Nix, Windows: Scoop)
+brew install systembugtj/luban-homebrew/issuegraph
 
 # Initialize in your repo
 issuegraph init

@@ -13,7 +13,7 @@ import (
 
 // TestMigrateIssues_FilterHasZeroMaxRows is the be-x42v.4 opt-out gate
 // for `issuegraph migrate-issues`. Asserts that the migration's candidate-find
-// filter — built in findCandidateIssues at modules/cli/migrate_issues.go:269
+// filter — built in findCandidateIssues at apps/cli/migrate_issues.go:269
 // — never carries MaxRows>0 or a non-empty MaxRowsSource. A
 // ISSUEGRAPH_MAX_ROWS-tripped migration would leave the source and destination
 // repos in inconsistent states; the cap must be hard-opt-out here.
@@ -34,7 +34,7 @@ import (
 // a different function, the gate's import line will fail to compile —
 // that's a load-bearing signal to re-target the test.
 //
-// Build tags: cgo (matches existing cgo modules/cli tests).
+// Build tags: cgo (matches existing cgo apps/cli tests).
 func TestMigrateIssues_FilterHasZeroMaxRows(t *testing.T) {
 	if testDoltServerPort == 0 {
 		t.Skip("Dolt test server not available")

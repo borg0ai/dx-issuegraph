@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
 )
 
 // CheckDependencyKeysWithStore reports dependency rows left behind by the

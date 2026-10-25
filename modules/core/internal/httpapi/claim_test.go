@@ -28,7 +28,7 @@ import (
 // PR workflow's unconditional Go test job. What
 // a fake cannot prove is the CAS itself; the concurrent-claim race, the storage
 // commit, and the full-item parity oracle against `issuegraph update --claim --json`
-// live in modules/cli's proxied-server integration test, against real Dolt.
+// live in apps/cli's proxied-server integration test, against real Dolt.
 
 // fakeIssues embeds the interface so any method the claim path does not call
 // panics instead of quietly returning a zero value.

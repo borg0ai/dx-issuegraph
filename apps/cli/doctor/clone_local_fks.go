@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
 )
 
 // CheckCloneLocalFKs detects clone-local (dolt_ignored) tables whose foreign

@@ -1,20 +1,17 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
-	"time"
 
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/borg0ai/dx-issuegraph/internal/git"
 	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 	"github.com/borg0ai/dx-issuegraph/internal/metrics"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
 	"github.com/spf13/cobra"
 )
 
@@ -46,7 +43,6 @@ This command helps catch common issues before pushing to CI:
 - Lint errors
 - Unformatted Go files
 - .issuegraph/issues.jsonl pollution
-- Stale nix vendorHash
 - Version mismatches
 
 Examples:
@@ -62,7 +58,6 @@ Examples:
 
 func init() {
 	preflightCmd.Flags().Bool("check", false, "Run checks automatically")
-	preflightCmd.Flags().Bool("fix", false, "Auto-fix issues where possible (vendorHash, version sync)")
 	// Bound to the package global like every other command's local --json.
 	// commandJSONFlagChanged suppresses the config-driven default whenever a
 	// local --json is set, so a flag that does not write the global would
@@ -84,19 +79,14 @@ func runPreflight(cmd *cobra.Command, args []string) error {
 	}()
 
 	check, _ := cmd.Flags().GetBool("check")
-	fix, _ := cmd.Flags().GetBool("fix")
 	skipLint, _ := cmd.Flags().GetBool("skip-lint")
-
-	if fix {
-		return runFixes(jsonOutput)
-	}
 
 	if check {
 		return runChecks(jsonOutput, skipLint)
 	}
 
 	// Static checklist mode — tailor the checklist to the detected project
-	// stack so non-Go projects don't get a misleading Go/Nix checklist (GH#4364).
+	// stack so non-Go projects don't get a misleading Go checklist (GH#4364).
 	root := git.GetRepoRoot()
 	if root == "" {
 		if wd, err := os.Getwd(); err == nil {
@@ -126,12 +116,12 @@ func fileExists(dir, name string) bool {
 // buildPreflightChecklist returns PR-readiness checklist items tailored to the
 // project's language stack, detected from standard marker files in dir. A
 // project with no recognized stack gets a generic reminder rather than a
-// misleading Go checklist, and the repo's own Go+Nix specific items
-// (gms_pure_go build tags, nix vendorHash, version.go vs default.nix) only
+// misleading Go checklist, and the repo's own Go specific items
+// (gms_pure_go build tags, version consistency) only
 // appear where they apply (GH#4364).
 func buildPreflightChecklist(dir string) []string {
 	// Preserve the exact rich checklist when run inside the issuegraph repo itself
-	// (its primary audience), so the gms_pure_go build tags and nix/version
+	// (its primary audience), so the gms_pure_go build tags and version
 	// reminders issuegraph contributors rely on are not lost.
 	if isIssueGraphRepo(dir) {
 		return []string{
@@ -139,8 +129,7 @@ func buildPreflightChecklist(dir string) []string {
 			"Lint passes: golangci-lint run --build-tags=gms_pure_go ./...",
 			"Formatting: gofmt -l .",
 			"No issuegraph pollution: check .issuegraph/issues.jsonl diff",
-			"Nix hash current: go.sum unchanged or vendorHash updated",
-			"Version sync: version.go matches default.nix",
+			"Version sync: scripts/check-versions.sh passes",
 		}
 	}
 
@@ -214,10 +203,6 @@ func runChecks(jsonOutput, skipLint bool) error {
 	// Run issuegraph pollution check
 	issuegraphResult := runIssueGraphPollutionCheck()
 	results = append(results, issuegraphResult)
-
-	// Run nix hash check
-	nixResult := runNixHashCheck()
-	results = append(results, nixResult)
 
 	// Run version sync check
 	versionResult := runVersionSyncCheck()
@@ -488,40 +473,8 @@ func isPathOutsideRepo(rel string) bool {
 	return first == ".."
 }
 
-// runNixHashCheck checks if go.sum has uncommitted changes that may require vendorHash update.
-func runNixHashCheck() CheckResult {
-	command := "git diff HEAD -- go.sum"
-
-	// Check for unstaged changes to go.sum
-	cmd := exec.Command("git", "diff", "--name-only", "HEAD", "--", "go.sum")
-	output, _ := cmd.Output()
-
-	// Check for staged changes to go.sum
-	stagedCmd := exec.Command("git", "diff", "--name-only", "--cached", "--", "go.sum")
-	stagedOutput, _ := stagedCmd.Output()
-
-	hasChanges := len(strings.TrimSpace(string(output))) > 0 || len(strings.TrimSpace(string(stagedOutput))) > 0
-
-	if hasChanges {
-		return CheckResult{
-			Name:    "Nix hash current",
-			Passed:  false,
-			Warning: true,
-			Output:  "go.sum has uncommitted changes - vendorHash in default.nix may need updating",
-			Command: command,
-		}
-	}
-
-	return CheckResult{
-		Name:    "Nix hash current",
-		Passed:  true,
-		Output:  "",
-		Command: command,
-	}
-}
-
 // runVersionSyncCheck checks that all version files are in sync.
-// Prefers scripts/check-versions.sh (matches CI) with fallback to inline logic.
+// Runs scripts/check-versions.sh and skips when the script is absent.
 func runVersionSyncCheck() CheckResult {
 	command := "scripts/check-versions.sh"
 
@@ -545,74 +498,11 @@ func runVersionSyncCheck() CheckResult {
 		}
 	}
 
-	// Fallback: inline comparison of version.go and default.nix
-	command = "Compare modules/cli/version.go and default.nix"
-
-	// Read version.go
-	versionGoContent, err := os.ReadFile("modules/cli/version.go")
-	if err != nil {
-		return CheckResult{
-			Name:    "Version sync",
-			Passed:  false,
-			Skipped: true,
-			Output:  fmt.Sprintf("Cannot read modules/cli/version.go: %v", err),
-			Command: command,
-		}
-	}
-
-	// Extract version from version.go
-	versionGoRe := regexp.MustCompile(`Version\s*=\s*"([^"]+)"`)
-	versionGoMatch := versionGoRe.FindSubmatch(versionGoContent)
-	if versionGoMatch == nil {
-		return CheckResult{
-			Name:    "Version sync",
-			Passed:  false,
-			Skipped: true,
-			Output:  "Cannot parse version from version.go",
-			Command: command,
-		}
-	}
-	goVersion := string(versionGoMatch[1])
-
-	// Read default.nix
-	nixContent, err := os.ReadFile("default.nix")
-	if err != nil {
-		return CheckResult{
-			Name:    "Version sync",
-			Passed:  true,
-			Skipped: true,
-			Output:  "default.nix not found (skipping nix version check)",
-			Command: command,
-		}
-	}
-
-	// Extract version from default.nix
-	nixRe := regexp.MustCompile(`version\s*=\s*"([^"]+)"`)
-	nixMatch := nixRe.FindSubmatch(nixContent)
-	if nixMatch == nil {
-		return CheckResult{
-			Name:    "Version sync",
-			Passed:  false,
-			Skipped: true,
-			Output:  "Cannot parse version from default.nix",
-			Command: command,
-		}
-	}
-	nixVersion := string(nixMatch[1])
-
-	if goVersion != nixVersion {
-		return CheckResult{
-			Name:    "Version sync",
-			Passed:  false,
-			Output:  fmt.Sprintf("Version mismatch: version.go=%s, default.nix=%s", goVersion, nixVersion),
-			Command: command,
-		}
-	}
-
 	return CheckResult{
 		Name:    "Version sync",
 		Passed:  true,
-		Output:  fmt.Sprintf("Versions match: %s", goVersion),
+		Skipped: true,
+		Output:  "scripts/check-versions.sh not found (skipping version sync check)",
 		Command: command,
 	}
 }
@@ -657,215 +547,4 @@ func truncateOutput(s string, maxLen int) string {
 		return strings.TrimSpace(s)
 	}
 	return strings.TrimSpace(s[:maxLen]) + "\n... (truncated)"
-}
-
-// fixResult reports the outcome of one auto-fix operation.
-type fixResult struct {
-	Name    string `json:"name"`
-	Fixed   bool   `json:"fixed"`
-	Skipped bool   `json:"skipped,omitempty"`
-	Detail  string `json:"detail,omitempty"`
-	Error   string `json:"error,omitempty"`
-}
-
-// runFixes executes auto-fix operations for fixable preflight checks.
-func runFixes(jsonOutput bool) error {
-	var results []fixResult
-	hasError := false
-
-	nixFixed, nixOld, nixNew, nixErr := fixNixHash()
-	nr := fixResult{Name: "Nix vendorHash"}
-	if nixErr != nil {
-		nr.Error = nixErr.Error()
-		hasError = true
-	} else if nixFixed {
-		nr.Fixed = true
-		nr.Detail = fmt.Sprintf("%s → %s", nixOld, nixNew)
-	} else {
-		nr.Skipped = true
-	}
-	results = append(results, nr)
-
-	versionFixed, versionOld, versionNew, versionErr := fixVersionSync()
-	vr := fixResult{Name: "Version sync"}
-	if versionErr != nil {
-		vr.Error = versionErr.Error()
-		hasError = true
-	} else if versionFixed {
-		vr.Fixed = true
-		vr.Detail = fmt.Sprintf("version.go: %s → %s", versionOld, versionNew)
-	} else {
-		vr.Skipped = true
-	}
-	results = append(results, vr)
-
-	if jsonOutput {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(results); err != nil {
-			fmt.Fprintf(os.Stderr, "Error encoding fix results: %v\n", err)
-		}
-		if hasError {
-			return SilentExit()
-		}
-		return nil
-	}
-
-	for _, r := range results {
-		switch {
-		case r.Error != "":
-			fmt.Printf("✗ %s\n  %s\n\n", r.Name, r.Error)
-		case r.Fixed:
-			fmt.Printf("✓ %s\n", r.Name)
-			if r.Detail != "" {
-				fmt.Printf("  %s\n", r.Detail)
-			}
-			fmt.Println()
-		default:
-			fmt.Printf("- %s (nothing to fix)\n\n", r.Name)
-		}
-	}
-
-	if hasError {
-		return SilentExit()
-	}
-	return nil
-}
-
-// fixNixHash computes and updates the vendorHash in default.nix.
-// It uses a sentinel hash to trigger nix to report the correct hash.
-// Returns (fixed, oldHash, newHash, err).
-func fixNixHash() (bool, string, string, error) {
-	// Check if go.sum has uncommitted changes (same heuristic as runNixHashCheck)
-	cmd1 := exec.Command("git", "diff", "--name-only", "HEAD", "--", "go.sum")
-	out1, _ := cmd1.Output()
-	cmd2 := exec.Command("git", "diff", "--name-only", "--cached", "--", "go.sum")
-	out2, _ := cmd2.Output()
-	if len(strings.TrimSpace(string(out1))) == 0 && len(strings.TrimSpace(string(out2))) == 0 {
-		return false, "", "", nil
-	}
-
-	if _, err := exec.LookPath("nix"); err != nil {
-		return false, "", "", fmt.Errorf(
-			"nix not found in PATH\n  Manual fix:\n" +
-				"    1. Edit default.nix: set vendorHash = \"sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"\n" +
-				"    2. Run: nix build .#default\n" +
-				"    3. Copy the 'got:' hash from the error into default.nix",
-		)
-	}
-
-	nixPath := "default.nix"
-	nixInfo, err := os.Stat(nixPath)
-	if err != nil {
-		return false, "", "", fmt.Errorf("cannot stat default.nix: %v", err)
-	}
-	nixPerm := nixInfo.Mode().Perm()
-
-	content, err := os.ReadFile(nixPath)
-	if err != nil {
-		return false, "", "", fmt.Errorf("cannot read default.nix: %v", err)
-	}
-
-	re := regexp.MustCompile(`(vendorHash\s*=\s*)"([^"]+)"`)
-	loc := re.FindSubmatchIndex(content)
-	if loc == nil {
-		return false, "", "", fmt.Errorf("vendorHash not found in default.nix")
-	}
-	oldHash := string(content[loc[4]:loc[5]])
-
-	const sentinel = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-	probed := append(append([]byte{}, content[:loc[4]]...), append([]byte(sentinel), content[loc[5]:]...)...)
-	if err := os.WriteFile(nixPath, probed, nixPerm); err != nil {
-		return false, "", "", fmt.Errorf("cannot write default.nix: %v", err)
-	}
-
-	restored := false
-	defer func() {
-		if !restored {
-			_ = os.WriteFile(nixPath, content, nixPerm)
-		}
-	}()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-	nixCmd := exec.CommandContext(ctx, "nix", "build", ".#default", "--no-link")
-	nixOut, _ := nixCmd.CombinedOutput()
-
-	// Nix prints the correct hash in lines like "got:    sha256-..."
-	hashRe := regexp.MustCompile(`got:\s+(sha256-[A-Za-z0-9+/]+=)`)
-	m := hashRe.FindSubmatch(nixOut)
-	if m == nil {
-		// Fallback: pick any sha256-... that isn't our sentinel
-		altRe := regexp.MustCompile(`sha256-([A-Za-z0-9+/]+=)`)
-		for _, am := range altRe.FindAllSubmatch(nixOut, -1) {
-			h := "sha256-" + string(am[1])
-			if h != sentinel {
-				m = [][]byte{nil, []byte(h)}
-				break
-			}
-		}
-	}
-	if m == nil {
-		return false, oldHash, "", fmt.Errorf("could not parse correct hash from nix output:\n%s", string(nixOut))
-	}
-	newHash := string(m[1])
-
-	if newHash == oldHash {
-		_ = os.WriteFile(nixPath, content, nixPerm)
-		restored = true
-		return false, oldHash, newHash, nil
-	}
-
-	updated := append(append([]byte{}, content[:loc[4]]...), append([]byte(newHash), content[loc[5]:]...)...)
-	if err := os.WriteFile(nixPath, updated, nixPerm); err != nil {
-		return false, oldHash, newHash, fmt.Errorf("cannot update default.nix: %v", err)
-	}
-	restored = true
-	return true, oldHash, newHash, nil
-}
-
-// fixVersionSync updates modules/cli/version.go to match the version in default.nix.
-// default.nix is the source of truth. Returns (fixed, oldVersion, newVersion, err).
-func fixVersionSync() (bool, string, string, error) {
-	vgoPath := "modules/cli/version.go"
-	vgoInfo, err := os.Stat(vgoPath)
-	if err != nil {
-		return false, "", "", fmt.Errorf("cannot read modules/cli/version.go: %v", err)
-	}
-	vgoPerm := vgoInfo.Mode().Perm()
-
-	vgoContent, err := os.ReadFile(vgoPath)
-	if err != nil {
-		return false, "", "", fmt.Errorf("cannot read modules/cli/version.go: %v", err)
-	}
-
-	vgoRe := regexp.MustCompile(`(Version\s*=\s*)"([^"]+)"`)
-	vgoLoc := vgoRe.FindSubmatchIndex(vgoContent)
-	if vgoLoc == nil {
-		return false, "", "", fmt.Errorf("cannot parse Version from modules/cli/version.go")
-	}
-	oldVersion := string(vgoContent[vgoLoc[4]:vgoLoc[5]])
-
-	nixContent, err := os.ReadFile("default.nix")
-	if err != nil {
-		// No default.nix — nothing to sync against
-		return false, "", "", nil
-	}
-
-	nixRe := regexp.MustCompile(`version\s*=\s*"([^"]+)"`)
-	nixM := nixRe.FindSubmatch(nixContent)
-	if nixM == nil {
-		return false, "", "", fmt.Errorf("cannot parse version from default.nix")
-	}
-	newVersion := string(nixM[1])
-
-	if oldVersion == newVersion {
-		return false, oldVersion, newVersion, nil
-	}
-
-	updated := append(append([]byte{}, vgoContent[:vgoLoc[4]]...), append([]byte(newVersion), vgoContent[vgoLoc[5]:]...)...)
-	if err := os.WriteFile(vgoPath, updated, vgoPerm); err != nil {
-		return false, oldVersion, newVersion, fmt.Errorf("cannot update modules/cli/version.go: %v", err)
-	}
-	return true, oldVersion, newVersion, nil
 }

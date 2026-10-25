@@ -16,10 +16,10 @@ import (
 
 // The modes of `issuegraph list` and `issuegraph show` that consume the FILTER ITSELF rather
 // than the page a query answers with, gathered here because that is exactly
-// what the guard on the rest of modules/cli is a statement about.
+// what the guard on the rest of apps/cli is a statement about.
 //
 // A forbidigo rule in .golangci.yml makes NAMING types.IssueFilter or
-// types.WorkFilter a lint failure anywhere under modules/cli, and this file is one
+// types.WorkFilter a lint failure anywhere under apps/cli, and this file is one
 // of the exceptions the config lists by name with its reason. So no file
 // implementing `issuegraph list` or `issuegraph show` can WRITE a filter — it takes one back
 // from a workapi builder instead — and that keeps holding for a file those

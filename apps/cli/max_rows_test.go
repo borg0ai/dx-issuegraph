@@ -334,7 +334,7 @@ func TestEmbeddedMaxRowsNonListPaths(t *testing.T) {
 	// code paths. The cap logic itself runs through the shared SearchIssues +
 	// EnforceMaxRowsCap path already covered by:
 	//   - TestEnforceMaxRowsCap_* (internal/storage/issueops/search_test.go)
-	//   - TestGetReadyWork_MaxRowsSuite (modules/cli/ready_max_rows_test.go)
+	//   - TestGetReadyWork_MaxRowsSuite (apps/cli/ready_max_rows_test.go)
 	//   - be-x42v.3 storage parity tests (issuegraph list/search backend matrix)
 	// What's _not_ covered without server mode is the env-only resolver
 	// (resolveMaxRowsEnvOnly) on these specific commands. doctor_conventions.go

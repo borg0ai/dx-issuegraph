@@ -1,6 +1,6 @@
 ---
 title: "issuegraph migrate"
-description: "Database migration and data transformation commands."
+description: "Database migration commands"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -12,24 +12,123 @@ Database migration and data transformation commands.
 Without subcommand, checks and updates database metadata to current version.
 
 Subcommands:
-  hooks       Plan git hook migration to marker-managed format
-  issues      Move issues between repositories
-  schema      Apply pending schema migrations (idempotent)
-  sync        Set up sync.branch workflow for multi-clone setups
+  hooks                            Plan git hook migration to marker-managed format
+  issues                           Move issues between repositories
+  schema                           Apply pending schema migrations (idempotent)
+  sync                             Set up sync.branch workflow for multi-clone setups
+  from-server-to-proxied-server           [EXPERIMENTAL] Switch server mode to proxied-server mode
+  from-proxied-server-to-server           [EXPERIMENTAL] Switch proxied-server mode to server mode
+  from-shared-server-to-proxied-server    [EXPERIMENTAL] Switch shared-server mode to proxied-server mode
+  from-proxied-server-to-shared-server    [EXPERIMENTAL] Switch proxied-server mode to shared-server mode
+
+On a remote-backed database with pending schema migrations issuegraph refuses to
+migrate in place (#4259): migrating two clones independently forks the schema
+so issuegraph dolt pull can no longer merge — the break is silent and unrecoverable.
+Use --force to confirm you are the single designated migrator, after which you
+should publish the migrated schema with 'issuegraph dolt push'. The env-var equivalent
+ISSUEGRAPH_ALLOW_REMOTE_MIGRATE=1 remains supported for scripted/CI use.
 
 
 ```
 issuegraph migrate [flags]
+issuegraph migrate [command]
 ```
 
 **Flags:**
 
 ```
       --dry-run          Show what would be done without making changes
+      --force            Bypass the remote-migrate gate as the single designated migrator (equivalent to ISSUEGRAPH_ALLOW_REMOTE_MIGRATE=1)
       --inspect          Show migration plan and database state for AI agent analysis
       --json             Output migration statistics in JSON format
       --update-repo-id   Update repository ID (use after changing git remote)
       --yes              Auto-confirm prompts
+```
+
+## issuegraph migrate from-proxied-server-to-server
+
+Switch a repo from proxied-server mode to server mode (issuegraph init --server).
+
+Both modes root their dolt sql-server at the same .issuegraph/dolt directory, so this
+only rewrites .issuegraph/metadata.json (dolt_mode) and removes the proxied-server
+sidecar — no Dolt data is copied or moved. Stop the running proxy first with
+'issuegraph dolt stop'.
+
+Note: dolt_mode lives in the committed metadata.json, so this change propagates
+to clones on the next push.
+
+```
+issuegraph migrate from-proxied-server-to-server [flags]
+```
+
+**Flags:**
+
+```
+      --dry-run   Show what would be done without making changes
+```
+
+## issuegraph migrate from-proxied-server-to-shared-server
+
+Switch a repo from proxied-server mode back to shared-server mode.
+
+Only applies to a proxied-server repo rooted at the shared dolt directory
+(~/.issuegraph/shared-server/dolt) — the reverse of from-shared-server-to-proxied-server.
+This rewrites .issuegraph/metadata.json (dolt_mode), re-enables dolt.shared-server, and
+removes the proxied-server sidecar; no Dolt data is copied or moved. Stop the
+running proxy first with 'issuegraph dolt stop'.
+
+```
+issuegraph migrate from-proxied-server-to-shared-server [flags]
+```
+
+**Flags:**
+
+```
+      --dry-run   Show what would be done without making changes
+```
+
+## issuegraph migrate from-server-to-proxied-server
+
+Switch a repo from server mode (issuegraph init --server) to proxied-server mode.
+
+Both modes root their dolt sql-server at the same .issuegraph/dolt directory, so this
+only rewrites .issuegraph/metadata.json (dolt_mode) and writes the proxied-server
+sidecar — no Dolt data is copied or moved. Stop the running server first with
+'issuegraph dolt stop'.
+
+Note: dolt_mode lives in the committed metadata.json, so this change propagates
+to clones on the next push.
+
+```
+issuegraph migrate from-server-to-proxied-server [flags]
+```
+
+**Flags:**
+
+```
+      --dry-run                 Show what would be done without making changes
+      --idle-timeout duration   Proxy idle timeout; omit for the 30s default, 0 for indefinite uptime
+```
+
+## issuegraph migrate from-shared-server-to-proxied-server
+
+Switch a repo from shared-server mode to proxied-server mode.
+
+The proxied server is rooted at the shared dolt directory
+(~/.issuegraph/shared-server/dolt), so no Dolt data is copied or moved; this rewrites
+.issuegraph/metadata.json (dolt_mode), turns off dolt.shared-server for this repo, and
+writes the proxied-server sidecar. Stop the running shared server first with
+'issuegraph dolt stop' — note that stops it for every project sharing it.
+
+```
+issuegraph migrate from-shared-server-to-proxied-server [flags]
+```
+
+**Flags:**
+
+```
+      --dry-run                 Show what would be done without making changes
+      --idle-timeout duration   Proxy idle timeout; omit for the 30s default, 0 for indefinite uptime
 ```
 
 ## issuegraph migrate hooks
@@ -76,7 +175,7 @@ Examples:
   issuegraph migrate-issues --from ~/repo1 --to ~/repo2 --priority 1 --type bug --status open
 
   # Move specific issues with their dependencies
-  issuegraph migrate-issues --from . --to ~/archive --id issuegraph-abc --id issuegraph-xyz --include closure
+  issuegraph migrate-issues --from . --to ~/archive --id bd-abc --id bd-xyz --include closure
 
   # Move issues with label filter
   issuegraph migrate-issues --from . --to ~/feature-work --label frontend --label urgent
@@ -103,6 +202,21 @@ issuegraph migrate issues [flags]
       --yes                Skip confirmation prompt
 ```
 
+## issuegraph migrate legacy-sqlite
+
+Read an authenticated legacy SQLite database as JSONL
+
+```
+issuegraph migrate legacy-sqlite --source-db PATH --output PATH|- [flags]
+```
+
+**Flags:**
+
+```
+      --output string      JSONL output path, or - for stdout
+      --source-db string   Legacy SQLite database (read-only)
+```
+
 ## issuegraph migrate schema
 
 Apply pending schema migrations idempotently.
@@ -122,7 +236,8 @@ issuegraph migrate schema [flags]
 **Flags:**
 
 ```
-      --json   Output in JSON format
+      --force   Bypass the remote-migrate gate as the single designated migrator (equivalent to ISSUEGRAPH_ALLOW_REMOTE_MIGRATE=1)
+      --json    Output in JSON format
 ```
 
 ## issuegraph migrate sync

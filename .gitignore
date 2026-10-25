@@ -138,6 +138,9 @@ issuegraph_test
 .issuegraph/*
 !.issuegraph/formulas/
 !.issuegraph/formulas/**
+# Complete local issue snapshot (issues.jsonl + manifest.json), tracked by Git (RFC 0004); the Dolt database stays ignored.
+!.issuegraph/issues.jsonl
+!.issuegraph/manifest.json
 .opencode/
 
 # IssueGraph / Dolt files (added by issuegraph init / issuegraph init)

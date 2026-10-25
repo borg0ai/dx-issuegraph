@@ -104,7 +104,7 @@ func resolveLabelTarget(ctx context.Context, id string) (string, error) {
 // ItemUpdate per issue carrying this same IssuePatch, applies them in order and
 // commits them together, so the N calls collapse back to one transaction and
 // one history entry with no new role and no new request type. It is not in this
-// slice because it needs a modules/cli accessor of its own and because its end gate
+// slice because it needs a apps/cli accessor of its own and because its end gate
 // runs a hierarchy and cycle walk a label-only request has no use for.
 func applyLabelEdit(ctx context.Context, issueIDs []string, labels []string, operation string) error {
 	lifecycle, err := openIssueLifecycle()

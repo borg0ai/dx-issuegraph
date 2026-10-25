@@ -1,6 +1,6 @@
 ---
 title: "issuegraph swarm"
-description: "Swarm management commands for coordinating parallel work on epics."
+description: "Swarm management for structured epics"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -13,7 +13,7 @@ A swarm is a structured body of work defined by an epic and its children,
 with dependencies forming a DAG (directed acyclic graph) of work.
 
 ```
-issuegraph swarm [flags]
+issuegraph swarm [command]
 ```
 
 ## issuegraph swarm create
@@ -31,9 +31,9 @@ If given a single issue (not an epic), it will be auto-wrapped:
 - Then creates the swarm molecule for that epic
 
 Examples:
-  issuegraph swarm create issuegraph-epic-123                          # Create swarm for epic
-  issuegraph swarm create issuegraph-epic-123 --coordinator=observer/   # With specific coordinator
-  issuegraph swarm create issuegraph-task-456                          # Auto-wrap single issue
+  issuegraph swarm create bd-epic-123                          # Create swarm for epic
+  issuegraph swarm create bd-epic-123 --coordinator=observer/   # With specific coordinator
+  issuegraph swarm create bd-task-456                          # Auto-wrap single issue
 
 ```
 issuegraph swarm create [epic-id] [flags]

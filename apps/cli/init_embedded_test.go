@@ -827,7 +827,7 @@ func TestEmbeddedInit(t *testing.T) {
 		// instantly, so this exercises the non-empty-remote clone failure
 		// path without depending on TCP timeouts. Verifies (a) init exits
 		// non-zero rather than silently bootstrapping fresh, (b) the wrap
-		// from modules/cli/init.go echoes the URL the user typed in %q form,
+		// from apps/cli/init.go echoes the URL the user typed in %q form,
 		// and (c) the Hint: line is present.
 		remoteURL := "remotesapi://127.0.0.1:1/no-such-db"
 		dir := t.TempDir()
@@ -1281,7 +1281,7 @@ func TestEmbeddedInit(t *testing.T) {
 
 // TestEmbeddedInitConcurrent verifies concurrent `issuegraph init` writers are
 // serialized rather than corrupting the workspace. The EXCLUSIVE workspace
-// gate (see acquireExclusiveWorkspaceGates in modules/cli/init.go) is acquired
+// gate (see acquireExclusiveWorkspaceGates in apps/cli/init.go) is acquired
 // before the embedded Dolt flock is ever attempted, so contention here
 // normally surfaces as gate-busy output rather than a flock error; either is
 // classified by isEmbeddedLockOutput as the same "another process holds the
@@ -1424,7 +1424,7 @@ func TestInitGateBusyClassifiedAsLockContention(t *testing.T) {
 	t.Cleanup(func() { exclusiveGateWait = oldWait })
 
 	// Simulate the winner: hold the workspace gate EXCLUSIVELY for the
-	// duration of its init, exactly as modules/cli/init.go does.
+	// duration of its init, exactly as apps/cli/init.go does.
 	winner, err := acquireExclusiveWorkspaceGates(context.Background(), issuegraphDir, "test winner init")
 	if err != nil {
 		t.Fatalf("winner acquisition: %v", err)
@@ -1432,7 +1432,7 @@ func TestInitGateBusyClassifiedAsLockContention(t *testing.T) {
 	defer func() { _ = winner.Release() }()
 
 	// Simulate the loser: issuegraph init's own acquisition call, and its own
-	// error-wrapping (modules/cli/init.go: "issuegraph init refuses to run over live issuegraph
+	// error-wrapping (apps/cli/init.go: "issuegraph init refuses to run over live issuegraph
 	// activity on this workspace: %w").
 	_, gateErr := acquireExclusiveWorkspaceGates(context.Background(), issuegraphDir, "issuegraph init")
 	if gateErr == nil {

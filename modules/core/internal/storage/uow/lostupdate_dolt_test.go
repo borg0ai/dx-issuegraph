@@ -28,7 +28,7 @@ import (
 // unit-of-work stack (the proxied-server CLI's write path) must never lose a
 // write that reported success.
 //
-// Each writer follows the exact contract modules/cli's applyUpdateProxiedOne now
+// Each writer follows the exact contract apps/cli's applyUpdateProxiedOne now
 // implements:
 //
 //   - metadata edits and note appends pass through ApplyUpdate as

@@ -114,7 +114,7 @@ func TestBuildSweepCandidateFilterCopiesTheCutoff(t *testing.T) {
 }
 
 // TestFilterSweepCandidatesRechecksClosedAtCutoff is the recheck's own table,
-// moved here from modules/cli when the role took it below both front doors.
+// moved here from apps/cli when the role took it below both front doors.
 func TestFilterSweepCandidatesRechecksClosedAtCutoff(t *testing.T) {
 	cutoff := time.Date(2026, 3, 27, 20, 1, 44, 0, time.UTC)
 	oldClosedAt := cutoff.Add(-time.Second)

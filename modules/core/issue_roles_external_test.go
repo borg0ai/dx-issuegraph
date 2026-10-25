@@ -12,7 +12,7 @@ import (
 )
 
 // TestReadyClaimerLayersHooksOutsideTelemetry pins the decorator order the
-// claim accessor produces against the order modules/cli assembles the chain in
+// claim accessor produces against the order apps/cli assembles the chain in
 // (storage_chain.go: telemetry first, hooks outermost), the same property
 // TestIssueLifecycleLayersHooksOutsideTelemetry pins for the write role. A
 // blind delegation at either decorator would still satisfy Storage and would

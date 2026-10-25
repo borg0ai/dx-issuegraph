@@ -773,7 +773,7 @@ func (e *Engine) externalRefChangedAfter(ctx context.Context, local *types.Issue
 // etc.) first if needed. Decorators embed only the base storage.DoltStorage
 // interface for passthrough, so a direct assertion on a decorated store would
 // never see this optional capability even when the concrete store underneath
-// implements it — the same reason modules/cli type-asserts through
+// implements it — the same reason apps/cli type-asserts through
 // storage.UnwrapStore for RawDBAccessor, StoreLocator, and friends.
 func externalRefHistoryQuerier(store Store) (ExternalRefHistoryStore, bool) {
 	if q, ok := store.(ExternalRefHistoryStore); ok {
@@ -1294,6 +1294,10 @@ func (e *Engine) renderBatchDryRun(issues []*types.Issue, result *BatchPushResul
 func (e *Engine) resolveConflicts(opts SyncOptions, conflicts []Conflict, skipIDs, forceIDs, allowPullOverwriteIDs map[string]bool) {
 	for _, c := range conflicts {
 		switch opts.ConflictResolution {
+		case ConflictPreserve:
+			skipIDs[c.IssueID] = true
+			e.msg("Conflict on %s: preserving local and GitHub versions", c.IssueID)
+
 		case ConflictLocal:
 			forceIDs[c.IssueID] = true
 			e.msg("Conflict on %s: keeping local version", c.IssueID)

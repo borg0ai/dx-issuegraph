@@ -1,6 +1,6 @@
 ---
 title: "issuegraph duplicate"
-description: "Mark an issue as a duplicate of a canonical issue."
+description: "Mark an issue as a duplicate of another"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -13,7 +13,7 @@ The duplicate issue is automatically closed with a reference to the canonical.
 This is essential for large issue databases with many similar reports.
 
 Examples:
-  issuegraph duplicate issuegraph-abc --of issuegraph-xyz    # Mark issuegraph-abc as duplicate of issuegraph-xyz
+  issuegraph duplicate bd-abc --of bd-xyz    # Mark bd-abc as duplicate of bd-xyz
 
 ```
 issuegraph duplicate <id> --of <canonical> [flags]

@@ -20,11 +20,10 @@ Traditional issue trackers (Jira, GitHub Issues) weren't designed for AI agents.
 ## Quick Start
 
 ```bash
-# Install via Homebrew (macOS/Linux)
-brew install issuegraph
-
-# Or quick install (macOS/Linux/FreeBSD)
-curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
+# Install: macOS (Homebrew), Linux (Nix), Windows (Scoop)
+brew install systembugtj/luban-homebrew/issuegraph
+nix profile install github:systembugtj/cangjie-nix#issuegraph
+scoop bucket add shennong https://github.com/systembugtj/shennong-bucket && scoop install shennong/issuegraph
 
 # Initialize in your project
 cd your-project

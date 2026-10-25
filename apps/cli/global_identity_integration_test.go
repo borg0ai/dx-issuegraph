@@ -111,7 +111,7 @@ func TestGlobalDBIdentityCheck(t *testing.T) {
 	// path exactly as bd-4646 regressed it: unpatched selectCreateIDPrefix
 	// would then incorrectly prefer this "proj0" YAML prefix over the
 	// global store's prefix even in --global mode, and the ID validation
-	// below would fail. See modules/cli/init_embedded_test.go for the same
+	// below would fail. See apps/cli/init_embedded_test.go for the same
 	// pattern.
 	if err := os.WriteFile(filepath.Join(issuegraphDir, "config.yaml"), []byte("issue-prefix: proj0\n"), 0o644); err != nil {
 		t.Fatalf("write config.yaml issue-prefix: %v", err)

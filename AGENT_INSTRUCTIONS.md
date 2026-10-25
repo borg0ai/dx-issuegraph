@@ -18,7 +18,7 @@ This document contains detailed operational instructions for AI agents working o
 
 ```
 issuegraph/
-├── modules/cli/              # CLI commands
+├── apps/cli/              # CLI commands
 ├── internal/
 │   ├── types/           # Core data types
 │   └── storage/         # Storage layer
@@ -75,7 +75,7 @@ into temp repos and produce flaky test behavior.
 production database. The disposable working directory is the isolation
 boundary for manual initialization and experiments.
 
-**Tmpfs hosts:** the `modules/cli` test suite creates an isolated `$HOME` and several
+**Tmpfs hosts:** the `apps/cli` test suite creates an isolated `$HOME` and several
 test binaries under `$TMPDIR`. They are normally cleaned by the test process,
 but a SIGKILLed or OOMed run can leave orphans behind. On hosts where `/tmp`
 is tmpfs (e.g. Fedora Atomic / Bluefin), run `make clean-test-tmp` between
@@ -364,11 +364,11 @@ case types.StatusClosed:
 
 ### Adding a New Command
 
-1. Create file in `modules/cli/`
-2. Add to root command in `modules/cli/main.go`
+1. Create file in `apps/cli/`
+2. Add to root command in `apps/cli/main.go`
 3. Implement with Cobra framework
 4. Add `--json` flag for agent use
-5. Add tests in `modules/cli/*_test.go`
+5. Add tests in `apps/cli/*_test.go`
 6. Document in README.md
 
 ### Adding Storage Features
@@ -378,7 +378,7 @@ case types.StatusClosed:
 3. Update `internal/types/types.go` if new types
 4. Implement in `internal/storage/dolt/` (queries, issues, etc.)
 5. Add tests
-6. Update export/import in `modules/cli/export.go` and `modules/cli/import.go`
+6. Update export/import in `apps/cli/export.go` and `apps/cli/import.go`
 
 ### Adding Examples
 
@@ -403,66 +403,34 @@ issuegraph ready
 For testing commands, test design, and PR-readiness gates, use
 [engdocs/TESTING.md](engdocs/TESTING.md).
 
-> **WARNING**: Do NOT use `go build -o issuegraph ./modules/cli`, `go install ./modules/cli`,
-> or raw `go run ./modules/cli ...`.
+> **WARNING**: Do NOT use `go build -o issuegraph ./apps/cli`, `go install ./apps/cli`,
+> or raw `go run ./apps/cli ...`.
 > These bypass the canonical build path, can create stale binaries in the
 > working directory or `~/go/bin/`, and raw `go run` may miss the required
 > `gms_pure_go` build tag. Always use `make install`, `./issuegraph`, or
-> `go run -tags gms_pure_go ./modules/cli ...` when you explicitly need `go run`.
+> `go run -tags gms_pure_go ./apps/cli ...` when you explicitly need `go run`.
 
 ## Version Management
 
-**IMPORTANT**: When the user asks to "bump the version" or mentions a new version number (e.g., "bump to 0.9.3"), use the version bump script:
+**IMPORTANT**: When the user asks to "bump the version" or mentions a new version number (e.g., "bump to 0.9.3"), use the version script:
 
 ```bash
-# Preview changes (shows diff, doesn't commit)
-./scripts/bump-version.sh 0.9.3
+# Update every version reference (no git operations)
+./scripts/update-versions.sh 0.9.3
 
-# Auto-commit the version bump
-./scripts/bump-version.sh 0.9.3 --commit
-git push origin main
+# Verify the version files agree
+./scripts/check-versions.sh
 ```
 
-**What it does:**
-
-- Updates ALL version files (CLI, plugin, MCP server, docs) in one command
-- Validates semantic versioning format
-- Shows diff preview
-- Verifies all versions match after update
-- Creates standardized commit message
-
-**User will typically say:**
-
-- "Bump to 0.9.3"
-- "Update version to 1.0.0"
-- "Rev the project to 0.9.4"
-- "Increment the version"
-
-**You should:**
-
-1. Run `./scripts/bump-version.sh <version> --commit`
-2. Push to GitHub
-3. Confirm all versions updated correctly
-
-**Files updated automatically:**
-
-- `modules/cli/version.go` - CLI version
-- `plugins/issuegraph/.claude-plugin/plugin.json` - Claude plugin version
-- `plugins/issuegraph/.codex-plugin/plugin.json` - Codex plugin version
-- `.claude-plugin/marketplace.json` - Claude marketplace version
-- `integrations/issuegraph-mcp/pyproject.toml` - MCP server version
-- `README.md` - Documentation version
-- `PLUGIN.md` - Version requirements
-
-**Why this matters:** We had version mismatches (issuegraph-66) when only `version.go` was updated. This script prevents that by updating all components atomically.
+Review the diff and commit it yourself. Do not hand-edit individual version files: a version
+mismatch (issuegraph-66) happened when only `version.go` was updated.
 
 See `scripts/README.md` for more details.
 
 ## Release Process (Maintainers)
 
-See [RELEASING.md](RELEASING.md) for the complete release process, including
-the automated `./scripts/release.sh <version>` script and the manual,
-step-by-step channel-by-channel instructions.
+Releases run through the `shipify` skill. The repository holds no release workflow,
+release script, or release documentation.
 
 ## Checking GitHub Issues and PRs
 

@@ -1447,7 +1447,7 @@ servers are preserved.`,
 //   - issuegraph_vr    : version-roundtrip / migration fixtures.
 //   - doctest_    : `issuegraph doctor` self-check fixtures.
 //   - doctortest_ : older `issuegraph doctor` fixture name (kept for back-compat).
-//   - benchdb_    : per-bench scratch DBs (modules/cli/template_test.go
+//   - benchdb_    : per-bench scratch DBs (apps/cli/template_test.go
 //     newTemplateBenchmarkStore, format `benchdb_<unixnano>`).
 var staleDatabasePrefixes = []string{
 	"testdb_",

@@ -58,9 +58,9 @@ jobs:
   # End-to-end coverage for proxied-server CLI subcommands, sharded across the
   # CI matrix. Each sub-test drives the issuegraph CLI subprocess against a real dolt
   # sql-server started via testcontainers by the shared proxied harness
-  # (modules/cli/*_proxied_integration_test.go).
+  # (apps/cli/*_proxied_integration_test.go).
   #
-  # Reuses the modules/cli test binary compiled once by build-embedded: the proxied
+  # Reuses the apps/cli test binary compiled once by build-embedded: the proxied
   # tests live in the same package and are gated at runtime by
   # ISSUEGRAPH_TEST_PROXIED_SERVER=1, so no separate build is needed. Shard
   # assignment is committed in .github/scripts/proxied-cmd-test-shards.txt;
@@ -116,7 +116,7 @@ jobs:
   # Embedded Dolt tests - test the in-process Dolt engine (no server required)
   #
   # Split into: build → storage tests + parallel cmd test shards.
-  # modules/cli embedded tests use a committed shard manifest; newly-added tests
+  # apps/cli embedded tests use a committed shard manifest; newly-added tests
   # still auto-distribute via hash fallback until the manifest is updated.
 
   build-embedded:
@@ -131,14 +131,14 @@ jobs:
         id: setup-go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: Restore Go module cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('modules/core/go.mod', 'modules/core/go.sum', 'apps/cli/go.mod', 'apps/cli/go.sum') }}
           restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Restore race Go build cache
@@ -158,7 +158,7 @@ jobs:
       - name: Build embedded issuegraph binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go build -tags gms_pure_go -race -o /tmp/bd-embedded-test github.com/borg0ai/dx-issuegraph/modules/cli
+        run: go build -tags gms_pure_go -race -o /tmp/bd-embedded-test github.com/borg0ai/dx-issuegraph/apps/cli
 
       - name: Build embedded storage test binary
         env:
@@ -168,7 +168,7 @@ jobs:
       - name: Build embedded cmd test binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go test -tags gms_pure_go -race -c -o /tmp/bd-cmd-test github.com/borg0ai/dx-issuegraph/modules/cli
+        run: go test -tags gms_pure_go -race -c -o /tmp/bd-cmd-test github.com/borg0ai/dx-issuegraph/apps/cli
 
       # Non-race issuegraph used as the proxied-server test subprocess. The proxied
       # tests spawn issuegraph many times per sub-test; a -race subprocess would slow
@@ -176,7 +176,7 @@ jobs:
       - name: Build proxied issuegraph subprocess binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/non-race
-        run: go build -tags gms_pure_go -o /tmp/bd-proxied github.com/borg0ai/dx-issuegraph/modules/cli
+        run: go build -tags gms_pure_go -o /tmp/bd-proxied github.com/borg0ai/dx-issuegraph/apps/cli
 
       # Server-Dolt conformance binary. No -race: the Dolt server runs
       # out-of-process in a container, and omitting it keeps the run inside the
@@ -420,30 +420,6 @@ jobs:
           ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY: /tmp/bd-embedded-test
         run: bash .github/scripts/embedded-test-shard.sh ${{ matrix.shard }} 20
 
-  test-nix:
-    name: Test Nix Flake
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
-      - uses: DeterminateSystems/determinate-nix-action@527f17dd63d2d60d3e5552934bc84b9a33a14d11 # v3
-      - name: Run issuegraph help via Nix
-        id: nix_help
-        run: |
-          nix run .#default -- --help > help.txt
-      - name: Verify help text
-        if: steps.nix_help.outcome == 'success'
-        run: |
-          FIRST_LINE=$(head -n 1 help.txt)
-          EXPECTED="Issues chained together like issuegraph. A lightweight issue tracker with first-class dependency support."
-          if [ "$FIRST_LINE" != "$EXPECTED" ]; then
-            echo "First line of help.txt doesn't match expected output"
-            echo "Expected: $EXPECTED"
-            echo "Got: $FIRST_LINE"
-            exit 1
-          fi
-          echo "Help text first line is correct"
-
   ci-gate:
     name: CI Gate / Required
     runs-on: ubuntu-latest
@@ -456,7 +432,6 @@ jobs:
       - test-server-storage-full
       - test-embedded-cmd
       - test-proxied-cmd
-      - test-nix
     if: ${{ always() }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
@@ -473,7 +448,6 @@ jobs:
             TEST_SERVER_STORAGE_FULL
             TEST_EMBEDDED_CMD
             TEST_PROXIED_CMD
-            TEST_NIX
           FULL_EMBEDDED: ${{ needs.detect-ci-tier.outputs.full_embedded }}
           DETECT_CI_TIER: ${{ needs.detect-ci-tier.result }}
           BUILD_EMBEDDED: ${{ needs.build-embedded.result }}
@@ -483,7 +457,6 @@ jobs:
           TEST_SERVER_STORAGE_FULL: ${{ needs.test-server-storage-full.result }}
           TEST_EMBEDDED_CMD: ${{ needs.test-embedded-cmd.result }}
           TEST_PROXIED_CMD: ${{ needs.test-proxied-cmd.result }}
-          TEST_NIX: ${{ needs.test-nix.result }}
         run: |
           skipped_ok=""
           if [[ "$FULL_EMBEDDED" != "true" ]]; then

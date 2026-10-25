@@ -1,6 +1,6 @@
 //go:build cgo
 
-// Cgo-only test helpers for modules/cli. Helpers in this file pull in
+// Cgo-only test helpers for apps/cli. Helpers in this file pull in
 // internal/storage/dolt, database/sql, and the embedded Dolt server, which
 // require cgo to link. Pure-Go-compatible helpers (captureStdout,
 // stdioMutex, runCommandInDir, etc.) live in test_helpers_pure_test.go and

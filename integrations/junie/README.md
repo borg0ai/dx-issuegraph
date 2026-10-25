@@ -6,7 +6,12 @@ Integration for [Junie](https://www.jetbrains.com/junie/) (JetBrains AI Agent) w
 
 ```bash
 # Install issuegraph
-curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
+# macOS (Homebrew)
+brew install systembugtj/luban-homebrew/issuegraph
+# Linux (Nix)
+nix profile install github:systembugtj/cangjie-nix#issuegraph
+# Windows (Scoop)
+scoop bucket add shennong https://github.com/systembugtj/shennong-bucket && scoop install shennong/issuegraph
 
 # Initialize issuegraph in your project
 issuegraph init

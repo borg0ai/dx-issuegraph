@@ -425,7 +425,7 @@ Dolt exposes internal metrics only via:
 - System tables (`dolt_log`, `dolt_status`, `dolt_diff`, `dolt_branches`, `dolt_conflicts`)
 
 **IssueGraph implementation**:
-IssueGraph currently queries Dolt metrics via direct SQL (see `modules/cli/doctor/perf_dolt.go`) rather than via OTLP. This is intentional — Dolt lacks native OTel support.
+IssueGraph currently queries Dolt metrics via direct SQL (see `apps/cli/doctor/perf_dolt.go`) rather than via OTLP. This is intentional — Dolt lacks native OTel support.
 
 ### Dolt System Tables for Telemetry
 
@@ -509,7 +509,7 @@ Audited against **`main` @ `371df32b`**. All line numbers below refer to that co
 
 Every factual claim in this document is backed by a specific source location. This table exists to prevent documentation drift and to make it easy to re-verify after code changes.
 
-### Initialization (`internal/telemetry/telemetry.go`, `modules/cli/main.go`)
+### Initialization (`internal/telemetry/telemetry.go`, `apps/cli/main.go`)
 
 | Claim | Source |
 |-------|--------|
@@ -591,7 +591,7 @@ Every factual claim in this document is backed by a specific source location. Th
 | `hook.stdout` / `hook.stderr` events carry `output`, `bytes` attrs | `hooks_otel.go:15-16, 21-22` |
 | No metric counters or histograms for hooks | grep `internal/hooks/` for `Counter\|Histogram` → zero matches |
 
-### AI (`internal/compact/haiku.go`, `modules/cli/find_duplicates.go`)
+### AI (`internal/compact/haiku.go`, `apps/cli/find_duplicates.go`)
 
 | Claim | Source |
 |-------|--------|

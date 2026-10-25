@@ -27,7 +27,7 @@ This devcontainer configuration provides a fully-configured development environm
 
 The `setup.sh` script automatically:
 
-1. Builds issuegraph from source (`go build ./modules/cli`)
+1. Builds issuegraph from source (`go build ./apps/cli`)
 2. Installs issuegraph to `/usr/local/bin/issuegraph`
 3. Runs `issuegraph init --quiet` (non-interactive initialization)
 4. Installs git hooks from `examples/git-hooks/`

@@ -1,6 +1,6 @@
 ---
 title: "issuegraph branch"
-description: "List all branches or create a new branch."
+description: "List or create branches"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}

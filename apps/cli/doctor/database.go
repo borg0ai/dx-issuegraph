@@ -10,7 +10,7 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
 	"gopkg.in/yaml.v3"
 )
 

@@ -128,9 +128,9 @@ func SweepDeadSuiteRoots(parentDir, prefix string) []string {
 }
 
 // removeSuiteRoot removes a suite temp root, making unwritable directories
-// writable first. modules/cli's root doubles as an isolated $HOME, so it can hold
+// writable first. apps/cli's root doubles as an isolated $HOME, so it can hold
 // read-only Go module cache entries that plain os.RemoveAll refuses; this
-// mirrors forceRemoveAll in modules/cli's TestMain.
+// mirrors forceRemoveAll in apps/cli's TestMain.
 func removeSuiteRoot(root string) error {
 	_ = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

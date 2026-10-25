@@ -67,7 +67,7 @@ func (u *fakeUOW) ConfigUseCase() domain.ConfigUseCase { return u.readConfig }
 // runs over the row a claim wrote. Neither carries state: the claimed row's
 // identity is what these tests assert on, and a fake that invented labels or
 // edges would be a second source of truth for it. The full-item shape is pinned
-// against the CLI by the parity oracle in modules/cli, over real Dolt.
+// against the CLI by the parity oracle in apps/cli, over real Dolt.
 func (u *fakeUOW) LabelUseCase() domain.LabelUseCase           { return emptyLabels{} }
 func (u *fakeUOW) DependencyUseCase() domain.DependencyUseCase { return emptyDeps{} }
 
@@ -593,7 +593,7 @@ func TestUnroutedPathsKeepTheErrorShape(t *testing.T) {
 // source. It did not: it was maintained by hand from the other two, so its only
 // real behavior was to fail whenever a new operation landed. That is a cost
 // pretending to be a check, and the cost fell on the wrong PR: the count slice
-// updated this copy, missed modules/cli's identical one, and turned the proxied
+// updated this copy, missed apps/cli's identical one, and turned the proxied
 // shard red on a list nothing about the count had changed.
 //
 // CONTENT IS PINNED ELSEWHERE, AND INDEPENDENTLY.

@@ -151,7 +151,7 @@ func enrichInstallation(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message,
 		expected:    ".issuegraph/ directory exists at project root with config.yaml and dolt/ database inside",
 		commands:    []string{"issuegraph init"},
-		sourceFiles: []string{"modules/cli/doctor/installation.go:CheckInstallation"},
+		sourceFiles: []string{"apps/cli/doctor/installation.go:CheckInstallation"},
 	}
 }
 
@@ -162,14 +162,14 @@ func enrichPermissions(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message,
 		expected:    ".issuegraph/ directory and all contents are readable and writable by current user",
 		commands:    []string{"issuegraph doctor --fix", "chmod -R u+rw .issuegraph/"},
-		sourceFiles: []string{"modules/cli/doctor/installation.go:CheckPermissions"},
+		sourceFiles: []string{"apps/cli/doctor/installation.go:CheckPermissions"},
 	}
 }
 
 func enrichDatabase(dc DoctorCheck) agentEnrichment {
 	e := agentEnrichment{
 		observed:    dc.Message,
-		sourceFiles: []string{"modules/cli/doctor/database.go:CheckDatabaseVersion", "internal/storage/dolt/migrations.go"},
+		sourceFiles: []string{"apps/cli/doctor/database.go:CheckDatabaseVersion", "internal/storage/dolt/migrations.go"},
 	}
 	if dc.Status == StatusError {
 		e.severity = "blocking"
@@ -195,7 +195,7 @@ func enrichSchemaCompatibility(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "All core tables (issues, dependencies, metadata, config, wisps) are queryable with the current schema",
 		commands:    []string{"issuegraph migrate", "issuegraph doctor --fix"},
-		sourceFiles: []string{"modules/cli/doctor/database.go:CheckSchemaCompatibility", "internal/storage/dolt/migrations.go"},
+		sourceFiles: []string{"apps/cli/doctor/database.go:CheckSchemaCompatibility", "internal/storage/dolt/migrations.go"},
 	}
 }
 
@@ -206,7 +206,7 @@ func enrichDatabaseIntegrity(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Metadata table readable, statistics query succeeds",
 		commands:    []string{"issuegraph doctor --fix", "issuegraph dolt status"},
-		sourceFiles: []string{"modules/cli/doctor/database.go:CheckDatabaseIntegrity"},
+		sourceFiles: []string{"apps/cli/doctor/database.go:CheckDatabaseIntegrity"},
 	}
 }
 
@@ -217,7 +217,7 @@ func enrichLargeDatabase(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message,
 		expected:    "Closed issue count below configured threshold",
 		commands:    []string{"issuegraph prune --older-than 90d"},
-		sourceFiles: []string{"modules/cli/doctor/database.go:CheckDatabaseSize"},
+		sourceFiles: []string{"apps/cli/doctor/database.go:CheckDatabaseSize"},
 	}
 }
 
@@ -228,7 +228,7 @@ func enrichIDFormat(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message,
 		expected:    "All issues use hash-based IDs with configured prefix",
 		commands:    []string{"issuegraph doctor --fix"},
-		sourceFiles: []string{"modules/cli/doctor/integrity.go:CheckIDFormat"},
+		sourceFiles: []string{"apps/cli/doctor/integrity.go:CheckIDFormat"},
 	}
 }
 
@@ -238,8 +238,8 @@ func enrichCLIVersion(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("CLI version check: %s. An outdated CLI may lack bug fixes or schema migrations needed by the current database.", dc.Message),
 		observed:    dc.Message,
 		expected:    "CLI version matches latest GitHub release",
-		commands:    []string{installScriptCommand},
-		sourceFiles: []string{"modules/cli/doctor/version.go:CheckCLIVersion"},
+		commands:    []string{installCommand()},
+		sourceFiles: []string{"apps/cli/doctor/version.go:CheckCLIVersion"},
 	}
 }
 
@@ -250,7 +250,7 @@ func enrichGitHooks(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Git hooks installed and version matches CLI version",
 		commands:    []string{"issuegraph hooks install"},
-		sourceFiles: []string{"modules/cli/doctor/git.go:CheckGitHooks", "modules/cli/doctor/fix/hooks.go"},
+		sourceFiles: []string{"apps/cli/doctor/git.go:CheckGitHooks", "apps/cli/doctor/fix/hooks.go"},
 	}
 }
 
@@ -261,7 +261,7 @@ func enrichGitHooksDolt(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Git hooks contain Dolt-compatible commands",
 		commands:    []string{"issuegraph hooks install"},
-		sourceFiles: []string{"modules/cli/doctor/git.go:CheckGitHooksDoltCompatibility"},
+		sourceFiles: []string{"apps/cli/doctor/git.go:CheckGitHooksDoltCompatibility"},
 	}
 }
 
@@ -272,7 +272,7 @@ func enrichGitignore(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message,
 		expected:    ".issuegraph/.gitignore is up to date with current patterns",
 		commands:    []string{"issuegraph doctor --fix"},
-		sourceFiles: []string{"modules/cli/doctor/gitignore.go:CheckGitignore"},
+		sourceFiles: []string{"apps/cli/doctor/gitignore.go:CheckGitignore"},
 	}
 }
 
@@ -283,7 +283,7 @@ func enrichProjectGitignore(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message,
 		expected:    "Project .gitignore contains .issuegraph/dolt/ exclusion pattern",
 		commands:    []string{"issuegraph doctor --fix"},
-		sourceFiles: []string{"modules/cli/doctor/gitignore.go:CheckProjectGitignore"},
+		sourceFiles: []string{"apps/cli/doctor/gitignore.go:CheckProjectGitignore"},
 	}
 }
 
@@ -294,7 +294,7 @@ func enrichGitWorkingTree(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Git working tree clean (no uncommitted .issuegraph/ changes)",
 		commands:    []string{"git status .issuegraph/", "git add .issuegraph/ && git commit -m 'sync issuegraph state'"},
-		sourceFiles: []string{"modules/cli/doctor/git.go:CheckGitWorkingTree"},
+		sourceFiles: []string{"apps/cli/doctor/git.go:CheckGitWorkingTree"},
 	}
 }
 
@@ -305,7 +305,7 @@ func enrichGitUpstream(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Local branch is in sync with upstream tracking branch",
 		commands:    []string{"git pull --rebase"},
-		sourceFiles: []string{"modules/cli/doctor/git.go:CheckGitUpstream"},
+		sourceFiles: []string{"apps/cli/doctor/git.go:CheckGitUpstream"},
 	}
 }
 
@@ -325,7 +325,7 @@ func enrichFreshClone(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message,
 		expected:    "Local database initialized and ready for use",
 		commands:    commands,
-		sourceFiles: []string{"modules/cli/doctor/legacy.go:CheckFreshClone"},
+		sourceFiles: []string{"apps/cli/doctor/legacy.go:CheckFreshClone"},
 	}
 }
 
@@ -336,7 +336,7 @@ func enrichDatabaseConfig(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "config.yaml backend setting matches actual database on disk",
 		commands:    []string{"issuegraph doctor --fix"},
-		sourceFiles: []string{"modules/cli/doctor/legacy.go:CheckDatabaseConfig", "internal/configfile/config.go"},
+		sourceFiles: []string{"apps/cli/doctor/legacy.go:CheckDatabaseConfig", "internal/configfile/config.go"},
 	}
 }
 
@@ -347,7 +347,7 @@ func enrichConfigValues(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "All config values are valid and recognized",
 		commands:    []string{"issuegraph config list", "issuegraph doctor --fix"},
-		sourceFiles: []string{"modules/cli/doctor/config_values.go:CheckConfigValues"},
+		sourceFiles: []string{"apps/cli/doctor/config_values.go:CheckConfigValues"},
 	}
 }
 
@@ -358,7 +358,7 @@ func enrichIssueGraphRole(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "issuegraph.role is configured in config.yaml",
 		commands:    []string{"issuegraph config set issuegraph.role maintainer"},
-		sourceFiles: []string{"modules/cli/doctor/role.go:CheckIssueGraphRole"},
+		sourceFiles: []string{"apps/cli/doctor/role.go:CheckIssueGraphRole"},
 	}
 }
 
@@ -369,7 +369,7 @@ func enrichStaleLockFiles(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "No stale lock files in .issuegraph/",
 		commands:    []string{"issuegraph doctor --fix"},
-		sourceFiles: []string{"modules/cli/doctor/locks.go:CheckStaleLockFiles"},
+		sourceFiles: []string{"apps/cli/doctor/locks.go:CheckStaleLockFiles"},
 	}
 }
 
@@ -380,7 +380,7 @@ func enrichDoltConnection(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Dolt database opens successfully (embedded) or server is reachable (server mode)",
 		commands:    []string{"issuegraph doctor --fix", "gt dolt status", "gt dolt start"},
-		sourceFiles: []string{"modules/cli/doctor/dolt.go:CheckDoltConnection"},
+		sourceFiles: []string{"apps/cli/doctor/dolt.go:CheckDoltConnection"},
 	}
 }
 
@@ -391,7 +391,7 @@ func enrichDoltSchema(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "All required tables and columns present in Dolt database",
 		commands:    []string{"issuegraph migrate", "issuegraph doctor --fix"},
-		sourceFiles: []string{"modules/cli/doctor/dolt.go:CheckDoltSchema", "internal/storage/dolt/migrations.go"},
+		sourceFiles: []string{"apps/cli/doctor/dolt.go:CheckDoltSchema", "internal/storage/dolt/migrations.go"},
 	}
 }
 
@@ -401,7 +401,7 @@ func enrichDoltIssueCount(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Dolt issue count: %s. Reports the number of issues in the Dolt database for basic sanity checking.", dc.Message),
 		observed:    dc.Message,
 		expected:    "Issue count is non-zero (unless this is a new/empty database)",
-		sourceFiles: []string{"modules/cli/doctor/dolt.go:CheckDoltIssueCount"},
+		sourceFiles: []string{"apps/cli/doctor/dolt.go:CheckDoltIssueCount"},
 	}
 }
 
@@ -412,7 +412,7 @@ func enrichDoltStatus(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Dolt working set is clean (no uncommitted changes)",
 		commands:    []string{"issuegraph dolt commit"},
-		sourceFiles: []string{"modules/cli/doctor/dolt.go:CheckDoltStatus"},
+		sourceFiles: []string{"apps/cli/doctor/dolt.go:CheckDoltStatus"},
 	}
 }
 
@@ -423,7 +423,7 @@ func enrichDependencyCycles(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Dependency graph is a DAG (no cycles)",
 		commands:    []string{"issuegraph validate", "issuegraph dep rm <issue-a> <issue-b>"},
-		sourceFiles: []string{"modules/cli/doctor/integrity.go:CheckDependencyCycles"},
+		sourceFiles: []string{"apps/cli/doctor/integrity.go:CheckDependencyCycles"},
 	}
 }
 
@@ -434,7 +434,7 @@ func enrichDuplicateIssues(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "No duplicate issue titles",
 		commands:    []string{"issuegraph validate", "issuegraph close <duplicate-id>"},
-		sourceFiles: []string{"modules/cli/doctor/validation.go:CheckDuplicateIssues"},
+		sourceFiles: []string{"apps/cli/doctor/validation.go:CheckDuplicateIssues"},
 	}
 }
 
@@ -445,7 +445,7 @@ func enrichTestPollution(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "No test issues in production database",
 		commands:    []string{"issuegraph doctor --check=pollution", "issuegraph doctor --check=pollution --clean"},
-		sourceFiles: []string{"modules/cli/doctor/validation.go:CheckTestPollution"},
+		sourceFiles: []string{"apps/cli/doctor/validation.go:CheckTestPollution"},
 	}
 }
 
@@ -456,7 +456,7 @@ func enrichOrphanedDeps(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "All dependency edges reference existing issues",
 		commands:    []string{"issuegraph doctor --check=validate --fix"},
-		sourceFiles: []string{"modules/cli/doctor/validation.go:CheckOrphanedDependencies"},
+		sourceFiles: []string{"apps/cli/doctor/validation.go:CheckOrphanedDependencies"},
 	}
 }
 
@@ -467,7 +467,7 @@ func enrichCloneLocalFKs(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Every FK on clone-local tables (events, wisp_dependencies, wisp_labels, wisp_comments, wisp_events, wisp_child_counters) present and enforcing",
 		commands:    []string{"issuegraph doctor --fix"},
-		sourceFiles: []string{"modules/cli/doctor/clone_local_fks.go:CheckCloneLocalFKs"},
+		sourceFiles: []string{"apps/cli/doctor/clone_local_fks.go:CheckCloneLocalFKs"},
 	}
 }
 
@@ -478,7 +478,7 @@ func enrichChildParentDeps(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "No dependency edges between parent and child issues",
 		commands:    []string{"issuegraph doctor --fix --fix-child-parent"},
-		sourceFiles: []string{"modules/cli/doctor/validation.go:CheckChildParentDependencies"},
+		sourceFiles: []string{"apps/cli/doctor/validation.go:CheckChildParentDependencies"},
 	}
 }
 
@@ -489,7 +489,7 @@ func enrichClassicArtifacts(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "No classic artifacts present (JSONL files, SQLite database, cruft directories)",
 		commands:    []string{"issuegraph doctor --check=artifacts", "issuegraph doctor --check=artifacts --clean"},
-		sourceFiles: []string{"modules/cli/doctor/artifacts.go:CheckClassicArtifacts"},
+		sourceFiles: []string{"apps/cli/doctor/artifacts.go:CheckClassicArtifacts"},
 	}
 }
 
@@ -500,7 +500,7 @@ func enrichPendingMigrations(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "All available migrations have been applied",
 		commands:    []string{"issuegraph migrate"},
-		sourceFiles: []string{"modules/cli/doctor/migration.go:CheckPendingMigrations", "internal/storage/dolt/migrations.go"},
+		sourceFiles: []string{"apps/cli/doctor/migration.go:CheckPendingMigrations", "internal/storage/dolt/migrations.go"},
 	}
 }
 
@@ -511,7 +511,7 @@ func enrichKVSync(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "KV store is in sync with main database",
 		commands:    []string{"issuegraph dolt push"},
-		sourceFiles: []string{"modules/cli/doctor/kv.go:CheckKVSyncStatus"},
+		sourceFiles: []string{"apps/cli/doctor/kv.go:CheckKVSyncStatus"},
 	}
 }
 
@@ -522,7 +522,7 @@ func enrichStaleClosedIssues(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Closed issues are within acceptable age/count thresholds",
 		commands:    []string{"issuegraph prune --older-than 90d"},
-		sourceFiles: []string{"modules/cli/doctor/maintenance.go:CheckStaleClosedIssues"},
+		sourceFiles: []string{"apps/cli/doctor/maintenance.go:CheckStaleClosedIssues"},
 	}
 }
 
@@ -533,7 +533,7 @@ func enrichStaleMolecules(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Completed molecules are closed",
 		commands:    []string{"issuegraph mol list", "issuegraph close <molecule-id>"},
-		sourceFiles: []string{"modules/cli/doctor/maintenance.go:CheckStaleMolecules"},
+		sourceFiles: []string{"apps/cli/doctor/maintenance.go:CheckStaleMolecules"},
 	}
 }
 
@@ -544,7 +544,7 @@ func enrichClaude(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Claude Code hooks configured for issuegraph (issuegraph prime on SessionStart)",
 		commands:    []string{"issuegraph hooks install"},
-		sourceFiles: []string{"modules/cli/doctor/claude.go:CheckClaude"},
+		sourceFiles: []string{"apps/cli/doctor/claude.go:CheckClaude"},
 	}
 }
 
@@ -555,7 +555,7 @@ func enrichClaudeSettings(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    ".claude/settings.json is valid JSON",
 		commands:    []string{"cat .claude/settings.json | python3 -m json.tool", "issuegraph hooks install"},
-		sourceFiles: []string{"modules/cli/doctor/claude.go:CheckClaudeSettingsHealth"},
+		sourceFiles: []string{"apps/cli/doctor/claude.go:CheckClaudeSettingsHealth"},
 	}
 }
 
@@ -566,7 +566,7 @@ func enrichClaudeHooks(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "SessionStart hook configured for issuegraph",
 		commands:    []string{"issuegraph hooks install"},
-		sourceFiles: []string{"modules/cli/doctor/claude.go:CheckClaudeHookCompleteness"},
+		sourceFiles: []string{"apps/cli/doctor/claude.go:CheckClaudeHookCompleteness"},
 	}
 }
 
@@ -577,7 +577,7 @@ func enrichClaudePlugin(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message,
 		expected:    "Claude plugin version matches CLI version",
 		commands:    []string{"issuegraph hooks install"},
-		sourceFiles: []string{"modules/cli/doctor/claude.go:CheckClaudePlugin"},
+		sourceFiles: []string{"apps/cli/doctor/claude.go:CheckClaudePlugin"},
 	}
 }
 
@@ -588,7 +588,7 @@ func enrichCursor(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Cursor hooks configured for issuegraph (issuegraph cursor-hook on sessionStart/preCompact/postToolUse)",
 		commands:    []string{"issuegraph setup cursor"},
-		sourceFiles: []string{"modules/cli/doctor/cursor.go:CheckCursor"},
+		sourceFiles: []string{"apps/cli/doctor/cursor.go:CheckCursor"},
 	}
 }
 
@@ -599,7 +599,7 @@ func enrichCursorSettings(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    ".cursor/hooks.json (and ~/.cursor/hooks.json) are valid JSON",
 		commands:    []string{"cat .cursor/hooks.json | python3 -m json.tool", "issuegraph setup cursor"},
-		sourceFiles: []string{"modules/cli/doctor/cursor.go:CheckCursorSettingsHealth"},
+		sourceFiles: []string{"apps/cli/doctor/cursor.go:CheckCursorSettingsHealth"},
 	}
 }
 
@@ -610,7 +610,7 @@ func enrichCursorHooks(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "sessionStart, preCompact, and postToolUse hooks all configured for issuegraph",
 		commands:    []string{"issuegraph setup cursor"},
-		sourceFiles: []string{"modules/cli/doctor/cursor.go:CheckCursorHookCompleteness"},
+		sourceFiles: []string{"apps/cli/doctor/cursor.go:CheckCursorHookCompleteness"},
 	}
 }
 
@@ -620,7 +620,7 @@ func enrichBdPrimeOutput(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("issuegraph prime output issue: %s. The issuegraph prime command's output may not match expected format, which can confuse agent context loading.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "issuegraph prime produces valid context output",
-		sourceFiles: []string{"modules/cli/doctor/claude.go:VerifyPrimeOutput"},
+		sourceFiles: []string{"apps/cli/doctor/claude.go:VerifyPrimeOutput"},
 	}
 }
 
@@ -630,8 +630,8 @@ func enrichBdInPath(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("issuegraph not in PATH: %s. Claude Code hooks invoke issuegraph commands, but issuegraph is not found in the system PATH. Hooks will fail silently.", dc.Message),
 		observed:    dc.Message,
 		expected:    "'issuegraph' executable is in PATH and runnable",
-		commands:    []string{"which issuegraph", installScriptCommand},
-		sourceFiles: []string{"modules/cli/doctor/claude.go:CheckBdInPath"},
+		commands:    []string{"which issuegraph", installCommand()},
+		sourceFiles: []string{"apps/cli/doctor/claude.go:CheckBdInPath"},
 	}
 }
 
@@ -642,7 +642,7 @@ func enrichRepoFingerprint(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Database fingerprint matches current git remote URL",
 		commands:    []string{"issuegraph doctor --fix"},
-		sourceFiles: []string{"modules/cli/doctor/integrity.go:CheckRepoFingerprint"},
+		sourceFiles: []string{"apps/cli/doctor/integrity.go:CheckRepoFingerprint"},
 	}
 }
 
@@ -653,7 +653,7 @@ func enrichMetadataVersion(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message,
 		expected:    "metadata.json LastBdVersion matches current CLI version",
 		commands:    []string{"issuegraph doctor --fix"},
-		sourceFiles: []string{"modules/cli/doctor/version.go:CheckMetadataVersionTracking"},
+		sourceFiles: []string{"apps/cli/doctor/version.go:CheckMetadataVersionTracking"},
 	}
 }
 
@@ -664,7 +664,7 @@ func enrichOrphanedIssues(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Issues referenced in commits are closed",
 		commands:    []string{"issuegraph orphans", "issuegraph close <issue-id>"},
-		sourceFiles: []string{"modules/cli/doctor/git.go:CheckOrphanedIssues"},
+		sourceFiles: []string{"apps/cli/doctor/git.go:CheckOrphanedIssues"},
 	}
 }
 
@@ -675,7 +675,7 @@ func enrichRedirectTarget(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Redirect target exists and contains a valid issuegraph database",
 		commands:    []string{"cat .issuegraph/redirect", "issuegraph doctor --fix"},
-		sourceFiles: []string{"modules/cli/doctor/gitignore.go:CheckRedirectTargetValid"},
+		sourceFiles: []string{"apps/cli/doctor/gitignore.go:CheckRedirectTargetValid"},
 	}
 }
 
@@ -686,7 +686,7 @@ func enrichRedirectTracking(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message,
 		expected:    ".issuegraph/redirect is in .gitignore and not tracked by git",
 		commands:    []string{"echo '.issuegraph/redirect' >> .issuegraph/.gitignore", "git rm --cached .issuegraph/redirect"},
-		sourceFiles: []string{"modules/cli/doctor/gitignore.go:CheckRedirectNotTracked"},
+		sourceFiles: []string{"apps/cli/doctor/gitignore.go:CheckRedirectNotTracked"},
 	}
 }
 
@@ -697,7 +697,7 @@ func enrichRedirectTargetSync(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Redirect target has a issuegraph-sync worktree for database synchronization",
 		commands:    []string{"issuegraph init"},
-		sourceFiles: []string{"modules/cli/doctor/gitignore.go:CheckRedirectTargetSyncWorktree"},
+		sourceFiles: []string{"apps/cli/doctor/gitignore.go:CheckRedirectTargetSyncWorktree"},
 	}
 }
 
@@ -708,6 +708,6 @@ func enrichUntrackedFiles(dc DoctorCheck) agentEnrichment {
 		observed:    dc.Message,
 		expected:    "All legacy .issuegraph/ data files are tracked by git (or using Dolt/sync-branch mode)",
 		commands:    []string{"git add .issuegraph/*.jsonl && git commit -m 'sync issuegraph data'"},
-		sourceFiles: []string{"modules/cli/doctor/installation.go:CheckUntrackedIssueGraphFiles"},
+		sourceFiles: []string{"apps/cli/doctor/installation.go:CheckUntrackedIssueGraphFiles"},
 	}
 }

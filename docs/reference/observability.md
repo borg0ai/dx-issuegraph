@@ -115,7 +115,7 @@ ISSUEGRAPH_OTEL_STDOUT=true issuegraph list 2>&1 | grep -F issuegraph.storage.op
 Expect at least one line per storage call (`GetReadyWork`, `GetIssue`, …).
 If `issuegraph.storage.*` and `issuegraph.issue.count` are absent but `issuegraph.db.pool_*` is
 present, the storage decorator is not in the chain — check
-`wireStorageDecorators` in `modules/cli/storage_chain.go`.
+`wireStorageDecorators` in `apps/cli/storage_chain.go`.
 
 ---
 
@@ -198,7 +198,7 @@ The `hook.stdout` / `hook.stderr` events carry two attributes: `output` (the tex
 ## Architecture
 
 ```
-modules/cli/main.go
+apps/cli/main.go
   └─ telemetry.Init()
       ├─ OTEL_TRACES_EXPORTER=console        → TracerProvider stdout
       ├─ OTEL_METRICS_EXPORTER=console       → MeterProvider stdout

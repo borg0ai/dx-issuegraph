@@ -329,7 +329,7 @@ func TestIsBlocked_WaitsForAnyChildrenGate(t *testing.T) {
 
 // TestIsBlocked_WaitsForAlsoBlocksSpawnerOpen covers the GH#3783/#3875
 // also_blocks provenance flag: a waits-for edge collapsed from a redundant
-// needs/depends_on blocks edge (modules/cli/cook.go collectDependencies) must
+// needs/depends_on blocks edge (apps/cli/cook.go collectDependencies) must
 // additionally block while the spawner itself is open, not only while it
 // has an open parent-child child — closing the pre-fanout window where the
 // waiter could become ready before the spawner ever produced (or finished)

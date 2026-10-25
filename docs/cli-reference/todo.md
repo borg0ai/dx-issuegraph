@@ -1,6 +1,6 @@
 ---
 title: "issuegraph todo"
-description: "Manage TODO items as lightweight task issues."
+description: "Manage TODO items (convenience wrapper for task issues)"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -19,6 +19,7 @@ TODOs can be promoted to full issues by changing type or priority:
 
 ```
 issuegraph todo [flags]
+issuegraph todo [command]
 ```
 
 ## issuegraph todo add

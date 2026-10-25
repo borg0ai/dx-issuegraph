@@ -54,14 +54,14 @@ func TestEmbeddedAutoImportJSONLNoExplicitCommit(t *testing.T) {
 	}
 
 	// Trigger auto-import via a write command. issuegraph list is registered as
-	// read-only in modules/cli/main.go's dispatcher and skips
+	// read-only in apps/cli/main.go's dispatcher and skips
 	// maybeAutoImportJSONL entirely — using it here would leave the
 	// destination empty and the test would assert against zero issues.
 	// issuegraph create runs maybeAutoImportJSONL in PersistentPreRun (which
 	// stages the imported issues in the Dolt working set without an
 	// explicit DOLT_COMMIT), performs its own create write into the same
 	// working set, and then explicitly calls store.Commit at the end of
-	// modules/cli/create.go — that single commit picks up both the auto-import
+	// apps/cli/create.go — that single commit picks up both the auto-import
 	// and the new issue. PersistentPostRun's maybeAutoCommit is then a
 	// no-op (nothing left to commit).
 	issuegraphCreate(t, issuegraph, dstDir, "post-import marker", "--type", "task")

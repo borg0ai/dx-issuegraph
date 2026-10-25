@@ -14,7 +14,7 @@ A bash script demonstrating how an AI agent can use issuegraph to manage tasks a
 ## Prerequisites
 
 - bash 4.0+
-- issuegraph installed: `curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash`
+- issuegraph installed (Homebrew, Nix or Scoop; see the README Installation section)
 - jq for JSON parsing: `brew install jq` (macOS) or `apt install jq` (Linux)
 - An issuegraph database initialized: `issuegraph init`
 

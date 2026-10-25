@@ -1007,7 +1007,7 @@ const SharedConsentCommandGlobal = SharedConsentCommand + " --global"
 // designated-migrator confirmation that #4259's cross-clone fork risk demands
 // whenever a remote exists, which is the very thing sharedNoRemoteGate's
 // comment says is intentional. `--force` is what forceOrEnvConsent honors, and
-// the CLI accepts it on this verb (modules/cli.isForcedMigrate covers both
+// the CLI accepts it on this verb (apps/cli.isForcedMigrate covers both
 // `issuegraph migrate` and `issuegraph migrate schema`), so this is the narrowest command that
 // still names the schema migration AND actually unlocks the retry.
 const SharedConsentCommandForced = SharedConsentCommand + " --force"

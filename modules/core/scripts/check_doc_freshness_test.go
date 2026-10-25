@@ -16,16 +16,16 @@ var freshnessDocuments = []struct {
 	path    string
 	sources []string
 }{
-	{"docs/reference/configuration.md", []string{"modules/cli/main.go", "modules/cli/config.go", "internal/configfile/"}},
-	{"docs/getting-started/ide-setup.md", []string{"modules/cli/setup*.go", "internal/recipes/"}},
-	{"docs/integrations/azure-devops.md", []string{"modules/cli/ado*.go", "internal/ado/"}},
-	{"docs/reference/json-schema.md", []string{"modules/cli/output.go", "modules/cli/errors.go", "modules/cli/protocol/json_contract_test.go"}},
-	{"docs/recovery/init-safety.md", []string{"modules/cli/init.go", "modules/cli/init_safety.go", "modules/cli/init_safety_test.go", "modules/cli/dolt.go"}},
-	{"engdocs/ERROR_HANDLING.md", []string{"modules/cli/*.go", "modules/cli/errors.go"}},
-	{"engdocs/SERVE_RUNBOOK.md", []string{"internal/httpapi/server.go", "internal/httpapi/events_watch.go", "modules/cli/serve.go", "internal/httpapi/auth.go"}},
+	{"docs/reference/configuration.md", []string{"apps/cli/main.go", "apps/cli/config.go", "internal/configfile/"}},
+	{"docs/getting-started/ide-setup.md", []string{"apps/cli/setup*.go", "internal/recipes/"}},
+	{"docs/integrations/azure-devops.md", []string{"apps/cli/ado*.go", "internal/ado/"}},
+	{"docs/reference/json-schema.md", []string{"apps/cli/output.go", "apps/cli/errors.go", "apps/cli/protocol/json_contract_test.go"}},
+	{"docs/recovery/init-safety.md", []string{"apps/cli/init.go", "apps/cli/init_safety.go", "apps/cli/init_safety_test.go", "apps/cli/dolt.go"}},
+	{"engdocs/ERROR_HANDLING.md", []string{"apps/cli/*.go", "apps/cli/errors.go"}},
+	{"engdocs/SERVE_RUNBOOK.md", []string{"internal/httpapi/server.go", "internal/httpapi/events_watch.go", "apps/cli/serve.go", "internal/httpapi/auth.go"}},
 	{"engdocs/LINTING.md", []string{".golangci.yml", "scripts/ci/pr-lint.sh", "Makefile", ".github/workflows/pr.yml", ".github/workflows/main.yml"}},
 	{"engdocs/CI_CLEANUP_PLAN.md", []string{"engdocs/CI_TEST_SURFACE_AUDIT.md", ".github/workflows/*.yml", ".buildflags", ".golangci.yml", "scripts/ci/pr-lint.sh", "Makefile"}},
-	{"engdocs/design/otel/otel-data-model.md", []string{"internal/telemetry/", "internal/storage/dolt/store.go", "internal/compact/haiku.go", "modules/cli/find_duplicates.go", "internal/hooks/"}},
+	{"engdocs/design/otel/otel-data-model.md", []string{"internal/telemetry/", "internal/storage/dolt/store.go", "internal/compact/haiku.go", "apps/cli/find_duplicates.go", "internal/hooks/"}},
 }
 
 type freshnessRun struct {

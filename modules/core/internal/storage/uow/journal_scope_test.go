@@ -27,7 +27,7 @@ func TestProviderImplementsEventsJournalConfigurer(t *testing.T) {
 	var configurer storage.EventsJournalConfigurer = p
 	configurer.SetEventsJournalEnabled(true)
 	require.True(t, p.eventsJournalEnabled.Load(),
-		"modules/cli activates the proxied plumbing by type-asserting to storage.EventsJournalConfigurer")
+		"apps/cli activates the proxied plumbing by type-asserting to storage.EventsJournalConfigurer")
 }
 
 // TestBeginTxScopesJournalActivationToThePinnedConn proves BeginTx binds

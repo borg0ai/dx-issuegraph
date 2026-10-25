@@ -99,11 +99,10 @@ build_docs_binary() {
     env CGO_ENABLED=0 go build \
         -ldflags="-X main.Build=${build}" \
         -o "$tmpdir/issuegraph" \
-        github.com/borg0ai/dx-issuegraph/modules/cli
+        github.com/borg0ai/dx-issuegraph/apps/cli
 }
 
 ci_time "check build-tag policy" -- ./scripts/check-build-tags.sh
-ci_time "check go install guidance" -- ./scripts/check-go-install-guidance.sh
 ci_time "check version consistency" -- ./scripts/check-versions.sh
 ci_time "build issuegraph for docs checks" -- build_docs_binary
 ci_time "check doc flags" -- ./scripts/check-doc-flags.sh "$tmpdir/issuegraph"

@@ -599,7 +599,7 @@ func TestIsCredibleTempRoot(t *testing.T) {
 // TestSandboxHomeUnderPerUserTempRoot is the macOS half of the sandbox-home
 // carve-out. On Linux the throwaway HOME lands under /tmp; on macOS os.TempDir()
 // is a per-user tree under /var/folders, so a suite that pins HOME to a
-// t.TempDir() (modules/cli/test_repo_issuegraph_guard_test.go:128,
+// t.TempDir() (apps/cli/test_repo_issuegraph_guard_test.go:128,
 // internal/issuegraph/testmain_test.go:50) puts HOME *inside* os.TempDir(). Judging
 // sandbox-ness against /tmp alone made that home disqualify os.TempDir()
 // itself, tempDirRoots() dropped to [/tmp /private/tmp], and the deleted-cwd

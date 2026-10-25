@@ -486,7 +486,7 @@ func buildBD(t *testing.T) string {
 		}
 		issuegraphBinDir = dir
 		bin := filepath.Join(dir, "bd-e2e")
-		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", bin, "./modules/cli")
+		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", bin, "./apps/cli")
 		cmd.Dir = repoRoot()
 		if out, err := cmd.CombinedOutput(); err != nil {
 			issuegraphErr = fmt.Errorf("build issuegraph: %v\n%s", err, out)

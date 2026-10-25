@@ -386,7 +386,7 @@ func TestProxiedServerServeLifecycle(t *testing.T) {
 // one, and building that topology for a message assertion would trade a lot of
 // setup for no extra coverage. The typed error and its wording — including that
 // it does not read as permanent — are pinned in TestServeRefusalsPromiseNothing
-// (modules/cli/serve_test.go), which is pure and runs in the PR workflow's
+// (apps/cli/serve_test.go), which is pure and runs in the PR workflow's
 // unconditional Go test job.
 func TestProxiedServerServeModeGate(t *testing.T) {
 	requireProxiedServerEnv(t)

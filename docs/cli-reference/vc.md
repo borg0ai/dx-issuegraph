@@ -1,6 +1,6 @@
 ---
 title: "issuegraph vc"
-description: "Version control operations for the issuegraph database."
+description: "Version control operations"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -16,7 +16,7 @@ Note: 'issuegraph history', 'issuegraph diff', and 'issuegraph branch' also work
 This subcommand provides additional operations like merge and commit.
 
 ```
-issuegraph vc [flags]
+issuegraph vc [command]
 ```
 
 ## issuegraph vc commit

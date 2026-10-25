@@ -22,7 +22,7 @@ import (
 //
 // What a fake cannot prove is what the numbers MEAN: that a bare count really
 // includes closed rows where a listing hides them, and that `include_infra`
-// really moves the set in four directions at once. Those live in modules/cli's
+// really moves the set in four directions at once. Those live in apps/cli's
 // TestProxiedServerServeCount against real Dolt, over seeded rows.
 
 const countPath = "/v0/issuegraph/issues:count"

@@ -1,6 +1,6 @@
 ---
 title: "issuegraph children"
-description: "List all issuegraph that are children of the specified parent issue."
+description: "List child issuegraph of a parent"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}

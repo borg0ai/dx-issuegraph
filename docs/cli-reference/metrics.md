@@ -1,6 +1,6 @@
 ---
 title: "issuegraph metrics"
-description: "Show whether anonymous usage metrics are on, see exactly what is sent, and"
+description: "Show or change anonymous usage-metrics settings"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -22,6 +22,7 @@ any user-supplied text.
 
 ```
 issuegraph metrics [flags]
+issuegraph metrics [command]
 ```
 
 ## issuegraph metrics example

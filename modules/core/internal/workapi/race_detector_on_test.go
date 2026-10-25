@@ -6,6 +6,6 @@ package workapi
 // detector (-race). Wall-clock performance budgets are unreliable under race
 // instrumentation (it adds multi-x overhead), so timing-sensitive benches
 // consult this flag before enforcing a duration bound. It is a sibling of the
-// pair in modules/cli, which is where the sweep's large-fixture budget used to
+// pair in apps/cli, which is where the sweep's large-fixture budget used to
 // live.
 const raceEnabled = true

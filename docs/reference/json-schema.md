@@ -5,8 +5,8 @@ description: The stable JSON output contract for issuegraph --json commands, cov
 
 Last reviewed: 2026-08-07
 
-Freshness source: `modules/cli/output.go`, `modules/cli/errors.go`, and
-`modules/cli/protocol/json_contract_test.go`.
+Freshness source: `apps/cli/output.go`, `apps/cli/errors.go`, and
+`apps/cli/protocol/json_contract_test.go`.
 
 All `issuegraph` commands that support `--json` output can wrap their response in
 a uniform envelope by setting `ISSUEGRAPH_JSON_ENVELOPE=1`. This will become the

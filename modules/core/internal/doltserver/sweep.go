@@ -241,7 +241,7 @@ func isUnderFixedTempRoots(path, goos string) bool {
 // CI harnesses (scripts/ci/lib/test-env.sh) mktemp -d their sandbox HOME under
 // it. macOS additionally gives every user a per-user temp tree under
 // /var/folders and points TMPDIR at it, so a suite that pins HOME to a
-// t.TempDir() (modules/cli/test_repo_issuegraph_guard_test.go, internal/issuegraph/testmain_test.go)
+// t.TempDir() (apps/cli/test_repo_issuegraph_guard_test.go, internal/issuegraph/testmain_test.go)
 // puts HOME under /var/folders/xx/yy/T — which without this entry disqualified
 // os.TempDir() itself and left the deleted-cwd arm inert on every Mac
 // (wy-j2zc8q).

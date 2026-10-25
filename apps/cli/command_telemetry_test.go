@@ -8,8 +8,8 @@ import (
 
 // clearTelemetryEnv unsets every ISSUEGRAPH_OTEL_* / OTEL_* variable telemetry.Enabled
 // or the SDK looks at, using t.Setenv so the harness restores them on test
-// exit. Local to modules/cli because a sibling helper in internal/telemetry would
-// be in a different package; this duplication keeps modules/cli's tests hermetic
+// exit. Local to apps/cli because a sibling helper in internal/telemetry would
+// be in a different package; this duplication keeps apps/cli's tests hermetic
 // without exporting a test-only helper.
 func clearTelemetryEnv(t *testing.T) {
 	t.Helper()

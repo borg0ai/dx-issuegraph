@@ -1,6 +1,6 @@
 ---
 title: "issuegraph state"
-description: "Query the current value of a state dimension from an issue's labels."
+description: "Query the current value of a state dimension"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -23,6 +23,7 @@ Examples:
 
 ```
 issuegraph state <issue-id> <dimension> [flags]
+issuegraph state [command]
 ```
 
 ## issuegraph state list

@@ -16,7 +16,7 @@ import (
 
 // goldenPath is the committed consumer contract: one journal line per record, in
 // the exact shape `issuegraph events tail`/`export` emit. Regenerate with
-// ISSUEGRAPH_UPDATE_GOLDEN=1 go test ./modules/cli/ -run TestEventsJournalGolden.
+// ISSUEGRAPH_UPDATE_GOLDEN=1 go test ./apps/cli/ -run TestEventsJournalGolden.
 const goldenPath = "testdata/events_journal_records.jsonl"
 
 // TestEventsJournalGolden pins the external record contract for the durable

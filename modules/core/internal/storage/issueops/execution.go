@@ -19,7 +19,7 @@ import (
 // Every guarded mutation whose request carries a label calls this. Create is
 // the one that does not, and the reason is NOT that no surface names the
 // created issue — several do (internal/storage/dolt/issues.go writes
-// "issuegraph: create <id>", reached from modules/cli/create_atomic.go). It is that
+// "issuegraph: create <id>", reached from apps/cli/create_atomic.go). It is that
 // CreateRequest has no Provenance field for a caller to set, so there is no
 // label for this function to prefer. That is a gap rather than a principle:
 // the proxied route's create message changed from "issuegraph: create <id>" to

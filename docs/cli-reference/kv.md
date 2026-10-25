@@ -1,6 +1,6 @@
 ---
 title: "issuegraph kv"
-description: "Commands for working with the issuegraph key-value store."
+description: "Key-value store commands"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -19,7 +19,7 @@ Examples:
   issuegraph kv list                 # List all key-value pairs
 
 ```
-issuegraph kv [flags]
+issuegraph kv [command]
 ```
 
 ## issuegraph kv clear

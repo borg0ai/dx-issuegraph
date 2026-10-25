@@ -64,7 +64,7 @@ func TestUnwrapStoreReachesTheConflictSurfaceThroughDecorators(t *testing.T) {
 		"bare store": concrete,
 		// The trap, modelled by a decorator that cannot forward.
 		"non-forwarding decorator": &nonForwardingDecorator{DoltStorage: concrete, inner: concrete},
-		// Two production decorators deep, exactly as modules/cli's chain can be.
+		// Two production decorators deep, exactly as apps/cli's chain can be.
 		"hook-firing store": storage.NewHookFiringStore(concrete, nil),
 		"two hook-firing stores": storage.NewHookFiringStore(
 			storage.NewHookFiringStore(concrete, nil), nil),

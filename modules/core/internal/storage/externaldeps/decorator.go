@@ -243,7 +243,7 @@ func (s *Store) CountReadyWork(ctx context.Context, filter types.WorkFilter) (in
 // its layer back by wrapping the finished counter — which is what
 // telemetry.InstrumentedStorage.WrapReadyCounter exists for, and why the
 // documented storage.ReadyCounter.CountReady span still appears for text-mode
-// `issuegraph ready` in the modules/cli chain (hooks -> externaldeps -> telemetry -> store).
+// `issuegraph ready` in the apps/cli chain (hooks -> externaldeps -> telemetry -> store).
 func (s *Store) ReadyCounter() (publicops.ReadyCounter, error) {
 	counter, err := storereadycounter.New(s)
 	if err != nil {

@@ -3,7 +3,7 @@
 Last reviewed: 2026-08-07
 
 Freshness source: `internal/telemetry/`, `internal/storage/dolt/store.go`,
-`internal/compact/haiku.go`, `modules/cli/find_duplicates.go`, and hook execution
+`internal/compact/haiku.go`, `apps/cli/find_duplicates.go`, and hook execution
 code under `internal/hooks/`.
 
 Complete schema of all telemetry events emitted by IssueGraph. Each event consists of:
@@ -356,7 +356,7 @@ Stdout/stderr are added as span **events** (not attributes):
 
 ## 7. AI Events
 
-Emitted by the compaction engine (`issuegraph compact`) via `internal/compact/haiku.go`, and by duplicate detection (`issuegraph find-duplicates --method ai`) via `modules/cli/find_duplicates.go`. Both use the Anthropic SDK with Anthropic-compatible credentials from `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY`, or `ai.api_key`.
+Emitted by the compaction engine (`issuegraph compact`) via `internal/compact/haiku.go`, and by duplicate detection (`issuegraph find-duplicates --method ai`) via `apps/cli/find_duplicates.go`. Both use the Anthropic SDK with Anthropic-compatible credentials from `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY`, or `ai.api_key`.
 
 > **Note**: Only `compact/haiku.go` records to the `issuegraph.ai.*` OTel metric instruments. `find_duplicates.go` records token counts and duration as span attributes only.
 
@@ -453,8 +453,8 @@ Every metric name, span name, and attribute listed in this document is backed by
 
 | Span name | Attributes | Source |
 |-----------|-----------|--------|
-| `issuegraph.command.<name>` | `issuegraph.command`, `issuegraph.version`, `issuegraph.args` (scrubbed) | built in `modules/cli/command_telemetry.go` (`startCommandSpan`/`commandSpanAttrs`), called from `modules/cli/main.go:938` |
-| `issuegraph.command.<name>` | `issuegraph.actor` (added later) | `modules/cli/main.go:1367` |
+| `issuegraph.command.<name>` | `issuegraph.command`, `issuegraph.version`, `issuegraph.args` (scrubbed) | built in `apps/cli/command_telemetry.go` (`startCommandSpan`/`commandSpanAttrs`), called from `apps/cli/main.go:938` |
+| `issuegraph.command.<name>` | `issuegraph.actor` (added later) | `apps/cli/main.go:1367` |
 | `storage.<op>` / `storage.<Role>.<Method>` (all methods) | `db.operation` + method-specific attrs | `internal/telemetry/storage.go:75-76` (role decorators throughout `internal/telemetry/`) |
 | `dolt.query` | `db.operation="query"`, `db.statement` + `doltSpanAttrs()` | `store.go:1309` |
 | `dolt.exec` | `db.operation="exec"`, `db.statement` + `doltSpanAttrs()` | `store.go:1168` |

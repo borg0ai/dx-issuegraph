@@ -50,7 +50,7 @@ func TestCommandNeedsExclusiveGate(t *testing.T) {
 	backup.AddCommand(backupRestore)
 	root.AddCommand(backup)
 	// Top-level `issuegraph restore <issue-id>` is an ISSUE restore
-	// (modules/cli/restore.go), not a database restore: it must stay SHARED.
+	// (apps/cli/restore.go), not a database restore: it must stay SHARED.
 	issueRestore := &cobra.Command{Use: "restore [issue-id]"}
 	root.AddCommand(issueRestore)
 	list := &cobra.Command{Use: "list"}

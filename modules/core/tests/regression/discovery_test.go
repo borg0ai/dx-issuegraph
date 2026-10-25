@@ -2491,7 +2491,7 @@ func TestDiscovery_ReopenAlreadyOpenSucceeds(t *testing.T) {
 		// an issue that is not closed.
 		t.Errorf("DISCOVERY: issuegraph reopen on already-open issue %s succeeded silently — "+
 			"should error 'issue is not closed' or similar. "+
-			"File: modules/cli/reopen.go (no status validation). "+
+			"File: apps/cli/reopen.go (no status validation). "+
 			"The forReopen() validator in validation/issue.go is never called.", a)
 	}
 }
@@ -2516,7 +2516,7 @@ func TestDiscovery_UndeferNonDeferredSucceeds(t *testing.T) {
 	if err == nil {
 		t.Errorf("DISCOVERY: issuegraph undefer on non-deferred issue %s succeeded silently — "+
 			"should error 'issue is not deferred' or similar. "+
-			"File: modules/cli/undefer.go (no status validation).", a)
+			"File: apps/cli/undefer.go (no status validation).", a)
 	}
 }
 
@@ -2544,7 +2544,7 @@ func TestDiscovery_ReadyPriorityOutOfRange(t *testing.T) {
 		if len(ids) == 0 {
 			t.Errorf("DISCOVERY: issuegraph ready --priority 5 accepted without error, returned empty — " +
 				"should reject out-of-range priority (valid: 0-4). " +
-				"File: modules/cli/ready.go:96-98 (no validation).")
+				"File: apps/cli/ready.go:96-98 (no validation).")
 		}
 	}
 	// If err != nil, command properly rejected invalid priority — correct behavior
@@ -2564,7 +2564,7 @@ func TestDiscovery_ChildrenNonexistentParentSilentEmpty(t *testing.T) {
 	if err == nil {
 		t.Errorf("DISCOVERY: issuegraph children nonexistent-parent-xyz returned success — " +
 			"should error 'parent issue not found'. Compare: issuegraph show nonexistent-parent-xyz errors. " +
-			"File: modules/cli/children.go (no parent existence validation).")
+			"File: apps/cli/children.go (no parent existence validation).")
 	}
 }
 
@@ -2594,7 +2594,7 @@ func TestDiscovery_DuplicateCycleUndetected(t *testing.T) {
 		if bStatus == "closed" {
 			t.Errorf("DISCOVERY: issuegraph duplicate created a cycle — A duplicate-of B, B duplicate-of A — " +
 				"no error detected. Both issues are duplicates of each other, which is semantically " +
-				"incoherent. File: modules/cli/duplicate.go (no cycle check). " +
+				"incoherent. File: apps/cli/duplicate.go (no cycle check). " +
 				"Cycle detection at dependencies.go:54 only checks 'blocks' type.")
 		}
 	}
@@ -2621,7 +2621,7 @@ func TestDiscovery_StaleZeroDaysReturnsFreshIssue(t *testing.T) {
 		t.Errorf("DISCOVERY: issuegraph stale --days 0 returned brand-new issue %s as 'stale' — "+
 			"0 days means cutoff=now, so updated_at < now matches everything. "+
 			"Should reject --days 0 or treat as 'nothing is stale yet'. "+
-			"File: modules/cli/stale.go:22 (no validation), queries.go:767.", a)
+			"File: apps/cli/stale.go:22 (no validation), queries.go:767.", a)
 	}
 }
 
@@ -2685,7 +2685,7 @@ func TestDiscovery_SearchStatusCommaNotParsed(t *testing.T) {
 		if len(commaIDs) == 0 {
 			t.Errorf("DISCOVERY: issuegraph search --status 'open,closed' silently returns empty — " +
 				"same comma-status bug as list (BUG-44). 'open,closed' treated as single " +
-				"literal status value. File: modules/cli/search.go:53 (GetString not GetStringSlice).")
+				"literal status value. File: apps/cli/search.go:53 (GetString not GetStringSlice).")
 		}
 	}
 }
@@ -2711,7 +2711,7 @@ func TestDiscovery_ListTypeNonexistentSilentEmpty(t *testing.T) {
 		if len(ids) == 0 {
 			t.Errorf("DISCOVERY: issuegraph list --type 'nonexistent_type_xyz' returned empty with no error — " +
 				"should reject unknown type. Compare: issuegraph create --type nonexistent fails with validation. " +
-				"File: modules/cli/list.go (no type validation on filter).")
+				"File: apps/cli/list.go (no type validation on filter).")
 		}
 	}
 }
@@ -2779,7 +2779,7 @@ func TestDiscovery_BlockedNonexistentParentSilentEmpty(t *testing.T) {
 	if err == nil {
 		t.Errorf("DISCOVERY: issuegraph blocked --parent nonexistent-parent-xyz returned success — " +
 			"should error 'parent not found'. User can't tell if parent has no blocked children " +
-			"or if parent doesn't exist. File: modules/cli/ready.go:218-245 (no parent validation).")
+			"or if parent doesn't exist. File: apps/cli/ready.go:218-245 (no parent validation).")
 	}
 }
 
@@ -2792,7 +2792,7 @@ func TestDiscovery_BlockedNonexistentParentSilentEmpty(t *testing.T) {
 // test's assertions describe the fixed behavior and stay as a discovery-suite
 // regression check — this file is `//go:build regression && discovery` and no
 // CI lane passes the discovery tag, so the CI lock for the fix is
-// TestEmbeddedLabel/TestProxiedServerLabel in modules/cli, not this test. Same
+// TestEmbeddedLabel/TestProxiedServerLabel in apps/cli, not this test. Same
 // class as BUG-42 (dep rm nonexistent says "Removed").
 //
 // Classification: BUG (fixed) — false positive confirmation.
@@ -2815,7 +2815,7 @@ func TestDiscovery_LabelRemoveNonexistentSilentSuccess(t *testing.T) {
 	}
 	if strings.Contains(out, "Removed") {
 		t.Errorf("DISCOVERY: issuegraph label remove %s 'never-existed-label' claimed a removal — "+
-			"the label was never on the issue. File: modules/cli/label.go.\n%s", a, out)
+			"the label was never on the issue. File: apps/cli/label.go.\n%s", a, out)
 	}
 	if !strings.Contains(out, "was not on") {
 		t.Errorf("issuegraph label remove of an absent label should say so, got:\n%s", out)
@@ -2835,7 +2835,7 @@ func TestDiscovery_LabelRemoveNonexistentSilentSuccess(t *testing.T) {
 // duplicate row); the message now says "<id> already has label 'x'" and the
 // command still exits 0. Like the test above this stays as a discovery-suite
 // regression check and is not a CI gate; the CI lock is
-// TestEmbeddedLabel/TestProxiedServerLabel in modules/cli.
+// TestEmbeddedLabel/TestProxiedServerLabel in apps/cli.
 //
 // Classification: BUG (fixed) — misleading success message.
 func TestDiscovery_LabelAddDuplicateReportsAdded(t *testing.T) {
@@ -2857,7 +2857,7 @@ func TestDiscovery_LabelAddDuplicateReportsAdded(t *testing.T) {
 	}
 	if strings.Contains(out, "Added") {
 		t.Errorf("DISCOVERY: issuegraph label add %s 'my-label' reported 'Added' when the label already existed. "+
-			"File: modules/cli/label.go.\n%s", a, out)
+			"File: apps/cli/label.go.\n%s", a, out)
 	}
 	if !strings.Contains(out, "already has label") {
 		t.Errorf("issuegraph label add of a present label should say so, got:\n%s", out)

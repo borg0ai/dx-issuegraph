@@ -12,7 +12,7 @@ import (
 
 // FS_NOCOW_FL is the "no copy-on-write" inode attribute set by `chattr +C`.
 // On btrfs it disables both copy-on-write and transparent compression for
-// new files created under the directory. See modules/cli/nocow_linux.go for the
+// new files created under the directory. See apps/cli/nocow_linux.go for the
 // full rationale — doctor has its own copy because subpackages cannot
 // import from the main package. Both copies must stay in sync.
 const fsNoCowFL = 0x00800000

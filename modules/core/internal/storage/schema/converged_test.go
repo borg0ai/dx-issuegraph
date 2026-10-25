@@ -680,7 +680,7 @@ func TestAlreadyConvergedAcceptsOverriddenIgnorePattern(t *testing.T) {
 // itself treats "cursor >= my latest" as nothing to do and returns (0, nil)
 // without ever consulting the lock, so the fast path returning converged is
 // the same answer for the same reason. Forward drift is a separate question,
-// asked by CheckForwardDrift at the caller (modules/cli/main.go), and this probe
+// asked by CheckForwardDrift at the caller (apps/cli/main.go), and this probe
 // must not start answering it: doing so here would turn a diagnosable skew
 // error into an unexplained lock acquisition on every invocation.
 func TestAlreadyConvergedOnForwardSkew(t *testing.T) {

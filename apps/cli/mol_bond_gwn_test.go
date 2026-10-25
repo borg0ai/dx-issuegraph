@@ -11,7 +11,7 @@ import (
 
 // TestBdMolBond_ResolvesPlainFormulaName is a regression test for GH#3873:
 // issuegraph mol bond fails to resolve formula names that don't match the
-// looksLikeFormulaName gatekeeper at modules/cli/mol_bond.go.
+// looksLikeFormulaName gatekeeper at apps/cli/mol_bond.go.
 //
 // The gatekeeper only accepts names starting with "mol-", containing
 // ".formula", or containing a path separator. Plain formula names — names

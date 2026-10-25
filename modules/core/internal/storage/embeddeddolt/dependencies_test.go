@@ -19,7 +19,7 @@ import (
 //	deep_linear_chain_allowed          -> the acyclic arm of the same case
 //
 // The subtests stay because the contract does not run the route they run.
-// Every case here drives store.AddDependency, the seam ~15 modules/cli files call
+// Every case here drives store.AddDependency, the seam ~15 apps/cli files call
 // directly; the contract drives the DependencyEditor role, which computes its
 // routing separately. Blanking the seam's own cross-prefix decision leaves the
 // whole DependencyEditor contract green at this backend, so these are the only

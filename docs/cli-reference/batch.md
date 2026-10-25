@@ -1,6 +1,6 @@
 ---
 title: "issuegraph batch"
-description: "Run multiple write operations in a single database transaction."
+description: "Run multiple write operations in a single database transaction"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -26,8 +26,15 @@ Grammar (one command per line):
   dep remove &lt;from-id&gt; &lt;to-id&gt;
   #comment  (blank lines and '# ...' comments are ignored)
 
-Supported 'update' keys: status, priority, title, assignee
+Supported 'update' keys: status, priority, title, assignee, force
 Supported dependency types: see 'issuegraph dep add --help' (default: blocks)
+
+'force' is not a field. An update whose status moves the issue into closed
+(or a configured done status) is refused when it still has open children or
+a live blocker, the same as 'issuegraph close'; 'force=true' overrides that refusal.
+Because the batch is one transaction, an unforced refusal rolls back EVERY
+operation in the batch, not just the offending line. Note the asymmetry with
+'close &lt;id&gt;', which does not apply that policy at all.
 
 Tokens are whitespace-separated. Double-quoted strings ("like this") may
 contain spaces; use \" to embed a quote and \\ for a backslash.
@@ -40,7 +47,7 @@ Examples:
   issuegraph batch -f operations.txt
 
   # Inline
-  printf 'close issuegraph-1 done\nupdate issuegraph-2 status=in_progress\n' | issuegraph batch
+  printf 'close bd-1 done\nupdate bd-2 status=in_progress\n' | issuegraph batch
 
 On success, exits 0 and prints a summary (or JSON with --json). On any error,
 rolls back the entire transaction and exits non-zero with the failing line.

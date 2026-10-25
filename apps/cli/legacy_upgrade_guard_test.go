@@ -12,7 +12,7 @@ import (
 // through configfile.IsDoltServerMode, so these tables assert the workspace
 // shape each case lays down rather than whatever mode the developer's shell
 // happens to select. CI already unsets these three
-// (scripts/ci/lib/test-env.sh), so the pins make a local `go test ./modules/cli/`
+// (scripts/ci/lib/test-env.sh), so the pins make a local `go test ./apps/cli/`
 // match CI instead of changing what CI checks.
 func pinLegacyUpgradeGuardEnv(t *testing.T) {
 	t.Helper()

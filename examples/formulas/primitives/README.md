@@ -32,7 +32,7 @@ an observable parse-to-cook effect.
 
 ## Smoke harness
 
-`modules/cli/formula_primitives_test.go` walks this directory, parses and
+`apps/cli/formula_primitives_test.go` walks this directory, parses and
 cooks every fixture, and asserts each primitive's observable effect on
 the cooked subgraph. A new fixture added here without a registered
 assertion is a deliberate test failure: the harness exists to prove
@@ -41,7 +41,7 @@ primitives are wired, not just that fixtures parse.
 Run with `make test`, or in isolation:
 
 ```sh
-go test -tags gms_pure_go -run TestFormulaPrimitiveExamples ./modules/cli/
+go test -tags gms_pure_go -run TestFormulaPrimitiveExamples ./apps/cli/
 ```
 
 ## What's NOT here

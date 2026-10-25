@@ -20,7 +20,7 @@ import (
 // issues.current_revision): the schema_migrations bookkeeping row for version
 // 67 is missing, but the physical tables and column already exist from the
 // original init — the same state stageBehindRemoteBackedDB
-// (modules/cli/protocol/versioning_contract_test.go) forges before
+// (apps/cli/protocol/versioning_contract_test.go) forges before
 // TestProtocol_V2_DesignatedMigratorOverride runs `issuegraph create` with
 // ISSUEGRAPH_ALLOW_REMOTE_MIGRATE=1.
 //

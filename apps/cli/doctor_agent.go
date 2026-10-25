@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 )
 
 // agentDoctorResult is the top-level output for --agent mode.

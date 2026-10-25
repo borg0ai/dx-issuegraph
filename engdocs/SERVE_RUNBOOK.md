@@ -3,7 +3,7 @@
 Last reviewed: 2026-08-10
 
 Freshness source: `internal/httpapi/server.go`,
-`internal/httpapi/events_watch.go`, `modules/cli/serve.go` and
+`internal/httpapi/events_watch.go`, `apps/cli/serve.go` and
 `internal/httpapi/auth.go` — the operating-envelope constants, the fields their
 `event` emitters write, and the flag, posture and token-file rules.
 

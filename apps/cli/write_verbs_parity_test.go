@@ -2,7 +2,7 @@
 
 // Characterization ("parity") suite for the four write verbs — issuegraph create,
 // issuegraph update, issuegraph close, issuegraph reopen — pinning the observable CLI contract as it
-// stands BEFORE modules/cli is rewired onto the issue-operations facade
+// stands BEFORE apps/cli is rewired onto the issue-operations facade
 // (internal/storage/issueops).
 //
 // Everything here is a statement about what the CLI does TODAY, not about what
@@ -620,9 +620,9 @@ func assertRecentUTCTimestamp(t *testing.T, label, value string) {
 // because outputJSON round-trips a non-slice through map[string]any, SORTED
 // key order.
 //
-// Source of truth: modules/cli/create.go:601-604 (outputJSON(issue)) over the
-// struct from modules/cli/create.go:521 (buildCreateIssue), via
-// modules/cli/output.go:68-99 (wrapWithSchemaVersion).
+// Source of truth: apps/cli/create.go:601-604 (outputJSON(issue)) over the
+// struct from apps/cli/create.go:521 (buildCreateIssue), via
+// apps/cli/output.go:68-99 (wrapWithSchemaVersion).
 func TestParityCreateJSONShape(t *testing.T) {
 	env := newParityEnv(t)
 	jsonOutput = true
@@ -724,7 +724,7 @@ func TestParityCreateJSONTimestamps(t *testing.T) {
 }
 
 // TestParityCreateSilent pins `issuegraph create --silent`: stdout is exactly the new
-// ID plus a newline, and nothing else. Source: modules/cli/create.go:605-606.
+// ID plus a newline, and nothing else. Source: apps/cli/create.go:605-606.
 func TestParityCreateSilent(t *testing.T) {
 	env := newParityEnv(t)
 
@@ -748,7 +748,7 @@ func TestParityCreateSilent(t *testing.T) {
 }
 
 // TestParityCreateHumanOutput pins the three-line human report, byte for byte.
-// Source: modules/cli/create.go:607-613.
+// Source: apps/cli/create.go:607-613.
 func TestParityCreateHumanOutput(t *testing.T) {
 	env := newParityEnv(t)
 
@@ -775,7 +775,7 @@ func TestParityCreateHumanOutput(t *testing.T) {
 	}
 }
 
-// TestParityCreateSetsLastTouched pins modules/cli/create.go:615 — a successful
+// TestParityCreateSetsLastTouched pins apps/cli/create.go:615 — a successful
 // create records the new ID as last-touched.
 func TestParityCreateSetsLastTouched(t *testing.T) {
 	env := newParityEnv(t)
@@ -835,7 +835,7 @@ func TestParityCreateWithDepsOmitsDependenciesKey(t *testing.T) {
 // Before the rewire this was a full-row silent upsert that reported success
 // (exit 0, "✓ Created issue:") while destroying the existing issue and
 // recording no creation event — silent data loss. Source of the new behavior:
-// modules/cli/create.go's ops.Create call ->
+// apps/cli/create.go's ops.Create call ->
 // internal/storage/issueops/create_only_guard.go.
 func TestParityCreateOnOccupiedIDRefuses(t *testing.T) {
 	env := newParityEnv(t)
@@ -881,7 +881,7 @@ func TestParityCreateOnOccupiedIDRefuses(t *testing.T) {
 
 // TestParityCreateParentNotFoundExits1 pins a create-side pre-write refusal:
 // a missing --parent aborts with exit 1 and a fixed message before any ID is
-// reserved or any row written. Source: modules/cli/create.go:461-469.
+// reserved or any row written. Source: apps/cli/create.go:461-469.
 func TestParityCreateParentNotFoundExits1(t *testing.T) {
 	env := newParityEnv(t)
 
@@ -912,8 +912,8 @@ func TestParityCreateParentNotFoundExits1(t *testing.T) {
 // TestParityCreateMissingDepTargetIsFatal pins today's CLI dependency
 // contract: a --deps target that does not exist fails the whole create, exit
 // 1, with the issue rolled back — the edge is never silently dropped.
-// Source: modules/cli/create_atomic.go:35-68 (one transaction; any edge failure
-// returns fatal) via modules/cli/create.go:567-569.
+// Source: apps/cli/create_atomic.go:35-68 (one transaction; any edge failure
+// returns fatal) via apps/cli/create.go:567-569.
 func TestParityCreateMissingDepTargetIsFatal(t *testing.T) {
 	env := newParityEnv(t)
 
@@ -944,7 +944,7 @@ func TestParityCreateMissingDepTargetIsFatal(t *testing.T) {
 // TestParityCreateJSONErrorShape pins where a create error goes in --json
 // mode: HandleErrorRespectJSON writes the error object to STDOUT (not stderr),
 // with a synthesized schema_version, and exits 1.
-// Source: modules/cli/errors.go:91-97 and :57-84.
+// Source: apps/cli/errors.go:91-97 and :57-84.
 func TestParityCreateJSONErrorShape(t *testing.T) {
 	env := newParityEnv(t)
 	jsonOutput = true
@@ -975,9 +975,9 @@ func TestParityCreateJSONErrorShape(t *testing.T) {
 
 // TestParityUpdateJSONShape pins `issuegraph update --json`: a JSON ARRAY of re-read
 // issues, in struct-field order, with NO schema_version wrapper (outputJSON
-// leaves slices alone — modules/cli/output.go:85-87).
+// leaves slices alone — apps/cli/output.go:85-87).
 //
-// Source: modules/cli/update.go:586 (re-fetch) and :631-635 (outputJSON).
+// Source: apps/cli/update.go:586 (re-fetch) and :631-635 (outputJSON).
 func TestParityUpdateJSONShape(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-upd1", "Update json shape", nil)
@@ -1027,7 +1027,7 @@ func TestParityUpdateJSONShape(t *testing.T) {
 }
 
 // TestParityUpdateHumanOutput pins the human success line, byte for byte.
-// Source: modules/cli/update.go:597.
+// Source: apps/cli/update.go:597.
 func TestParityUpdateHumanOutput(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-upd2", "Update human output", nil)
@@ -1049,7 +1049,7 @@ func TestParityUpdateHumanOutput(t *testing.T) {
 	}
 }
 
-// TestParityUpdateSetsLastTouched pins modules/cli/update.go:627-629 — the FIRST
+// TestParityUpdateSetsLastTouched pins apps/cli/update.go:627-629 — the FIRST
 // successfully updated ID becomes last-touched.
 func TestParityUpdateSetsLastTouched(t *testing.T) {
 	env := newParityEnv(t)
@@ -1067,7 +1067,7 @@ func TestParityUpdateSetsLastTouched(t *testing.T) {
 }
 
 // TestParityUpdateNoUpdatesShortCircuit pins the pre-write short-circuit at
-// modules/cli/update.go:327-330: with no field flags and no --claim, update prints
+// apps/cli/update.go:327-330: with no field flags and no --claim, update prints
 // "No updates specified" on STDOUT, exits 0, touches no store, and does NOT
 // record a last-touched.
 func TestParityUpdateNoUpdatesShortCircuit(t *testing.T) {
@@ -1090,7 +1090,7 @@ func TestParityUpdateNoUpdatesShortCircuit(t *testing.T) {
 	}
 }
 
-// TestParityUpdateDefaultsToLastTouched pins modules/cli/update.go:58-65: with no
+// TestParityUpdateDefaultsToLastTouched pins apps/cli/update.go:58-65: with no
 // positional IDs, update targets the last-touched issue.
 func TestParityUpdateDefaultsToLastTouched(t *testing.T) {
 	env := newParityEnv(t)
@@ -1108,7 +1108,7 @@ func TestParityUpdateDefaultsToLastTouched(t *testing.T) {
 }
 
 // TestParityUpdateNoIDAndNoLastTouchedExits1 pins the other half of the same
-// default-target contract (modules/cli/update.go:59-65).
+// default-target contract (apps/cli/update.go:59-65).
 func TestParityUpdateNoIDAndNoLastTouchedExits1(t *testing.T) {
 	env := newParityEnv(t)
 	env.clearLastTouched()
@@ -1126,7 +1126,7 @@ func TestParityUpdateNoIDAndNoLastTouchedExits1(t *testing.T) {
 }
 
 // TestParityUpdateGuardsRequireFieldUpdate pins the second pre-write
-// short-circuit (modules/cli/update.go:788-798): --if-assignee/--if-status with
+// short-circuit (apps/cli/update.go:788-798): --if-assignee/--if-status with
 // only label/parent edits is rejected before any write, exit 1.
 func TestParityUpdateGuardsRequireFieldUpdate(t *testing.T) {
 	env := newParityEnv(t)
@@ -1150,7 +1150,7 @@ func TestParityUpdateGuardsRequireFieldUpdate(t *testing.T) {
 }
 
 // TestParityUpdateGuardsRejectClaim pins the third pre-write short-circuit
-// (modules/cli/update.go:785-787): guards combined with --claim exit 1 before any
+// (apps/cli/update.go:785-787): guards combined with --claim exit 1 before any
 // write.
 func TestParityUpdateGuardsRejectClaim(t *testing.T) {
 	env := newParityEnv(t)
@@ -1177,7 +1177,7 @@ func TestParityUpdateGuardsRejectClaim(t *testing.T) {
 // TestParityUpdateGuardMismatchExits13 pins the bd-wsqvw exit contract:
 // when EVERY failure is a stale --if-assignee/--if-status guard, the command
 // exits ExitGuardMismatch (13), not 1 — nothing was written and retrying is
-// pointless. Source: modules/cli/update.go:665 (const), :690-731
+// pointless. Source: apps/cli/update.go:665 (const), :690-731
 // (reportUpdateFailures).
 func TestParityUpdateGuardMismatchExits13(t *testing.T) {
 	env := newParityEnv(t)
@@ -1209,7 +1209,7 @@ func TestParityUpdateGuardMismatchExits13(t *testing.T) {
 
 // TestParityUpdateMixedFailureExits1 pins the other half of the same contract:
 // a batch whose failures are NOT all guard mismatches exits 1, even though
-// some IDs succeeded. Source: modules/cli/update.go:721-731.
+// some IDs succeeded. Source: apps/cli/update.go:721-731.
 func TestParityUpdateMixedFailureExits1(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-upd9", "Real", nil)
@@ -1235,7 +1235,7 @@ func TestParityUpdateMixedFailureExits1(t *testing.T) {
 // keeps the plain array of successfully updated issues while the per-ID
 // failure report is a single compact JSON line — the LAST line on stderr —
 // carrying "error", "failed", "schema_version", and a per-failure
-// "guard_mismatch" marker. Source: modules/cli/update.go:690-732.
+// "guard_mismatch" marker. Source: apps/cli/update.go:690-732.
 func TestParityUpdateJSONFailureReport(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-updjf", "Guard mismatch json", func(i *types.Issue) {
@@ -1293,7 +1293,7 @@ func TestParityUpdateJSONFailureReport(t *testing.T) {
 //
 // Before the rewire this made one store call per edit group — the field
 // UPDATE, then each label add/remove — firing three hooks for this command.
-// Source of the new behavior: modules/cli/update.go's single ops.Update call ->
+// Source of the new behavior: apps/cli/update.go's single ops.Update call ->
 // internal/storage/issueops/execution.go ExecuteUpdate.
 //
 // The label events themselves are unchanged here because both edits are real
@@ -1474,7 +1474,7 @@ func TestParityUpdateParentReplacesAllEdges(t *testing.T) {
 // TestParityCloseJSONShape pins `issuegraph close --json`: a JSON ARRAY of re-read
 // issues in struct-field order with no schema_version wrapper — the same
 // container shape as update, and the opposite of create.
-// Source: modules/cli/close.go:222 (re-fetch) and :340-353 (outputJSON).
+// Source: apps/cli/close.go:222 (re-fetch) and :340-353 (outputJSON).
 func TestParityCloseJSONShape(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-cls1", "Close json shape", nil)
@@ -1512,7 +1512,7 @@ func TestParityCloseJSONShape(t *testing.T) {
 
 // TestParityCloseHumanOutput pins the human success line, byte for byte, and
 // the default reason ("Closed") applied when no --reason is given.
-// Source: modules/cli/close.go:229 and :453-455.
+// Source: apps/cli/close.go:229 and :453-455.
 func TestParityCloseHumanOutput(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-cls2", "Close human output", nil)
@@ -1534,7 +1534,7 @@ func TestParityCloseHumanOutput(t *testing.T) {
 	}
 }
 
-// TestParityCloseSetsLastTouched pins modules/cli/close.go:251-253.
+// TestParityCloseSetsLastTouched pins apps/cli/close.go:251-253.
 func TestParityCloseSetsLastTouched(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-cls3", "Close last touched", nil)
@@ -1549,7 +1549,7 @@ func TestParityCloseSetsLastTouched(t *testing.T) {
 	}
 }
 
-// TestParityCloseDefaultsToLastTouched pins modules/cli/close.go:53-60: with no
+// TestParityCloseDefaultsToLastTouched pins apps/cli/close.go:53-60: with no
 // positional IDs, close targets the last-touched issue.
 func TestParityCloseDefaultsToLastTouched(t *testing.T) {
 	env := newParityEnv(t)
@@ -1567,7 +1567,7 @@ func TestParityCloseDefaultsToLastTouched(t *testing.T) {
 }
 
 // TestParityCloseNoIDAndNoLastTouchedExits1 pins the other half
-// (modules/cli/close.go:54-59).
+// (apps/cli/close.go:54-59).
 func TestParityCloseNoIDAndNoLastTouchedExits1(t *testing.T) {
 	env := newParityEnv(t)
 	env.clearLastTouched()
@@ -1585,7 +1585,7 @@ func TestParityCloseNoIDAndNoLastTouchedExits1(t *testing.T) {
 }
 
 // TestParityClosePartialFailureExitsZero pins the close exit contract's
-// permissive half (modules/cli/close.go:377-380): as long as ONE id settled as
+// permissive half (apps/cli/close.go:377-380): as long as ONE id settled as
 // closed, a batch with refused ids still exits 0. The refusal is reported on
 // stderr only.
 func TestParityClosePartialFailureExitsZero(t *testing.T) {
@@ -1620,8 +1620,8 @@ func TestParityClosePartialFailureExitsZero(t *testing.T) {
 
 // TestParityCloseNothingSettledExits1 pins the strict half of the same
 // contract: when NO id settled as closed, close returns SilentExit() — exit 1
-// with no extra stdout. Source: modules/cli/close.go:377-380 and
-// modules/cli/errors.go:119-121.
+// with no extra stdout. Source: apps/cli/close.go:377-380 and
+// apps/cli/errors.go:119-121.
 func TestParityCloseNothingSettledExits1(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-cls6", "Owned by another actor", func(i *types.Issue) {
@@ -1647,7 +1647,7 @@ func TestParityCloseNothingSettledExits1(t *testing.T) {
 
 // TestParityCloseAlreadyClosedIsIdempotentSuccess pins the re-close no-op:
 // exit 0, the issue still reported on stdout, last-touched still recorded, and
-// NO second close event. Source: modules/cli/close.go:167-195.
+// NO second close event. Source: apps/cli/close.go:167-195.
 func TestParityCloseAlreadyClosedIsIdempotentSuccess(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-cls7", "Already closed", nil)
@@ -1679,7 +1679,7 @@ func TestParityCloseAlreadyClosedIsIdempotentSuccess(t *testing.T) {
 
 // TestParityReopenJSONShape pins `issuegraph reopen --json`: a JSON ARRAY of re-read
 // issues, no schema_version — same container as update/close.
-// Source: modules/cli/reopen.go:72-76 and :101-105.
+// Source: apps/cli/reopen.go:72-76 and :101-105.
 func TestParityReopenJSONShape(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-rop1", "Reopen json shape", func(i *types.Issue) {
@@ -1712,7 +1712,7 @@ func TestParityReopenJSONShape(t *testing.T) {
 }
 
 // TestParityReopenHumanOutput pins the human line, byte for byte, including
-// the ": <reason>" suffix. Source: modules/cli/reopen.go:78-83.
+// the ": <reason>" suffix. Source: apps/cli/reopen.go:78-83.
 func TestParityReopenHumanOutput(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-rop2", "Reopen human", func(i *types.Issue) { i.Status = types.StatusClosed })
@@ -1736,7 +1736,7 @@ func TestParityReopenHumanOutput(t *testing.T) {
 
 // TestParityReopenHumanOutputNoReason pins the no-reason variant: no colon
 // suffix, and NO title interpolation — unlike create/update/close, reopen
-// prints the bare resolved ID. Source: modules/cli/reopen.go:82.
+// prints the bare resolved ID. Source: apps/cli/reopen.go:82.
 func TestParityReopenHumanOutputNoReason(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-rop3", "A title that must not appear", func(i *types.Issue) {
@@ -1756,7 +1756,7 @@ func TestParityReopenHumanOutputNoReason(t *testing.T) {
 
 // TestParityReopenDoesNotSetLastTouched pins an absence: unlike create,
 // update and close, `issuegraph reopen` never calls SetLastTouchedID. Nothing in
-// modules/cli/reopen.go does.
+// apps/cli/reopen.go does.
 func TestParityReopenDoesNotSetLastTouched(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-rop4", "Reopen last touched", func(i *types.Issue) { i.Status = types.StatusClosed })
@@ -1772,7 +1772,7 @@ func TestParityReopenDoesNotSetLastTouched(t *testing.T) {
 }
 
 // TestParityReopenAlreadyOpenSkipsSilently pins the pre-read short-circuit at
-// modules/cli/reopen.go:59-63: an already-open issue reports on stderr, prints
+// apps/cli/reopen.go:59-63: an already-open issue reports on stderr, prints
 // nothing on stdout, performs no store write, and does NOT set hasError — so
 // the command exits 0.
 func TestParityReopenAlreadyOpenSkipsSilently(t *testing.T) {
@@ -1798,7 +1798,7 @@ func TestParityReopenAlreadyOpenSkipsSilently(t *testing.T) {
 
 // TestParityReopenErrorExits1Silently pins the failure exit: any per-ID error
 // sets hasError, and the command returns SilentExit() — exit 1 with the
-// diagnosis on stderr only. Source: modules/cli/reopen.go:50-53, :107-109.
+// diagnosis on stderr only. Source: apps/cli/reopen.go:50-53, :107-109.
 func TestParityReopenErrorExits1Silently(t *testing.T) {
 	env := newParityEnv(t)
 
@@ -1872,7 +1872,7 @@ var closeRowParityExclusions = map[string]string{
 	"UpdatedAt":   "wall-clock stamp from two different writes",
 	"ClosedAt":    "wall-clock stamp; asserted non-nil on both instead",
 	"RowVersion":  "freshRowLock() is regenerated per write by design",
-	"CloseReason": "modules/cli/close.go resolveCloseReasons defaults `issuegraph close`'s " +
+	"CloseReason": "apps/cli/close.go resolveCloseReasons defaults `issuegraph close`'s " +
 		"reason to \"Closed\" at the CLI layer, and `issuegraph update` has no reason " +
 		"flag; the funnel-level default is asserted separately below",
 	// ga-ktn9pe.4.14 owns pin behavior in the update funnels — issueops
@@ -1977,8 +1977,8 @@ func TestParityUpdateToClosedClearsPriorCloseAttribution(t *testing.T) {
 
 // TestParityUpdateToClosedKeepsExplicitSession pins that the defaults above
 // yield to an explicit key: `issuegraph update -s closed --session` still attributes the
-// close, so the CLI's own closed_by_session pass-through (modules/cli/update.go:133,
-// modules/cli/update_input.go:58) keeps working and must stay in place.
+// close, so the CLI's own closed_by_session pass-through (apps/cli/update.go:133,
+// apps/cli/update_input.go:58) keeps working and must stay in place.
 func TestParityUpdateToClosedKeepsExplicitSession(t *testing.T) {
 	env := newParityEnv(t)
 	env.seed("test-updcls4", "Explicit session", nil)

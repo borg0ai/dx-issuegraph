@@ -264,7 +264,7 @@ func TestConflictInspectorSurvivesTheStoreDecoratorChain(t *testing.T) {
 	const issueID = "conflict-decorator-1"
 	store, ctx := wedgeIssueConflict(t, issueID)
 
-	// Two decorators deep, exactly as modules/cli's chain can be.
+	// Two decorators deep, exactly as apps/cli's chain can be.
 	var decorated storage.DoltStorage = storage.NewHookFiringStore(store, nil)
 	decorated = storage.NewHookFiringStore(decorated, nil)
 
@@ -311,7 +311,7 @@ func TestConflictInspectorSurvivesTheStoreDecoratorChain(t *testing.T) {
 // > 0`, or a Blocked() inversion would have landed green. These reproduce
 // both blocker classes for real and assert the storage half of the gate:
 // blockers are visible and Blocked() is true. The command-level commit hold
-// and remedies are covered in modules/cli/conflicts_conclude*_test.go.
+// and remedies are covered in apps/cli/conflicts_conclude*_test.go.
 
 // wedgeConstraintViolation leaves a real FK constraint violation in the
 // working set: our branch deleted an issue, the peer added a child row

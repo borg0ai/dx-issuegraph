@@ -133,12 +133,12 @@ patches that consume the *existing* `--claim`.
   `UpdateIssueIfMatch(ctx, id, actor, guards, updates)` to the `Storage` interface.
 - `internal/storage/dolt/issues.go`: `DoltStore.UpdateIssueIfMatch` wrapping
   `verifiedClaimWrite` with a `matched(post)` postcondition + DOLT_ADD/COMMIT.
-- `modules/cli/update.go`: register `--if-assignee` (String) and `--if-status`
+- `apps/cli/update.go`: register `--if-assignee` (String) and `--if-status`
   (String); when either `Changed()`, route to the CAS path; wire the
   precondition-failed → non-zero exit through the existing `claimFailed` machinery
   (both `update.go` and `update_proxied_server.go`). Reject `--if-*` combined with
   `--claim` (mutually exclusive; `--claim` is its own CAS).
-- `modules/cli/prime.go`: document the new guards next to `--claim`.
+- `apps/cli/prime.go`: document the new guards next to `--claim`.
 
 ## 6. Tests
 

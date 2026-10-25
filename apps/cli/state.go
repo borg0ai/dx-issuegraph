@@ -206,7 +206,7 @@ func runSetState(ctx context.Context, issueID, dimension, newValue, reason strin
 	}
 	// The role commits its own Dolt version inside the storage layer, so
 	// `--dolt-auto-commit batch` is deferred on the CONTEXT rather than by
-	// blanking a commit message — see applyLabelEdit in modules/cli/label.go.
+	// blanking a commit message — see applyLabelEdit in apps/cli/label.go.
 	ctx, err = issueOpsContext(ctx)
 	if err != nil {
 		return HandleErrorRespectJSON("%v", err)

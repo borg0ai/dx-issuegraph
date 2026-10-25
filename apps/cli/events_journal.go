@@ -44,7 +44,7 @@ func eventsJournalEnabled() bool {
 
 // activateEventsJournalStore is eventsjournal.ActivateStore under the name the
 // construction guard matches. Kept as a wrapper rather than called directly so
-// modules/cli has one spelling of the idiom and the guard has one name to look for.
+// apps/cli has one spelling of the idiom and the guard has one name to look for.
 func activateEventsJournalStore(issuegraphDir string, s storage.DoltStorage, err error) (storage.DoltStorage, error) {
 	return eventsjournal.ActivateStore(issuegraphDir, s, err)
 }
@@ -172,7 +172,7 @@ func isEventsJournalCommand(cmd *cobra.Command) bool {
 // autoPruneOnce holds the once-per-process guarantee the trigger promises.
 // PersistentPostRunE runs once per issuegraph invocation anyway; the guard is what
 // keeps that true for the in-process callers that run Execute() repeatedly (the
-// modules/cli test binary, library embedders), where an unguarded trigger would turn
+// apps/cli test binary, library embedders), where an unguarded trigger would turn
 // a maintenance pass into a per-command tax.
 var autoPruneOnce sync.Once
 

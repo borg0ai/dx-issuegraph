@@ -5,11 +5,11 @@
 #   1. `issuegraph help --docs-root <root>` emits vendor-neutral output only:
 #      docs/CLI_REFERENCE.md plus a generic per-command tree at
 #      build/cli-docs/ (uncommitted staging).
-#   2. `go run ./tools/docsmint <root>` post-processes the staging tree into
+#   2. `go run ./modules/core/tools/docsmint <root>` post-processes the staging tree into
 #      the committed Mintlify pages at docs/cli-reference/ and splices the
 #      CLI Reference pages array in docs/docs.json.
 # issuegraph never emits site-generator-specific formats; all Mintlify targeting
-# lives in tools/docsmint.
+# lives in modules/core/tools/docsmint.
 
 set -euo pipefail
 export LC_ALL=C
@@ -94,7 +94,7 @@ else
     TMP_BUILD_DIR="$(mktemp -d)"
     ISSUEGRAPH="$TMP_BUILD_DIR/issuegraph"
     echo "Building temporary issuegraph for docs generation..."
-    (cd "$PROJECT_ROOT" && CGO_ENABLED=0 go build -tags gms_pure_go -o "$ISSUEGRAPH" github.com/borg0ai/dx-issuegraph/modules/cli)
+    (cd "$PROJECT_ROOT" && CGO_ENABLED=0 go build -tags gms_pure_go -o "$ISSUEGRAPH" github.com/borg0ai/dx-issuegraph/apps/cli)
 fi
 
 # Guard against a CGO-enabled issuegraph: it exposes the full `issuegraph federation` subcommand tree
@@ -104,7 +104,7 @@ fi
 # naive regen on a machine with a C compiler produces spurious federation churn.
 #
 # The pure-go federation stub prints "Federation commands require CGO" (see
-# modules/cli/federation_nocgo.go); a CGO build does not. If the resolved binary is missing
+# apps/cli/federation_nocgo.go); a CGO build does not. If the resolved binary is missing
 # that stub marker, warn and rebuild a pinned CGO_ENABLED=0 -tags gms_pure_go binary so
 # the committed docs always match CI. Set ISSUEGRAPH_DOCS_ALLOW_CGO=1 to bypass the rebuild and
 # trust the supplied binary as-is (e.g. to deliberately regenerate the full federation
@@ -123,7 +123,7 @@ if [ -z "$PINNED_BD" ] && [ -x "$ISSUEGRAPH" ] && ! "$ISSUEGRAPH" federation --h
             TMP_BUILD_DIR="$(mktemp -d)"
         fi
         ISSUEGRAPH="$TMP_BUILD_DIR/bd-pure"
-        (cd "$PROJECT_ROOT" && CGO_ENABLED=0 go build -tags gms_pure_go -o "$ISSUEGRAPH" github.com/borg0ai/dx-issuegraph/modules/cli)
+        (cd "$PROJECT_ROOT" && CGO_ENABLED=0 go build -tags gms_pure_go -o "$ISSUEGRAPH" github.com/borg0ai/dx-issuegraph/apps/cli)
     fi
 fi
 
@@ -141,7 +141,7 @@ generate_all() {
     # (a pinned legacy issuegraph stages under website/, not build/cli-docs).
     rm -rf "$root/build/cli-docs"
     "$ISSUEGRAPH" help --docs-root "$root"
-    (cd "$PROJECT_ROOT" && go run -tags=gms_pure_go ./tools/docsmint "$root")
+    (cd "$PROJECT_ROOT" && go run -tags=gms_pure_go ./modules/core/tools/docsmint "$root")
     # A pinned legacy emitter (issuegraph <= v1.1.0) stages Docusaurus pages under
     # website/; docsmint has consumed them, so drop the scaffolding.
     if [ "$had_website" -eq 0 ] && [ -d "$root/website" ]; then

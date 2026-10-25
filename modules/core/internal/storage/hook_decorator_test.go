@@ -59,7 +59,7 @@ func TestHookTrackingTransactionAccumulatesEvents(t *testing.T) {
 	//
 	// Full integration tests require a real DoltStore + hook scripts,
 	// which are covered by the issuegraph CLI integration test suite.
-	t.Log("Transaction tracking is tested via integration tests in modules/cli/")
+	t.Log("Transaction tracking is tested via integration tests in apps/cli/")
 }
 
 func TestNewHookFiringStoreNilRunnerSafe(t *testing.T) {
@@ -114,7 +114,7 @@ func TestUnwrapStore_HookFiringStore(t *testing.T) {
 
 // Catches the regression where adding a new decorator layer (e.g.
 // telemetry.InstrumentedStorage) silently breaks UnwrapStore for
-// optional-interface type assertions across modules/cli.
+// optional-interface type assertions across apps/cli.
 func TestUnwrapStore_PeelsMultipleLayers(t *testing.T) {
 	raw := &stubDoltStore{}
 	mid := &fakeUnwrappableDecorator{inner: raw}

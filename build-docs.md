@@ -1,6 +1,6 @@
 # Noridoc: Build and Version Infrastructure
 
-Path: @/ (root level - Makefile, .goreleaser.yml)
+Path: @/ (root level - Makefile)
 
 ### Overview
 
@@ -10,22 +10,20 @@ This infrastructure is critical for debugging, auditing, and user support - it a
 
 ### How it fits into the larger codebase
 
-- **Build Entry Points**: The Makefile and .goreleaser.yml are the authoritative build configurations that users and CI/CD systems interact with. They control how version information flows into binaries.
+- **Build Entry Points**: The Makefile is the authoritative build configuration that users and CI/CD systems interact with. They control how version information flows into binaries.
 
-- **Version Pipeline**: These files work with `@/modules/cli/version.go` to establish the complete version reporting chain:
-  - Build time: Extract git info via shell commands (Makefile) or goreleaser templates
+- **Version Pipeline**: These files work with `@/apps/cli/version.go` to establish the complete version reporting chain:
+  - Build time: Extract git info via shell commands (Makefile) or the release builder
   - Compilation: Pass info to Go compiler via `-X` ldflags
   - Runtime: Resolve functions in version.go retrieve and display the info
 
 - **Installation Methods**: The build configuration enables multiple installation paths while maintaining version consistency:
   - `make install` - Used by developers building from source
-  - `go install ./modules/cli` - Direct Go installation with embedded ldflag injection
-  - GitHub releases - Goreleaser-built binaries for all platforms
-  - Homebrew - Pre-built binaries installed via `brew install issuegraph`
-  - npm - Node.js package that downloads pre-built binaries via postinstall hook
-  - `./scripts/install.sh` - User-friendly build-from-source helper
+  - `go install ./apps/cli` - Direct Go installation with embedded ldflag injection
+  - GitHub releases - native binaries for macOS, Linux and Windows
+  - Homebrew (macOS), Nix (Linux), Scoop (Windows) - install the release binaries
 
-- **Release Automation**: Goreleaser configuration integrates with GitHub Actions and the release process documented in `@/RELEASING.md`, ensuring released binaries have full version info.
+- **Release Automation**: Releases run through the `shipify` skill, ensuring released binaries have full version info.
 
 ### Core Implementation
 
@@ -38,7 +36,7 @@ install:
 	@echo "Installing issuegraph to $$(go env GOPATH)/bin..."
 	@bash -c 'commit=$$(git rev-parse HEAD 2>/dev/null || echo ""); \
 		branch=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo ""); \
-		go install -ldflags="-X main.Commit=$$commit -X main.Branch=$$branch" ./modules/cli'
+		go install -ldflags="-X main.Commit=$$commit -X main.Branch=$$branch" ./apps/cli'
 ```
 
 How it works:
@@ -47,29 +45,17 @@ How it works:
 3. `git rev-parse --abbrev-ref HEAD` gets the current branch name
 4. Passes both as ldflags to `go install` using the `-X` flag (variable assignment)
 5. The ldflags set `main.Commit` and `main.Branch` package variables
-6. These variables are then retrieved by functions in `@/modules/cli/version.go` at runtime
+6. These variables are then retrieved by functions in `@/apps/cli/version.go` at runtime
 
 Key implementation detail: The original target depended on `build`, but this was removed because `go install` is sufficient and handles compilation itself.
 
-**Goreleaser Configuration** (`@/.goreleaser.yml`, lines 11-95):
+**Release builds**: releases are built and published by the `shipify` skill, not by a
+configuration in this repository. Release binaries must be built with the same
+ldflags as the Makefile so version reporting is identical:
 
-Goreleaser builds binaries for all platforms and sets version information via ldflags. Each of the 5 build configurations uses identical ldflag patterns:
-
-```yaml
-ldflags:
-  - -s -w
-  - -X main.Version={{.Version}}
-  - -X main.Build={{.ShortCommit}}
-  - -X main.Commit={{.Commit}}
-  - -X main.Branch={{.Branch}}
 ```
-
-Platform configurations:
-1. **issuegraph-linux-amd64** (lines 12-26): Linux 64-bit Intel
-2. **issuegraph-linux-arm64** (lines 28-44): Linux 64-bit ARM (Apple Silicon support)
-3. **issuegraph-darwin-amd64** (lines 46-60): macOS 64-bit Intel
-4. **issuegraph-darwin-arm64** (lines 62-76): macOS 64-bit ARM (M1/M2/M3)
-5. **issuegraph-windows-amd64** (lines 78-95): Windows 64-bit Intel with additional `-buildmode=exe` flag
+-s -w -X main.Version=<version> -X main.Build=<short commit> -X main.Commit=<commit> -X main.Branch=<branch>
+```
 
 The ldflags explained:
 - `-s -w`: Strip debug symbols to reduce binary size
@@ -78,20 +64,7 @@ The ldflags explained:
 - `-X main.Commit`: Full commit hash for precise identification
 - `-X main.Branch`: Branch name for build context
 
-Goreleaser template variables:
-- `{{.Version}}`: The release version from git tag
-- `{{.ShortCommit}}`: First 7 characters of commit (used for Build variable)
-- `{{.Commit}}`: Full commit hash
-- `{{.Branch}}`: Current git branch
-
-**Installation Script** (`@/scripts/install.sh`):
-
-Provides a user-friendly way to build from source with full version info:
-- Extracts git commit and branch
-- Calls `go install` with the same ldflags pattern as Makefile
-- Immediately verifies installation by running `issuegraph version`
-
-**Version Resolution Chain** (`@/modules/cli/version.go`, lines 116-163):
+**Version Resolution Chain** (`@/apps/cli/version.go`, lines 116-163):
 
 The version.go file implements functions that retrieve the injected information:
 
@@ -114,24 +87,24 @@ The version.go file implements functions that retrieve the injected information:
 **Critical Design Decision - Why Explicit Ldflags**:
 
 The Go toolchain (as of 1.18+) can automatically embed VCS information when compiling with `go build`, but this does NOT happen with `go install`. This creates an asymmetry:
-- `go build ./modules/cli` → automatically embeds vcs.revision and vcs.branch
-- `go install ./modules/cli` → does NOT embed VCS info automatically
+- `go build ./apps/cli` → automatically embeds vcs.revision and vcs.branch
+- `go install ./apps/cli` → does NOT embed VCS info automatically
 
 The solution is to explicitly pass git information as ldflags in all build configurations. This ensures:
 - Users who run `make install` get full version info
-- Users who run `go install ./modules/cli` need to explicitly set ldflags (via Makefile or script)
-- Released binaries from goreleaser have full version info (handled by goreleaser templates)
+- Users who run `go install ./apps/cli` need to explicitly set ldflags (via Makefile or script)
+- Released binaries have full version info (the release builder sets the same ldflags)
 - The version command is consistent regardless of installation method
 
 **Issue #503 Root Cause**:
 
-The original system relied on Go's automatic VCS embedding which only works with `go build`. When released binaries (built via goreleaser) or installed binaries (via `go install`) came without explicit ldflags, the `issuegraph version` command couldn't report commit and branch information.
+The original system relied on Go's automatic VCS embedding which only works with `go build`. When released binaries (built by the release builder) or installed binaries (via `go install`) came without explicit ldflags, the `issuegraph version` command couldn't report commit and branch information.
 
 The fix adds explicit ldflag injection at all build points, creating a reliable pipeline independent of Go's automatic VCS embedding feature.
 
 **Ldflag Variable Names**:
 
-The variables in `@/modules/cli/version.go` (lines 15-23) must match the ldflag paths in build configurations:
+The variables in `@/apps/cli/version.go` (lines 15-23) must match the ldflag paths in build configurations:
 - `main.Version` → Version variable
 - `main.Build` → Build variable
 - `main.Commit` → Commit variable
@@ -153,25 +126,11 @@ These are fully qualified with the package name (`main`) because the ldflag synt
 
 **Release Process Integration**:
 
-The build configuration integrates with `@/RELEASING.md`:
-1. Version tag is pushed to GitHub (e.g., `v0.29.0`)
-2. GitHub Actions/goreleaser automatically builds binaries for all platforms
-3. Goreleaser uses git metadata to populate `{{.Commit}}` and `{{.Branch}}` template variables
-4. Released binaries include full version info
-5. Users installing via any channel get consistent version reporting
-
-**Testing Version Information**:
-
-The test file `@/modules/cli/version_test.go` includes:
-- `TestResolveCommitHash`: Verifies ldflag values are prioritized
-- `TestResolveBranch`: Verifies ldflag values are prioritized  
-- `TestVersionOutputWithCommitAndBranch`: Verifies output formatting with real values
-
-These tests simulate build-time injection by directly setting the package variables, ensuring the resolution chain works correctly.
+Releases run through the `shipify` skill. It builds the binaries with the ldflags above, so released binaries include full version info and users installing via any channel get consistent version reporting.
 
 **Multi-Platform Consistency**:
 
-All 5 goreleaser build configurations use identical ldflag patterns. This ensures:
+All release builds use identical ldflag patterns. This ensures:
 - macOS (Intel and ARM) binaries have full version info
 - Linux (Intel and ARM) binaries have full version info
 - Windows binaries have full version info
@@ -180,7 +139,7 @@ All 5 goreleaser build configurations use identical ldflag patterns. This ensure
 **Dependency Requirements**:
 
 - **Makefile**: Requires `git` and `bash` to be available at install time
-- **Goreleaser**: Requires git tags and repository metadata (automatic in CI/CD)
+- **Release builder (shipify)**: Requires git tags and repository metadata
 - **Scripts**: Require `git` and `go` in PATH
 
 All are standard tools in development and CI/CD environments.

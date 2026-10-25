@@ -2076,7 +2076,7 @@ func TestListenRefusesAProviderThatFiresTheWorkspaceHooks(t *testing.T) {
 	}
 
 	// And the provider BENEATH the hook layer — the value the refusal sends a
-	// caller to, and what modules/cli hands Listen — has to be servable.
+	// caller to, and what apps/cli hands Listen — has to be servable.
 	srv, err := listen(uow.UnwrapProvider(notifying))
 	if err != nil {
 		t.Fatalf("Listen: %v, want a bound server for the provider beneath the hook layer", err)

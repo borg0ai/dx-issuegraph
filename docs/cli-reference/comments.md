@@ -1,6 +1,6 @@
 ---
 title: "issuegraph comments"
-description: "View or manage comments on an issue."
+description: "View or manage comments on an issue"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -11,19 +11,20 @@ View or manage comments on an issue.
 
 Examples:
   # List all comments on an issue (issue id is required — there is no "comments list")
-  issuegraph comments issuegraph-123
+  issuegraph comments bd-123
 
   # List comments in JSON format
-  issuegraph comments issuegraph-123 --json
+  issuegraph comments bd-123 --json
 
   # Add a comment
-  issuegraph comments add issuegraph-123 "This is a comment"
+  issuegraph comments add bd-123 "This is a comment"
 
   # Add a comment from a file
-  issuegraph comments add issuegraph-123 -f notes.txt
+  issuegraph comments add bd-123 -f notes.txt
 
 ```
 issuegraph comments [issue-id] [flags]
+issuegraph comments [command]
 ```
 
 **Flags:**
@@ -38,13 +39,13 @@ Add a comment to an issue.
 
 Examples:
   # Add a comment
-  issuegraph comments add issuegraph-123 "Working on this now"
+  issuegraph comments add bd-123 "Working on this now"
 
   # Add a comment from a file
-  issuegraph comments add issuegraph-123 -f notes.txt
+  issuegraph comments add bd-123 -f notes.txt
 
 ```
-issuegraph comments add [issue-id] [text] [flags]
+issuegraph comments add [issue-id] [text...] [flags]
 ```
 
 **Flags:**

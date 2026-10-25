@@ -52,14 +52,14 @@ type testRunner interface {
 func runTestsAndSweep(m testRunner) int {
 	code := m.Run()
 	swept := doltserver.SweepSuiteTestServers(testTempRoot)
-	return doltserver.ApplyLeakPolicy("modules/cli", code, swept)
+	return doltserver.ApplyLeakPolicy("apps/cli", code, swept)
 }
 
 // suiteRootPrefix is testMainInner's PinSuiteTempRoot pattern without its random
 // tail. It is what SweepDeadSuiteRoots globs for, so the two must not drift.
 const suiteRootPrefix = "issuegraph-issuegraph-tests-"
 
-// Guardrail: ensure the modules/cli test suite does not touch the real repo .issuegraph state.
+// Guardrail: ensure the apps/cli test suite does not touch the real repo .issuegraph state.
 // Disable with ISSUEGRAPH_TEST_GUARD_DISABLE=1 (useful when running tests while actively using issuegraph).
 func TestMain(m *testing.M) {
 	// Delegate to testMainInner so defers run before os.Exit.
@@ -152,7 +152,7 @@ func testMainInner(m *testing.M) int {
 	//
 	//   TempDir RemoveAll cleanup: unlinkat .../NNN: directory not empty
 	//
-	// which reddens the whole modules/cli package with no assertion failure in
+	// which reddens the whole apps/cli package with no assertion failure in
 	// sight. It is load-dependent, so it flaked intermittently on a busy
 	// machine (TestPrime_HookJSON_{Local,Redirected}PrimeOverride were the
 	// observed victims, but every subprocess test here was exposed).
@@ -186,7 +186,7 @@ func testMainInner(m *testing.M) int {
 	// Previously each test set/unset this env var via ensureTestMode(),
 	// which raced under t.Parallel().
 	_ = os.Setenv("ISSUEGRAPH_TEST_MODE", "1")
-	// AD-01 (be-c5p): opt the modules/cli test process into the dedicated
+	// AD-01 (be-c5p): opt the apps/cli test process into the dedicated
 	// test-server lane so dolt.New's database-name firewall allows
 	// testdb_*, benchdb_*, etc. on the spawned test container.
 	_ = os.Setenv("ISSUEGRAPH_TEST_SERVER", "1")

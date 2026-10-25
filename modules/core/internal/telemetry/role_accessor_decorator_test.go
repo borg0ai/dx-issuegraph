@@ -389,7 +389,7 @@ func TestInstrumentedStorageInstrumentsEveryRoleAccessor(t *testing.T) {
 }
 
 // TestExternalDepsReadyCounterSurvivesThisLayer pins the span across the one
-// decorator above this one that CANNOT recurse. modules/cli wires
+// decorator above this one that CANNOT recurse. apps/cli wires
 // hooks -> externaldeps -> telemetry -> store, and externaldeps has to build
 // its own ready counter over itself so the total honors its external-dependency
 // exclusions — recursing into the inner counter the way the accessors above do

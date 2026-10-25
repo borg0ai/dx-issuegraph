@@ -1,6 +1,6 @@
 ---
 title: "issuegraph prune"
-description: "Permanently delete closed non-ephemeral issuegraph and their associated data."
+description: "Delete old closed issuegraph to reclaim space and shrink exports"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -19,6 +19,12 @@ Use `--pattern '*'` if you really do want to sweep everything closed.
 
 Deletes: issues, dependencies, labels, events, and comments for matching issuegraph.
 Skips: pinned issuegraph (protected), open/in-progress issuegraph, and ephemeral issuegraph.
+
+Also skips closed issuegraph whose ID appears in the description, notes, or
+comments of any open / in-progress issue. This protects ADR / decision /
+verification trails that downstream issuegraph still cite. Use
+--ignore-references to override (e.g., when bulk-decommissioning a
+retired label across the rig).
 
 To delete closed ephemeral issuegraph (wisps, transient molecules) use
 `issuegraph purge` instead.
@@ -42,6 +48,7 @@ issuegraph prune [flags]
 ```
       --dry-run             Preview what would be pruned with stats
   -f, --force               Actually prune (without this, shows preview)
+      --ignore-references   Delete closed issuegraph even when referenced by open issuegraph (use with care; see --help for details)
       --older-than string   Only prune issuegraph closed more than N ago (e.g., 30d, 2w, 60)
       --pattern string      Only prune issuegraph matching ID glob pattern (e.g., 'gm-old-*')
 ```

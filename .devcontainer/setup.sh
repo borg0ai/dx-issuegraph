@@ -26,7 +26,7 @@ fi
 source "$(dirname "$0")/../.buildflags"
 
 echo "🔧 Building issuegraph from source..."
-go build -o issuegraph ./modules/cli
+go build -o issuegraph ./apps/cli
 
 echo "📦 Installing issuegraph globally..."
 sudo mv issuegraph /usr/local/bin/issuegraph

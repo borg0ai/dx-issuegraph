@@ -1,6 +1,6 @@
 ---
 title: "issuegraph backup"
-description: "Back up your issuegraph database for off-machine recovery."
+description: "Back up your issuegraph database"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -25,8 +25,23 @@ DoltHub is recommended for cloud backup:
   issuegraph backup init https://doltremoteapi.dolthub.com/&lt;user&gt;/&lt;repo&gt;
   Set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD for authentication.
 
+Auto-backup default:
+  When backup.enabled is unset, auto-backup turns ON in embedded mode if a
+  git remote exists, and stays OFF in sql-server / shared-server mode. In
+  server mode many issuegraph clients share one Dolt server, and each would register
+  a server-side backup remote under the same name pointing at its own local
+  dir and full-sync the whole database — a self-amplifying storm. To back up
+  a shared server, run 'issuegraph backup' explicitly (or set backup.enabled=true and
+  coordinate destinations). 'issuegraph config get backup.enabled' shows the effective
+  value and its source.
+
+  On a proxied-server workspace that opt-in does not apply: auto-backup has
+  no post-command hook on that path, so backup.enabled=true is inert there.
+  The five backup verbs above are honored on a managed-local proxied server —
+  run 'issuegraph backup sync' explicitly to back one up.
+
 ```
-issuegraph backup [flags]
+issuegraph backup [command]
 ```
 
 ## issuegraph backup init

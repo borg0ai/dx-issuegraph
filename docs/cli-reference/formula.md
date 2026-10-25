@@ -1,6 +1,6 @@
 ---
 title: "issuegraph formula"
-description: "Manage workflow formulas - the source layer for molecule templates."
+description: "Manage workflow formulas"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -19,11 +19,19 @@ Search paths (in order):
   4. $GT_ROOT/.issuegraph/formulas/ (shared workspace root, if GT_ROOT set)
 
 Commands:
-  list   List available formulas from all search paths
-  show   Show formula details, steps, and composition rules
+  list    List available formulas from all search paths
+  show    Show formula details, steps, and composition rules
+  schema  Show the formula schema index (alias: primitives)
+
+Discovering primitives:
+  issuegraph formula schema                 # list every declared formula struct
+  issuegraph formula schema loop            # show LoopSpec fields, types, and tags
+  issuegraph formula primitives gate        # alias; same handler as 'schema'
+  examples/formulas/primitives/     # curated, smoke-tested wired fixtures
+  docs/workflows/formulas.md          # narrative reference
 
 ```
-issuegraph formula [flags]
+issuegraph formula [command]
 ```
 
 ## issuegraph formula convert
@@ -69,6 +77,9 @@ Search paths (in order of priority):
 
 Formulas in earlier paths shadow those with the same name in later paths.
 
+To list the declared formula schema structs an agent can write inside a .formula.toml,
+use 'issuegraph formula schema' (alias: 'issuegraph formula primitives').
+
 Examples:
   issuegraph formula list
   issuegraph formula list --json
@@ -85,6 +96,30 @@ issuegraph formula list [flags]
       --type string   Filter by type (workflow, expansion, aspect, convoy)
 ```
 
+## issuegraph formula schema
+
+Show the formula schema index: every exported struct declared
+in a .formula.toml/.formula.json, with field names, types, and tags.
+
+The index is generated from internal/formula/types.go via go:generate; the
+struct definitions are the source of truth, so this list cannot drift. It is
+structural reference, not proof that every declared runtime behavior is wired.
+
+Examples:
+  issuegraph formula schema                 # list every declared schema struct
+  issuegraph formula schema loop            # show LoopSpec fields
+  issuegraph formula primitives gate        # alias; shows Gate fields
+  issuegraph formula schema --json          # machine-readable index
+
+Curated smoke-tested fixtures for wired primitives live in
+examples/formulas/primitives/ (with a smoke harness that proves they work).
+
+```
+issuegraph formula schema [primitive] [flags]
+```
+
+**Aliases:** primitives
+
 ## issuegraph formula show
 
 Show detailed information about a formula.
@@ -95,6 +130,9 @@ Displays:
   - Steps with dependencies
   - Composition rules (extends, aspects, expansions)
   - Bond points for external composition
+
+To inspect the structure of an individual primitive (e.g. LoopSpec, Gate)
+rather than a user-authored formula, use 'issuegraph formula schema &lt;primitive&gt;'.
 
 Examples:
   issuegraph formula show shiny

@@ -42,63 +42,13 @@ independently migrate. The full procedure is below.
 
 ## Upgrading
 
-Use the command that matches your install method.
+Use the command for your OS.
 
-| Install method | Platforms | Command |
+| OS | Package manager | Command |
 |---|---|---|
-| Quick install script | macOS, Linux, FreeBSD | `curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh \| bash` |
-| PowerShell installer | Windows | `irm https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/install.ps1 \| iex` |
-| Homebrew | macOS, Linux | `brew upgrade issuegraph` |
-| go install (server-mode only) | macOS, Linux, FreeBSD, Windows | `CGO_ENABLED=0 go install github.com/borg0ai/dx-issuegraph/modules/cli@latest` |
-| go install (embedded-capable) | macOS, Linux, Windows | `CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest` |
-| npm | macOS, Linux, Windows | `npm update -g @borg0ai/issuegraph` |
-| bun | macOS, Linux, Windows | `bun install -g --trust @borg0ai/issuegraph` |
-| From source (Unix shell) | macOS, Linux, FreeBSD | `git pull && make build` |
-
-### Quick install script (macOS/Linux/FreeBSD)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
-```
-
-### PowerShell installer (Windows)
-
-```pwsh
-irm https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/install.ps1 | iex
-```
-
-### Homebrew
-
-```bash
-brew upgrade issuegraph
-```
-
-If you installed `issuegraph` from another Homebrew source, switch to the
-canonical IssueGraph tap:
-
-```bash
-brew uninstall issuegraph
-brew install systembugtj/luban-homebrew/issuegraph
-```
-
-### go install
-
-```bash
-# Server-mode only
-CGO_ENABLED=0 go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
-
-# Embedded-capable
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
-```
-
-### From Source
-
-```bash
-cd issuegraph
-git pull
-make build
-sudo mv issuegraph /usr/local/bin/
-```
+| macOS | Homebrew | `brew upgrade issuegraph` |
+| Linux | Nix | `nix profile upgrade issuegraph` |
+| Windows | Scoop | `scoop update issuegraph` |
 
 ## After Upgrading
 
@@ -545,11 +495,11 @@ only from the official `borg0ai/dx-issuegraph` release and verify the asset with
 published SHA-256:
 
 ```bash
-sha256sum -c checksums.txt --ignore-missing
+sha256sum -c SHA256SUMS --ignore-missing
 ```
 
 On macOS or BSD, use `shasum -a 256` on the downloaded archive and compare
-the result with that archive's entry in `checksums.txt`.
+the result with that archive's entry in `SHA256SUMS`.
 
 ```bash
 scripts/migrate-legacy-to-current.sh \

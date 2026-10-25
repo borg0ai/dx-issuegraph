@@ -23,7 +23,7 @@ type BatchCreateOptions struct {
 	// every stored column but still merges its aux data — updated_at has
 	// second granularity, so a tie may be two distinct same-second updates
 	// and the local row wins it (bd-hj85c). This is the transactional half
-	// of the import stale guard (bd-pkim8): modules/cli's filterStaleImportIssues
+	// of the import stale guard (bd-pkim8): apps/cli's filterStaleImportIssues
 	// reads local updated_at before the batch write, so a local update
 	// committing in between would otherwise be silently overwritten (the
 	// PR 4204 race). Set by `issuegraph import` unless --allow-stale; create paths

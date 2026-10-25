@@ -38,7 +38,7 @@ type closeDirectPlan struct {
 //
 // Neither check is library policy — the template/pin/assignee fence and gate
 // satisfaction read the issue and nothing else, and the role has no vocabulary
-// for either — which is why they stay in modules/cli. It is closeProxiedRunPreflight's
+// for either — which is why they stay in apps/cli. It is closeProxiedRunPreflight's
 // job on this route.
 //
 // The open-children guard is NOT here, and that is the point: the engine

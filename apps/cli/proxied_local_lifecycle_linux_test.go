@@ -18,7 +18,7 @@ package main
 //
 // Run locally with:
 //
-//	ISSUEGRAPH_TEST_PROXIED_LOCAL=1 go test -tags gms_pure_go ./modules/cli \
+//	ISSUEGRAPH_TEST_PROXIED_LOCAL=1 go test -tags gms_pure_go ./apps/cli \
 //	    -run '^TestManagedLocalProxied' -v
 //
 // CI additionally runs it inside a network namespace with only loopback up

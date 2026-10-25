@@ -883,7 +883,7 @@ func TestProxiedServerDepConcurrent(t *testing.T) {
 // TestProxiedServerDepListSingleIDWarnsOnDroppedExternalEdge is the
 // proxied-server counterpart to TestEmbeddedDepListSingleIDWarnsOnDroppedExternalEdge
 // (dep_list_cross_db_test.go): the regression guard for bd-mtla on the
-// runDepListProxiedServer path (modules/cli/dep_proxied_server.go), which gastown's
+// runDepListProxiedServer path (apps/cli/dep_proxied_server.go), which gastown's
 // live-dolt-server deployment actually runs.
 //
 // `issuegraph link` correctly writes an edge to an `external:` target (no row in any

@@ -92,7 +92,6 @@ func init() {
 
 	jiraCmd.AddCommand(jiraSyncCmd)
 	jiraCmd.AddCommand(jiraStatusCmd)
-	rootCmd.AddCommand(jiraCmd)
 }
 
 func runJiraSync(cmd *cobra.Command, args []string) error {

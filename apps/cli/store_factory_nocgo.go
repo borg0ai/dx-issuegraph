@@ -134,9 +134,7 @@ Three options:
        issuegraph init --server
      Requires a running 'dolt sql-server'. See docs/architecture/dolt.md.
 
-  3. Reinstall with embedded-mode support:
-       brew install issuegraph                              # macOS / Linux
-       npm install -g @borg0ai/issuegraph                        # any platform with Node
-       curl -fsSL https://raw.githubusercontent.com/borg0ai/issuegraph/main/scripts/install.sh | bash
+  3. Reinstall a release build with embedded-mode support (Homebrew, Nix or Scoop;
+     see the README Installation section).
 
 See docs/getting-started/installation.md for the full comparison.`

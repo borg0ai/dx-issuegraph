@@ -80,9 +80,9 @@ func openCached(ctx context.Context, issuegraphDir, database, branch string, int
 		// safe today because intent is derived once per process from the
 		// command classification (isReadOnlyCommand /
 		// isWorkingSetReconcileCommand / isRemoteSyncCommand in
-		// modules/cli/main.go), so a single process never opens the same data
+		// apps/cli/main.go), so a single process never opens the same data
 		// directory under two different intents, and autoMigrateOnVersionBump
-		// (modules/cli/version_tracking.go) always opens its own openStrict store
+		// (apps/cli/version_tracking.go) always opens its own openStrict store
 		// and closes it before the main command's open runs, so it never
 		// races a cache hit either. A future caller needing a genuinely
 		// different intent on a cache hit would have to plumb intent through

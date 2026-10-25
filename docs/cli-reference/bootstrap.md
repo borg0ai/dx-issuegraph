@@ -1,6 +1,6 @@
 ---
 title: "issuegraph bootstrap"
-description: "Bootstrap sets up the issuegraph database without destroying existing data."
+description: "Non-destructive database setup for fresh clones and recovery"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -17,6 +17,9 @@ Bootstrap auto-detects the right action:
   • If .issuegraph/issues.jsonl exists: imports from git-tracked JSONL
   • If no database exists: creates a fresh one
   • If database already exists: validates and reports status
+
+If sync.remote points at a git repository, bootstrap verifies refs/dolt/data
+before cloning. Bootstrap exits non-zero when it cannot set up a database.
 
 This is the recommended command for:
   • Setting up issuegraph on a fresh clone

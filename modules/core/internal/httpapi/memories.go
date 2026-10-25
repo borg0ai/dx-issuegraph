@@ -158,7 +158,7 @@ func (s *Server) handleGetMemory(w http.ResponseWriter, r *http.Request) {
 	// the status reports the distinctions the FRONT DOOR already reports, and
 	// the two front doors differ: `issuegraph config get` on an absent key prints
 	// "(not set)" and exits 0, so getSetting has no 404 to give; `issuegraph recall` on
-	// a miss prints to stderr and exits 1 (printRecallResult in modules/cli, via
+	// a miss prints to stderr and exits 1 (printRecallResult in apps/cli, via
 	// SilentExit), and the role answers Found rather than a bare value, so the
 	// status here reports a distinction that exists rather than inventing one.
 	//

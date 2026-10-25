@@ -3,7 +3,7 @@
 // IssueReader accessor hands back.
 //
 // It is a package of its own rather than a file in internal/workapi for one
-// reason. internal/workapi is the builders' home and 22 modules/cli files import
+// reason. internal/workapi is the builders' home and 22 apps/cli files import
 // it, so a constructor living there was a one-line drop-in replacement for
 // store.IssueReader() from any front door — and one that silently skips the
 // telemetry decorator's reader-level spans, because a decorator adds its layer

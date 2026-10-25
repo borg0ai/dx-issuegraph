@@ -44,7 +44,7 @@ func cycleErrorf(format string, args ...any) error {
 }
 
 // NewCycleError is the exported entry point for cycleErrorf. The embedded bulk
-// CLI final gate (modules/cli/dep.go addBulkDependenciesInTx) lives in a different
+// CLI final gate (apps/cli/dep.go addBulkDependenciesInTx) lives in a different
 // package but must type its cycle rejection identically to this bulk path, so it
 // builds the same errors.Is-matchable-but-text-preserving error through here
 // rather than duplicating the cycleError wrapper.
@@ -744,7 +744,7 @@ func (u *dependencyUseCaseImpl) AddDependencies(ctx context.Context, deps []*typ
 				}
 			}
 			// The explicit `issuegraph dep add` / `issuegraph link` verb on the proxied server
-			// (modules/cli/dep_proxied_server.go, link_proxied_server.go) records a
+			// (apps/cli/dep_proxied_server.go, link_proxied_server.go) records a
 			// dependency_added event for each genuine new edge — unlike
 			// create-with-deps, which calls depRepo.Insert directly without
 			// EmitEvent. UseWispsTable routes both the edge and that event to

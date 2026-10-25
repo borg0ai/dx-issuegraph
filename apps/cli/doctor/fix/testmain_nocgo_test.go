@@ -43,6 +43,6 @@ func testMainInner(m *testing.M) int {
 
 	code := m.Run()
 	swept := doltserver.SweepSuiteTestServers(root)
-	code = doltserver.ApplyLeakPolicy("modules/cli/doctor/fix", code, swept)
+	code = doltserver.ApplyLeakPolicy("apps/cli/doctor/fix", code, swept)
 	return code
 }

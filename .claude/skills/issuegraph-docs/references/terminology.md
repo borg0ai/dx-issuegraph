@@ -13,7 +13,7 @@ the binary still prints, the docs now lie.
 2. **Rename prose only**, with judgment per occurrence — fix articles and
    grammar so it reads naturally.
 3. **Preserve literals:**
-   - Real program output inside a code fence. Verify against `modules/cli/` and
+   - Real program output inside a code fence. Verify against `apps/cli/` and
      `internal/` source; if the binary prints it, the doc must match.
    - Command and subcommand names (`issuegraph mol`, `issuegraph dep`), flags, JSON field
      names, config keys (`.issuegraph/config.yaml`), label names (a proto's
@@ -24,7 +24,7 @@ the binary still prints, the docs now lie.
    - **Generated files** (`docs/cli-reference/*`, `docs/CLI_REFERENCE.md`,
      the CLI pages array in `docs/docs.json`, `website/docs/cli-reference/`):
      never hand-edit. If the term must change there, change the Cobra strings
-     in `modules/cli/*.go` and run `./scripts/generate-cli-docs.sh`.
+     in `apps/cli/*.go` and run `./scripts/generate-cli-docs.sh`.
 4. **Don't touch the code or `engdocs/` implementation names** as part of a
    docs rename unless explicitly asked. Renaming the binary's output strings
    is a separate Go PR (with regenerated CLI docs), worth flagging as a

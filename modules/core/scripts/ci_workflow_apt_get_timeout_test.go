@@ -59,17 +59,6 @@ func aptStepBudgets() []aptStepBudget {
 			installPkgs:    "jq libicu74",
 			capMinutes:     11,
 		},
-		{
-			workflow:       "release.yml",
-			job:            "goreleaser",
-			step:           "Install cross-compilation toolchains and signing tools",
-			updateAttempts: 3,
-			updateTimeout:  120,
-			backoff:        10,
-			installTimeout: 300,
-			installPkgs:    "gcc-mingw-w64-x86-64 gcc-aarch64-linux-gnu osslsigncode",
-			capMinutes:     13,
-		},
 	}
 }
 

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/borg0ai/dx-issuegraph/internal/doltremote"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 )
 
 // Unit tests for the git-origin collision guard helpers:

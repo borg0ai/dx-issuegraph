@@ -1,6 +1,6 @@
 ---
 title: "issuegraph delete"
-description: "Delete one or more issues and clean up all references to them."
+description: "Delete one or more issues and clean up references"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -17,7 +17,7 @@ This is a destructive operation that cannot be undone. Use with caution.
 
 BATCH DELETION:
 Delete multiple issues at once:
-  issuegraph delete issuegraph-1 issuegraph-2 issuegraph-3 --force
+  issuegraph delete bd-1 bd-2 bd-3 --force
 
 Delete from file (one ID per line):
   issuegraph delete --from-file deletions.txt --force
@@ -25,15 +25,15 @@ Delete from file (one ID per line):
 Preview before deleting:
   issuegraph delete --from-file deletions.txt --dry-run
 
-DEPENDENCY HANDLING:
+DEPENDENCY HANDLING (the same on a local database and against a team server):
 Default: Fails if any issue has dependents not in deletion set
-  issuegraph delete issuegraph-1 issuegraph-2
+  issuegraph delete bd-1 bd-2
 
 Cascade: Recursively delete all dependents
-  issuegraph delete issuegraph-1 --cascade --force
+  issuegraph delete bd-1 --cascade --force
 
 Force: Delete and orphan dependents
-  issuegraph delete issuegraph-1 --force
+  issuegraph delete bd-1 --force
 
 ```
 issuegraph delete <issue-id> [issue-id...] [flags]

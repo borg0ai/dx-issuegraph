@@ -138,7 +138,7 @@ Comprehensive race detector tests ensure concurrency safety:
 - `TestFlushManagerShutdownDuringOperation` - Shutdown while operations ongoing
 - `TestMarkDirtyAndScheduleFlushConcurrency` - Integration test with legacy API
 
-Run with: `go test -race -run TestFlushManager ./modules/cli`
+Run with: `go test -race -run TestFlushManager ./apps/cli`
 
 ### In-Process Test Compatibility
 

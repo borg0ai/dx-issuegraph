@@ -10,7 +10,7 @@ Generated from `issuegraph help --doc epic`.
 Epic management commands
 
 ```
-issuegraph epic [flags]
+issuegraph epic [command]
 ```
 
 ## issuegraph epic close-eligible
@@ -24,7 +24,8 @@ issuegraph epic close-eligible [flags]
 **Flags:**
 
 ```
-      --dry-run   Preview what would be closed without making changes
+      --dry-run         Preview what would be closed without making changes
+  -r, --reason string   Close reason applied to every epic closed (default "All children completed")
 ```
 
 ## issuegraph epic status

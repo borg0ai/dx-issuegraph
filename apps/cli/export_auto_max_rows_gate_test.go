@@ -14,7 +14,7 @@ import (
 // TestExportAuto_FilterHasZeroMaxRows is the be-x42v.4 opt-out gate for
 // `issuegraph export --auto` (the incremental auto-export run from
 // PersistentPostRun). Asserts that exportToFile — the shared helper
-// behind both `issuegraph export -o` and auto-export, at modules/cli/export_auto.go:140
+// behind both `issuegraph export -o` and auto-export, at apps/cli/export_auto.go:140
 // — never constructs an IssueFilter with MaxRows>0 or a non-empty
 // MaxRowsSource.
 //
@@ -29,7 +29,7 @@ import (
 // runs guard checks first) so the test exercises the round-trip path
 // without depending on config.export.auto being set in the test rig.
 //
-// Build tags: cgo (matches existing cgo modules/cli tests).
+// Build tags: cgo (matches existing cgo apps/cli tests).
 func TestExportAuto_FilterHasZeroMaxRows(t *testing.T) {
 	if testDoltServerPort == 0 {
 		t.Skip("Dolt test server not available")

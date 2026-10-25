@@ -1,6 +1,6 @@
 ---
 title: "issuegraph set-state"
-description: "Atomically set operational state on an issue."
+description: "Set operational state (creates event + updates label)"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}

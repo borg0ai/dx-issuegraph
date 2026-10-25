@@ -937,68 +937,6 @@ func TestGitAddFile_CapturesLockedIndexFailure(t *testing.T) {
 	}
 }
 
-func TestAutoExportGitAddFailureExitsNonZero(t *testing.T) {
-	if _, err := exec.LookPath("git"); err != nil {
-		t.Skip("git not available")
-	}
-
-	issuegraph := buildIssueGraphForInitTests(t)
-	dir := t.TempDir()
-	env := append(autoExportDataLossTestEnv(dir), "ISSUEGRAPH_NON_INTERACTIVE=1")
-
-	runGit := func(args ...string) {
-		t.Helper()
-		c := exec.Command("git", args...)
-		c.Dir = dir
-		if out, err := c.CombinedOutput(); err != nil {
-			t.Fatalf("git %v: %v\n%s", args, err, out)
-		}
-	}
-	runGit("init", "-q")
-
-	run := func(args ...string) string {
-		t.Helper()
-		cmd := exec.Command(issuegraph, args...)
-		cmd.Dir = dir
-		cmd.Env = env
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			t.Fatalf("issuegraph %v failed: %v\n%s", args, err, out)
-		}
-		return string(out)
-	}
-
-	run("init", "--prefix", "agf", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
-	if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte(".issuegraph/\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	run("config", "set", "export.interval", "1ms")
-	run("config", "set", "export.auto", "true")
-	run("config", "set", "export.git-add", "true")
-	if err := os.Remove(filepath.Join(dir, ".issuegraph", exportAutoStateFile)); err != nil && !os.IsNotExist(err) {
-		t.Fatal(err)
-	}
-	time.Sleep(10 * time.Millisecond)
-
-	cmd := exec.Command(issuegraph, "create", "caller visible git add failure", "-p", "2")
-	cmd.Dir = dir
-	cmd.Env = env
-	out, err := cmd.CombinedOutput()
-	if err == nil {
-		t.Fatalf("issuegraph create succeeded despite auto-export git add failure:\n%s", out)
-	}
-	output := string(out)
-	if !strings.Contains(output, "Error: auto-export: git add failed") {
-		t.Fatalf("expected caller-visible auto-export git add error, got:\n%s", output)
-	}
-	if !strings.Contains(strings.ToLower(output), "ignored") {
-		t.Fatalf("expected git add stderr to explain ignored path, got:\n%s", output)
-	}
-	if _, err := os.Stat(filepath.Join(dir, ".issuegraph", exportAutoStateFile)); !os.IsNotExist(err) {
-		t.Fatalf("git-add failure should not save export state, stat err=%v", err)
-	}
-}
-
 // TestGitAddFile_RedirectCase_DoesNotStageInMainRepo regresses the
 // silent-stage-in-main follow-up from the GH#3311 review: when a worktree
 // has .issuegraph/redirect -> main/.issuegraph, the worktree's pre-commit hook must
@@ -1288,6 +1226,11 @@ func TestAutoExportSkipsEmptyExportOverPopulatedJSONL(t *testing.T) {
 	}
 
 	run("init", "--prefix", "dl", "--non-interactive")
+	// Snapshots are on by default; this test needs the opt-in premise so no export
+	// state exists before the guarded skip it is checking. init already ran one
+	// default-on export cycle, so drop the state it left behind.
+	run("config", "set", "export.auto", "false")
+	_ = os.Remove(filepath.Join(dir, ".issuegraph", exportAutoStateFile))
 	run("config", "set", "export.path", "custom.jsonl")
 
 	jsonlPath := filepath.Join(dir, ".issuegraph", "custom.jsonl")
@@ -1332,6 +1275,11 @@ func TestAutoExportSkipsWhenExistingJSONLHasIDsMissingFromStore(t *testing.T) {
 	}
 
 	run("init", "--prefix", "dl", "--non-interactive")
+	// Snapshots are on by default; this test needs the opt-in premise so no export
+	// state exists before the guarded skip it is checking. init already ran one
+	// default-on export cycle, so drop the state it left behind.
+	run("config", "set", "export.auto", "false")
+	_ = os.Remove(filepath.Join(dir, ".issuegraph", exportAutoStateFile))
 	run("config", "set", "export.path", "custom.jsonl")
 	run("create", "local issue", "-p", "2")
 
@@ -2300,7 +2248,7 @@ func TestTryIncrementalExport_PatchedLinesIncludeTypeField(t *testing.T) {
 // doesn't break the default path). TestBuildServerDSN_PoolTimeouts
 // (internal/storage/dolt/store_unit_test.go) already covers that
 // Config.PoolReadTimeout is formatted into the DSN correctly — this test is
-// at the modules/cli harness layer instead, against the real test Dolt server, to
+// at the apps/cli harness layer instead, against the real test Dolt server, to
 // prove the new newTestStoreSharedBranchWithReadTimeout/
 // newTestStoreWithPrefixAndReadTimeout plumbing actually threads the caller's
 // value through to that mechanism.

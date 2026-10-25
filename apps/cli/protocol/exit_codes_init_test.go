@@ -168,7 +168,7 @@ func TestProtocol_ExitCode12_DestroyTokenMissing(t *testing.T) {
 
 // TestProtocol_ExitCode11_LocalExistsRefused is the §E3 gap: exit 11 is
 // returned only from the INTERACTIVE typed-confirmation abort in
-// `issuegraph init --reinit-local` (modules/cli/init.go, guarded by term.IsTerminal on
+// `issuegraph init --reinit-local` (apps/cli/init.go, guarded by term.IsTerminal on
 // stdin). The non-interactive branch of the same guard returns 12 instead, so
 // no piped-stdin subprocess can produce 11 — pinning it needs a PTY-backed run
 // helper, tracked in wy-vh5y8. Un-skip when that lands.

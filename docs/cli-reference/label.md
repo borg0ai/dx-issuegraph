@@ -10,15 +10,15 @@ Generated from `issuegraph help --doc label`.
 Manage issue labels
 
 ```
-issuegraph label [flags]
+issuegraph label [command]
 ```
 
 ## issuegraph label add
 
-Add a label to one or more issues
+Add labels to issues. Issue IDs come first; the final argument is the label. Pass multiple labels comma-separated: issuegraph label add bd-123 label1,label2
 
 ```
-issuegraph label add [issue-id...] [label] [flags]
+issuegraph label add [issue-id...] [label[,label...]] [flags]
 ```
 
 ## issuegraph label list
@@ -47,8 +47,8 @@ issuegraph label propagate [parent-id] [label] [flags]
 
 ## issuegraph label remove
 
-Remove a label from one or more issues
+Remove labels from issues. Issue IDs come first; the final argument is the label. Pass multiple labels comma-separated: issuegraph label remove bd-123 label1,label2
 
 ```
-issuegraph label remove [issue-id...] [label] [flags]
+issuegraph label remove [issue-id...] [label[,label...]] [flags]
 ```

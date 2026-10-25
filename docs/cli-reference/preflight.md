@@ -1,6 +1,6 @@
 ---
 title: "issuegraph preflight"
-description: "Display a checklist of common pre-PR checks for contributors."
+description: "Show PR readiness checklist"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -14,7 +14,6 @@ This command helps catch common issues before pushing to CI:
 - Lint errors
 - Unformatted Go files
 - .issuegraph/issues.jsonl pollution
-- Stale nix vendorHash
 - Version mismatches
 
 Examples:
@@ -32,7 +31,6 @@ issuegraph preflight [flags]
 
 ```
       --check       Run checks automatically
-      --fix         Auto-fix issues where possible (not yet implemented)
       --json        Output results as JSON
       --skip-lint   Skip lint check explicitly
 ```

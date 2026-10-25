@@ -16,7 +16,7 @@ func TestProxiedServerLint(t *testing.T) {
 	issuegraph := buildEmbeddedBD(t)
 	p := newSharedProxiedProject(t, issuegraph, "lnt")
 
-	// Seed mirrors modules/cli/lint_embedded_test.go.
+	// Seed mirrors apps/cli/lint_embedded_test.go.
 	// Bug without template sections -> warning.
 	bugBare := issuegraphProxiedCreate(t, issuegraph, p.dir, "Bug without template", "--type", "bug",
 		"--description", "Something is broken")
@@ -184,7 +184,7 @@ func TestProxiedServerStale(t *testing.T) {
 	issuegraph := buildEmbeddedBD(t)
 	p := newSharedProxiedProject(t, issuegraph, "stl")
 
-	// Seed mirrors modules/cli/stale_embedded_test.go.
+	// Seed mirrors apps/cli/stale_embedded_test.go.
 	stale1 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Stale open issue", "--type", "task")
 	stale2 := issuegraphProxiedCreate(t, issuegraph, p.dir, "Stale in_progress issue", "--type", "task")
 	issuegraphProxiedUpdate(t, issuegraph, p.dir, stale2.ID, "--status", "in_progress")

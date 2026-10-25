@@ -38,7 +38,7 @@ func proxiedWorkspaceConfig() (issueops.WorkspaceConfig, error) {
 // setting per call and commits each, as its contract says, so routing this
 // through it would turn a three-key batch into three commits.
 //
-// It does NOT re-implement the role's refusals: modules/cli/config.go applies them
+// It does NOT re-implement the role's refusals: apps/cli/config.go applies them
 // to every pair, before any of them is written.
 func runConfigSetManyProxiedServer(ctx context.Context, keys, values []string) error {
 	if len(keys) == 0 {

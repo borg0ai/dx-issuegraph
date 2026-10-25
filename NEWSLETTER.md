@@ -81,8 +81,6 @@ Contributors: coffeegoddd (Dustin Brown / DoltHub), matt wilkie (maphew), harry-
 ## Upgrade
 
 ```bash
-brew upgrade issuegraph
-# or
 curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
 ```
 

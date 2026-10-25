@@ -18,7 +18,7 @@ import (
 // transaction, and stages only the table it touched so an unrelated dirty
 // working set is not swept under this commit.
 //
-// orderDoctorFixes (modules/cli/doctor_fix.go) pins this fix to run LAST in a
+// orderDoctorFixes (apps/cli/doctor_fix.go) pins this fix to run LAST in a
 // `issuegraph doctor --fix` pass, after every graph-mutating fix — so a stale/wrong
 // connection here would land a DOLT_COMMIT into another project's history
 // even when every earlier fix correctly aborted on the same mismatched

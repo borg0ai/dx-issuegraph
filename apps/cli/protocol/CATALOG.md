@@ -23,7 +23,7 @@ so a `issuegraph` release can never silently change a wire shape the consumer pa
   the corpus twice and asserts byte-identity.
 
 Regenerate after any deliberate wire change: `make corpus-regen`, review the
-diff, **and bump `JSONSchemaVersion` (`modules/cli/output.go`)** — the `schema_version`
+diff, **and bump `JSONSchemaVersion` (`apps/cli/output.go`)** — the `schema_version`
 field in every blob is the coordination canary a downstream consumer keys its
 pinned-decoder migration off.
 

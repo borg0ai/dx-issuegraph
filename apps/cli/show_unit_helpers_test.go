@@ -49,7 +49,7 @@ func TestValidateIssueClosable(t *testing.T) {
 	// ga-ktn9pe.4.8: a closed row carrying pinned=true is the residue left by a
 	// forced close, and this guard still refuses it — closed status earns no
 	// exemption from the boolean trigger. Idempotent re-close was restored by
-	// ORDERING instead: modules/cli/close.go and close_proxied_server.go skip close
+	// ORDERING instead: apps/cli/close.go and close_proxied_server.go skip close
 	// validation entirely for a row already closed at resolve time, so this guard
 	// is never reached on the no-op retry. Do not "simplify" it by exempting
 	// closed here — that would also disarm the guard on live status transitions.

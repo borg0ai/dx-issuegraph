@@ -165,7 +165,7 @@ func runTestScriptWithFakeGo(t *testing.T, callerBinary string) []string {
 		`PATH="$ISSUEGRAPH_TEST_COMMAND_PATH"; export PATH; exec "$BASH" --noprofile --norc "$1" "$2"`,
 		"test-script",
 		shellPathUnderEnv(t, bash, filepath.Join(repoRoot, "scripts", "test.sh"), env),
-		"./modules/cli",
+		"./apps/cli",
 	)
 	cmd.Dir = repoRoot
 	cmd.Env = env

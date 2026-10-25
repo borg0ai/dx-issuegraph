@@ -8,7 +8,7 @@ import (
 
 // The record envelope every consumer of the journal receives, in ONE place.
 //
-// It started in modules/cli as the shape `issuegraph events tail` printed, and moved here
+// It started in apps/cli as the shape `issuegraph events tail` printed, and moved here
 // when GET /v0/issuegraph/events published the same records over HTTP. Two encoders
 // of the same journal row is exactly the drift this package exists to prevent:
 // the CLI's JSONL output is byte-pinned by the protocol corpus, so a second

@@ -53,8 +53,13 @@ issuegraph version
 # Via Homebrew (macOS/Linux)
 brew upgrade issuegraph
 
-# Via install script
-curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
+# Via your package manager
+# macOS (Homebrew)
+brew install systembugtj/luban-homebrew/issuegraph
+# Linux (Nix)
+nix profile install github:systembugtj/cangjie-nix#issuegraph
+# Windows (Scoop)
+scoop bucket add shennong https://github.com/systembugtj/shennong-bucket && scoop install shennong/issuegraph
 
 # Via package manager
 # See https://github.com/borg0ai/dx-issuegraph#installing

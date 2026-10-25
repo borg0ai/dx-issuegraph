@@ -499,7 +499,7 @@ func renderImportOutcome(result importResultJSON, source string, dedupHits int) 
 
 // importTitleSearcher is the read seam the --dedup filter needs. It lives in
 // THIS file because naming types.IssueFilter is denied by default under
-// modules/cli and import.go is the named exception for the bulk-movement family
+// apps/cli and import.go is the named exception for the bulk-movement family
 // (.golangci.yml, forbidigo): the classic storage.DoltStorage satisfies it
 // directly, and uowImportTitleSearcher adapts the proxied unit of work.
 type importTitleSearcher interface {

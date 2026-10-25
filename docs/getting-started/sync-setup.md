@@ -260,8 +260,10 @@ issuegraph dolt pull
 This was a bug in issuegraph < 0.59.0. Upgrade issuegraph:
 
 ```bash
+# macOS / Linux / Windows
 brew upgrade issuegraph
-# or re-run the install script
+nix profile upgrade issuegraph
+scoop update issuegraph
 ```
 
 ### issuegraph list shows nothing after clone

@@ -69,7 +69,7 @@ func TestProxyCapabilityRegistryCoversCommandTree(t *testing.T) {
 	sort.Strings(missing)
 	if len(missing) > 0 {
 		t.Fatalf("%d command(s) have no proxied-server capability row:\n  %s\n\n"+
-			"Add each to modules/cli/capability_registry.go: proxyPermittedPaths if the proxied "+
+			"Add each to apps/cli/capability_registry.go: proxyPermittedPaths if the proxied "+
 			"front door should let it through, or a refusedPath row with a Reason if it should not.",
 			len(missing), strings.Join(missing, "\n  "))
 	}

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
 )
 
 // maxLabelExamples caps how many damaged labels the detail line names, so a

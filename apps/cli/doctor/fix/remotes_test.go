@@ -151,7 +151,7 @@ func TestDestructiveFix_AbortsOnProjectIdentityMismatch(t *testing.T) {
 
 	// Same guard must apply to the other destructive fix entrypoints that
 	// share openDoltDB/openFixDB, including RecomputeBlocked — which
-	// orderDoctorFixes (modules/cli/doctor_fix.go) runs LAST in a `issuegraph doctor
+	// orderDoctorFixes (apps/cli/doctor_fix.go) runs LAST in a `issuegraph doctor
 	// --fix` pass, after every graph-mutating fix, and which would otherwise
 	// still land a DOLT_COMMIT into the wrong project's history.
 	for name, fn := range map[string]func(string) error{

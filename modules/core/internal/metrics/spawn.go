@@ -186,7 +186,7 @@ func MaybeSpawnFlusher() {
 	// project .issuegraph/.env that set ISSUEGRAPH_METRICS_ENDPOINT; an inherited value
 	// would let a hostile repository redirect where the user's telemetry is
 	// uploaded. Pin the endpoint to the value the parent already resolved from
-	// env + user-global config (see resolveMetricsEndpoint in modules/cli) and mark
+	// env + user-global config (see resolveMetricsEndpoint in apps/cli) and mark
 	// the child as the flusher so it cannot recurse.
 	cmd.Env = flusherChildEnv(os.Environ(), Endpoint())
 	if _, err := startDetached(cmd); err != nil {

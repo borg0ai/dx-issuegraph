@@ -45,10 +45,10 @@ import (
 // OVERSIGHT. A capability in this repo is a role plus an accessor
 // (engdocs/ADDING_AN_ISSUEOPS_ROLE.md), and Importer has exactly one accessor:
 // uow.ImporterSource, served by the unit-of-work provider and reached in
-// production by modules/cli/import_proxied_server.go. storage.DoltStorage has no
+// production by apps/cli/import_proxied_server.go. storage.DoltStorage has no
 // Importer() — it is the only uow capability source with no counterpart there
 // — so on the two store backends `issuegraph import` still runs the raw seam
-// (store.CreateIssuesWithFullOptions, modules/cli/import_shared.go) and there is no
+// (store.CreateIssuesWithFullOptions, apps/cli/import_shared.go) and there is no
 // role for a contract to hold. Giving them one means a new method on the
 // storage interface and a new body behind it at two backends, which is API
 // work rather than test work.
@@ -344,7 +344,7 @@ func RunImporterReportsTheCycleEdgeItDropped(t *testing.T, ctx context.Context, 
 }
 
 // runImporterBatch imports issues under the option set `issuegraph import` actually
-// sends (modules/cli/import_proxied_server.go): stale rows rejected in the
+// sends (apps/cli/import_proxied_server.go): stale rows rejected in the
 // transaction, and an explicit import admitting ids outside the workspace's
 // configured prefix. It fails the test on an error, because every case here is
 // about a batch that LANDS — the refusals belong to BatchCreator.

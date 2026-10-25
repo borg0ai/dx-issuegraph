@@ -1,6 +1,6 @@
 ---
 title: "issuegraph completion"
-description: "Generate the autocompletion script for issuegraph for the specified shell."
+description: "Generate the autocompletion script for the specified shell"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -12,7 +12,7 @@ See each sub-command's help for details on how to use the generated script.
 
 
 ```
-issuegraph completion [flags]
+issuegraph completion [command]
 ```
 
 ## issuegraph completion bash
@@ -28,11 +28,11 @@ To load completions in your current shell session:
 
 To load completions for every new session, execute once:
 
-### Linux:
+#### Linux:
 
 	issuegraph completion bash &gt; /etc/bash_completion.d/issuegraph
 
-### macOS:
+#### macOS:
 
 	issuegraph completion bash &gt; $(brew --prefix)/etc/bash_completion.d/issuegraph
 
@@ -111,13 +111,13 @@ To load completions in your current shell session:
 
 To load completions for every new session, execute once:
 
-### Linux:
+#### Linux:
 
-	issuegraph completion zsh &gt; "$&#123;fpath[1]&#125;/_bd"
+	issuegraph completion zsh &gt; "$&#123;fpath[1]&#125;/_issuegraph"
 
-### macOS:
+#### macOS:
 
-	issuegraph completion zsh &gt; $(brew --prefix)/share/zsh/site-functions/_bd
+	issuegraph completion zsh &gt; $(brew --prefix)/share/zsh/site-functions/_issuegraph
 
 You will need to start a new shell for this setup to take effect.
 

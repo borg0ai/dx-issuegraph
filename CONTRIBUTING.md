@@ -33,7 +33,7 @@ make install
 
 ```
 issuegraph/
-├── modules/cli/              # CLI entry point and commands
+├── apps/cli/              # CLI entry point and commands
 ├── internal/
 │   ├── types/           # Core data types (Issue, Dependency, etc.)
 │   └── storage/         # Storage interface and implementations
@@ -275,34 +275,16 @@ issuegraph query "SELECT * FROM dependencies"
 issuegraph query "SELECT * FROM events WHERE issue_id = 'test-1'"
 ```
 
-### Updating Nix flake.lock (without nix installed)
-
-The `flake.lock` file pins a specific nixpkgs revision. When `go.mod` bumps the Go version beyond what's in the pinned nixpkgs, the Nix CI job will fail. To update `flake.lock` without installing nix locally, use Docker:
-
-```bash
-# Update flake.lock
-docker run --rm -v $(pwd):/workspace -w /workspace nixos/nix \
-  sh -c 'echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf && nix flake update'
-
-# Verify the build works
-docker run --rm -v $(pwd):/workspace -w /workspace nixos/nix \
-  sh -c 'echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf && nix build .#default && ./result/bin/issuegraph version'
-```
-
-If the build fails with a `vendorHash` mismatch, run `./scripts/update-nix-vendorhash.sh` to recompute and update `default.nix`, or update it manually with the `got:` hash from the error message and rebuild.
-
-The `nix build` CI job (`.github/workflows/nix-build.yml`) runs on any PR that touches `go.mod`, `go.sum`, `default.nix`, `flake.nix`, or `flake.lock`, so dependabot bumps that invalidate `vendorHash` fail loudly instead of silently breaking Nix users on main. For dependabot Go-module bumps specifically, `.github/workflows/update-vendor-hash.yml` runs the same `update-nix-vendorhash.sh` script and pushes the hash bump back to the dependabot branch automatically (note: GitHub does not retrigger `pull_request` workflows for `GITHUB_TOKEN`-authored commits, so a maintainer may need to re-run `nix build .#default` once after the auto-fix push to mark the gate green).
-
 ### Debugging
 
 Use Go's built-in debugging tools:
 
 ```bash
 # Run with verbose logging
-go run ./modules/cli -v create "Test"
+go run ./apps/cli -v create "Test"
 
 # Use delve for debugging
-dlv debug ./modules/cli -- create "Test issue"
+dlv debug ./apps/cli -- create "Test issue"
 ```
 
 ## Release Process

@@ -208,7 +208,6 @@ func init() {
 	gitlabSyncCmd.Flags().BoolVar(&gitlabNoEphemeral, "no-ephemeral", true, "Exclude ephemeral/wisp issues from push (default: true)")
 
 	// Register gitlab command with root
-	rootCmd.AddCommand(gitlabCmd)
 }
 
 // getGitLabConfig returns GitLab configuration from issuegraph config or environment.

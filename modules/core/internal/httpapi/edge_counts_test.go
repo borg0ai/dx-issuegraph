@@ -18,7 +18,7 @@ import (
 // The handler is a decoder, a bound and a projection — the plane span, the
 // missing-anchor rule, the status asymmetry and the de-duplication are
 // issueops.GraphCounter's, held to on three legs by its own contract and shown
-// against real Dolt in modules/cli. What only these cases can show is that the
+// against real Dolt in apps/cli. What only these cases can show is that the
 // request a caller SENDS becomes the request the role RECEIVES, that the
 // role's answer reaches the wire in the shape the document promises, and that
 // each of the role's four refusals arrives naming the right parameter.

@@ -61,7 +61,7 @@ jobs:
         id: setup-go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: Restore Go module cache
@@ -69,7 +69,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('modules/core/go.mod', 'modules/core/go.sum', 'apps/cli/go.mod', 'apps/cli/go.sum') }}
           restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       # Per `go help cache`, Go's content-addressed build cache includes
@@ -93,9 +93,9 @@ jobs:
           source ./modules/core/.buildflags
           go_version="$(go version)"
           commit="$(git rev-parse HEAD)"
-          go build -tags "$ISSUEGRAPH_BUILD_TAGS" -o artifacts/issuegraph-linux-gms-pure github.com/borg0ai/dx-issuegraph/modules/cli
+          go build -tags "$ISSUEGRAPH_BUILD_TAGS" -o artifacts/issuegraph-linux-gms-pure github.com/borg0ai/dx-issuegraph/apps/cli
           chmod +x artifacts/issuegraph-linux-gms-pure
-          go test -tags "$ISSUEGRAPH_BUILD_TAGS" -c -o artifacts/bd-cmd-test github.com/borg0ai/dx-issuegraph/modules/cli
+          go test -tags "$ISSUEGRAPH_BUILD_TAGS" -c -o artifacts/bd-cmd-test github.com/borg0ai/dx-issuegraph/apps/cli
           chmod +x artifacts/bd-cmd-test
           (
             cd artifacts
@@ -121,7 +121,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('modules/core/go.mod', 'modules/core/go.sum', 'apps/cli/go.mod', 'apps/cli/go.sum') }}
 
       - name: Save non-race Go build cache
         if: steps.restore-non-race-go-build-cache.outputs.cache-hit != 'true'
@@ -139,17 +139,16 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
       - run: ./scripts/check-build-tags.sh
-      - run: ./scripts/check-go-install-guidance.sh
 
   # Lock in the cgo-test-contamination fix (mybd-ycx / GH#3683 follow-up).
-  # modules/cli carries a mix of cgo-only test helpers (embedded Dolt, sql.DB) and
+  # apps/cli carries a mix of cgo-only test helpers (embedded Dolt, sql.DB) and
   # pure-Go tests. Untagged test files that reach for cgo-only helpers break
   # the entire package's CGO_ENABLED=0 compile, silently neutering pure-Go
-  # tests (the original symptom in PR #3704). This job compiles the modules/cli
+  # tests (the original symptom in PR #3704). This job compiles the apps/cli
   # test binary with CGO_ENABLED=0 and runs the pure-Go subset, so a
   # regression that re-introduces cgo coupling fails fast.
   check-cmd-bd-puregeo-tests:
-    name: Check modules/cli pure-Go tests compile (CGO_ENABLED=0)
+    name: Check apps/cli pure-Go tests compile (CGO_ENABLED=0)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
@@ -157,23 +156,23 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
-      - name: Build modules/cli (CGO_ENABLED=0, gms_pure_go)
+      - name: Build apps/cli (CGO_ENABLED=0, gms_pure_go)
         env:
           CGO_ENABLED: "0"
-        run: go build -tags gms_pure_go -o /tmp/bd-puregeo github.com/borg0ai/dx-issuegraph/modules/cli
+        run: go build -tags gms_pure_go -o /tmp/bd-puregeo github.com/borg0ai/dx-issuegraph/apps/cli
 
       - name: Compile pure-Go test binaries (CGO_ENABLED=0, gms_pure_go)
         env:
           CGO_ENABLED: "0"
         run: |
-          go test -tags gms_pure_go -c -o /tmp/bd-cmd-puregeo-test github.com/borg0ai/dx-issuegraph/modules/cli
+          go test -tags gms_pure_go -c -o /tmp/bd-cmd-puregeo-test github.com/borg0ai/dx-issuegraph/apps/cli
           go test -tags gms_pure_go -c -o /tmp/bd-embeddeddolt-puregeo-test github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt
           go test -tags gms_pure_go -c -o /tmp/bd-tracker-puregeo-test github.com/borg0ai/dx-issuegraph/internal/tracker
 
-      - name: Run pure-Go modules/cli test subset (CGO_ENABLED=0)
+      - name: Run pure-Go apps/cli test subset (CGO_ENABLED=0)
         env:
           CGO_ENABLED: "0"
         # Restrict to tests that exercise pure-Go code paths. Tests that
@@ -181,7 +180,7 @@ jobs:
         # is available; the goal here is to catch compile-time contamination,
         # not run the full suite.
         run: |
-          go test -tags gms_pure_go -count=1 -short -run '^Test(Help|CheckRemoteSafety|FormatDestroyToken|ShouldWireInitRemote|ExtractPrefix|IsNumericID|GetWorktreeGitDir|DriftItemStatuses|RunDriftChecks|IsServerProbablyRunning|CheckHooksDriftNotGitRepo|CheckServerDriftNoIssueGraphDir|CheckRemoteDriftNoIssueGraphDir)' github.com/borg0ai/dx-issuegraph/modules/cli
+          go test -tags gms_pure_go -count=1 -short -run '^Test(Help|CheckRemoteSafety|FormatDestroyToken|ShouldWireInitRemote|ExtractPrefix|IsNumericID|GetWorktreeGitDir|DriftItemStatuses|RunDriftChecks|IsServerProbablyRunning|CheckHooksDriftNotGitRepo|CheckServerDriftNoIssueGraphDir|CheckRemoteDriftNoIssueGraphDir)' github.com/borg0ai/dx-issuegraph/apps/cli
 
   # Fast check to ensure all version files are in sync
   check-version-consistency:
@@ -230,11 +229,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: Build issuegraph
-        run: CGO_ENABLED=0 go build -tags gms_pure_go -o issuegraph github.com/borg0ai/dx-issuegraph/modules/cli
+        run: CGO_ENABLED=0 go build -tags gms_pure_go -o issuegraph github.com/borg0ai/dx-issuegraph/apps/cli
 
       - name: Validate docs against CLI
         run: |
@@ -246,7 +245,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       mcp_package: ${{ steps.detect.outputs.mcp_package }}
-      npm_package: ${{ steps.detect.outputs.npm_package }}
       reason: ${{ steps.detect.outputs.reason }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
@@ -309,50 +307,6 @@ jobs:
           ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY: ${{ github.workspace }}/ci-build-artifacts/issuegraph-linux-gms-pure
         run: make ci-package-mcp
 
-  package-npm:
-    name: Package Gate (npm)
-    runs-on: ubuntu-latest
-    needs: [detect-package-gates, build-artifacts]
-    steps:
-      - name: Check applicability
-        id: applicability
-        run: |
-          echo "run=${{ needs.detect-package-gates.outputs.npm_package }}" >> "$GITHUB_OUTPUT"
-          if [[ "${{ needs.detect-package-gates.outputs.npm_package }}" != "true" ]]; then
-            echo "npm package gate is not applicable: ${{ needs.detect-package-gates.outputs.reason }}"
-          fi
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
-        if: steps.applicability.outputs.run == 'true'
-
-      - name: Set up Node.js
-        if: steps.applicability.outputs.run == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
-        with:
-          node-version: '24'
-
-      - name: Download build artifacts
-        if: steps.applicability.outputs.run == 'true'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: ci-build-artifacts
-          path: ci-build-artifacts
-
-      - name: Verify build artifacts
-        if: steps.applicability.outputs.run == 'true'
-        run: |
-          set -euo pipefail
-          cd ci-build-artifacts
-          sha256sum -c SHA256SUMS
-          chmod +x issuegraph-linux-gms-pure
-
-      - name: Run npm package gate
-        if: steps.applicability.outputs.run == 'true'
-        env:
-          ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY: ${{ github.workspace }}/ci-build-artifacts/issuegraph-linux-gms-pure
-        run: make ci-package-npm
-
-
   pr-policy-wrapper:
     name: PR Policy (wrapper timing)
     runs-on: ubuntu-latest
@@ -364,7 +318,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: Run PR policy wrapper
@@ -381,7 +335,7 @@ jobs:
         id: setup-go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: Restore Go module cache
@@ -389,7 +343,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('modules/core/go.mod', 'modules/core/go.sum', 'apps/cli/go.mod', 'apps/cli/go.sum') }}
           restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Restore race Go build cache
@@ -438,7 +392,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: Install golangci-lint
@@ -453,11 +407,11 @@ jobs:
   # Cross-platform test matrix (Linux/macOS only - Windows uses smoke tests)
   #
   # Both legs run every package in one `github.com/borg0ai/dx-issuegraph/...` invocation, so go test's DEFAULT
-  # 10m per-package deadline applied — and modules/cli outgrew it. scripts/test.sh
-  # already documents the floor for local runs: modules/cli is the slowest package at
+  # 10m per-package deadline applied — and apps/cli outgrew it. scripts/test.sh
+  # already documents the floor for local runs: apps/cli is the slowest package at
   # ~18min wall, which is why TEST_TIMEOUT defaults to 25m there. CI was still on
   # the 10m default and rode the edge: on 2026-09-01 main run 33497003321 failed
-  # twice with `panic: test timed out after 10m0s` in modules/cli AND, in the same
+  # twice with `panic: test timed out after 10m0s` in apps/cli AND, in the same
   # coverage pass, internal/storage/uow — different tests only 1-12s in flight
   # each attempt (a package-wide crawl on the 2-core coverage-instrumented
   # runner, not a hang), while a rerun of the identical tree passed. Match
@@ -491,7 +445,7 @@ jobs:
         id: setup-go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: Restore Go module cache
@@ -499,7 +453,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('modules/core/go.mod', 'modules/core/go.sum', 'apps/cli/go.mod', 'apps/cli/go.sum') }}
           restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Restore non-race Go build cache
@@ -555,9 +509,9 @@ jobs:
         if: matrix.os != 'ubuntu-latest'
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/non-race
-        run: go build -v -tags gms_pure_go github.com/borg0ai/dx-issuegraph/modules/cli
+        run: go build -v -tags gms_pure_go github.com/borg0ai/dx-issuegraph/apps/cli
 
-      # Both lanes below pass -timeout=30m explicitly. github.com/borg0ai/dx-issuegraph/modules/cli has outgrown
+      # Both lanes below pass -timeout=30m explicitly. github.com/borg0ai/dx-issuegraph/apps/cli has outgrown
       # `go test`'s 10m per-package default (see scripts/ci/pr-core.sh and
       # #6091), and when it trips the alarm the panic names whichever test was
       # in flight, so it reads like a hang rather than the package running out
@@ -608,7 +562,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('modules/core/go.mod', 'modules/core/go.sum', 'apps/cli/go.mod', 'apps/cli/go.sum') }}
 
       - name: Save non-race Go build cache
         if: ${{ !cancelled() && matrix.os == 'macos-latest' && steps.restore-non-race-go-build-cache.outputs.cache-hit != 'true' }}
@@ -643,7 +597,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: Install Dolt CLI
@@ -690,7 +644,7 @@ jobs:
         env:
           ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY: ${{ github.workspace }}/ci-build-artifacts/issuegraph-linux-gms-pure
           ISSUEGRAPH_FIX_REQUIRE_DOLT: "1"
-        run: go test -tags gms_pure_go -race -count=1 -timeout 10m -v github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix
+        run: go test -tags gms_pure_go -race -count=1 -timeout 10m -v github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix
 
   main-linux-integration-packages:
     name: Main Linux integration packages (${{ matrix.shard }}/6)
@@ -708,7 +662,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: Download build artifacts
@@ -749,7 +703,7 @@ jobs:
           package_manifest="artifacts/main-linux-integration-packages-${SHARD}-of-${TOTAL_SHARDS}.txt"
           write_package_manifest() {
             GO_TEST_SHARD_TAGS=integration,gms_pure_go \
-              GO_TEST_SHARD_EXCLUDE_REGEX="^github.com/borg0ai/dx-issuegraph/modules/cli$" \
+              GO_TEST_SHARD_EXCLUDE_REGEX="^github.com/borg0ai/dx-issuegraph/apps/cli$" \
               scripts/ci/go-test-shard-packages.sh "$SHARD" "$TOTAL_SHARDS" > "$package_manifest"
           }
           ci_time "list integration package shard ${SHARD}/${TOTAL_SHARDS}" -- write_package_manifest
@@ -777,7 +731,7 @@ jobs:
           if-no-files-found: ignore
 
   main-linux-integration-cmd-issuegraph:
-    name: Main Linux integration modules/cli (${{ matrix.shard }}/8)
+    name: Main Linux integration apps/cli (${{ matrix.shard }}/8)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: build-artifacts
@@ -792,7 +746,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: Download build artifacts
@@ -818,7 +772,7 @@ jobs:
           dolt config --global --add user.name "CI Bot"
           dolt config --global --add user.email "ci@issuegraph.test"
 
-      - name: Test modules/cli shard
+      - name: Test apps/cli shard
         env:
           SHARD: ${{ matrix.shard }}
           TOTAL_SHARDS: 8
@@ -833,9 +787,9 @@ jobs:
           test_manifest="artifacts/main-linux-integration-cmd-issuegraph-tests-${SHARD}-of-${TOTAL_SHARDS}.txt"
           write_test_manifest() {
             GO_TEST_SHARD_TAGS=integration,gms_pure_go \
-              scripts/ci/go-test-shard-names.sh "$SHARD" "$TOTAL_SHARDS" github.com/borg0ai/dx-issuegraph/modules/cli > "$test_manifest"
+              scripts/ci/go-test-shard-names.sh "$SHARD" "$TOTAL_SHARDS" github.com/borg0ai/dx-issuegraph/apps/cli > "$test_manifest"
           }
-          ci_time "list modules/cli test shard ${SHARD}/${TOTAL_SHARDS}" -- write_test_manifest
+          ci_time "list apps/cli test shard ${SHARD}/${TOTAL_SHARDS}" -- write_test_manifest
           cat "$test_manifest"
           mapfile -t tests < "$test_manifest"
 
@@ -845,11 +799,11 @@ jobs:
           fi
 
           run_regex="^($(IFS='|'; echo "${tests[*]}"))$"
-          ci_time "main linux integration modules/cli shard ${SHARD}/${TOTAL_SHARDS} go test" -- \
+          ci_time "main linux integration apps/cli shard ${SHARD}/${TOTAL_SHARDS} go test" -- \
             env ISSUEGRAPH_TEST_SKIP=dolt gotestsum \
               --junitfile "artifacts/main-linux-integration-cmd-bd-${SHARD}-of-${TOTAL_SHARDS}.xml" \
               --format testdox \
-              -- -v -race -tags=integration,gms_pure_go -timeout=30m -run "$run_regex" github.com/borg0ai/dx-issuegraph/modules/cli
+              -- -v -race -tags=integration,gms_pure_go -timeout=30m -run "$run_regex" github.com/borg0ai/dx-issuegraph/apps/cli
 
       - name: Upload integration artifacts
         if: always()
@@ -863,9 +817,9 @@ jobs:
   # End-to-end coverage for proxied-server CLI subcommands, sharded across the
   # CI matrix. Each sub-test drives the issuegraph CLI subprocess against a real dolt
   # sql-server started via testcontainers by the shared proxied harness
-  # (modules/cli/*_proxied_integration_test.go).
+  # (apps/cli/*_proxied_integration_test.go).
   #
-  # Reuses the modules/cli test binary compiled once by build-artifacts (bd-cmd-test):
+  # Reuses the apps/cli test binary compiled once by build-artifacts (bd-cmd-test):
   # the proxied tests share the package and are gated at runtime by
   # ISSUEGRAPH_TEST_PROXIED_SERVER=1. Shard assignment is committed in
   # .github/scripts/proxied-cmd-test-shards.txt; newly-added TestProxiedServer*
@@ -932,7 +886,7 @@ jobs:
   # Embedded Dolt tests - test the in-process Dolt engine (no server required)
   #
   # Split into: build → storage tests + parallel cmd test shards.
-  # modules/cli embedded tests use a committed shard manifest; newly-added tests
+  # apps/cli embedded tests use a committed shard manifest; newly-added tests
   # still auto-distribute via hash fallback until the manifest is updated.
 
   build-embedded:
@@ -947,7 +901,7 @@ jobs:
         id: setup-go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: Restore Go module cache
@@ -955,7 +909,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('modules/core/go.mod', 'modules/core/go.sum', 'apps/cli/go.mod', 'apps/cli/go.sum') }}
           restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Restore race Go build cache
@@ -969,7 +923,7 @@ jobs:
       - name: Build embedded issuegraph binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go build -tags gms_pure_go -race -o /tmp/bd-embedded-test github.com/borg0ai/dx-issuegraph/modules/cli
+        run: go build -tags gms_pure_go -race -o /tmp/bd-embedded-test github.com/borg0ai/dx-issuegraph/apps/cli
 
       - name: Build embedded storage test binary
         env:
@@ -979,7 +933,7 @@ jobs:
       - name: Build embedded cmd test binary
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/race
-        run: go test -tags gms_pure_go -race -c -o /tmp/bd-cmd-test github.com/borg0ai/dx-issuegraph/modules/cli
+        run: go test -tags gms_pure_go -race -c -o /tmp/bd-cmd-test github.com/borg0ai/dx-issuegraph/apps/cli
 
       - name: Upload binaries
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -1128,7 +1082,7 @@ jobs:
         id: setup-go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: Restore Go module cache
@@ -1136,7 +1090,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('modules/core/go.mod', 'modules/core/go.sum', 'apps/cli/go.mod', 'apps/cli/go.sum') }}
           restore-keys: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-
 
       - name: Restore non-race Go build cache
@@ -1155,7 +1109,7 @@ jobs:
       - name: Build (pure Go regex)
         env:
           GOCACHE: ${{ runner.temp }}/go-cache/non-race
-        run: go build -v -tags gms_pure_go -o issuegraph.exe github.com/borg0ai/dx-issuegraph/modules/cli
+        run: go build -v -tags gms_pure_go -o issuegraph.exe github.com/borg0ai/dx-issuegraph/apps/cli
 
       - name: Smoke test - version
         run: ./issuegraph.exe version
@@ -1168,7 +1122,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/go/pkg/mod
-          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}
+          key: issuegraph-go-mod-v2-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('modules/core/go.mod', 'modules/core/go.sum', 'apps/cli/go.mod', 'apps/cli/go.sum') }}
 
       - name: Save non-race Go build cache
         if: steps.restore-non-race-go-build-cache.outputs.cache-hit != 'true'
@@ -1186,7 +1140,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: Check gofmt
@@ -1204,7 +1158,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
           cache: false
 
       - name: golangci-lint
@@ -1214,27 +1168,3 @@ jobs:
         with:
           version: v2.10.1
           args: --config=.golangci.yml --modules-download-mode=readonly --timeout=5m --build-tags=gms_pure_go
-
-  test-nix:
-    name: Test Nix Flake
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
-      - uses: DeterminateSystems/determinate-nix-action@527f17dd63d2d60d3e5552934bc84b9a33a14d11 # v3
-      - name: Run issuegraph help via Nix
-        id: nix_help
-        run: |
-          nix run .#default -- --help > help.txt
-      - name: Verify help text
-        if: steps.nix_help.outcome == 'success'
-        run: |
-          FIRST_LINE=$(head -n 1 help.txt)
-          EXPECTED="Issues chained together like issuegraph. A lightweight issue tracker with first-class dependency support."
-          if [ "$FIRST_LINE" != "$EXPECTED" ]; then
-            echo "First line of help.txt doesn't match expected output"
-            echo "Expected: $EXPECTED"
-            echo "Got: $FIRST_LINE"
-            exit 1
-          fi
-          echo "Help text first line is correct"

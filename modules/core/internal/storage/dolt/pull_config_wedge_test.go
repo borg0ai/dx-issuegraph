@@ -528,11 +528,11 @@ func TestCommitBeforePullCommitsGenericKV(t *testing.T) {
 
 // TestVCMergeStrategyCommitsConfigResolution is the server-mode regression for
 // the `issuegraph vc merge --strategy` config-resolution gap (PR #4412 review attempt 4):
-// modules/cli/vc.go concluded the resolution with config-excluding Commit (GH#2455), so
+// apps/cli/vc.go concluded the resolution with config-excluding Commit (GH#2455), so
 // a resolved INTERNAL config key — issue_prefix is the exact re-wedge the finding
 // names, since unlike a kv.memory.* key it does not self-heal on the next pull —
 // was dropped, leaving the merge unconcluded and refusing the next pull (GH#2474).
-// It drives the same ResolveConflicts + CommitMergeResolution sequence modules/cli/vc.go
+// It drives the same ResolveConflicts + CommitMergeResolution sequence apps/cli/vc.go
 // now runs and asserts config is committed and converged.
 //
 // The conflicted working set is staged in a conflict-tolerant transaction (what a
@@ -625,7 +625,7 @@ func TestVCMergeStrategyCommitsConfigResolution(t *testing.T) {
 		}
 	}()
 
-	// The exact resolution sequence modules/cli/vc.go runs for --strategy theirs.
+	// The exact resolution sequence apps/cli/vc.go runs for --strategy theirs.
 	if err := store.ResolveConflicts(ctx, "config", "theirs"); err != nil {
 		t.Fatalf("ResolveConflicts: %v", err)
 	}

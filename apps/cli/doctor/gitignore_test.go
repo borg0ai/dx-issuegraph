@@ -1535,7 +1535,7 @@ func TestRequiredPatterns_ContainsSyncStatePatterns(t *testing.T) {
 // .issuegraph/.gitignore.
 func TestGitignore_ContainsDoltServerConfig(t *testing.T) {
 	// Keep this in sync with doltserver.doltServerConfigFileName. It is not
-	// imported here because modules/cli/doctor must not depend on the server
+	// imported here because apps/cli/doctor must not depend on the server
 	// package for a string constant.
 	const pattern = "dolt-server-config.yaml"
 

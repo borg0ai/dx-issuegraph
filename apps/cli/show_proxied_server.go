@@ -75,7 +75,7 @@ func proxiedOpenReadUOW(ctx context.Context) (uow.UnitOfWork, error) {
 // the same two-step a direct command performs on a store.
 //
 // The accessor is the door and there is no other: the cmd-bd-role-constructors
-// depguard rule keeps the shared implementation's constructor out of modules/cli
+// depguard rule keeps the shared implementation's constructor out of apps/cli
 // entirely, because a decorator adds its layer in its own accessor and a
 // command that built a reader directly would get an undecorated one. A
 // provider that cannot answer says so with an error rather than being wired

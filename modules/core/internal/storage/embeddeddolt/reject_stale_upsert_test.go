@@ -12,7 +12,7 @@ import (
 )
 
 // bd-pkim8: RejectStaleUpserts is the transactional half of the import stale
-// guard. modules/cli's filterStaleImportIssues reads local updated_at before the
+// guard. apps/cli's filterStaleImportIssues reads local updated_at before the
 // batch write, so a local update committing in between would be silently
 // overwritten; with the option set, the upsert itself keeps the stored row
 // when it is strictly newer than the incoming one.

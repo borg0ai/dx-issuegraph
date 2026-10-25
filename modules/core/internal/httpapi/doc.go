@@ -72,7 +72,7 @@
 // types.WorkFilter here at all, so no filter is writable here either — both
 // are directory-scoped with no per-file exception, so a file added to this
 // package tomorrow is covered the moment it exists. That same forbidigo rule
-// covers modules/cli deny-by-default with 64 named exceptions, so the files
+// covers apps/cli deny-by-default with 64 named exceptions, so the files
 // implementing `issuegraph list` and `issuegraph show` cannot write a filter, and neither can
 // a file they are split or renamed into unless the new name lands on that
 // list. NOT ENFORCED: the rule forbids NAMING those types, not holding a

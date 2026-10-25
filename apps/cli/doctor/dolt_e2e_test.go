@@ -19,7 +19,7 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/testutil"
 )
 
-// e2eDoctorResult mirrors the JSON output struct from modules/cli/doctor.go.
+// e2eDoctorResult mirrors the JSON output struct from apps/cli/doctor.go.
 // Kept minimal — only the fields we assert on.
 type e2eDoctorResult struct {
 	Path      string           `json:"path"`
@@ -116,7 +116,7 @@ func testMainInner(m *testing.M) int {
 	// this suite created (e.g. a SIGKILLed run) — see
 	// borg0ai/dx-issuegraph mybd-q6cz / #5631.
 	swept := doltserver.SweepSuiteTestServers(root, testIssueGraphDir)
-	code = doltserver.ApplyLeakPolicy("modules/cli/doctor", code, swept)
+	code = doltserver.ApplyLeakPolicy("apps/cli/doctor", code, swept)
 
 	os.Unsetenv("ISSUEGRAPH_DOLT_PORT")
 	os.Unsetenv("ISSUEGRAPH_TEST_MODE")
@@ -183,9 +183,9 @@ func buildTestBD(t *testing.T) string {
 
 		testIssueGraphPath = filepath.Join(dir, issuegraphBinary)
 
-		// Build from modules/cli relative to the module root.
-		// The test runs from modules/cli/doctor/, so module root is ../../../
-		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", testIssueGraphPath, "./modules/cli")
+		// Build from apps/cli relative to the module root.
+		// The test runs from apps/cli/doctor/, so module root is ../../../
+		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", testIssueGraphPath, "./apps/cli")
 
 		// Find the module root by looking for go.mod
 		modRoot := findModuleRoot(t)

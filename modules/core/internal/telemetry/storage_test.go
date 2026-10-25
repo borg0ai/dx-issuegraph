@@ -52,7 +52,7 @@ func TestWrapStorage_EnabledReturnsInstrumented(t *testing.T) {
 }
 
 // Verifies that storage.UnwrapStore peels the InstrumentedStorage decorator,
-// so optional-interface type assertions in modules/cli reach the concrete store
+// so optional-interface type assertions in apps/cli reach the concrete store
 // even when telemetry is on.
 func TestWrapStorage_PeelsViaUnwrapStore(t *testing.T) {
 	clearTelemetryEnv(t)

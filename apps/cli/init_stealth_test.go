@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 )
 
 // TestSetupGitExclude_Worktree verifies that setupGitExclude writes to the main

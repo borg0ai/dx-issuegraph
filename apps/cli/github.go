@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -18,7 +19,7 @@ import (
 
 // GitHubConfig holds GitHub connection configuration.
 type GitHubConfig struct {
-	Token      string // Personal access token
+	Token      string // Token resolved from gh auth or GITHUB_TOKEN
 	Owner      string // Repository owner (user or organization)
 	Repo       string // Repository name
 	Repository string // Combined "owner/repo" format
@@ -31,12 +32,14 @@ var githubCmd = &cobra.Command{
 	Short: "GitHub integration commands",
 	Long: `Commands for syncing issues between issuegraph and GitHub.
 
-Configuration can be set via 'issuegraph config' or environment variables:
-  github.token / GITHUB_TOKEN           - Personal access token
+Repository can be set via 'issuegraph config' or environment variables:
   github.owner / GITHUB_OWNER           - Repository owner
   github.repo / GITHUB_REPO             - Repository name
   github.repository / GITHUB_REPOSITORY - Combined "owner/repo" format
-  github.url / GITHUB_API_URL           - Custom API URL (GitHub Enterprise)`,
+  github.url / GITHUB_API_URL           - Custom API URL (GitHub Enterprise)
+
+Authenticate with 'gh auth login' or set GITHUB_TOKEN. IssueGraph does not
+store GitHub tokens. Local commands never contact GitHub.`,
 }
 
 // githubSyncCmd synchronizes issues between issuegraph and GitHub.
@@ -45,11 +48,12 @@ var githubSyncCmd = &cobra.Command{
 	Short: "Sync issues with GitHub",
 	Long: `Synchronize issues between issuegraph and GitHub.
 
-By default, performs bidirectional sync:
+By default, previews bidirectional sync without writing:
 - Pulls new/updated issues from GitHub to issuegraph
 - Pushes local issuegraph issues to GitHub
 
-Use --pull-only or --push-only to limit direction.`,
+Use --pull-only or --push-only to limit direction. Pass --apply to write changes.
+Conflicts preserve both current versions and are reported.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE:          runGitHubSync,
@@ -77,11 +81,11 @@ var githubReposCmd = &cobra.Command{
 
 var (
 	githubSyncDryRun   bool
+	githubSyncApply    bool
 	githubSyncPullOnly bool
 	githubSyncPushOnly bool
 	githubPreferLocal  bool
 	githubPreferGitHub bool
-	githubPreferNewer  bool
 )
 
 // GitHubConflictStrategy defines how to resolve conflicts between local and GitHub versions.
@@ -151,14 +155,14 @@ func init() {
 	githubCmd.AddCommand(githubReposCmd)
 
 	// Add flags to sync command
-	githubSyncCmd.Flags().BoolVar(&githubSyncDryRun, "dry-run", false, "Show what would be synced without making changes")
+	githubSyncCmd.Flags().BoolVar(&githubSyncDryRun, "dry-run", false, "Preview changes without applying them")
+	githubSyncCmd.Flags().BoolVar(&githubSyncApply, "apply", false, "Apply planned local and GitHub changes")
 	githubSyncCmd.Flags().BoolVar(&githubSyncPullOnly, "pull-only", false, "Only pull issues from GitHub")
 	githubSyncCmd.Flags().BoolVar(&githubSyncPushOnly, "push-only", false, "Only push issues to GitHub")
 
 	// Conflict resolution flags (mutually exclusive)
 	githubSyncCmd.Flags().BoolVar(&githubPreferLocal, "prefer-local", false, "On conflict, keep local issuegraph version")
 	githubSyncCmd.Flags().BoolVar(&githubPreferGitHub, "prefer-github", false, "On conflict, use GitHub version")
-	githubSyncCmd.Flags().BoolVar(&githubPreferNewer, "prefer-newer", false, "On conflict, use most recent version (default)")
 	registerSelectiveSyncFlags(githubSyncCmd)
 
 	// Register github command with root
@@ -194,6 +198,14 @@ func getGitHubConfig() GitHubConfig {
 
 // getGitHubConfigValue reads a GitHub configuration value from store or environment.
 func getGitHubConfigValue(ctx context.Context, key string) string {
+	if key == "github.token" {
+		if output, err := exec.CommandContext(ctx, "gh", "auth", "token").Output(); err == nil {
+			if token := strings.TrimSpace(string(output)); token != "" {
+				return token
+			}
+		}
+		return os.Getenv("GITHUB_TOKEN")
+	}
 	// Secret keys (e.g. github.token) are stored in config.yaml, not the
 	// Dolt database, to avoid leaking secrets when pushing to remotes.
 	if config.IsYamlOnlyKey(key) {
@@ -259,7 +271,7 @@ func githubConfigToEnvVar(key string) string {
 // validateGitHubConfig checks that required configuration is present.
 func validateGitHubConfig(config GitHubConfig) error {
 	if config.Token == "" {
-		return fmt.Errorf("github.token is not configured. Set via 'issuegraph config set github.token <token>' or GITHUB_TOKEN environment variable")
+		return fmt.Errorf("GitHub authentication unavailable; run 'gh auth login' or set GITHUB_TOKEN")
 	}
 	if config.Owner == "" {
 		return fmt.Errorf("github.owner is not configured. Set via 'issuegraph config set github.owner <owner>' or GITHUB_OWNER environment variable")
@@ -309,7 +321,11 @@ func runGitHubStatus(cmd *cobra.Command, args []string) error {
 	out := cmd.OutOrStdout()
 	_, _ = fmt.Fprintln(out, "GitHub Configuration")
 	_, _ = fmt.Fprintln(out, "====================")
-	_, _ = fmt.Fprintf(out, "Token:      %s\n", maskGitHubToken(config.Token))
+	authStatus := "not available"
+	if config.Token != "" {
+		authStatus = "available"
+	}
+	_, _ = fmt.Fprintf(out, "Authentication: %s\n", authStatus)
 	_, _ = fmt.Fprintf(out, "Owner:      %s\n", config.Owner)
 	_, _ = fmt.Fprintf(out, "Repository: %s\n", config.Repo)
 	if config.URL != "" {
@@ -341,7 +357,7 @@ func runGitHubRepos(cmd *cobra.Command, args []string) error {
 
 	config := getGitHubConfig()
 	if config.Token == "" {
-		return HandleError("github.token is not configured. Set via 'issuegraph config set github.token <token>' or GITHUB_TOKEN environment variable")
+		return HandleError("GitHub authentication unavailable; run 'gh auth login' or set GITHUB_TOKEN")
 	}
 
 	out := cmd.OutOrStdout()
@@ -389,17 +405,16 @@ func runGitHubSync(cmd *cobra.Command, args []string) error {
 		return HandleError("%v", err)
 	}
 
-	if !githubSyncDryRun {
+	if githubSyncDryRun && githubSyncApply {
+		return HandleError("cannot use --dry-run and --apply together")
+	}
+	dryRun := !githubSyncApply || githubSyncDryRun
+	if !dryRun {
 		CheckReadonly("github sync")
 	}
 
 	if githubSyncPullOnly && githubSyncPushOnly {
 		return HandleError("cannot use both --pull-only and --push-only")
-	}
-
-	conflictStrategy, err := getGitHubConflictStrategy(githubPreferLocal, githubPreferGitHub, githubPreferNewer)
-	if err != nil {
-		return HandleError("%v (--prefer-local, --prefer-github, --prefer-newer)", err)
 	}
 
 	if err := ensureStoreActive(); err != nil {
@@ -430,23 +445,16 @@ func runGitHubSync(cmd *cobra.Command, args []string) error {
 	opts := tracker.SyncOptions{
 		Pull:   pull,
 		Push:   push,
-		DryRun: githubSyncDryRun,
+		DryRun: dryRun,
 	}
 
 	if err := applySelectiveSyncFlags(cmd, &opts, push); err != nil {
 		return HandleError("%v", err)
 	}
 
-	switch conflictStrategy {
-	case GitHubConflictPreferLocal:
-		opts.ConflictResolution = tracker.ConflictLocal
-	case GitHubConflictPreferGitHub:
-		opts.ConflictResolution = tracker.ConflictExternal
-	default:
-		opts.ConflictResolution = tracker.ConflictTimestamp
-	}
+	opts.ConflictResolution = tracker.ConflictPreserve
 
-	if githubSyncDryRun {
+	if dryRun {
 		_, _ = fmt.Fprintln(out, "Dry run mode - no changes will be made")
 		_, _ = fmt.Fprintln(out)
 	}
@@ -457,7 +465,7 @@ func runGitHubSync(cmd *cobra.Command, args []string) error {
 	}
 
 	// Output results
-	if !githubSyncDryRun {
+	if !dryRun {
 		if result.Stats.Pulled > 0 {
 			_, _ = fmt.Fprintf(out, "✓ Pulled %d issues (%d created, %d updated)\n",
 				result.Stats.Pulled, result.Stats.Created, result.Stats.Updated)
@@ -466,13 +474,13 @@ func runGitHubSync(cmd *cobra.Command, args []string) error {
 			_, _ = fmt.Fprintf(out, "✓ Pushed %d issues\n", result.Stats.Pushed)
 		}
 		if result.Stats.Conflicts > 0 {
-			_, _ = fmt.Fprintf(out, "→ Resolved %d conflicts\n", result.Stats.Conflicts)
+			_, _ = fmt.Fprintf(out, "→ Preserved %d conflicts\n", result.Stats.Conflicts)
 		}
 	}
 
-	if githubSyncDryRun {
+	if dryRun {
 		_, _ = fmt.Fprintln(out)
-		_, _ = fmt.Fprintln(out, "Run without --dry-run to apply changes")
+		_, _ = fmt.Fprintln(out, "Run again with --apply to apply changes")
 	}
 
 	return nil

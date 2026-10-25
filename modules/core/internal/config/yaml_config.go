@@ -289,7 +289,7 @@ var userGlobalKeyPrefixes = []string{"metrics."}
 
 // userGlobalExactKeys are per-MACHINE settings that must never be written to
 // the project .issuegraph/config.yaml, which is a git-TRACKED file (see
-// modules/cli/doctor/gitignore.go: nothing in .issuegraph/.gitignore excludes it). A
+// apps/cli/doctor/gitignore.go: nothing in .issuegraph/.gitignore excludes it). A
 // committed value propagates one machine's answer to every clone that pulls
 // it, which for these keys is worse than having no value at all.
 //

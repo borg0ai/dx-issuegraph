@@ -67,12 +67,12 @@ const DefaultSQLPort = 3307
 //   - issuegraph_vr    : version-roundtrip / migration fixtures.
 //   - doctest_    : `issuegraph doctor` self-check fixtures.
 //   - doctortest_ : older `issuegraph doctor` fixture name (kept for back-compat).
-//   - benchdb_    : per-bench scratch DBs (modules/cli/template_test.go
+//   - benchdb_    : per-bench scratch DBs (apps/cli/template_test.go
 //     newTemplateBenchmarkStore, format `benchdb_<unixnano>`). Added by
 //     AD-01 (be-c5p).
 //
 // This list is the firewall side of the test/prod split. Two sibling lists
-// must converge with it (be-avn): modules/cli/dolt.go:staleDatabasePrefixes (used
+// must converge with it (be-avn): apps/cli/dolt.go:staleDatabasePrefixes (used
 // by `issuegraph dolt clean-databases`) and the formula-side `gc dolt cleanup`
 // stale-prefix list. Any prefix added here must be mirrored to those lists,
 // or stale fixtures will leak past clean-up.
@@ -2042,7 +2042,7 @@ func newServerMode(ctx context.Context, cfg *Config) (*DoltStore, error) {
 	// branch below) and always returns alreadyExisted == false: gateway
 	// identity is not enforced here at all. That is deliberate, not an
 	// oversight — a hosted database's identity is server-authoritative, and
-	// modules/cli/init.go already implements the correct reconciliation for it via
+	// apps/cli/init.go already implements the correct reconciliation for it via
 	// resolveInitProjectID, adopting the server's _project_id onto a stale or
 	// missing local one on every init, including re-init, which relies on
 	// this open not hard-failing first. This gap is specific to Part A's
@@ -2193,7 +2193,7 @@ func initializeServerCircuitBreaker(cfg *Config) *circuitBreaker {
 
 // serverOpenCanAutoStart reports whether a stopped managed dolt server may be
 // auto-started for this open. This is keyed off DisableAutoStart (the strict
-// --readonly signal threaded from policy.disableAutoStart in modules/cli/main.go),
+// --readonly signal threaded from policy.disableAutoStart in apps/cli/main.go),
 // not cfg.ReadOnly: ordinary classified-read commands (issuegraph show, issuegraph list, ...)
 // also set cfg.ReadOnly but must still be able to auto-start a stopped
 // managed server, per dolt_autostart_lifecycle_integration_test.go.
@@ -2608,7 +2608,7 @@ func openServerConnection(ctx context.Context, cfg *Config) (*sql.DB, string, se
 		// newServerMode caller relies on to skip its alreadyExisted-forced
 		// identity check for Gateway. That is intentional, not a leftover
 		// gap: gateway identity is reconciled (not enforced at open) by
-		// modules/cli/init.go's resolveInitProjectID, which adopts the
+		// apps/cli/init.go's resolveInitProjectID, which adopts the
 		// server-authoritative _project_id onto a stale or missing local one
 		// on every init, including re-init. It is also correct for `created`:
 		// an unproven creator must never arm fresh-bootstrap heal.
@@ -3384,7 +3384,7 @@ func (s *DoltStore) commitBeforePull(ctx context.Context, message string) error 
 // silently dropped, leaving the merge unconcluded and re-wedging the next
 // pull/sync. Unlike commitBeforePull it does not screen config keys: the operator
 // chose this resolution, so whichever config rows it touched (issue_prefix
-// included) are committed as-is. It satisfies storage.VersionControl so modules/cli
+// included) are committed as-is. It satisfies storage.VersionControl so apps/cli
 // concludes issuegraph vc merge --strategy through the same config-inclusive commit
 // instead of the config-excluding Commit that would drop the resolution.
 func (s *DoltStore) CommitMergeResolution(ctx context.Context, message string) error {
@@ -4549,7 +4549,7 @@ func (s *DoltStore) verifyPullLanded(ctx context.Context, remote, preHead string
 	//     This is the ordinary "a peer pushed after our fetch" race — benign and
 	//     self-correcting — so it is wrapped in ErrPullBehindFastForwardable and
 	//     issuegraph sync's loop retries it like a push race instead of hard-failing the
-	//     tick (modules/cli/sync.go). The message still names both hashes and "merged
+	//     tick (apps/cli/sync.go). The message still names both hashes and "merged
 	//     nothing", so a caller that surfaces it reads the same diagnosis.
 	//   - otherwise: local and the tracking ref have genuinely diverged (their
 	//     common ancestor is neither tip), which no re-pull can fast-forward away.

@@ -88,7 +88,7 @@ func migrationFrontDoorEnv(home string) []string {
 		if i := strings.IndexByte(kv, '='); i >= 0 {
 			key = kv[:i]
 		}
-		// The modules/cli package TestMain sets ISSUEGRAPH_TEST_MODE and related
+		// The apps/cli package TestMain sets ISSUEGRAPH_TEST_MODE and related
 		// controls for its in-process tests. Never inherit those into the
 		// real front-door subprocess: ISSUEGRAPH_TEST_MODE disables auto-start
 		// and makes a freshly initialized server resolve to port 1.

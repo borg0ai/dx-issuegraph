@@ -49,7 +49,7 @@ func TestBootstrapperContract(t *testing.T) {
 		conformance.RunBootstrapperLeavesTheSubstrateUntouchedWhenItCannotComplete(t, ctx, fixture)
 	})
 	// ONE, not zero, and not a range. The proxied init route
-	// (modules/cli/init_proxied_server.go) calls this role and stops, so the entry
+	// (apps/cli/init_proxied_server.go) calls this role and stops, so the entry
 	// this body labels is the only thing that versions the identity there; both
 	// store wirings pin ZERO because `issuegraph init` commits for them. The two are a
 	// ratified split, so do not "fix" either by matching it to the other — read

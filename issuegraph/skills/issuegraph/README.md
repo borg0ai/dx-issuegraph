@@ -111,7 +111,7 @@ NEXT: Implement rate limiting"
 
 ## Contributing
 
-This skill is maintained at [github.com/borg0ai/dx-issuegraph](https://github.com/borg0ai/dx-issuegraph) in the `plugins/issuegraph/skills/issuegraph/` directory.
+This skill is maintained at [github.com/borg0ai/dx-issuegraph](https://github.com/borg0ai/dx-issuegraph) in the `issuegraph/skills/issuegraph/` directory.
 
 Issues and PRs welcome for:
 - Documentation improvements

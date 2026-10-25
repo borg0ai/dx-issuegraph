@@ -421,7 +421,7 @@ func runDepListProxiedServer(cmd *cobra.Command, ctx context.Context, args []str
 		allIssues = append(allIssues, issues...)
 	}
 
-	// Same gap as the embedded RunE for this command (modules/cli/dep.go): Relations
+	// Same gap as the embedded RunE for this command (apps/cli/dep.go): Relations
 	// drops "down" edges whose target has no row in this database, and the
 	// `len(args) > 1 && direction == "down"` branch above already uses the
 	// (non-dropping) EdgeReader role for batch mode — so this loop only runs

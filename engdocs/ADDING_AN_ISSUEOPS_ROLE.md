@@ -107,7 +107,7 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
 
 3. **The store-backed body**, shared by dolt and embeddeddolt:
    `internal/workapi/store<role>/`. Its own package, not a file in
-   `internal/workapi` — 22 `modules/cli` files already import workapi, so a
+   `internal/workapi` — 22 `apps/cli` files already import workapi, so a
    constructor there is one line away from any front door, and a front door
    that constructed the role directly would get one stripped of its decorators.
 
@@ -344,8 +344,8 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
     | `routes.go` | The `routeTable` row, carrying the `capability` token |
     | `server.go` | A required `Config` field, its entry in `sourceRoles`, its name in `roleSourceNames`, the `Server` field, the `Listen` assignment, and the per-request accessor |
     | `claim.go` | The `timedProvider` accessor, plus the `uow.<Role>Source` compile-time assertion beside its siblings |
-    | `modules/cli/serve.go` | The `serveRoleSource` method, the `serveIssueRoles` row, the `serveRoles` field, and the `httpapi.Config` literal |
-    | `modules/cli/serve_source_test.go`, `modules/cli/serve_store_identity_test.go` | The two serve stubs — a COMPILE ERROR since #5539 if you forget, see "the step with no number" |
+    | `apps/cli/serve.go` | The `serveRoleSource` method, the `serveIssueRoles` row, the `serveRoles` field, and the `httpapi.Config` literal |
+    | `apps/cli/serve_source_test.go`, `apps/cli/serve_store_identity_test.go` | The two serve stubs — a COMPILE ERROR since #5539 if you forget, see "the step with no number" |
 
     Nine files, and the spec tests name most of them if you miss one. Budget
     `server.go` in particular: six lines in one file, and the `Config` field is
@@ -391,7 +391,7 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
 | | files |
 |---|---|
 | new production files | 6 (leaf, builder, store body, uow body, hook wrapper, telemetry wrapper) + 2 store accessors |
-| edited production files | 3 (`storage.go`, `modules/cli/count.go`, `modules/cli/count_proxied_server.go`) |
+| edited production files | 3 (`storage.go`, `apps/cli/count.go`, `apps/cli/count_proxied_server.go`) |
 | new test files | 4 (contract + three wirings) + 1 builder unit test |
 | edited test files | 5 (two decorator enumerations, the root layering pins, the command's own, the `internal/jira` stub from step 9) |
 | config | 1 (`.golangci.yml`: one deny entry added, one exception entry removed) |
@@ -399,7 +399,7 @@ in; 13 is the HTTP surface, which lands with the command rather than after it.
 Counter's commit also touched three files the next role will not: renaming the
 depguard rule from `cmd-bd-reader-constructor` to `cmd-bd-role-constructors`
 moved a word in `internal/workapi/storereader/reader.go`,
-`modules/cli/show_proxied_server.go` and `issueops/reader.go`. That was the one-off
+`apps/cli/show_proxied_server.go` and `issueops/reader.go`. That was the one-off
 generalization that made step 12 a one-line edit from here on.
 
 Nine of those are mechanical once the leaf contract is written. The two that
@@ -433,7 +433,7 @@ convention until you notice it was situational.
 **Alias the sentinels; do not mint a second vocabulary.** `memoryops/errors.go`
 is one line of declaration — `var ErrValidation = issuegrapherrors.ErrValidation`
 — and the IDENTITY is the entire point. `errors.Is` against that one
-value is what the HTTP problem classifier, `modules/cli`'s error handling and every
+value is what the HTTP problem classifier, `apps/cli`'s error handling and every
 conformance contract already do. A `memoryops`-flavored twin would be a
 different value meaning the same thing, so all of those sites would have to
 match both forever; and the cost is not the double-match, it is the site that
@@ -481,18 +481,18 @@ entries at all, and the absence has to be readable as a decision rather than as
 a step someone skipped.
 
 `issueops.BatchApplier` is the second role with no entry, for the same reason
-and one more: its step-3 body is an `…InTx` function AND it has no `modules/cli`
+and one more: its step-3 body is an `…InTx` function AND it has no `apps/cli`
 front door at all in the slice that introduced it — it landed with the HTTP
 half only. An absent CLI is a decision too, and the place to write it down is
 the leaf doc beside the promises, exactly as `VersionReconciler` writes down
 its absent HTTP half.
 
 The test: **does step 3 have an exported constructor returning the role
-interface, in a package a `modules/cli` file can import?**
+interface, in a package a `apps/cli` file can import?**
 `internal/workapi/store<role>` does, so it gets an entry. A `…InTx` function
 does not. What the test is NOT is "does the namespace have a package below the
 role" — `internal/memoryapi` is exactly that, holds `DeriveKey`, the two
-refusals and the search filter, and is deliberately importable from `modules/cli`
+refusals and the search filter, and is deliberately importable from `apps/cli`
 (`internal/memoryapi/memoryapi.go:7-13`),
 because the `issuegraph remember` front door has to derive a key to recognize the
 bare-slug case before it knows which method to call. Denying the meaning layer
@@ -579,7 +579,7 @@ things did not, and the first two are the ones a fourth namespace inherits.
 source parse rather than a convenience.** Every other role in this tree is
 handed out by a method on a store or a provider; this one is reached by TYPE
 ASSERTION, because the journal is not on `storage.DoltStorage`'s published
-surface and a backend is free not to implement it (`modules/cli/serve.go`,
+surface and a backend is free not to implement it (`apps/cli/serve.go`,
 `serveJournalCursor`). `issueops.Importer` is the precedent and the warning: it
 had no contract case from the day it was written and nothing noticed, precisely
 because a reflection-only census can only ask about types something already
@@ -618,7 +618,7 @@ names and a constant moved from `internal/storage` into the leaf and the old
 spellings became aliases —
 `type EventsJournalCursor = journalops.Journal` and its three siblings — and
 the whole tree compiled with **no non-test change anywhere else**: not in
-`internal/httpapi`, not in `modules/cli`, not in any of the four implementations,
+`internal/httpapi`, not in `apps/cli`, not in any of the four implementations,
 not in the enterprise sync. `errors.As` against `*journalops.TruncatedError`
 matches an error every leg constructs as `*storage.EventsJournalTruncatedError`,
 because they are one type. The direction is what has to be right — the leaf
@@ -771,7 +771,7 @@ refuse a hook-firing one — missing it is an `issuegraph serve` that runs a use
 subprocess per call); `uow`'s notifying wrapper, in BOTH halves — the recording
 use case, which silently records nothing for an inherited method, and the
 notifying provider, whose missing accessor makes a caller's type assertion stop
-matching; and two `modules/cli` stub stores that embedded `storage.DoltStorage`. Grep
+matching; and two `apps/cli` stub stores that embedded `storage.DoltStorage`. Grep
 for the embed, not for the interface.
 
 **A READ ROLE IS THE ONE THAT BITES, and the reason is the decorator, not the
@@ -791,7 +791,7 @@ shard — a test about hook peeling, which no `-run` pattern anyone reaches for
 names, so local runs never touched it. **The sharpened rule: a role bound in
 `serveIssueRoles` must be DECLARED on the serve stub store in the same commit.**
 
-Those two `modules/cli` stubs are the one place this step is now taken FOR you.
+Those two `apps/cli` stubs are the one place this step is now taken FOR you.
 `serveIssueRoles` asks for `serveRoleSource` — the accessor subset it actually
 reaches — and both stubs declare that subset, assert it with
 `var _ serveRoleSource = (*serveRolesStore)(nil)`, and embed NOTHING, so there

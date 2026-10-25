@@ -369,7 +369,7 @@ is callable there; a forbidigo rule denies naming `types.IssueFilter` or
 `types.WorkFilter` there at all, so no filter is writable there either. Both
 are directory-scoped with no per-file exception, so a file added to that package
 tomorrow is covered the moment it exists. That same forbidigo rule covers
-`modules/cli` deny-by-default with 64 named exceptions, so the files implementing
+`apps/cli` deny-by-default with 64 named exceptions, so the files implementing
 `issuegraph list` and `issuegraph show` cannot write a filter, and neither can a file they are
 split or renamed into unless the new name lands on that list.
 
@@ -406,13 +406,13 @@ provider or nothing at all, so an embedded-backed server was not *constructible*
 — the absence of a provider was itself the refusal. `httpapi.Config` now also
 takes the two issue roles as a database source, and the embedded store publishes
 both accessors, so one is. The gate is `serveDatabaseSource` in
-`modules/cli/serve.go`, which classifies the workspace and refuses; it is both the
+`apps/cli/serve.go`, which classifies the workspace and refuses; it is both the
 gate and the wiring decision, in one function, so the two cannot disagree about
 one workspace. `TestServeRefusalsPromiseNothing` pins both that it refuses and
 that its message promises nothing, and
 `TestServeRefusesAnEmbeddedWorkspaceEndToEnd` drives the refusal through
 `runServe`. `TestServeNamesOneDatabaseSourcePerServerItBuilds` pins against the
-source of `modules/cli` that every server `issuegraph` builds names exactly one complete
+source of `apps/cli` that every server `issuegraph` builds names exactly one complete
 database source and that a roles-backed one is only ever built where that
 classification is consulted — so a change that reached for store roles anywhere
 else fails a test rather than quietly reaching the embedded backend by a path

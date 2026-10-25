@@ -14,17 +14,17 @@ import (
 // filterCapturingStore is the shared spy used by the round-trip /
 // opt-out filter gate tests:
 //
-//   - TestExport_FilterHasZeroMaxRows       (modules/cli/export_max_rows_gate_test.go)        — be-x42v.4
-//   - TestExportAuto_FilterHasZeroMaxRows   (modules/cli/export_auto_max_rows_gate_test.go)   — be-x42v.4
-//   - TestMigrateIssues_FilterHasZeroMaxRows (modules/cli/migrate_issues_max_rows_gate_test.go) — be-x42v.4
-//   - TestJiraSync_FilterHasZeroMaxRows     (modules/cli/jira_max_rows_gate_test.go)          — be-x42v.4
+//   - TestExport_FilterHasZeroMaxRows       (apps/cli/export_max_rows_gate_test.go)        — be-x42v.4
+//   - TestExportAuto_FilterHasZeroMaxRows   (apps/cli/export_auto_max_rows_gate_test.go)   — be-x42v.4
+//   - TestMigrateIssues_FilterHasZeroMaxRows (apps/cli/migrate_issues_max_rows_gate_test.go) — be-x42v.4
+//   - TestJiraSync_FilterHasZeroMaxRows     (apps/cli/jira_max_rows_gate_test.go)          — be-x42v.4
 //
 // The same spy is intended to be reused by be-uwvs.5's parallel
 // Lite=false gate tests (TestExportFilterIsAlwaysFull and friends);
 // whichever issue lands first creates the spy, the other reuses it.
 //
 // It embeds *dolt.DoltStore (concrete) rather than the narrow
-// storage.Storage interface so that modules/cli's capability assertions
+// storage.Storage interface so that apps/cli's capability assertions
 // (mustAnnot, mustDeps, mustConfig — see storage_caps.go) continue to
 // resolve to the underlying Dolt-backed capabilities. Wrapping with the
 // bare interface would satisfy storage.Storage at compile time but break
@@ -106,7 +106,7 @@ func (s *filterCapturingStore) Calls() int {
 
 // Compile-time assurances that filterCapturingStore satisfies both the
 // narrow storage.Storage interface and the wider storage.DoltStorage
-// interface that modules/cli's `store` global is typed as. The embedded
+// interface that apps/cli's `store` global is typed as. The embedded
 // *dolt.DoltStore provides every required method; these assertions fail
 // at build time if either the embed is changed or the interface adds a
 // method DoltStore doesn't satisfy.

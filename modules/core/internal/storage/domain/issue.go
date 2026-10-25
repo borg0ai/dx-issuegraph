@@ -1112,7 +1112,7 @@ func (u *issueUseCaseImpl) applyGraph(ctx context.Context, plan GraphPlan, actor
 	// not pass ParentID to u.create: graph nodes with parent_key/parent_id
 	// receive top-level hash (or counter) IDs and have their parent linkage
 	// added as a separate parent-child dep below. This matches embedded
-	// executeGraphApply (modules/cli/graph_apply.go) and lets children precede
+	// executeGraphApply (apps/cli/graph_apply.go) and lets children precede
 	// parents in plan order — keyToID is only consulted after every node
 	// has minted its ID.
 	for i, node := range plan.Nodes {
@@ -1273,7 +1273,7 @@ func (u *issueUseCaseImpl) applyGraph(ctx context.Context, plan GraphPlan, actor
 		}
 
 		// Per-node inline deps in stable order for this phase, resolved by the
-		// same shared builder as the embedded executeGraphApply (modules/cli/graph_apply.go).
+		// same shared builder as the embedded executeGraphApply (apps/cli/graph_apply.go).
 		for _, node := range plan.Nodes {
 			for _, nd := range node.Deps {
 				dep, err := types.NewGraphNodeDependency(keyToID[node.Key], nd.Type, nd.Target, keyToID)

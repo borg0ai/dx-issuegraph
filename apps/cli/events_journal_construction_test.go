@@ -71,7 +71,7 @@ var storeConstructors = map[string]map[string]bool{
 }
 
 // activationCalls are the helpers that apply a workspace's configured
-// activation to the thing just constructed. Both the local modules/cli wrappers and
+// activation to the thing just constructed. Both the local apps/cli wrappers and
 // the shared package they delegate to count, because issuegraph doctor's repair
 // handlers cannot import package main and call the package directly.
 var activationCalls = map[string]bool{

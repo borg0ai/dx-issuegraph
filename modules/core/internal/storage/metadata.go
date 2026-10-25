@@ -228,7 +228,7 @@ func ValidateMetadataKey(key string) error {
 // and mixed-case keys are proven to round-trip through the real Dolt/
 // go-mysql-server JSON path parser (see TestMetadataFilterSuite's
 // MetadataFieldMatchSlashKey and MetadataFieldMatchMixedCaseKey subtests in
-// modules/cli/metadata_filter_test.go).
+// apps/cli/metadata_filter_test.go).
 //
 // Backslashes and quotes are also escaped, but every production caller
 // (sqlbuild.AppendMetadataClauses and doltTransaction.SearchIssues) validates
@@ -318,7 +318,7 @@ func ApplyMetadataEdits(existing json.RawMessage, setFlags, unsetFlags []string)
 // emitted as that literal (so 5 -> 5, 1e3 -> 1e3, while 05, +5 and NaN stay
 // strings because they are not valid JSON), and everything else is a string.
 //
-// This is the shipped v1.2.2 CLI contract (v1.2.2's modules/cli/update.go toJSONValue,
+// This is the shipped v1.2.2 CLI contract (v1.2.2's apps/cli/update.go toJSONValue,
 // copied body-for-body so the parity claim stays checkable). GH#4146 asked for
 // string-always so that map[string]string Go consumers keep numeric-looking ids
 // and versions like "1e3" intact; that briefly landed here and silently changed

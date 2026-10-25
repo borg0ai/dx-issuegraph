@@ -20,7 +20,7 @@ import (
 //	dependency <step> -> <X> already exists with type "blocks"
 //	  (requested "waits-for")
 //
-// collectDependencies in modules/cli/cook.go emits two edges on the same
+// collectDependencies in apps/cli/cook.go emits two edges on the same
 // (source, target) pair: a DepBlocks edge from `needs`, then a DepWaitsFor
 // edge from `waits_for` (which infers its spawner from needs[0]). Storage
 // rightly rejects the duplicate.
@@ -78,7 +78,7 @@ waits_for = "all-children"
 }
 
 // pourJSONResult mirrors the anonymous pourResult wrapper `issuegraph mol pour --json`
-// emits (modules/cli/pour.go): the embedded InstantiateResult fields plus attached
+// emits (apps/cli/pour.go): the embedded InstantiateResult fields plus attached
 // count and phase.
 type pourJSONResult struct {
 	NewEpicID string            `json:"new_epic_id"`
@@ -108,7 +108,7 @@ func readyIDs(t *testing.T, issuegraph, dir string) map[string]bool {
 // regression test for the review gap in GH#3875: the fix for GH#3783 drops
 // the DepBlocks edge from `needs` onto the waits_for spawner on the premise
 // that the DepWaitsFor edge subsumes its blocking semantics. also_blocks
-// metadata (set on exactly this collapsed edge, see modules/cli/cook.go) closes
+// metadata (set on exactly this collapsed edge, see apps/cli/cook.go) closes
 // the resulting pre-fanout window: waitsForGateBlockedSQL now additionally
 // blocks while the spawner itself is open, not only while it has an open
 // parent-child child.

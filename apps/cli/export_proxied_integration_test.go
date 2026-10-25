@@ -215,7 +215,7 @@ func exportMemoryKeys(records []map[string]any) []string {
 }
 
 // firstStreamDiff renders the first differing line of two JSONL streams
-// (modules/cli-package analog of protocol's diffStreams, which lives in another
+// (apps/cli-package analog of protocol's diffStreams, which lives in another
 // test package and cannot be imported).
 func firstStreamDiff(want, got string) string {
 	wl := strings.Split(strings.TrimRight(want, "\n"), "\n")

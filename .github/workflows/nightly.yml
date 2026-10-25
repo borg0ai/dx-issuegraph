@@ -23,9 +23,7 @@ on:
           - linux-integration-hybrid-prebuilt-sharded
           - linux-integration-coverage
           - cross-version-smoke
-          - nix
           - mcp-package
-          - apps/cli
       smoke_version:
         description: "Optional previous release for cross-version-smoke"
         required: false
@@ -55,7 +53,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'modules/core/go.mod'
 
       - name: Install Dolt
         run: |
@@ -69,7 +67,7 @@ jobs:
           dolt config --global --add user.email "ci@issuegraph.test"
 
       - name: Build
-        run: go build -v -tags gms_pure_go github.com/borg0ai/dx-issuegraph/modules/cli
+        run: go build -v -tags gms_pure_go github.com/borg0ai/dx-issuegraph/apps/cli
 
       - name: Full Test Suite (including integration tests)
         env:

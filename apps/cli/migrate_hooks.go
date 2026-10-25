@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/borg0ai/dx-issuegraph/internal/metrics"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )

@@ -103,8 +103,9 @@ Equivalent to: issuegraph linear sync --pull --issues <refs>`,
 // --- GitHub push/pull ---
 
 var githubPushCmd = &cobra.Command{
-	Use:   "push [issue-ids...]",
-	Short: "Push specific issuegraph to GitHub",
+	Use:     "push [issue-ids...]",
+	Aliases: []string{"export"},
+	Short:   "Push specific issuegraph to GitHub",
 	Long: `Push one or more issuegraph issues to GitHub.
 
 Accepts issue IDs as positional arguments.
@@ -115,8 +116,9 @@ Equivalent to: issuegraph github sync --push-only --issues <ids>`,
 }
 
 var githubPullCmd = &cobra.Command{
-	Use:   "pull [refs...]",
-	Short: "Pull specific items from GitHub",
+	Use:     "pull [refs...]",
+	Aliases: []string{"import"},
+	Short:   "Pull specific items from GitHub",
 	Long: `Pull one or more items from GitHub.
 
 Accepts issue IDs or external references as positional arguments.
@@ -199,8 +201,10 @@ func init() {
 	linearCmd.AddCommand(linearPullCmd)
 
 	// GitHub push/pull
-	githubPushCmd.Flags().Bool("dry-run", false, "Preview push without making changes")
-	githubPullCmd.Flags().Bool("dry-run", false, "Preview pull without making changes")
+	githubPushCmd.Flags().Bool("dry-run", false, "Preview push without applying changes")
+	githubPushCmd.Flags().Bool("apply", false, "Apply planned GitHub changes")
+	githubPullCmd.Flags().Bool("dry-run", false, "Preview pull without applying changes")
+	githubPullCmd.Flags().Bool("apply", false, "Apply planned local changes")
 	githubCmd.AddCommand(githubPushCmd)
 	githubCmd.AddCommand(githubPullCmd)
 
@@ -587,7 +591,12 @@ func runGitHubPush(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("at least one issue ID is required")
 	}
-	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	dryRunFlag, _ := cmd.Flags().GetBool("dry-run")
+	apply, _ := cmd.Flags().GetBool("apply")
+	if dryRunFlag && apply {
+		return fmt.Errorf("cannot use --dry-run and --apply together")
+	}
+	dryRun := !apply || dryRunFlag
 	if !dryRun {
 		CheckReadonly("github push")
 	}
@@ -635,7 +644,12 @@ func runGitHubPull(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("at least one issue ID or external reference is required")
 	}
-	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	dryRunFlag, _ := cmd.Flags().GetBool("dry-run")
+	apply, _ := cmd.Flags().GetBool("apply")
+	if dryRunFlag && apply {
+		return fmt.Errorf("cannot use --dry-run and --apply together")
+	}
+	dryRun := !apply || dryRunFlag
 	if !dryRun {
 		CheckReadonly("github pull")
 	}

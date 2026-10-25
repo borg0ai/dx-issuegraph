@@ -4,7 +4,7 @@ import "github.com/borg0ai/dx-issuegraph/issuegrapherrors"
 
 // ErrValidation classifies this role's deterministic request-validation
 // failures. It is an ALIAS of issuegrapherrors.ErrValidation, not a second sentinel,
-// and the identity is the point: the HTTP problem classifier, modules/cli's error
+// and the identity is the point: the HTTP problem classifier, apps/cli's error
 // handling and every conformance suite already errors.Is against that one
 // value, so a memoryops-flavored twin would make each of them double-match
 // forever — one vocabulary with two doorplates instead of two vocabularies.

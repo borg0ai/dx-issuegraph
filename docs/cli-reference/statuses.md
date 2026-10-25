@@ -1,6 +1,6 @@
 ---
 title: "issuegraph statuses"
-description: "List all valid issue statuses and their categories."
+description: "List valid issue statuses"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}

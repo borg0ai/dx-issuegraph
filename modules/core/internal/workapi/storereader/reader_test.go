@@ -15,7 +15,7 @@ import (
 // CLI's paging commands still reach storage through the builders directly (see
 // reader.go's boundary note), so Ready and List here run in production
 // only once a front door moves onto the role. That is precisely why they need
-// tests — the over-fetch and trim they inherited from modules/cli/list.go would
+// tests — the over-fetch and trim they inherited from apps/cli/list.go would
 // otherwise be unexercised until the day something depends on them.
 
 // fakeReaderStore is a DoltStorage whose only real methods are the five the

@@ -1,6 +1,6 @@
 ---
 title: "issuegraph upgrade"
-description: "Commands for checking issuegraph version upgrades and reviewing changes."
+description: "Check and manage issuegraph version upgrades"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -17,7 +17,7 @@ The upgrade command helps you stay aware of issuegraph version changes:
 Version tracking is automatic - issuegraph updates metadata.json on every run.
 
 ```
-issuegraph upgrade [flags]
+issuegraph upgrade [command]
 ```
 
 ## issuegraph upgrade ack

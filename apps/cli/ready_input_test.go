@@ -118,7 +118,7 @@ func runGatherReadyInput(t *testing.T, cmd *cobra.Command, resolveCap func(*cobr
 //
 // gatherReadyInput reports its usage errors through HandleErrorRespectJSON, so
 // this global alone decides whether they land as text on stderr or as a JSON
-// object on stdout. jsonOutput is not per-test state: several modules/cli tests set
+// object on stdout. jsonOutput is not per-test state: several apps/cli tests set
 // it and never restore it (saveAndRestoreGlobals, which a number of them use,
 // does not cover it), so a test that reads it instead of setting it passes
 // under a narrow -run and fails in a full-package run depending on what ran

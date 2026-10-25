@@ -7,7 +7,7 @@ Configure your IDE or coding agent for optimal issuegraph integration.
 
 Last reviewed: 2026-07-10
 
-Freshness source: `modules/cli/setup*.go` and `internal/recipes/`.
+Freshness source: `apps/cli/setup*.go` and `internal/recipes/`.
 
 ## How `issuegraph setup` Works
 

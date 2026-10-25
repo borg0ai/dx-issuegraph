@@ -190,7 +190,7 @@ const ExitMigrationFrozen = 14
 // folding the freeze check in here covers the whole write surface at once,
 // including commands added after this comment is written — not just a
 // hand-picked list that rots (one concrete instance the hand-picked list
-// missed: "issuegraph q", modules/cli/quick.go, the create alias). It exits via os.Exit
+// missed: "issuegraph q", apps/cli/quick.go, the create alias). It exits via os.Exit
 // and so cannot run the per-command deferred CloseEventAndAdd — a command
 // blocked here records no cli_command event of its own (it never actually
 // ran). It does flush metrics first, so events already queued earlier in this

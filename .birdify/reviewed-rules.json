@@ -1,6 +1,6 @@
 {
   "revision": "c25059adad4da6002d3d0c813b8c23fdc23c0bc0",
-  "scope": "只审查与本次重品牌、本地 Git、禁止远程同步直接相关的指令：根 AGENTS.md、modules/cli/AGENTS.md、engdocs/PROJECT_CHARTER.md、engdocs/CLAUDE.md、docs/core-concepts/sync-concepts.md、docs/architecture/index.md。目录收集了 81 个源、2090 个小节；其余源未做语义审查。37 条引用目标缺失，保留为缺口，不计入有效规则。",
+  "scope": "只审查与本次重品牌、本地 Git、禁止远程同步直接相关的指令：根 AGENTS.md、apps/cli/AGENTS.md、engdocs/PROJECT_CHARTER.md、engdocs/CLAUDE.md、docs/core-concepts/sync-concepts.md、docs/architecture/index.md。目录收集了 81 个源、2090 个小节；其余源未做语义审查。37 条引用目标缺失，保留为缺口，不计入有效规则。",
   "ruleReview": {
     "scope": "部分审查。有效规则仅来自上述文件中已读段落。技能正文、CONTRIBUTING、测试与发布文档未提炼。"
   },
@@ -173,15 +173,15 @@
       ]
     },
     {
-      "sourcePath": "modules/cli/AGENTS.md",
+      "sourcePath": "apps/cli/AGENTS.md",
       "category": "delivery",
       "topic": { "id": "cmd-landing", "name": "命令目录落地" },
       "rules": [
         {
           "id": "rule-cmd-landing-push",
-          "name": "modules/cli 落地也要求 push",
+          "name": "apps/cli 落地也要求 push",
           "anchor": "Work is NOT complete until `git push` succeeds.",
-          "condition": "只读 modules/cli/AGENTS.md 的落地清单时",
+          "condition": "只读 apps/cli/AGENTS.md 的落地清单时",
           "explanation": "该文件把 git push 写成强制完成条件，没有复述根文件的保守配置例外。本轮用户明确不推远程，根 AGENTS 的用户指令优先条款覆盖它。",
           "applicability": "conflict",
           "verification": "本轮 git status 不需要与 origin 同步。",

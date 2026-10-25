@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 )
 
 func TestBuildHookMigrationJSON(t *testing.T) {

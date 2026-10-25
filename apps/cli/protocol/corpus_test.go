@@ -17,7 +17,7 @@ import (
 // change shows up as a hard diff failure that must be reviewed.
 var updateCorpus = flag.Bool("corpus.update", false, "regenerate the committed golden corpus under testdata/corpus/")
 
-const corpusGeneratedBy = "modules/cli/protocol TestCorpusGolden"
+const corpusGeneratedBy = "apps/cli/protocol TestCorpusGolden"
 
 type captureResult struct {
 	stdout   []byte
@@ -104,7 +104,7 @@ func isErrorEnvelope(blob []byte, envelope bool) bool {
 
 // errorCaptureExitCode is the exit status issuegraph returns for the error capture
 // (`issuegraph show <missing> --json`). issuegraph's RunE error handlers return
-// exitError{Code: 1} (modules/cli/errors.go: HandleErrorRespectJSON / SilentExit),
+// exitError{Code: 1} (apps/cli/errors.go: HandleErrorRespectJSON / SilentExit),
 // which main() maps to os.Exit(1) — the not-found path exits 1 while still
 // printing the {error, schema_version} envelope to stdout. Pinning the exact
 // code makes the corpus catch a regression in issuegraph's not-found exit status, which

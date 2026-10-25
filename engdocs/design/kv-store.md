@@ -29,7 +29,7 @@ All commands support `--json` for machine-readable output.
 ```bash
 # Store project metadata
 issuegraph kv set primary_language go
-issuegraph kv set entry_point modules/cli/main.go
+issuegraph kv set entry_point apps/cli/main.go
 
 # Retrieve values
 issuegraph kv get primary_language
@@ -39,12 +39,12 @@ issuegraph kv get primary_language
 issuegraph kv list
 # Output:
 # primary_language = go
-# entry_point = modules/cli/main.go
+# entry_point = apps/cli/main.go
 
 # List with prefix filter
 issuegraph kv list entry
 # Output:
-# entry_point = modules/cli/main.go
+# entry_point = apps/cli/main.go
 
 # JSON output
 issuegraph kv list --json
@@ -105,7 +105,7 @@ KV data syncs via the standard issuegraph-sync mechanism:
 
 ```jsonl
 {"key":"primary_language","value":"go","set_at":"2026-01-21T10:30:00Z","set_by":"issuegraph/crew/collins"}
-{"key":"entry_point","value":"modules/cli/main.go","set_at":"2026-01-21T10:31:00Z","set_by":"human"}
+{"key":"entry_point","value":"apps/cli/main.go","set_at":"2026-01-21T10:31:00Z","set_by":"human"}
 ```
 
 This format is:

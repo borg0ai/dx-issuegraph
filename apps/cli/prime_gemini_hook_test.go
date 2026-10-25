@@ -464,7 +464,7 @@ func primeScenarioNoMemoriesMemoriesOnlyWins(t *testing.T, binPath, workDir stri
 // $HOME/.issuegraph/eventsData while Go's t.TempDir cleanup is trying to delete the
 // tree. The result was an intermittent, assertion-free
 // "TempDir RemoveAll cleanup: ... directory not empty" that reddened the whole
-// modules/cli package (the TestPrime_HookJSON_* tests were the observed victims).
+// apps/cli package (the TestPrime_HookJSON_* tests were the observed victims).
 //
 // The fix is the metrics opt-out set process-wide in testMainInner; this test
 // pins it from the outside, because the failure it prevents is load-dependent

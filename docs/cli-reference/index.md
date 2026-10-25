@@ -7,16 +7,37 @@ description: Generated reference for every issuegraph command
 
 Generated from `issuegraph help --docs-root`.
 
-This reference covers all 108 live top-level `issuegraph` commands. Regenerate it with:
+This reference covers all 113 live top-level `issuegraph` commands. Regenerate it with:
 
 ```bash
 ./scripts/generate-cli-docs.sh
 ```
 
+## Global Flags
+
+These flags apply to all commands:
+
+```
+      --actor string              Actor name for audit trail (default: $ISSUEGRAPH_ACTOR, git user.name, $USER)
+      --cpu-profile               Generate CPU profile for performance analysis
+      --database string           Run against a different server database for this invocation, without changing the project's configured database (proxied-server mode only)
+      --db string                 Database path (default: auto-discover .issuegraph/*.db). In proxied-server mode, a value that isn't an existing path is treated as a database name override (see --database)
+  -C, --directory string          Change to this directory before running the command (like git -C)
+      --dolt-auto-commit string   Dolt auto-commit policy (off|on|batch). 'on': commit after each write. 'batch': defer commits to issuegraph dolt commit; uncommitted changes persist in the working set until then (a live batch-mode issuegraph process also flushes on SIGTERM/SIGHUP). Applies to embedded and direct SQL-server modes; proxied-server routes are unaffected. Default: on. Override via config key dolt.auto-commit
+      --global                    Use the global shared-server database (issuegraph_global)
+      --ignore-schema-skew        Proceed despite forward schema drift (some queries may fail)
+      --json                      Output in JSON format
+      --mem-profile string        Write heap profile to FILE on exit (also respects ISSUEGRAPH_MEM_PROFILE)
+      --no-color                  Disable color output (also: NO_COLOR=1 or CLICOLOR=0)
+  -q, --quiet                     Suppress non-essential output (errors only)
+      --readonly                  Read-only mode: block write operations (for worker sandboxes)
+      --sandbox                   Sandbox mode: disables Dolt auto-push
+  -v, --verbose                   Enable verbose/debug output
+```
+
 ## Commands
 
 - [`issuegraph admin`](/cli-reference/admin)
-- [`issuegraph ado`](/cli-reference/ado)
 - [`issuegraph assign`](/cli-reference/assign)
 - [`issuegraph audit`](/cli-reference/audit)
 - [`issuegraph backup`](/cli-reference/backup)
@@ -31,6 +52,7 @@ This reference covers all 108 live top-level `issuegraph` commands. Regenerate i
 - [`issuegraph compact`](/cli-reference/compact)
 - [`issuegraph completion`](/cli-reference/completion)
 - [`issuegraph config`](/cli-reference/config)
+- [`issuegraph conflicts`](/cli-reference/conflicts)
 - [`issuegraph context`](/cli-reference/context)
 - [`issuegraph cook`](/cli-reference/cook)
 - [`issuegraph count`](/cli-reference/count)
@@ -46,6 +68,7 @@ This reference covers all 108 live top-level `issuegraph` commands. Regenerate i
 - [`issuegraph duplicates`](/cli-reference/duplicates)
 - [`issuegraph edit`](/cli-reference/edit)
 - [`issuegraph epic`](/cli-reference/epic)
+- [`issuegraph events`](/cli-reference/events)
 - [`issuegraph export`](/cli-reference/export)
 - [`issuegraph federation`](/cli-reference/federation)
 - [`issuegraph find-duplicates`](/cli-reference/find-duplicates)
@@ -55,8 +78,8 @@ This reference covers all 108 live top-level `issuegraph` commands. Regenerate i
 - [`issuegraph gate`](/cli-reference/gate)
 - [`issuegraph gc`](/cli-reference/gc)
 - [`issuegraph github`](/cli-reference/github)
-- [`issuegraph gitlab`](/cli-reference/gitlab)
 - [`issuegraph graph`](/cli-reference/graph)
+- [`issuegraph heartbeat`](/cli-reference/heartbeat)
 - [`issuegraph history`](/cli-reference/history)
 - [`issuegraph hooks`](/cli-reference/hooks)
 - [`issuegraph human`](/cli-reference/human)
@@ -64,10 +87,8 @@ This reference covers all 108 live top-level `issuegraph` commands. Regenerate i
 - [`issuegraph info`](/cli-reference/info)
 - [`issuegraph init`](/cli-reference/init)
 - [`issuegraph init-safety`](/cli-reference/init-safety)
-- [`issuegraph jira`](/cli-reference/jira)
 - [`issuegraph kv`](/cli-reference/kv)
 - [`issuegraph label`](/cli-reference/label)
-- [`issuegraph linear`](/cli-reference/linear)
 - [`issuegraph link`](/cli-reference/link)
 - [`issuegraph lint`](/cli-reference/lint)
 - [`issuegraph list`](/cli-reference/list)
@@ -76,9 +97,9 @@ This reference covers all 108 live top-level `issuegraph` commands. Regenerate i
 - [`issuegraph merge-slot`](/cli-reference/merge-slot)
 - [`issuegraph metrics`](/cli-reference/metrics)
 - [`issuegraph migrate`](/cli-reference/migrate)
+- [`issuegraph migrate-personal`](/cli-reference/migrate-personal)
 - [`issuegraph mol`](/cli-reference/mol)
 - [`issuegraph note`](/cli-reference/note)
-- [`issuegraph notion`](/cli-reference/notion)
 - [`issuegraph onboard`](/cli-reference/onboard)
 - [`issuegraph orphans`](/cli-reference/orphans)
 - [`issuegraph ping`](/cli-reference/ping)
@@ -86,6 +107,7 @@ This reference covers all 108 live top-level `issuegraph` commands. Regenerate i
 - [`issuegraph prime`](/cli-reference/prime)
 - [`issuegraph priority`](/cli-reference/priority)
 - [`issuegraph promote`](/cli-reference/promote)
+- [`issuegraph provenance`](/cli-reference/provenance)
 - [`issuegraph prune`](/cli-reference/prune)
 - [`issuegraph purge`](/cli-reference/purge)
 - [`issuegraph q`](/cli-reference/q)
@@ -93,6 +115,7 @@ This reference covers all 108 live top-level `issuegraph` commands. Regenerate i
 - [`issuegraph quickstart`](/cli-reference/quickstart)
 - [`issuegraph ready`](/cli-reference/ready)
 - [`issuegraph recall`](/cli-reference/recall)
+- [`issuegraph reclaim`](/cli-reference/reclaim)
 - [`issuegraph recompute-blocked`](/cli-reference/recompute-blocked)
 - [`issuegraph remember`](/cli-reference/remember)
 - [`issuegraph rename`](/cli-reference/rename)
@@ -101,7 +124,9 @@ This reference covers all 108 live top-level `issuegraph` commands. Regenerate i
 - [`issuegraph repo`](/cli-reference/repo)
 - [`issuegraph restore`](/cli-reference/restore)
 - [`issuegraph rules`](/cli-reference/rules)
+- [`issuegraph schema`](/cli-reference/schema)
 - [`issuegraph search`](/cli-reference/search)
+- [`issuegraph serve`](/cli-reference/serve)
 - [`issuegraph set-state`](/cli-reference/set-state)
 - [`issuegraph setup`](/cli-reference/setup)
 - [`issuegraph ship`](/cli-reference/ship)
@@ -113,9 +138,11 @@ This reference covers all 108 live top-level `issuegraph` commands. Regenerate i
 - [`issuegraph statuses`](/cli-reference/statuses)
 - [`issuegraph supersede`](/cli-reference/supersede)
 - [`issuegraph swarm`](/cli-reference/swarm)
+- [`issuegraph sync`](/cli-reference/sync)
 - [`issuegraph tag`](/cli-reference/tag)
 - [`issuegraph todo`](/cli-reference/todo)
 - [`issuegraph types`](/cli-reference/types)
+- [`issuegraph unclaim`](/cli-reference/unclaim)
 - [`issuegraph undefer`](/cli-reference/undefer)
 - [`issuegraph update`](/cli-reference/update)
 - [`issuegraph upgrade`](/cli-reference/upgrade)

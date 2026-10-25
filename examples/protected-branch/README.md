@@ -249,7 +249,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install issuegraph
-        run: curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
+        run: nix profile install github:systembugtj/cangjie-nix#issuegraph  # runner needs Nix
 
       - name: Check for changes
         id: check

@@ -22,8 +22,8 @@ func TestPluginLayoutUsesSharedIssueGraphRoot(t *testing.T) {
 	if len(claudeMarketplace.Plugins) != 1 {
 		t.Fatalf("expected one Claude marketplace plugin, got %d", len(claudeMarketplace.Plugins))
 	}
-	if got := claudeMarketplace.Plugins[0].Source; got != "./plugins/issuegraph" {
-		t.Fatalf("Claude marketplace source = %q, want ./plugins/issuegraph", got)
+	if got := claudeMarketplace.Plugins[0].Source; got != "./issuegraph" {
+		t.Fatalf("Claude marketplace source = %q, want ./issuegraph", got)
 	}
 
 	var claudeManifest struct {
@@ -31,7 +31,7 @@ func TestPluginLayoutUsesSharedIssueGraphRoot(t *testing.T) {
 		Commands string  `json:"commands"`
 		Agents   *string `json:"agents"`
 	}
-	readJSONFile(t, filepath.Join(root, "plugins", "issuegraph", ".claude-plugin", "plugin.json"), &claudeManifest)
+	readJSONFile(t, filepath.Join(root, "issuegraph", ".claude-plugin", "plugin.json"), &claudeManifest)
 	if claudeManifest.Skills != "./skills/" {
 		t.Fatalf("Claude skills path = %q, want ./skills/", claudeManifest.Skills)
 	}
@@ -46,7 +46,7 @@ func TestPluginLayoutUsesSharedIssueGraphRoot(t *testing.T) {
 		Skills string `json:"skills"`
 		Hooks  string `json:"hooks"`
 	}
-	readJSONFile(t, filepath.Join(root, "plugins", "issuegraph", ".codex-plugin", "plugin.json"), &codexManifest)
+	readJSONFile(t, filepath.Join(root, "issuegraph", ".codex-plugin", "plugin.json"), &codexManifest)
 	if codexManifest.Skills != "./skills/" {
 		t.Fatalf("Codex manifest skills path = %q, want ./skills/", codexManifest.Skills)
 	}
@@ -54,17 +54,17 @@ func TestPluginLayoutUsesSharedIssueGraphRoot(t *testing.T) {
 		t.Fatalf("Codex manifest hooks path = %q, want ./.codex-plugin/hooks/hooks.json", codexManifest.Hooks)
 	}
 
-	requireRepoFile(t, root, "plugins", "issuegraph", "skills", "issuegraph", "SKILL.md")
-	requireRepoFile(t, root, "plugins", "issuegraph", "skills", "issuegraph", "agents", "openai.yaml")
-	requireRepoFile(t, root, "plugins", "issuegraph", "agents", "task-agent.md")
-	requireRepoFile(t, root, "plugins", "issuegraph", "skills", "issuegraph", "commands", "ready.md")
-	requireRepoFile(t, root, "plugins", "issuegraph", ".codex-plugin", "hooks", "hooks.json")
-	requireNoRepoPath(t, root, "plugins", "issuegraph", "hooks", "hooks.json")
+	requireRepoFile(t, root, "issuegraph", "skills", "issuegraph", "SKILL.md")
+	requireRepoFile(t, root, "issuegraph", "skills", "issuegraph", "agents", "openai.yaml")
+	requireRepoFile(t, root, "issuegraph", "agents", "task-agent.md")
+	requireRepoFile(t, root, "issuegraph", "skills", "issuegraph", "commands", "ready.md")
+	requireRepoFile(t, root, "issuegraph", ".codex-plugin", "hooks", "hooks.json")
+	requireNoRepoPath(t, root, "issuegraph", "hooks", "hooks.json")
 }
 
 func TestPluginCommandArgumentHintsAreStrings(t *testing.T) {
 	root := filepath.Join("..", "..", "..")
-	commandsDir := filepath.Join(root, "plugins", "issuegraph", "skills", "issuegraph", "commands")
+	commandsDir := filepath.Join(root, "issuegraph", "skills", "issuegraph", "commands")
 	entries, err := os.ReadDir(commandsDir)
 	if err != nil {
 		t.Fatalf("read commands directory %s: %v", commandsDir, err)

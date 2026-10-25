@@ -11,7 +11,7 @@ import (
 
 // PhysicalRoots describes the local physical database root(s) a store open
 // for the given workspace will actually touch, so the workspace-gate wiring
-// (modules/cli chokepoint, issuegraph init/migrate/restore, issuegraph.OpenGated) can gate the
+// (apps/cli chokepoint, issuegraph init/migrate/restore, issuegraph.OpenGated) can gate the
 // directory the store will USE — not the directory any single existing
 // resolver claims. That distinction is the whole reason this function exists:
 // ResolveDoltDir reports .issuegraph/dolt for embedded workspaces whose engine
@@ -94,7 +94,7 @@ func DoltDirPath(issuegraphDir string) string {
 
 // ResolveProxiedServerRootPath resolves the physical root directory of a
 // proxied-server workspace. This logic used to live unexported in
-// modules/cli/proxied_server.go; it is exported here so the workspace-gate
+// apps/cli/proxied_server.go; it is exported here so the workspace-gate
 // resolver and the CLI proxy plumbing share ONE implementation and cannot
 // drift (a divergent copy would gate a different directory than the proxy
 // actually serves). Precedence:
@@ -134,7 +134,7 @@ func ResolveProxiedServerRootPath(issuegraphDir string) (string, error) {
 // defaults for fields the project config leaves empty.
 //
 // This is deliberately NOT part of ResolvePhysicalRoots: the CLI's
-// hand-built store selection in modules/cli/main.go never consults the central
+// hand-built store selection in apps/cli/main.go never consults the central
 // config, so CLI gate planning must not either (it would gate a server root
 // the CLI would not open). It exists for LibraryOpenRootPath, which mirrors
 // the library path where the merge DOES apply.
@@ -190,7 +190,7 @@ func isRemoteServerHost(host string) bool {
 //     shared root comes from SharedServerPath/SharedDoltPath instead.
 //
 // Parity target — this function mirrors the CLI's hand-built store
-// selection in modules/cli/main.go, EXACTLY and only that. The LIBRARY open path
+// selection in apps/cli/main.go, EXACTLY and only that. The LIBRARY open path
 // (internal/storage/dolt/open.go via issuegraph.OpenFromConfig) is broader: it
 // substitutes DefaultConfig when metadata.json is absent and applies
 // central-config defaults (~/.config/issuegraph/server.json) either way, so it

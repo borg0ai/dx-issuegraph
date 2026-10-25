@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# embedded-test-shard.sh — run a shard of embedded dolt modules/cli tests.
+# embedded-test-shard.sh — run a shard of embedded dolt apps/cli tests.
 #
 # Usage: embedded-test-shard.sh <shard_number> <total_shards>
 #
-# Discovers all TestEmbedded* top-level functions from modules/cli/*_embedded_test.go.
+# Discovers all TestEmbedded* top-level functions from apps/cli/*_embedded_test.go.
 # Tests listed in embedded-cmd-test-shards.txt for the requested shard count use
 # that committed assignment; newly-added tests fall back to hash(name) % total.
 # Runs the matching subset using the pre-built test binary at
@@ -12,7 +12,7 @@
 # Environment:
 #   ISSUEGRAPH_TEST_EMBEDDED_DOLT=1    required (tests skip without it)
 #   ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY=<path>   optional pre-built issuegraph binary (used by tests)
-#   ISSUEGRAPH_TEST_CMD_BINARY=<path>  pre-built modules/cli test binary (default: /tmp/bd-cmd-test)
+#   ISSUEGRAPH_TEST_CMD_BINARY=<path>  pre-built apps/cli test binary (default: /tmp/bd-cmd-test)
 #   ISSUEGRAPH_TEST_SHARD_LIST_ONLY=1  print selected tests without running them
 
 set -euo pipefail
@@ -34,7 +34,7 @@ SHARD_INDEX=$(( SHARD_NUMBER - 1 ))
 MANIFEST="${ISSUEGRAPH_TEST_SHARD_MANIFEST:-.github/scripts/embedded-cmd-test-shards.txt}"
 
 # Discover all top-level TestEmbedded* functions.
-ALL_TESTS=$(grep -rh '^func TestEmbedded' modules/cli/*_embedded_test.go \
+ALL_TESTS=$(grep -rh '^func TestEmbedded' apps/cli/*_embedded_test.go \
   | sed 's/func \(TestEmbedded[A-Za-z0-9_]*\).*/\1/' \
   | sort -u)
 
@@ -131,5 +131,5 @@ else
   exec go test -tags=gms_pure_go -v -race -count=1 -timeout 20m \
     -run "$RUN_REGEX" \
     "$@" \
-    github.com/borg0ai/dx-issuegraph/modules/cli
+    github.com/borg0ai/dx-issuegraph/apps/cli
 fi

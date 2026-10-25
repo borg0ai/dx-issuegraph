@@ -13,7 +13,7 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	"github.com/borg0ai/dx-issuegraph/internal/git"
 	"github.com/borg0ai/dx-issuegraph/internal/types"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
 )
 
 // gitCmdTimeout is the timeout for git subprocess commands in doctor checks.
@@ -710,7 +710,7 @@ func getConfiguredHooksPath(repoRoot string) (string, bool) {
 // IsIssueGraphManagedHooksPath reports whether hooksPath is one of the values issuegraph
 // itself writes to core.hooksPath (.issuegraph/hooks or .issuegraph-hooks, relative or
 // absolute under repoRoot). It is the single matcher for that question;
-// resetHooksPathIfIssueGraphManaged (modules/cli/hooks.go) calls it too, so the two
+// resetHooksPathIfIssueGraphManaged (apps/cli/hooks.go) calls it too, so the two
 // paths cannot drift apart.
 //
 // Absolute values are compared after symlink resolution. repoRoot comes from

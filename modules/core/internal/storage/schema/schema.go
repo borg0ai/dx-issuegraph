@@ -105,10 +105,10 @@ func (e *SchemaSkewError) UserMessage() string {
 		"  with cryptic SQL errors (e.g. \"column X could not be found in any table in scope\").\n" +
 		"\n" +
 		"  Rebuild from main:\n" +
-		"    CGO_ENABLED=0 go build -tags gms_pure_go ./modules/cli\n" +
+		"    CGO_ENABLED=0 go build -tags gms_pure_go ./apps/cli\n" +
 		"\n" +
-		"  Or install the latest release:\n" +
-		"    CGO_ENABLED=0 go install -tags gms_pure_go github.com/borg0ai/dx-issuegraph/modules/cli@latest\n" +
+		"  Or upgrade to the latest release through your package manager:\n" +
+		"    brew upgrade issuegraph | nix profile upgrade issuegraph | scoop update issuegraph\n" +
 		"\n" +
 		"  To proceed despite the risk (some read commands may still work):\n" +
 		"    ISSUEGRAPH_IGNORE_SCHEMA_SKEW=1 issuegraph <command>\n" +

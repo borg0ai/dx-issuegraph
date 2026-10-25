@@ -114,8 +114,8 @@ func TestUpgradeCommandForPath(t *testing.T) {
 		{"homebrew intel mac", "/usr/local/Cellar/issuegraph/0.49.4/bin/issuegraph", "brew upgrade issuegraph"},
 		{"homebrew linux", "/home/linuxbrew/.linuxbrew/Cellar/issuegraph/0.49.4/bin/issuegraph", "brew upgrade issuegraph"},
 		{"legacy tap formula", "/opt/homebrew/Cellar/issuegraph/0.49.0/bin/issuegraph", "brew upgrade issuegraph"},
-		{"usr local bin symlink", "/usr/local/bin/issuegraph", installScriptCommand},
-		{"go install", "/home/user/go/bin/issuegraph", installScriptCommand},
+		{"usr local bin symlink", "/usr/local/bin/issuegraph", installCommand()},
+		{"go install", "/home/user/go/bin/issuegraph", installCommand()},
 	}
 
 	for _, tt := range tests {

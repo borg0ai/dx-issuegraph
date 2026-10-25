@@ -5,9 +5,9 @@
 // checkable in milliseconds with no database.
 //
 // It is its own package rather than a file in internal/workapi because nothing
-// in it is issue-shaped, and it is deliberately importable by modules/cli: the
+// in it is issue-shaped, and it is deliberately importable by apps/cli: the
 // `issuegraph remember` front door needs DeriveKey to spot the bare-slug desire path
-// BEFORE it decides which role method to call, exactly as the twenty-odd modules/cli
+// BEFORE it decides which role method to call, exactly as the twenty-odd apps/cli
 // files that import workapi need the builders. What a front door must not
 // reach is a role CONSTRUCTOR, and there is none here — these are meaning
 // functions, not bodies.

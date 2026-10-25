@@ -6,7 +6,12 @@ Slash command for converting [Claude Code](https://docs.anthropic.com/en/docs/cl
 
 ```bash
 # Install issuegraph
-curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
+# macOS (Homebrew)
+brew install systembugtj/luban-homebrew/issuegraph
+# Linux (Nix)
+nix profile install github:systembugtj/cangjie-nix#issuegraph
+# Windows (Scoop)
+scoop bucket add shennong https://github.com/systembugtj/shennong-bucket && scoop install shennong/issuegraph
 
 # Install hooks (auto-injects workflow context on session start)
 issuegraph setup claude

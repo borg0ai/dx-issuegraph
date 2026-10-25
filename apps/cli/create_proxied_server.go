@@ -170,7 +170,7 @@ func runCreateProxiedSingle(_ *cobra.Command, ctx context.Context, in createInpu
 
 // inheritProxiedSourceRepo copies a discovered-from parent's source repo onto
 // the new issue, which is what the direct route does before it calls the role
-// (modules/cli/create.go).
+// (apps/cli/create.go).
 //
 // A failed lookup is not a verdict. The direct route ignores one and creates
 // with the default source repo; a genuinely absent target is refused by the

@@ -1,0 +1,15 @@
+{
+  "name": "issuegraph-marketplace",
+  "description": "Marketplace for the IssueGraph plugin",
+  "owner": {
+    "name": "Steve Yegge"
+  },
+  "plugins": [
+    {
+      "name": "issuegraph",
+      "source": "./issuegraph",
+      "description": "AI-supervised issue tracker for coding workflows",
+      "version": "1.3.0"
+    }
+  ]
+}

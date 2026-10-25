@@ -1,6 +1,6 @@
 ---
 title: "issuegraph mol"
-description: "Manage molecules - work templates for agent workflows."
+description: "Molecule commands (work templates)"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -31,7 +31,7 @@ Commands:
 Use "issuegraph formula list" to list available formulas.
 
 ```
-issuegraph mol [flags]
+issuegraph mol [command]
 ```
 
 **Aliases:** protomolecule
@@ -72,8 +72,8 @@ Dynamic bonding (Christmas Ornament pattern):
   This creates IDs like "parent.child-ref" instead of random hashes.
 
   Example:
-    issuegraph mol bond mol-worker-arm issuegraph-patrol --ref arm-&#123;&#123;worker_name&#125;&#125; --var worker_name=ace
-    # Creates: issuegraph-patrol.arm-ace (and children like issuegraph-patrol.arm-ace.capture)
+    issuegraph mol bond mol-worker-arm bd-patrol --ref arm-&#123;&#123;worker_name&#125;&#125; --var worker_name=ace
+    # Creates: bd-patrol.arm-ace (and children like bd-patrol.arm-ace.capture)
 
 Use cases:
   - Found important bug during patrol? Use --pour to persist it
@@ -83,11 +83,11 @@ Use cases:
 Examples:
   issuegraph mol bond mol-feature mol-deploy                    # Compound proto
   issuegraph mol bond mol-feature mol-deploy --type parallel    # Run in parallel
-  issuegraph mol bond mol-feature issuegraph-abc123                     # Attach proto to molecule
-  issuegraph mol bond issuegraph-abc123 issuegraph-def456                       # Join two molecules
+  issuegraph mol bond mol-feature bd-abc123                     # Attach proto to molecule
+  issuegraph mol bond bd-abc123 bd-def456                       # Join two molecules
   issuegraph mol bond mol-critical-bug wisp-patrol --pour       # Persist found bug
-  issuegraph mol bond mol-temp-check issuegraph-feature --ephemeral          # Ephemeral diagnostic
-  issuegraph mol bond mol-arm issuegraph-patrol --ref arm-&#123;&#123;name&#125;&#125; --var name=ace  # Dynamic child ID
+  issuegraph mol bond mol-temp-check bd-feature --ephemeral          # Ephemeral diagnostic
+  issuegraph mol bond mol-arm bd-patrol --ref arm-&#123;&#123;name&#125;&#125; --var name=ace  # Dynamic child ID
 
 ```
 issuegraph mol bond <A> <B> [flags]
@@ -125,10 +125,10 @@ CAUTION: This is a destructive operation. The molecule's data will be
 permanently lost. If you want to preserve a summary, use 'issuegraph mol squash'.
 
 Example:
-  issuegraph mol burn issuegraph-abc123              # Delete molecule with no trace
-  issuegraph mol burn issuegraph-abc123 --dry-run    # Preview what would be deleted
-  issuegraph mol burn issuegraph-abc123 --force      # Skip confirmation
-  issuegraph mol burn issuegraph-a1 issuegraph-b2 issuegraph-c3      # Batch delete multiple wisps
+  issuegraph mol burn bd-abc123              # Delete molecule with no trace
+  issuegraph mol burn bd-abc123 --dry-run    # Preview what would be deleted
+  issuegraph mol burn bd-abc123 --force      # Skip confirmation
+  issuegraph mol burn bd-a1 bd-b2 bd-c3      # Batch delete multiple wisps
 
 ```
 issuegraph mol burn <molecule-id> [molecule-id...] [flags]
@@ -198,8 +198,8 @@ Output locations (first writable wins):
   3. ~/.issuegraph/formulas/     (user-level, if project not writable)
 
 Examples:
-  issuegraph mol distill issuegraph-o5xe my-workflow
-  issuegraph mol distill issuegraph-abc release-workflow --var feature_name=auth-refactor
+  issuegraph mol distill bd-o5xe my-workflow
+  issuegraph mol distill bd-abc release-workflow --var feature_name=auth-refactor
 
 ```
 issuegraph mol distill <epic-id> [formula-name] [flags]
@@ -238,7 +238,8 @@ issuegraph mol last-activity <molecule-id> [flags]
 Pour a proto into a persistent mol - like pouring molten metal into a mold.
 
 This is the chemistry-inspired command for creating PERSISTENT work from templates.
-The resulting mol lives in .issuegraph/ (permanent storage) and is synced with git.
+The resulting mol is stored as persistent issuegraph in the issue database and
+syncs like any other issue (issuegraph dolt push / pull).
 
 Phase transition: Proto (solid) -&gt; pour -&gt; Mol (liquid)
 
@@ -291,7 +292,7 @@ Output includes:
   - ETA: estimated time to completion
 
 Example:
-  issuegraph mol progress issuegraph-hanoi-xyz
+  issuegraph mol progress bd-hanoi-xyz
 
 ```
 issuegraph mol progress [molecule-id] [flags]
@@ -316,6 +317,12 @@ Examples:
 
 ```
 issuegraph mol ready --gated [flags]
+```
+
+**Flags:**
+
+```
+      --gated   Find molecules ready for gate-resume dispatch (always on for this subcommand)
 ```
 
 ## issuegraph mol seed
@@ -356,7 +363,7 @@ The --parallel flag highlights parallelizable steps:
   - Identifies parallel groups (steps that can run concurrently)
 
 Example:
-  issuegraph mol show issuegraph-patrol --parallel
+  issuegraph mol show bd-patrol --parallel
 
 ```
 issuegraph mol show <molecule-id> [flags]
@@ -394,10 +401,10 @@ This is part of the wisp workflow: spawn creates wisps,
 execution happens, squash compresses the trace into an outcome (digest).
 
 Example:
-  issuegraph mol squash issuegraph-abc123                    # Squash and promote children
-  issuegraph mol squash issuegraph-abc123 --dry-run          # Preview what would be squashed
-  issuegraph mol squash issuegraph-abc123 --keep-children    # Keep wisps after digest
-  issuegraph mol squash issuegraph-abc123 --summary "Agent-generated summary of work done"
+  issuegraph mol squash bd-abc123                    # Squash and promote children
+  issuegraph mol squash bd-abc123 --dry-run          # Preview what would be squashed
+  issuegraph mol squash bd-abc123 --keep-children    # Keep wisps after digest
+  issuegraph mol squash bd-abc123 --summary "Agent-generated summary of work done"
 
 ```
 issuegraph mol squash <molecule-id> [flags]
@@ -474,7 +481,6 @@ The wisp lifecycle:
   4. Or burn: issuegraph mol burn &lt;id&gt; (deletes without creating digest)
 
 Examples:
-  issuegraph mol wisp issuegraph-release --var version=1.0  # Release workflow
   issuegraph mol wisp mol-my-workflow                  # Ephemeral operational cycle
   issuegraph mol wisp list                             # List all wisps
   issuegraph mol wisp gc                               # Garbage collect old wisps
@@ -485,6 +491,7 @@ Subcommands:
 
 ```
 issuegraph mol wisp [proto-id] [flags]
+issuegraph mol wisp [command]
 ```
 
 **Flags:**
@@ -538,6 +545,13 @@ Garbage collect old or abandoned wisps from the database.
 
 A wisp is considered abandoned if:
   - It hasn't been updated in --age duration and is not closed
+  - AND it is not live work: blocked steps (waiting on a dependency), pinned
+    issuegraph, and any step whose status category is wip (in_progress, blocked,
+    hooked) or frozen (deferred, pinned) are never reclaimed by age, no matter
+    how long they have been waiting (GH#4394). Custom statuses count by their
+    configured category, so only plain open (active) and closed (done) steps
+    are age-reclaimable. If the blocked set or the custom-status list cannot be
+    read, the GC aborts rather than risk reclaiming live steps.
 
 Abandoned wisps are deleted without creating a digest. Use 'issuegraph mol squash'
 if you want to preserve a summary before garbage collection.

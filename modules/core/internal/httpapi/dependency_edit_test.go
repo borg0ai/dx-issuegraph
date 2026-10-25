@@ -25,7 +25,7 @@ import (
 // so it is covered on every pull request by the unconditional Go test job. What
 // a fake structurally cannot prove is what the storage transaction did — that a
 // removal really removed and that a refused batch left ZERO edges behind — and
-// that lives in modules/cli's proxied-server integration test against real Dolt.
+// that lives in apps/cli's proxied-server integration test against real Dolt.
 
 const removeDependencyPath = "/v0/issuegraph/dependencies:remove"
 

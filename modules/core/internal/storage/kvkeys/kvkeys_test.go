@@ -5,7 +5,7 @@ import "testing"
 // TestMemoryConfigKeyPrefix pins the canonical config-table prefix for
 // persistent memories. The merge resolver auto-resolves config conflicts only
 // when every conflicted key carries this prefix (GH#2474); if it ever drifts
-// from what modules/cli actually writes, memory conflicts silently fall back to the
+// from what apps/cli actually writes, memory conflicts silently fall back to the
 // operator and the pull/sync config wedge returns for the renamed keys. This
 // test makes such a rename a conscious, caught change rather than a silent one.
 func TestMemoryConfigKeyPrefix(t *testing.T) {

@@ -56,7 +56,7 @@ func BackupRestore(ctx context.Context, db DBConn, url, dbName string, force boo
 // then fail on, or worse create. No caller can reach that today (`issuegraph backup
 // restore` os.Stats its argument first, so a URL never gets here), but every
 // caller is a restore path and restore-from-a-remote is an open capability
-// question — see backupRemoteSchemeTracking in modules/cli/capability_registry.go.
+// question — see backupRemoteSchemeTracking in apps/cli/capability_registry.go.
 // Whoever closes it should get an error here, not a mangled path.
 func DirToFileURL(dir string) (string, error) {
 	if scheme, _, found := strings.Cut(dir, "://"); found {

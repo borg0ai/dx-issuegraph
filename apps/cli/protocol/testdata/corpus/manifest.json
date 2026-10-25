@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_by": "modules/cli/protocol TestCorpusGolden",
+  "generated_by": "apps/cli/protocol TestCorpusGolden",
   "canonicalized": true,
   "blobs": {
     "envelope/close": {

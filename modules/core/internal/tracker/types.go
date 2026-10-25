@@ -198,6 +198,8 @@ const (
 	ConflictLocal ConflictResolution = "local"
 	// ConflictExternal always keeps the external tracker's version.
 	ConflictExternal ConflictResolution = "external"
+	// ConflictPreserve keeps both current versions unchanged and reports the conflict.
+	ConflictPreserve ConflictResolution = "preserve"
 )
 
 // IssueConversion holds the result of converting an external tracker issue to issuegraph.

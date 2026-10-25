@@ -10,7 +10,7 @@ import (
 
 	"github.com/borg0ai/dx-issuegraph/internal/config"
 	"github.com/borg0ai/dx-issuegraph/internal/ui"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 )
 
 // setupStealthMode configures git settings for stealth operation.

@@ -15,8 +15,8 @@ import (
 
 // memoryConfigKeyPrefix is the config-table key prefix under which `issuegraph remember`
 // stores persistent memories. It is sourced from the shared kvkeys package so it
-// can never drift from the prefix modules/cli actually writes (kvkeys.Prefix "kv." +
-// kvkeys.MemoryPrefix "memory."), which modules/cli also reserves against generic
+// can never drift from the prefix apps/cli actually writes (kvkeys.Prefix "kv." +
+// kvkeys.MemoryPrefix "memory."), which apps/cli also reserves against generic
 // `issuegraph kv set` keys. Config rows with this prefix are the only config class safe
 // to auto-resolve on merge; any other key (issue_prefix above all) is left for
 // the operator.

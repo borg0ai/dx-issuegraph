@@ -1,6 +1,6 @@
 ---
 title: "issuegraph rename"
-description: "Rename an issue from one ID to another."
+description: "Rename an issue ID"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -16,7 +16,7 @@ This updates:
 - Labels, comments, and events
 
 Examples:
-  issuegraph rename issuegraph-w382l issuegraph-dolt     # Rename to memorable ID
+  issuegraph rename bd-w382l bd-dolt     # Rename to memorable ID
   issuegraph rename gt-abc123 gt-auth    # Use descriptive ID
 
 Note: The new ID must use a valid prefix for this database.

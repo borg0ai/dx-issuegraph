@@ -492,7 +492,7 @@ func findDatabaseInIssueGraphDir(issuegraphDir string, _ bool) string {
 		// separately discoverable local database; metadata.json plus its remote
 		// store identify the workspace. Return the .issuegraph dir itself so extension
 		// callers discover it, mirroring the CLI's registered-workspace path in
-		// modules/cli/main.go instead of falling through to Dolt-only discovery.
+		// apps/cli/main.go instead of falling through to Dolt-only discovery.
 		if backends.WorkspaceIsIssueGraphDir(cfg.GetBackend()) {
 			return issuegraphDir
 		}
@@ -567,7 +567,7 @@ func FindDatabasePath() string {
 		absDB := utils.CanonicalizePath(envDB)
 		// If ISSUEGRAPH_DB points to a directory rather than a file, treat it
 		// like ISSUEGRAPH_DIR to avoid filepath.Dir() resolving one level too
-		// high in the caller (modules/cli/main.go). See GH#2548.
+		// high in the caller (apps/cli/main.go). See GH#2548.
 		if info, err := os.Stat(absDB); err == nil && info.IsDir() {
 			if dbPath := findDatabaseInIssueGraphDir(absDB, false); dbPath != "" {
 				return dbPath

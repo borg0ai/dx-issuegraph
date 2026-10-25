@@ -14,7 +14,7 @@ import (
 // reopen path end to end over a real listener against a fake ROLE, and what a
 // fake cannot prove — the close→reopen round trip clearing close_reason and
 // closed_by_session, and the reason landing on the issue's event stream — lives
-// in modules/cli's TestProxiedServerServeClose against real Dolt.
+// in apps/cli's TestProxiedServerServeClose against real Dolt.
 
 const reopenPath = "/v0/issuegraph/issues/bd-1:reopen"
 

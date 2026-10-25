@@ -1,6 +1,6 @@
 ---
 title: "issuegraph dep"
-description: "Manage dependencies between issues."
+description: "Manage dependencies"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -16,18 +16,19 @@ This is equivalent to:
   issuegraph dep add &lt;blocked-id&gt; &lt;blocker-id&gt;
 
 Examples:
-  issuegraph dep issuegraph-xyz --blocks issuegraph-abc    # issuegraph-xyz blocks issuegraph-abc
-  issuegraph dep add issuegraph-abc issuegraph-xyz         # Same as above (issuegraph-abc depends on issuegraph-xyz)
+  issuegraph dep bd-xyz --blocks bd-abc    # bd-xyz blocks bd-abc
+  issuegraph dep add bd-abc bd-xyz         # Same as above (bd-abc depends on bd-xyz)
 
 ```
 issuegraph dep [issue-id] [flags]
+issuegraph dep [command]
 ```
 
 **Flags:**
 
 ```
   -b, --blocks string    Issue ID that this issue blocks (shorthand for: issuegraph dep add <blocked> <blocker>)
-      --no-cycle-check   Skip per-edge cycle checks for speed (bulk wiring); bulk --file adds still run one final whole-graph check before commit
+      --no-cycle-check   Skip the post-add cycle warning (the per-edge cycle check still runs)
 ```
 
 ## issuegraph dep add
@@ -43,7 +44,7 @@ The --blocked-by and --depends-on flags are aliases and both mean "issue-123
 depends on (is blocked by) the specified issue."
 
 The depends-on-id can be:
-  - A local issue ID (e.g., issuegraph-xyz)
+  - A local issue ID (e.g., bd-xyz)
   - An external reference: external:&lt;project&gt;:&lt;capability&gt;
 
 For bulk wiring, pass newline-delimited JSON with --file. Each line must be an
@@ -54,13 +55,18 @@ External references are stored as-is and resolved at query time using
 the external_projects config. They block the issue until the capability
 is "shipped" in the target project.
 
+With no -t/--type the edge is created as type=blocks, which excludes the
+dependent from issuegraph ready. When stderr is an interactive terminal, an advisory
+note says so once per command; it is silent for scripted and agent callers
+(non-TTY stderr) and can be turned off with --quiet or ISSUEGRAPH_NO_DEP_TYPE_WARNING=1.
+
 Examples:
-  issuegraph dep add issuegraph-42 issuegraph-41                              # Positional args
-  issuegraph dep add issuegraph-42 --blocked-by issuegraph-41                 # Flag syntax (same effect)
-  issuegraph dep add issuegraph-42 --depends-on issuegraph-41                 # Alias (same effect)
+  issuegraph dep add bd-42 bd-41                              # Positional args
+  issuegraph dep add bd-42 --blocked-by bd-41                 # Flag syntax (same effect)
+  issuegraph dep add bd-42 --depends-on bd-41                 # Alias (same effect)
   issuegraph dep add gt-xyz external:issuegraph:mol-run-assignee   # Cross-project dependency
-  issuegraph dep add issuegraph-42 issuegraph-41 --no-cycle-check             # Skip cycle check (bulk wiring)
-  issuegraph dep add --file deps.jsonl                        # Bulk JSONL: &#123;"from":"issuegraph-42","to":"issuegraph-41"&#125;
+  issuegraph dep add bd-42 bd-41 --no-cycle-check             # Skip the post-add cycle warning
+  issuegraph dep add --file deps.jsonl                        # Bulk JSONL: &#123;"from":"bd-42","to":"bd-41"&#125;
 
 ```
 issuegraph dep add [issue-id] [depends-on-id] [flags]
@@ -72,8 +78,8 @@ issuegraph dep add [issue-id] [depends-on-id] [flags]
       --blocked-by string   Issue ID that blocks the first issue (alternative to positional arg)
       --depends-on string   Issue ID that the first issue depends on (alias for --blocked-by)
       --file string         Read dependency edges from JSONL file, or '-' for stdin
-      --no-cycle-check      Skip per-edge cycle checks for speed (bulk wiring); bulk --file adds still run one final whole-graph check before commit
-  -t, --type string         Dependency type (blocks|tracks|related|parent-child|discovered-from|until|caused-by|validates|relates-to|supersedes) (default "blocks")
+      --no-cycle-check      On bulk --file adds, skip per-edge cycle checks and the post-add cycle warning (one final whole-graph check still runs before commit); on a single-edge add, skip only the post-add cycle warning
+  -t, --type string         Dependency type (blocks|tracks|related|parent-child|discovered-from|until|caused-by|validates|relates-to|supersedes); 'blocked-by' and 'depends-on' are accepted as aliases for 'blocks' (default "blocks")
 ```
 
 ## issuegraph dep cycles
@@ -122,8 +128,8 @@ The relates_to link is bidirectional - both issues will reference each other.
 This enables knowledge graph connections without blocking or hierarchy.
 
 Examples:
-  issuegraph relate issuegraph-abc issuegraph-xyz    # Link two related issues
-  issuegraph relate issuegraph-123 issuegraph-456    # Create see-also connection
+  issuegraph relate bd-abc bd-xyz    # Link two related issues
+  issuegraph relate bd-123 bd-456    # Create see-also connection
 
 ```
 issuegraph dep relate <id1> <id2> [flags]
@@ -154,6 +160,15 @@ Examples:
   issuegraph dep tree gt-0iqq --status=open      # Only show open issues
   issuegraph dep tree gt-0iqq --depth=3          # Limit to 3 levels deep
 
+A node reached by two paths is shown ONCE, under the first path that got
+there, and a cycle simply ends the descent. --show-all-paths is a deprecated
+no-op; use 'issuegraph dep cycles' to find circular dependencies.
+
+--max-rows / ISSUEGRAPH_MAX_ROWS caveat: the tree walk has no query filter to
+thread the cap through, so the full tree is always built first and the
+node count is checked afterward (post-hoc), not during the walk. The cap is
+honored on the --proxied-server route too, which it was not before.
+
 ```
 issuegraph dep tree [issue-id] [flags]
 ```
@@ -164,8 +179,9 @@ issuegraph dep tree [issue-id] [flags]
       --direction string   Tree direction: 'down' (dependencies), 'up' (dependents), or 'both'
       --format string      Output format: 'mermaid' for Mermaid.js flowchart
   -d, --max-depth int      Maximum tree depth to display (safety limit) (default 50)
+      --max-rows int       Hard upper bound on rows returned. Returns a non-zero exit (code 2) and an error to stderr if exceeded. 0 disables (the default). Overrides ISSUEGRAPH_MAX_ROWS for this invocation. Useful in CI/agent rigs that want a circuit breaker against pathological queries. Honored on both the direct and the --proxied-server route.
       --reverse            Show dependent tree (deprecated: use --direction=up)
-      --show-all-paths     Show all paths to nodes (no deduplication for diamond dependencies)
+      --show-all-paths     Deprecated no-op: accepted and ignored. A node reached by two paths is shown once, under the first.
       --status string      Filter to only show issues with this status (open, in_progress, blocked, deferred, closed)
 ```
 
@@ -176,7 +192,7 @@ Remove a relates_to relationship between two issues.
 Removes the link in both directions.
 
 Example:
-  issuegraph unrelate issuegraph-abc issuegraph-xyz
+  issuegraph unrelate bd-abc bd-xyz
 
 ```
 issuegraph dep unrelate <id1> <id2> [flags]

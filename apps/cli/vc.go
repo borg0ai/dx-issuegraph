@@ -42,7 +42,7 @@ type blockedAfterMergeRecomputer interface {
 //
 // getStore() hands back the wireStorageDecorators chain — caller →
 // HookFiringStore → InstrumentedStorage → concrete store
-// (modules/cli/storage_chain.go) — and both decorators embed the storage.DoltStorage
+// (apps/cli/storage_chain.go) — and both decorators embed the storage.DoltStorage
 // INTERFACE, so their promoted method sets are exactly DoltStorage's.
 // RecomputeBlockedAfterMerge is not in that set, so asserting on the chain
 // itself always failed and the post-merge recompute was silently skipped on

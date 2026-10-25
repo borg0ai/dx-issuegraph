@@ -18,7 +18,7 @@ import (
 //
 // Which plane the anchor lives on, whether a history entry is recorded and the
 // atomicity of the append are issueops.Commenter's, held to on three legs by its
-// own contract and shown against real Dolt in modules/cli. What only these cases can
+// own contract and shown against real Dolt in apps/cli. What only these cases can
 // show is that the request a caller SENDS becomes the request the role RECEIVES
 // — with the anchor off the path and the two members off the body — that the
 // stored row reaches the wire rather than the request reflected back, and that

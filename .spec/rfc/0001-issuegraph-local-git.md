@@ -24,7 +24,14 @@
 
 | RFC | Concern |
 |-----|---------|
-| [0011](0011-go-cli-npm-delivery.md) | `@borg0ai/issuegraph` npm installer |
+| [0019](0019-shipify-only-release.md) | Release only through shipify, with no release machinery in the repository |
+| [0018](0018-mcp-go-subcommand.md) | Move the MCP server into the Go CLI |
+| [0017](0017-shipify-channels-only.md) | Ship only through the three shipify channels |
+| [0016](0016-shennong-bucket-release.md) | Shennong Scoop bucket delivery for IssueGraph CLI on Windows |
+| [0015](0015-cangjie-nix-release.md) | Cangjie Nix delivery for IssueGraph CLI on Linux |
+| [0013](0013-go-cli-under-apps.md) | Move Go CLI into apps/cli |
+| [0012](0012-luban-homebrew-release.md) | Luban Homebrew delivery for IssueGraph CLI |
+| [0011](rejected/0011-go-cli-npm-delivery.md) | `@borg0ai/issuegraph` npm installer |
 | [0010](0010-issuegraph-asset-layout.md) | IssueGraph 集成资产目录迁移 |
 | [0009](0009-go-module-cli-build.md) | 根 Go module 与 CLI 构建布局 |
 | [0008](0008-external-trackers-local-only.md) | Disable external tracker network sync |

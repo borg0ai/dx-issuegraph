@@ -139,7 +139,7 @@ def main():
         agent.run()
     except subprocess.CalledProcessError as e:
         print(f"Error running issuegraph: {e}", file=sys.stderr)
-        print("Make sure issuegraph is installed: curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash")
+        print("Make sure issuegraph is installed (Homebrew, Nix or Scoop; see the README Installation section)")
         sys.exit(1)
     except KeyboardInterrupt:
         print("\n\n👋 Agent interrupted by user")

@@ -48,7 +48,7 @@ func BuildReadyFilter(in issueops.ReadyRequest) (types.WorkFilter, error) {
 		Type:   utils.NormalizeIssueType(in.IssueType),
 		Limit:  LimitOr(in.Limit, DefaultReadyLimit),
 		// Carried for the callers that consume this filter as a VALUE and run
-		// their own query (modules/cli's proxied `issuegraph ready`), where the seam beneath
+		// their own query (apps/cli's proxied `issuegraph ready`), where the seam beneath
 		// them renders it. Both implementations of issueops.Reader take it back
 		// off and skip in the shared page epilogue; see BuildListFilter and
 		// FinishPageAt.

@@ -17,7 +17,7 @@ import (
 //
 // Which keys the plane refuses, what the projection of status.custom does, and
 // whether a removal removed anything are issueops.WorkspaceConfig's, held to on
-// three legs by its own contract and shown against real Dolt in modules/cli. What
+// three legs by its own contract and shown against real Dolt in apps/cli. What
 // only these cases can show is that the request a caller SENDS becomes the
 // request the role RECEIVES, that the response is projected by the SAME rule the
 // read is projected by — which is the whole of what stops a write leaking what a

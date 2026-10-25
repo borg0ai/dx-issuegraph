@@ -9,7 +9,7 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/storage/kvkeys"
 )
 
-// kvPrefix matches the prefix used in modules/cli/kv.go
+// kvPrefix matches the prefix used in apps/cli/kv.go
 const kvPrefix = kvkeys.Prefix
 
 // CheckKVSyncStatus checks if KV data exists and reports sync status.

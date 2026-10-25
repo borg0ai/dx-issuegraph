@@ -208,7 +208,7 @@ func buildIssueGraphBinary(t *testing.T) string {
 			name = "issuegraph.exe"
 		}
 		issuegraphBinary = filepath.Join(tmpDir, name)
-		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", issuegraphBinary, "github.com/borg0ai/dx-issuegraph/modules/cli")
+		cmd := exec.Command("go", "build", "-tags", "gms_pure_go", "-o", issuegraphBinary, "github.com/borg0ai/dx-issuegraph/apps/cli")
 		if out, err := cmd.CombinedOutput(); err != nil {
 			issuegraphBinaryErr = fmt.Errorf("go build issuegraph: %v\n%s", err, out)
 		}

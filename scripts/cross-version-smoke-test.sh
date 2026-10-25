@@ -122,7 +122,7 @@ build_candidate() {
 
     local candidate="$CACHE_DIR/issuegraph-candidate-$$"
     echo -e "${YELLOW}Building candidate binary...${NC}" >&2
-    (cd "$PROJECT_ROOT" && go build -o "$candidate" github.com/borg0ai/dx-issuegraph/modules/cli) >&2
+    (cd "$PROJECT_ROOT" && go build -o "$candidate" github.com/borg0ai/dx-issuegraph/apps/cli) >&2
     echo "$candidate"
 }
 

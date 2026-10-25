@@ -13,7 +13,7 @@ A simple Python script demonstrating how an AI agent can use issuegraph to manag
 ## Prerequisites
 
 - Python 3.7+
-- issuegraph installed: `curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash`
+- issuegraph installed (Homebrew, Nix or Scoop; see the README Installation section)
 - An issuegraph database initialized: `issuegraph init`
 
 ## Usage

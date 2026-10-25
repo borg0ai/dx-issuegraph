@@ -126,12 +126,12 @@ backend and the one that validates the seam.
   methods) + 11 sub-interfaces (144 total; + `Transaction` 24). The Dolt-shaped surface is
   already isolated in **5 named sub-interfaces** — VersionControl (16), HistoryViewer (3),
   RemoteStore (12), SyncStore (2), FederationStore (4) = 37 methods, ~87 genuine call sites in
-  non-test modules/cli. The other **6 sub-interfaces are backend-neutral** (BulkIssueStore,
+  non-test apps/cli. The other **6 sub-interfaces are backend-neutral** (BulkIssueStore,
   DependencyQueryStore, AnnotationStore, ConfigMetadataStore, CompactionStore,
-  AdvancedQueryStore — ~45 methods, ~155 modules/cli call sites serving CORE commands like
+  AdvancedQueryStore — ~45 methods, ~155 apps/cli call sites serving CORE commands like
   `ready --claim`, `dep`, `comment`) and fold INTO the core seam (§4.1).
 - **The capability-gating pattern already ships:** 10 optional interfaces
-  (`storage.go:217-287`), `UnwrapStore` + type-assert at 22 modules/cli sites, graceful errors
+  (`storage.go:217-287`), `UnwrapStore` + type-assert at 22 apps/cli sites, graceful errors
   (`sql.go:54-57`).
 - **The public API is not frozen to the god interface:** root `issuegraph.go:20` aliases
   `Storage = issuegraph.Storage` (= `storage.Storage`); RemoteStore/SyncStore are exported as
@@ -244,7 +244,7 @@ scaffolding that de-risks the retype and is thinned afterward (Phase 7).
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│ modules/cli — commands, formatting, streams, contract strings               │
+│ apps/cli — commands, formatting, streams, contract strings               │
 │ command registry: declared metadata {needsStore, readOnly,             │
 │ requires: Capability} — replaces the name-keyed string lists (H6)      │
 └──────────────────────────────┬─────────────────────────────────────────┘
@@ -353,7 +353,7 @@ domain surface, wearing bts-rs's construction/capability/error discipline.**
 
 ### 4.1 Bridge-seam arithmetic (the flat waypoint; review-corrected)
 Core = today's `Storage` (62) **+ the six backend-neutral sub-interfaces (~45)** = ~107 methods,
-+ `Transaction` (24), all mandatory for every backend. The ~155 modules/cli call sites of the six
++ `Transaction` (24), all mandatory for every backend. The ~155 apps/cli call sites of the six
 folded interfaces need **zero conversion**. The ~87 call sites of the 5 Dolt-shaped interfaces
 convert to capability asserts. `DoltStorage` is deleted; the Dolt backends keep a `var _`
 compile assertion for core + all capabilities. Phase 0's core-shrink review may pull some of

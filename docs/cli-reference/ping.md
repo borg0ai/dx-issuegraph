@@ -1,6 +1,6 @@
 ---
 title: "issuegraph ping"
-description: "Lightweight health check that confirms issuegraph can reach its database."
+description: "Check database connectivity"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}

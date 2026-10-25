@@ -32,7 +32,7 @@ import (
 // external-ref matching; returning IsExternalRef=true makes every
 // seeded row a candidate and exercises the SearchIssues call.
 //
-// Build tags: cgo (matches existing cgo modules/cli tests).
+// Build tags: cgo (matches existing cgo apps/cli tests).
 func TestJiraSync_FilterHasZeroMaxRows(t *testing.T) {
 	if testDoltServerPort == 0 {
 		t.Skip("Dolt test server not available")

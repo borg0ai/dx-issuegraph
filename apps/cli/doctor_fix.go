@@ -10,8 +10,8 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 	"github.com/borg0ai/dx-issuegraph/internal/ui"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor/fix"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
 	"golang.org/x/term"
 )
 

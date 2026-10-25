@@ -19,7 +19,10 @@ IssueGraph (`issuegraph`) is an issue tracker designed specifically for AI-super
 
 1. Install issuegraph CLI:
 ```bash
-curl -sSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
+# Install: macOS (Homebrew), Linux (Nix), Windows (Scoop)
+brew install systembugtj/luban-homebrew/issuegraph
+nix profile install github:systembugtj/cangjie-nix#issuegraph
+scoop bucket add shennong https://github.com/systembugtj/shennong-bucket && scoop install shennong/issuegraph
 ```
 
 
@@ -286,14 +289,10 @@ Claude Code will pull the latest version from GitHub. After updating, **restart 
 The plugin requires the `issuegraph` CLI to be installed. Update it separately:
 
 ```bash
-# Quick update
-curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash
-
-# Or with Go (server-mode only)
-CGO_ENABLED=0 go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
-
-# Or with Go (embedded-capable)
-CGO_ENABLED=1 GOFLAGS=-tags=gms_pure_go go install github.com/borg0ai/dx-issuegraph/modules/cli@latest
+# macOS / Linux / Windows
+brew upgrade issuegraph
+nix profile upgrade issuegraph
+scoop update issuegraph
 ```
 
 ### 3. Version Compatibility

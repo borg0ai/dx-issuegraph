@@ -1,6 +1,6 @@
 ---
 title: "issuegraph onboard"
-description: "Display a minimal snippet to add to your agent instructions file for issuegraph integration."
+description: "Display minimal snippet for agent instructions file"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}

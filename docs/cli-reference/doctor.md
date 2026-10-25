@@ -1,6 +1,6 @@
 ---
 title: "issuegraph doctor"
-description: "Sanity check the issuegraph installation for the current directory or specified path."
+description: "Check and fix issuegraph installation health (start here)"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -22,10 +22,17 @@ This command checks:
   - .issuegraph/.gitignore up to date
   - Metadata.json version tracking (LastBdVersion field)
 
+Storage Availability:
+  Full diagnostics, --perf, --deep, --server, --migration, and
+  --check=validate currently require Dolt server mode. Embedded Dolt
+  supports --check=artifacts, --check=conventions, and
+  --check=pollution. --check-health has a limited hook-health fallback.
+  Unsupported combinations return a notice without changing storage.
+
 Performance Mode (--perf):
   Run performance diagnostics on your database:
   - Times key operations (issuegraph ready, issuegraph list, issuegraph show, etc.)
-  - Collects system info (OS, arch, SQLite version, database stats)
+  - Collects system info (OS, arch, database stats)
   - Generates CPU profile for analysis
   - Outputs shareable report for bug reports
 
@@ -54,25 +61,19 @@ Deep Validation Mode (--deep):
   - Molecule integrity: Molecules have valid parent-child structures
 
 Server Mode (--server):
-  Run health checks for Dolt server mode connections (issuegraph-dolt.2.3):
+  Run health checks for Dolt server mode connections (bd-dolt.2.3):
   - Server reachable: Can connect to configured host:port?
   - Dolt version: Is it a Dolt server (not vanilla MySQL)?
   - Database exists: Does the 'issuegraph' database exist?
   - Schema compatible: Can query issuegraph tables?
   - Connection pool: Pool health metrics
 
-Migration Validation Mode (--migration):
-  Run Dolt migration validation checks with machine-parseable output.
-  Use --migration=pre before migration to verify readiness:
-  - JSONL file exists and is valid (parseable, no corruption)
-  - All JSONL issues are present in SQLite (or explains discrepancies)
-  - No blocking issues prevent migration
-  Use --migration=post after migration to verify completion:
-  - Dolt database exists and is healthy
-  - All issues from JSONL are present in Dolt
-  - No data was lost during migration
-  - Dolt database has no locks or uncommitted changes
-  Combine with --json for machine-parseable output for automation.
+Legacy Dolt Migration Validation Mode (--migration):
+  Retained for older SQLite-to-Dolt migration workflows and available only in
+  Dolt server mode. It is not the migration path for removed backends
+  (PostgreSQL, MySQL, SQLite); those fail closed with export/import guidance.
+  Combine
+  with --json for machine-parseable diagnostic output.
 
 Agent Mode (--agent):
   Output diagnostics designed for AI agent consumption. Instead of terse
@@ -119,9 +120,9 @@ Examples:
   issuegraph doctor --check=validate --fix   # Auto-fix data-integrity issues
   issuegraph doctor --deep             # Full graph integrity validation
   issuegraph doctor --server           # Dolt server mode health checks
-  issuegraph doctor --migration=pre    # Validate readiness for Dolt migration
-  issuegraph doctor --migration=post   # Validate Dolt migration completed
-  issuegraph doctor --migration=pre --json  # Machine-parseable migration validation
+  issuegraph doctor --migration=pre    # Legacy Dolt-server migration diagnostic
+  issuegraph doctor --migration=post   # Legacy Dolt-server completion diagnostic
+  issuegraph doctor --migration=pre --json  # Machine-parseable legacy diagnostic
 
 ```
 issuegraph doctor [path] [flags]
@@ -139,7 +140,7 @@ issuegraph doctor [path] [flags]
       --fix                                     Automatically fix issues where possible
       --fix-child-parent                        Remove child→parent dependencies (opt-in)
   -i, --interactive                             Confirm each fix individually
-      --migration string                        Run Dolt migration validation: 'pre' (before migration) or 'post' (after migration)
+      --migration string                        Run legacy Dolt-server migration diagnostics: 'pre' or 'post'
       --orchestrator                            Running in orchestrator multi-workspace mode (routes.jsonl is expected, higher duplicate tolerance)
       --orchestrator-duplicates-threshold int   Duplicate tolerance threshold for orchestrator mode (wisps are ephemeral) (default 1000)
   -o, --output string                           Export diagnostics to JSON file

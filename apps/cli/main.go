@@ -1946,7 +1946,7 @@ var rootCmd = &cobra.Command{
 		// Clearing matters as much as canceling. Leaving rootCtx pointing at
 		// the context we just canceled is harmless when a real issuegraph process
 		// exits here, but every in-process caller that runs Execute() more
-		// than once -- the modules/cli test binary, library embedders -- would
+		// than once -- the apps/cli test binary, library embedders -- would
 		// hand that dead context to the next command, and anything reading
 		// it refuses work nobody canceled. nil is the documented "no process
 		// signal context yet" state and normalizes back to Background().

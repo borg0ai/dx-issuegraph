@@ -2,7 +2,7 @@
 //
 // The concrete storage implementation lives in the dolt sub-package.
 // This package holds interface and value types that are referenced by
-// both the dolt implementation and its consumers (modules/cli, etc.).
+// both the dolt implementation and its consumers (apps/cli, etc.).
 package storage
 
 import (

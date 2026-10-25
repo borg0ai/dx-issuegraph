@@ -5,7 +5,7 @@ description: Configuration reference for issuegraph ado sync, which bidirectiona
 
 Last reviewed: 2026-08-07
 
-Freshness source: `modules/cli/ado*.go` and `internal/ado/`.
+Freshness source: `apps/cli/ado*.go` and `internal/ado/`.
 
 This guide covers all configuration options for the `issuegraph ado sync` command, which synchronizes issuegraph issues with Azure DevOps work items.
 

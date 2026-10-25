@@ -335,10 +335,10 @@ func TestServeNamesOneDatabaseSourcePerServerItBuilds(t *testing.T) {
 	// Both arms, so the test cannot pass because one was deleted, renamed, or
 	// stopped naming a source at all.
 	if providerBacked == 0 {
-		t.Error("no provider-backed httpapi.Config in modules/cli: the dolt SQL-server workspaces are no longer served")
+		t.Error("no provider-backed httpapi.Config in apps/cli: the dolt SQL-server workspaces are no longer served")
 	}
 	if rolesBacked == 0 {
-		t.Error("no roles-backed httpapi.Config in modules/cli: a registered backend is no longer served from its store")
+		t.Error("no roles-backed httpapi.Config in apps/cli: a registered backend is no longer served from its store")
 	}
 }
 

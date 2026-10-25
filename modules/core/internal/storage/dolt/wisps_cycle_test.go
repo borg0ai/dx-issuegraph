@@ -16,7 +16,7 @@ import (
 // They stay because they are not the same route. That case reaches the shared
 // gate through issueops.ExecuteAddDependencies, which computes its own routing;
 // these reach it through DoltStore.AddDependency, which computes routing again
-// with its own pre-transaction wisp cache and is what ~15 modules/cli files call
+// with its own pre-transaction wisp cache and is what ~15 apps/cli files call
 // directly (state.go, swarm.go, gate.go, duplicates.go, the tx variants in
 // create_atomic.go and graph_apply.go, …). Breaking that wrapper's own routing
 // leaves every DependencyEditor case green, so nothing in the contract layer

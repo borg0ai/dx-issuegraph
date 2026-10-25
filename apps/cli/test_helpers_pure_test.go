@@ -1,4 +1,4 @@
-// Pure-Go test helpers shared across modules/cli test files.
+// Pure-Go test helpers shared across apps/cli test files.
 //
 // This file MUST NOT carry a `//go:build cgo` tag. Helpers here are kept
 // stdlib-only (no sql.DB, no internal/storage/dolt, no embedded Dolt) so
@@ -380,7 +380,7 @@ func runGitForBootstrapTest(t *testing.T, dir string, args ...string) {
 // the temp dir into a real .issuegraph above it.
 //
 // This lives in the pure-Go helper file, not alongside the embedded-Dolt
-// helpers: modules/cli/where_test.go carries no build tag, so it compiles under
+// helpers: apps/cli/where_test.go carries no build tag, so it compiles under
 // CGO_ENABLED=0 where every `//go:build cgo` file is excluded. Keep this
 // helper stdlib-only and keep it here.
 func initGitRepoAt(t *testing.T, dir string) {

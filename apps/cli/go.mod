@@ -1,4 +1,4 @@
-module github.com/borg0ai/dx-issuegraph/modules/cli
+module github.com/borg0ai/dx-issuegraph/apps/cli
 
 go 1.26.5
 
@@ -269,4 +269,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
-replace github.com/borg0ai/dx-issuegraph => ../core
+replace github.com/borg0ai/dx-issuegraph => ../../modules/core

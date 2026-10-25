@@ -126,9 +126,6 @@ func maybeAutoExport(ctx context.Context, allowEmptyOverwrite bool) error {
 	// Load state + interval.
 	state := loadExportAutoState(issuegraphDir)
 	interval := config.GetDuration("export.interval")
-	if interval == 0 {
-		interval = 60 * time.Second
-	}
 
 	// Change detection via Dolt state hash. This is cheap, so do it before
 	// throttle: when there are no changes, there is nothing to throttle.
@@ -251,6 +248,7 @@ func maybeAutoExport(ctx context.Context, allowEmptyOverwrite bool) error {
 	// issues.jsonl before any issues exist.
 	if issueCount == 0 && memoryCount == 0 {
 		_ = os.Remove(fullPath)
+		_ = os.Remove(filepath.Join(filepath.Dir(fullPath), snapshotManifestFile))
 		saveExportAutoState(issuegraphDir, &exportAutoState{
 			LastDoltCommit: currentCommit,
 			LastDiffAnchor: anchorCommit,
@@ -261,16 +259,6 @@ func maybeAutoExport(ctx context.Context, allowEmptyOverwrite bool) error {
 		})
 		return nil
 	}
-	warnJSONLWithoutDoltRemote("auto-export")
-
-	// Optional git add — skip when no-git-ops is set (GH#3314), when not in a
-	// git repo (standalone ISSUEGRAPH_DIR flow), or when export.git-add is false.
-	if config.GetBool("export.git-add") && !config.GetBool("no-git-ops") && isGitRepo() {
-		if err := gitAddFile(fullPath); err != nil {
-			return fmt.Errorf("auto-export: git add failed: %w", err)
-		}
-	}
-
 	// Save state
 	newState := exportAutoState{
 		LastDoltCommit: currentCommit,
@@ -281,6 +269,13 @@ func maybeAutoExport(ctx context.Context, allowEmptyOverwrite bool) error {
 		Memories:       memoryCount,
 	}
 	saveExportAutoState(issuegraphDir, &newState)
+
+	// The snapshot is the JSONL plus its manifest (RFC 0004). A manifest failure
+	// leaves a digest mismatch that restore rejects, so warn rather than fail the
+	// user's command.
+	if err := writeSnapshotManifest(fullPath); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: snapshot manifest not written: %v\n", err)
+	}
 	return nil
 }
 

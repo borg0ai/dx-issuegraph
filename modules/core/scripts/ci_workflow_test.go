@@ -219,7 +219,7 @@ func TestPRCIGateRequiresGeneratedHookTimeoutProcessBoundary(t *testing.T) {
 	const (
 		jobName     = "pr-preflight-platforms"
 		stepName    = "Exercise generated Git hook timeout process boundary"
-		stepCommand = "go test '-tags=gms_pure_go' -count=1 -run '^TestGeneratedHookTimeoutProcessBoundary$' ./modules/cli"
+		stepCommand = "go test '-tags=gms_pure_go' -count=1 -run '^TestGeneratedHookTimeoutProcessBoundary$' ./apps/cli"
 		gateKey     = "PR_PREFLIGHT_PLATFORMS"
 	)
 
@@ -258,7 +258,7 @@ func TestStorageDomainUOWJobsUseNestedTimeoutBudgets(t *testing.T) {
 		"go test -tags gms_pure_go -race -count=1 -timeout %dm -v ./internal/storage/domain/... ./internal/storage/uow/... ./internal/tracker/...",
 		storageTimeoutMinutes)
 	doctorCommand := fmt.Sprintf(
-		"go test -tags gms_pure_go -race -count=1 -timeout %dm -v ./modules/cli/doctor/fix/",
+		"go test -tags gms_pure_go -race -count=1 -timeout %dm -v ./apps/cli/doctor/fix/",
 		doctorTimeoutMinutes)
 
 	for _, workflowName := range []string{"pr.yml", "main.yml"} {
@@ -297,8 +297,8 @@ func TestStorageDomainUOWJobsUseNestedTimeoutBudgets(t *testing.T) {
 func TestMacOSTestJobsReuseWorkspaceIssueGraphBinary(t *testing.T) {
 	const (
 		workspaceIssueGraphBinary = "${{ github.workspace }}/issuegraph"
-		buildCommand              = "go build -v -tags gms_pure_go ./modules/cli"
-		// -timeout=30m is pinned on both lanes because ./modules/cli has outgrown
+		buildCommand              = "go build -v -tags gms_pure_go ./apps/cli"
+		// -timeout=30m is pinned on both lanes because ./apps/cli has outgrown
 		// `go test`'s 10m per-package default (#6091, and wy-5b5fbl before it —
 		// that default is what made these legs flaky). In main.yml it sits on
 		// the invocation rather than in matrix.test-flags, so editing the

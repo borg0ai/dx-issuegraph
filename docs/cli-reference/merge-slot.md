@@ -1,6 +1,6 @@
 ---
 title: "issuegraph merge-slot"
-description: "Merge-slot gates serialize conflict resolution in the merge queue."
+description: "Manage merge-slot gates for serialized conflict resolution"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -27,7 +27,7 @@ Examples:
   issuegraph merge-slot release             # Release the slot
 
 ```
-issuegraph merge-slot [flags]
+issuegraph merge-slot [command]
 ```
 
 ## issuegraph merge-slot acquire

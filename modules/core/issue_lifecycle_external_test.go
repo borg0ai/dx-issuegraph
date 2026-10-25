@@ -21,7 +21,7 @@ import (
 )
 
 // TestIssueLifecycleLayersHooksOutsideTelemetry pins the decorator order the
-// accessor produces against the order modules/cli assembles the chain in
+// accessor produces against the order apps/cli assembles the chain in
 // (storage_chain.go: telemetry first, hooks outermost). Each decorator layers
 // itself onto the inner result, so the lifecycle comes back stacked the same
 // way the store is.

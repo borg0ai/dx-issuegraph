@@ -104,12 +104,6 @@ ldflags:
   - -s -w  # Strip debug symbols and DWARF info
 ```
 
-**Windows PE version info**: Release builds embed legitimate PE resource metadata
-(company name, product name, file description, version, copyright, and an
-application manifest) into the Windows binary using `go-winres`. This is one of the
-most effective measures against AV false positives — legitimate software almost
-always has PE metadata, and AV heuristics use its absence as a suspicion signal.
-
 These optimizations are applied automatically in official release builds.
 
 ### Code Signing
@@ -144,7 +138,7 @@ osslsigncode verify -in issuegraph.exe
 
 Some users report success with:
 ```bash
-go build -ldflags "-s -w" -o issuegraph ./modules/cli
+go build -ldflags "-s -w" -o issuegraph ./apps/cli
 ```
 
 However, results vary by antivirus vendor and version.
@@ -169,7 +163,6 @@ The issue isn't specific to issuegraph's code - it's a characteristic of Go bina
 ### Will this be fixed in future releases?
 
 We've implemented:
-- **Windows PE version info** embedded in binaries (company name, product name, version, manifest)
 - **Code signing infrastructure** for Windows releases (requires EV certificate)
 - **Build optimizations** to reduce heuristic triggers (`-s -w` ldflags)
 - **Documentation** for users to add exclusions and report false positives

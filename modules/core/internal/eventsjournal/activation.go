@@ -1,7 +1,7 @@
 // Package eventsjournal resolves and applies durable events-journal activation
 // to one storage instance.
 //
-// It is a package rather than a helper inside modules/cli because two binaries'
+// It is a package rather than a helper inside apps/cli because two binaries'
 // worth of code opens stores that mutate issuegraph: the command surface itself, and
 // issuegraph doctor's repair handlers, which live in their own package and cannot
 // import package main. Journal coverage has to hold for both — a repair that
@@ -11,8 +11,8 @@
 //
 // Activation is applied by the FACTORIES that construct a store or provider,
 // never by the commands that use one. See
-// modules/cli/events_journal_construction_test.go for the structural guard that
-// keeps it that way, and the note at the top of modules/cli/events_journal.go for
+// apps/cli/events_journal_construction_test.go for the structural guard that
+// keeps it that way, and the note at the top of apps/cli/events_journal.go for
 // the three ways it was got wrong before.
 package eventsjournal
 

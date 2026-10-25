@@ -59,7 +59,6 @@ The wisp lifecycle:
   4. Or burn: issuegraph mol burn <id> (deletes without creating digest)
 
 Examples:
-  issuegraph mol wisp issuegraph-release --var version=1.0  # Release workflow
   issuegraph mol wisp mol-my-workflow                  # Ephemeral operational cycle
   issuegraph mol wisp list                             # List all wisps
   issuegraph mol wisp gc                               # Garbage collect old wisps

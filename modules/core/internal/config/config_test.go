@@ -69,7 +69,8 @@ func TestDefaults(t *testing.T) {
 		{"json", false, func(k string) interface{} { return GetBool(k) }},
 		{"db", "", func(k string) interface{} { return GetString(k) }},
 		{"actor", "", func(k string) interface{} { return GetString(k) }},
-		{"export.auto", false, func(k string) interface{} { return GetBool(k) }},
+		{"export.auto", true, func(k string) interface{} { return GetBool(k) }},
+		{"export.interval", "0s", func(k string) interface{} { return GetString(k) }},
 		{"export.git-add", false, func(k string) interface{} { return GetBool(k) }},
 	}
 
@@ -2041,7 +2042,7 @@ func TestInitialize_IgnoreRepoConfigAppliesToIssueGraphDirEnv(t *testing.T) {
 // This is not hypothetical on macOS — it is unconditional there. $TMPDIR is
 // /var/folders/... and /var is a symlink to /private/var, so every t.TempDir() has
 // two names and the two sides pick different ones. It took the Main workflow's
-// macos-latest job red on modules/cli TestDispatchDoesNotPolluteViperIssuePrefix.
+// macos-latest job red on apps/cli TestDispatchDoesNotPolluteViperIssuePrefix.
 //
 // Constructing the symlink explicitly reproduces it on every platform rather than
 // only where $TMPDIR happens to be one.

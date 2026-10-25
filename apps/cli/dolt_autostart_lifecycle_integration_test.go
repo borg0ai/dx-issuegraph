@@ -124,7 +124,7 @@ func TestE2E_AutoStartedRepoLocalServerPersistsAcrossCommands(t *testing.T) {
 func buildLifecycleTestBinary(t *testing.T) string {
 	t.Helper()
 	// Shared once-per-process binary (honors ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY) instead of
-	// a per-test go build — the in-test link steps dominated modules/cli's wall
+	// a per-test go build — the in-test link steps dominated apps/cli's wall
 	// clock (wy-4mtr0).
 	return buildIssueGraphForInitTests(t)
 }

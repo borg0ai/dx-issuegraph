@@ -544,7 +544,7 @@ type IssuePage struct {
 //
 //     The shared implementation behind the store accessor
 //     lives in internal/workapi/storereader, which the
-//     cmd-bd-role-constructors depguard rule keeps out of modules/cli: the
+//     cmd-bd-role-constructors depguard rule keeps out of apps/cli: the
 //     accessor is where each storage decorator adds its layer, so a command
 //     that constructed a reader directly would get an unspanned one. `issuegraph show`
 //     keeps its own id RESOLUTION — fuzzy ids, cross-repo routing, --current —
@@ -605,7 +605,7 @@ type IssuePage struct {
 // types.WorkFilter there at all, so no filter is writable there either — both
 // are directory-scoped with no per-file exception, so a file added to that
 // package tomorrow is covered the moment it exists. That same forbidigo rule
-// covers modules/cli deny-by-default with 59 named exceptions, so the files
+// covers apps/cli deny-by-default with 59 named exceptions, so the files
 // implementing `issuegraph list` and `issuegraph show` cannot write a filter, and neither can
 // a file they are split or renamed into unless the new name lands on that
 // list. NOT ENFORCED: the rule forbids NAMING those types, not holding a
@@ -615,7 +615,7 @@ type IssuePage struct {
 // among the 59, since its listing and --claim are handed the filter itself and
 // the blocked-issue views in those files name one directly, so it is guarded by
 // the builder and the golden files and not by the linter;
-// modules/cli/list_show_filter_modes.go is among them too and STAYS there — the
+// apps/cli/list_show_filter_modes.go is among them too and STAYS there — the
 // count did not drop with this flip, because that file is where `issuegraph list`'s
 // two filter-consuming modes and `issuegraph show --current` live and all three still
 // need to name the type;

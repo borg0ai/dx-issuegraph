@@ -407,7 +407,7 @@ func testTransactionSearchFilterParity(t *testing.T, f Factory) {
 		filter := types.IssueFilter{IDPrefix: parityPrefix, SkipWisps: true, MaxRows: 2, MaxRowsSource: "--max-rows"}
 
 		// Oracle: the store-level search refuses this cap with the typed error
-		// modules/cli classifies into exit code 2.
+		// apps/cli classifies into exit code 2.
 		_, oracleErr := s.SearchIssues(c, "", filter)
 		var oracleTooMany *storageops.ErrTooManyRows
 		if !errors.As(oracleErr, &oracleTooMany) {

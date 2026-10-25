@@ -16,7 +16,7 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 	"github.com/borg0ai/dx-issuegraph/issueops"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 )
 
 // localVersionFile is the gitignored file that stores the last issuegraph version used locally.

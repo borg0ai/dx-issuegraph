@@ -38,7 +38,7 @@ func snapshotRootContext(t *testing.T) {
 // refuse work that nobody cancelled.
 //
 // Regression: #5093 threaded rootCtx into acquireMigrateGates, which turned
-// this latent leak into eleven hard failures in modules/cli — every earlier test
+// this latent leak into eleven hard failures in apps/cli — every earlier test
 // that ran a full command path left migrate's workspace-gate acquisition
 // failing with "context canceled" at 0.00s.
 func TestPersistentPostRunE_ClearsCancelledRootContext(t *testing.T) {

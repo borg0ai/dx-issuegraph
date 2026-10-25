@@ -9,7 +9,7 @@ if git log --name-only -1 origin/main..HEAD 2>/dev/null | grep -q '\.go$' || \
    git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q '\.go$'; then
     echo ""
     echo "Go files changed, rebuilding issuegraph CLI..."
-    go install github.com/borg0ai/dx-issuegraph/modules/cli
+    go install github.com/borg0ai/dx-issuegraph/apps/cli
     echo "✓ issuegraph CLI installed successfully"
     echo ""
 fi

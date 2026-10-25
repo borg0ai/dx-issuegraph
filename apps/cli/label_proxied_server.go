@@ -175,7 +175,7 @@ func runLabelPropagateProxiedServer(ctx context.Context, args []string) error {
 		// a per-child Lifecycle.Update is N transactions: the atomicity this
 		// command has today would be the price of the migration. The shape that
 		// keeps both is issueops.BatchApplier.ApplyBatch with one ItemUpdate per
-		// child carrying this same label patch, and it is blocked on a modules/cli
+		// child carrying this same label patch, and it is blocked on a apps/cli
 		// accessor for that role. That is the follow-up this waiver names
 		// (ga-2ltro.12); it is the last one on this list that WRITES.
 		for _, child := range children {

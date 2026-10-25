@@ -92,7 +92,7 @@ func saveBackupState(dir string, state *backupState) error {
 //     not guaranteed on Windows. It also does not follow a symlink at
 //     path — it replaces whatever is there, symlink or not — so a caller
 //     that must preserve a symlink's target should resolve path with
-//     filepath.EvalSymlinks first (see modules/cli/proxied_server.go).
+//     filepath.EvalSymlinks first (see apps/cli/proxied_server.go).
 func atomicWriteFile(path string, data []byte) error {
 	dir := filepath.Dir(path)
 	tmp, err := os.CreateTemp(dir, ".backup-tmp-*")

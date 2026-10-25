@@ -21,7 +21,7 @@ import (
 // no Wait, cmd.Dir = <sharedDir>/dolt (doltserver.go:1443-1446). The `issuegraph`
 // subprocess then exits and the sql-server keeps running, serving a directory
 // under the suite's temp HOME that TestMain deletes on the way out. Nothing in
-// those fixtures ever stopped it, so a full modules/cli run finished with a live
+// those fixtures ever stopped it, so a full apps/cli run finished with a live
 // `dolt sql-server --config <suite root>/.issuegraph/shared-server/…` still in the
 // process table — the leak this issue is about (wy-j2zc8q).
 //

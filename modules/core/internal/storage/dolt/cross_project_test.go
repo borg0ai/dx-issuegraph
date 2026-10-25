@@ -908,7 +908,7 @@ func TestCrossProject_IdentityCheck_SoftSkip_EmptyDBProjectID(t *testing.T) {
 // database (see its Gateway branch), so it always reports dbAlreadyExisted
 // == false and the CreateIfMissing:true/dbAlreadyExisted check never fires
 // for Gateway — even though the database plainly does already exist
-// server-side. This is intentional: modules/cli/init.go's resolveInitProjectID
+// server-side. This is intentional: apps/cli/init.go's resolveInitProjectID
 // reconciles a stale or mismatched local project_id onto the
 // server-authoritative one on every gateway init instead of failing at open.
 // A future cleanup that "closes" the Gateway exemption here would break that

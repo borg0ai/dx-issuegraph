@@ -427,7 +427,7 @@ far below the hundreds-per-second ceiling.
 - Tim Sehn email to Steve Yegge, 2026-02-21
 - `issuegraph/internal/storage/dolt/store.go` — DoltStore, branch-per-worker init
 - `issuegraph/internal/storage/dolt/transaction.go` — RunInTransaction
-- `issuegraph/modules/cli/dolt_autocommit.go` — auto-commit wrapper
+- `issuegraph/apps/cli/dolt_autocommit.go` — auto-commit wrapper
 - (Historical) Orchestrator `done.go` — merge flow (removed)
 - (Historical) Orchestrator `session_manager.go` — ISSUEGRAPH_BRANCH injection (removed)
 - (Historical) Orchestrator `bdbranch/` — ISSUEGRAPH_BRANCH safety analyzer (removed)

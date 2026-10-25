@@ -105,7 +105,7 @@ func NewFromConfig(ctx context.Context, issuegraphDir string) (*DoltStore, error
 }
 
 // NewFromConfigWithCLIOptions creates a DoltStore using the standalone CLI
-// auto-start policy from modules/cli/main.go. This is for CLI helper paths like
+// auto-start policy from apps/cli/main.go. This is for CLI helper paths like
 // `issuegraph doctor` that should behave the same way as normal top-level CLI commands
 // while still honoring externally managed server mode.
 func NewFromConfigWithCLIOptions(ctx context.Context, issuegraphDir string, cfg *Config) (*DoltStore, error) {

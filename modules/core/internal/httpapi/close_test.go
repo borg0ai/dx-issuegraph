@@ -16,7 +16,7 @@ import (
 // text rules, response and problem shapes — is covered on every pull request by
 // the PR workflow's unconditional Go test job. What a fake cannot prove is the
 // transaction: first-close-wins read back through a second close, and a forced
-// close over real open children, live in modules/cli's proxied-server integration
+// close over real open children, live in apps/cli's proxied-server integration
 // test against real Dolt (TestProxiedServerServeClose). The role-level
 // transition is owned against a real store by
 // internal/storage/uow/lifecycle_close_reopen_contract_test.go, which this

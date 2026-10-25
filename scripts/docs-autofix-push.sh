@@ -155,7 +155,7 @@ git commit -m "docs: regenerate CLI reference"
 git push
 \`\`\`
 
-Or regenerate from scratch: \`CGO_ENABLED=0 go build -tags gms_pure_go -o ./issuegraph-docs github.com/borg0ai/dx-issuegraph/modules/cli && ./scripts/generate-cli-docs.sh ./issuegraph-docs && rm ./issuegraph-docs\`
+Or regenerate from scratch: \`CGO_ENABLED=0 go build -tags gms_pure_go -o ./issuegraph-docs github.com/borg0ai/dx-issuegraph/apps/cli && ./scripts/generate-cli-docs.sh ./issuegraph-docs && rm ./issuegraph-docs\`
 
 _Automated by the [docs-autofix workflow]($RUN_URL); this comment is updated in place on each failing run._
 EOF

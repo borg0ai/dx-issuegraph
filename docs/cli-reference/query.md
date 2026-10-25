@@ -1,6 +1,6 @@
 ---
 title: "issuegraph query"
-description: "Query issues using a simple query language that supports compound filters,"
+description: "Query issues using a simple query language"
 ---
 
 {/* AUTO-GENERATED: do not edit manually */}
@@ -41,7 +41,7 @@ Supported fields:
   updated           Last update date/time
   started           Date/time issue first transitioned to in_progress
   closed            Close date/time
-  id                Issue ID (supports wildcards: issuegraph-*)
+  id                Issue ID (supports wildcards: bd-*)
   spec              Spec ID (supports wildcards)
   pinned            Boolean (true/false)
   ephemeral         Boolean (true/false)
@@ -77,6 +77,6 @@ issuegraph query [expression] [flags]
       --long          Show detailed multi-line output for each issue
       --offset int    Skip the first N matching results (0-based). Only supported under --proxied-server.
       --parse-only    Only parse the query and show the AST (for debugging)
-  -r, --reverse       Reverse sort order
+  -r, --reverse       Invert the sort field's default direction (created/updated/closed default to newest-first, so --sort updated --reverse is oldest-first)
       --sort string   Sort by field: priority, created, updated, closed, status, id, title, type, assignee
 ```

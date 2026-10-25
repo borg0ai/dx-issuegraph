@@ -39,7 +39,7 @@ AGENT_NAME="${ISSUEGRAPH_AGENT_NAME:-bash-agent-$$}"
 # Check if issuegraph is installed
 if ! command -v issuegraph &> /dev/null; then
     log_error "issuegraph is not installed"
-    echo "Install with: curl -fsSL https://raw.githubusercontent.com/borg0ai/dx-issuegraph/main/scripts/install.sh | bash"
+    echo "Install with Homebrew, Nix or Scoop (see the README Installation section)"
     exit 1
 fi
 

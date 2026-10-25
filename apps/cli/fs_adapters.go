@@ -4,8 +4,8 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/config"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/domain"
 	"github.com/borg0ai/dx-issuegraph/internal/templates/agents"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/doctor"
-	"github.com/borg0ai/dx-issuegraph/modules/cli/setup"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/setup"
 )
 
 func newIssueGraphDirTemplates() domain.IssueGraphDirTemplates {

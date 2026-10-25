@@ -1907,7 +1907,7 @@ func (m *minimalPushStore) ForcePush(ctx context.Context) error {
 func TestNoPushSkipsDoltPush(t *testing.T) {
 	// no-push guard must exit with a skip message and must NOT call the store's
 	// Push() when no-push: true. Regression guard for PR #4212 guard at
-	// modules/cli/dolt.go:247-249.
+	// apps/cli/dolt.go:247-249.
 
 	// Cannot be parallel: modifies process-global store and config.
 	saveAndRestoreGlobals(t)
