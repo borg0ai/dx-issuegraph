@@ -15,7 +15,7 @@ func sourceRepoRoot(t *testing.T) string {
 	if !ok {
 		t.Fatal("runtime.Caller failed")
 	}
-	return filepath.Dir(filepath.Dir(file))
+	return filepath.Dir(filepath.Dir(filepath.Dir(file)))
 }
 
 func msysPath(path string) string {

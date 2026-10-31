@@ -96,10 +96,10 @@ build_docs_binary() {
     local build
     build="$(git rev-parse --short HEAD)"
 
-    env CGO_ENABLED=0 go build \
+    env CGO_ENABLED=0 go -C "$REPO_ROOT/apps/cli" build \
         -ldflags="-X main.Build=${build}" \
         -o "$tmpdir/issuegraph" \
-        github.com/borg0ai/dx-issuegraph/apps/cli
+        .
 }
 
 ci_time "check build-tag policy" -- ./scripts/check-build-tags.sh

@@ -32,7 +32,7 @@ source "$REPO_ROOT/modules/core/.buildflags"
 cd "$REPO_ROOT"
 
 if (($# == 0)); then
-    set -- github.com/borg0ai/dx-issuegraph/...
+    set -- ./...
 fi
 
 SHARD_INDEX=$((SHARD_NUMBER - 1))
@@ -41,7 +41,7 @@ GO_TEST_SHARD_TAGS="${GO_TEST_SHARD_TAGS:-$ISSUEGRAPH_BUILD_TAGS}"
 GO_TEST_SHARD_EXCLUDE_REGEX="${GO_TEST_SHARD_EXCLUDE_REGEX:-}"
 
 mapfile -t ALL_PACKAGES < <(
-    go list -tags="$GO_TEST_SHARD_TAGS" "$@" \
+    go -C "$REPO_ROOT/modules/core" list -tags="$GO_TEST_SHARD_TAGS" "$@" \
         | while IFS= read -r pkg; do
             if [[ -n "$GO_TEST_SHARD_EXCLUDE_REGEX" && "$pkg" =~ $GO_TEST_SHARD_EXCLUDE_REGEX ]]; then
                 continue

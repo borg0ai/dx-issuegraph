@@ -223,7 +223,7 @@ func runCICapabilitySelector(t *testing.T, records []string, event string, bound
 		t.Fatalf("write fake git: %v", err)
 	}
 	output := filepath.Join(dir, "github-output")
-	cmd := exec.Command("bash", filepath.Join("..", ".github", "scripts", "ci-capability-selector.sh"))
+	cmd := exec.Command("bash", filepath.Join(sourceRepoRoot(t), ".github", "scripts", "ci-capability-selector.sh"))
 	cmd.Env = append(os.Environ(), "PATH="+dir+string(os.PathListSeparator)+os.Getenv("PATH"), "GITHUB_EVENT_NAME="+event, "FAKE_GIT_FIXTURE="+fixture, "GITHUB_OUTPUT="+output)
 	if bounds {
 		cmd.Env = append(cmd.Env, "PR_BASE_SHA=base", "PR_HEAD_SHA=head")

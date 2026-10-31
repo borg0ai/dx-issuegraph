@@ -109,7 +109,7 @@ if [[ -z "${ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY:-}" ]]; then
             mkdir -p "$PREBUILT_ISSUEGRAPH_DIR"
             echo "Prebuilding issuegraph for subprocess tests..." >&2
             PREBUILT_ISSUEGRAPH_BIN="$PREBUILT_ISSUEGRAPH_DIR/issuegraph$(go env GOEXE)"
-            if go build -o "$PREBUILT_ISSUEGRAPH_BIN" github.com/borg0ai/dx-issuegraph/apps/cli; then
+            if go -C "$REPO_ROOT/apps/cli" build -o "$PREBUILT_ISSUEGRAPH_BIN" .; then
                 export ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY="$PREBUILT_ISSUEGRAPH_BIN"
                 echo "Prebuilt issuegraph: $ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY" >&2
             else

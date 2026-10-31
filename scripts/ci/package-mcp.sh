@@ -27,7 +27,7 @@ prepare_issuegraph_binary() {
     if [[ -n "${ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY:-}" ]]; then
         cp "$ISSUEGRAPH_TEST_ISSUEGRAPH_BINARY" "$target"
     else
-        go build -o "$target" github.com/borg0ai/dx-issuegraph/apps/cli
+        go -C "$REPO_ROOT/apps/cli" build -o "$target" .
     fi
 
     chmod +x "$target"

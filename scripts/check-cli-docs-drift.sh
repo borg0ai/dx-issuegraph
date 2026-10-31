@@ -94,7 +94,7 @@ regen_worktree() {
         if [ -x scripts/resolve-docs-issuegraph.sh ] && [ -n "$(scripts/resolve-docs-issuegraph.sh)" ]; then
             ./scripts/generate-cli-docs.sh >/dev/null
         else
-            CGO_ENABLED=0 go build -tags gms_pure_go -o "$dir/.docs-issuegraph" github.com/borg0ai/dx-issuegraph/apps/cli
+            CGO_ENABLED=0 go -C "$REPO_ROOT/apps/cli" build -tags gms_pure_go -o "$dir/.docs-issuegraph" .
             ./scripts/generate-cli-docs.sh "$dir/.docs-issuegraph" >/dev/null
             rm -f "$dir/.docs-issuegraph"
         fi

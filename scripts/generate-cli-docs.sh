@@ -5,7 +5,7 @@
 #   1. `issuegraph help --docs-root <root>` emits vendor-neutral output only:
 #      docs/CLI_REFERENCE.md plus a generic per-command tree at
 #      build/cli-docs/ (uncommitted staging).
-#   2. `go run ./modules/core/tools/docsmint <root>` post-processes the staging tree into
+#   2. `go -C modules/core run ./tools/docsmint <root>` post-processes the staging tree into
 #      the committed Mintlify pages at docs/cli-reference/ and splices the
 #      CLI Reference pages array in docs/docs.json.
 # issuegraph never emits site-generator-specific formats; all Mintlify targeting
@@ -94,7 +94,7 @@ else
     TMP_BUILD_DIR="$(mktemp -d)"
     ISSUEGRAPH="$TMP_BUILD_DIR/issuegraph"
     echo "Building temporary issuegraph for docs generation..."
-    (cd "$PROJECT_ROOT" && CGO_ENABLED=0 go build -tags gms_pure_go -o "$ISSUEGRAPH" github.com/borg0ai/dx-issuegraph/apps/cli)
+    CGO_ENABLED=0 go -C "$PROJECT_ROOT/apps/cli" build -tags gms_pure_go -o "$ISSUEGRAPH" .
 fi
 
 # Guard against a CGO-enabled issuegraph: it exposes the full `issuegraph federation` subcommand tree
@@ -123,7 +123,7 @@ if [ -z "$PINNED_BD" ] && [ -x "$ISSUEGRAPH" ] && ! "$ISSUEGRAPH" federation --h
             TMP_BUILD_DIR="$(mktemp -d)"
         fi
         ISSUEGRAPH="$TMP_BUILD_DIR/bd-pure"
-        (cd "$PROJECT_ROOT" && CGO_ENABLED=0 go build -tags gms_pure_go -o "$ISSUEGRAPH" github.com/borg0ai/dx-issuegraph/apps/cli)
+        CGO_ENABLED=0 go -C "$PROJECT_ROOT/apps/cli" build -tags gms_pure_go -o "$ISSUEGRAPH" .
     fi
 fi
 
@@ -141,7 +141,7 @@ generate_all() {
     # (a pinned legacy issuegraph stages under website/, not build/cli-docs).
     rm -rf "$root/build/cli-docs"
     "$ISSUEGRAPH" help --docs-root "$root"
-    (cd "$PROJECT_ROOT" && go run -tags=gms_pure_go ./modules/core/tools/docsmint "$root")
+    go -C "$PROJECT_ROOT/modules/core" run -tags=gms_pure_go ./tools/docsmint "$root"
     # A pinned legacy emitter (issuegraph <= v1.1.0) stages Docusaurus pages under
     # website/; docsmint has consumed them, so drop the scaffolding.
     if [ "$had_website" -eq 0 ] && [ -d "$root/website" ]; then

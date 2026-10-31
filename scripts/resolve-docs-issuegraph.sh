@@ -54,6 +54,6 @@ trap cleanup EXIT
 
 git -C "$PROJECT_ROOT" worktree add --detach --quiet "$WT" "refs/tags/$PIN"
 mkdir -p "$CACHE_DIR"
-(cd "$WT" && CGO_ENABLED=0 go build -tags gms_pure_go -o "$CACHED_BD" github.com/borg0ai/dx-issuegraph/apps/cli) >&2
+CGO_ENABLED=0 go -C "$WT/apps/cli" build -tags gms_pure_go -o "$CACHED_BD" . >&2
 
 echo "$CACHED_BD"

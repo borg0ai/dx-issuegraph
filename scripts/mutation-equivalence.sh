@@ -186,7 +186,7 @@ python3 "$MUT" "$PROD" || { rm -f "$BEFORE"; echo "FATAL: mutation script failed
 if cmp -s "$BEFORE" "$PROD"; then
   rm -f "$BEFORE"; echo "FATAL: mutation changed nothing — it would report false agreement" >&2; exit 6
 fi
-if ! go build ./... >/dev/null 2>&1; then
+if ! go -C "$WT/modules/core" build ./... >/dev/null 2>&1 || ! go -C "$WT/apps/cli" build ./... >/dev/null 2>&1; then
   rm -f "$BEFORE"; echo "FATAL: mutated tree does not compile; use a semantic mutation" >&2; exit 7
 fi
 # The displayed diff covers only $PROD, so a script that also edited something

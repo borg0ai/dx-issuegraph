@@ -15,6 +15,7 @@ issuegraph-trace-*.out
 
 # Go workspace & build cache
 go.work
+!go.work
 pkg/
 
 # Local Go build output and generated IssueGraph assets

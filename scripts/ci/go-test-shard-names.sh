@@ -36,7 +36,7 @@ GO_TEST_SHARD_TAGS="${GO_TEST_SHARD_TAGS:-$ISSUEGRAPH_BUILD_TAGS}"
 GO_TEST_SHARD_EXCLUDE_TEST_REGEX="${GO_TEST_SHARD_EXCLUDE_TEST_REGEX:-}"
 
 mapfile -t ALL_TESTS < <(
-    GO_TEST_SHARD_TAGS="$GO_TEST_SHARD_TAGS" go run -tags=ci_tools github.com/borg0ai/dx-issuegraph-workspace/scripts/ci/go-list-test-names "$PACKAGE" \
+    GO_TEST_SHARD_TAGS="$GO_TEST_SHARD_TAGS" go -C "$REPO_ROOT/modules/core" run -tags=ci_tools ./scripts/ci/go-list-test-names "$PACKAGE" \
         | while IFS= read -r test_name; do
             if [[ -n "$GO_TEST_SHARD_EXCLUDE_TEST_REGEX" && "$test_name" =~ $GO_TEST_SHARD_EXCLUDE_TEST_REGEX ]]; then
                 continue
