@@ -10,12 +10,12 @@ rather than teach concepts (that's [How IssueGraph Works](/core-concepts/index))
 
 - [Configuration](/reference/configuration) — every config key, environment
   variable, default, and the precedence between them.
-- [Git Integration](/reference/git-integration) — hooks, `refs/dolt/data`,
-  role detection, and branchless (jujutsu) workflows.
+- [Git Integration](/reference/git-integration) — local snapshots, hooks,
+  role detection, and Jujutsu workflows.
 - [Git Worktrees Guide](/reference/worktrees) — how issuegraph behaves across
   worktrees sharing one repository.
-- [Protected Branches](/reference/protected-branches) — sync-branch mode for
-  repos where direct pushes to main are blocked.
+- [Protected Branches](/reference/protected-branches) — sharing tracked snapshots
+  through normal Git branch protection.
 - [Advanced Features](/reference/advanced) — rename, merge, compaction, and
   other power-user operations.
 - [JSON Output Schema Contract](/reference/json-schema) — the stability

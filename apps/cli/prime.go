@@ -356,9 +356,9 @@ var primeHasGitRemote = func() bool {
 	return len(strings.TrimSpace(string(out))) > 0
 }
 
-// primeHasSyncRemote detects if a Dolt sync remote is configured (stubbable for tests)
+// primeHasSyncRemote reports whether remote issue sync is available.
 var primeHasSyncRemote = func() bool {
-	return resolveSyncRemote() != ""
+	return !isDoltLocalOnly() && resolveSyncRemote() != ""
 }
 
 // primeDoltSyncBullets returns the "issuegraph dolt push"/"issuegraph dolt pull" bullet

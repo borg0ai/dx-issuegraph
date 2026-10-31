@@ -23,7 +23,7 @@ This project uses **IssueGraph (issuegraph)** for issue tracking. Aider requires
 1. **Track ALL work in issuegraph** (never use markdown TODOs or comment-based task lists)
 2. **Suggest 'issuegraph ready'** to find available work
 3. **Suggest 'issuegraph create'** for new issues/tasks/bugs
-4. **Suggest 'issuegraph dolt push'** at end of session
+4. **Keep issue data local**; use Git to share the repository snapshot
 5. **ALWAYS suggest commands** - user will run them via /run
 
 ## Quick Command Reference (suggest these to user)
@@ -35,7 +35,6 @@ This project uses **IssueGraph (issuegraph)** for issue tracking. Aider requires
 - ` + "`issuegraph unclaim <id>`" + ` - Release stuck issue
 - ` + "`issuegraph close <id>`" + ` - Mark complete
 - ` + "`issuegraph dep add <issue> <depends-on>`" + ` - Add dependency (issue depends on depends-on)
-- ` + "`issuegraph dolt push`" + ` - Push changes to Dolt remote
 
 ## Workflow Pattern to Suggest
 
@@ -43,7 +42,7 @@ This project uses **IssueGraph (issuegraph)** for issue tracking. Aider requires
 2. **Claim task**: "Run ` + "`/run issuegraph update <id> --claim`" + ` to claim it atomically"
 3. **Do the work**
 4. **Complete**: "Run ` + "`/run issuegraph close <id>`" + ` when done"
-5. **Sync**: "Run ` + "`/run issuegraph dolt push`" + ` to push changes"
+5. **Share**: use standard Git commands for the repository snapshot
 
 ## Context Loading
 
@@ -70,7 +69,7 @@ Suggest ` + "`/run issuegraph prime`" + ` for complete workflow documentation (~
 - **Always use /run prefix** - Aider requires explicit command execution
 - **Link discovered work** - Use ` + "`--deps discovered-from:<parent-id>`" + ` when creating issues found during work
 - **Include descriptions** - Always provide meaningful context when creating issues
-- **End session with sync** - Remind user to run ` + "`/run issuegraph dolt push`" + ` before ending session
+- **End session** - Issue data stays local; Git manages repository sharing
 
 For detailed docs: see AGENTS.md, QUICKSTART.md, or run ` + "`issuegraph --help`" + `
 `
@@ -106,10 +105,7 @@ The AI will **suggest** issuegraph commands, but you must confirm them.
    /run issuegraph close bd-42 --reason "Done"
    ` + "```" + `
 
-5. Sync at end of session:
-   ` + "```bash" + `
-   /run issuegraph dolt push
-   ` + "```" + `
+5. Share the repository snapshot with standard Git commands when needed.
 
 ## Configuration
 

@@ -5,6 +5,11 @@ description: Adopt multi-repo routing for OSS contributor, team, multi-phase, an
 
 This guide helps you adopt issuegraph's multi-repo workflow for OSS contributions, team collaboration, and multi-phase development.
 
+This guide describes repository routing, not remote database sync. IssueGraph
+keeps databases local. Share tracked `.issuegraph/` snapshots with Git when
+separate clones need the same issue state; `issuegraph dolt push` and `pull` are
+disabled.
+
 ## Quick Start
 
 **Already have issuegraph installed?** Jump to your scenario:
@@ -225,8 +230,8 @@ issuegraph create "Try alternative approach" -p 2 --repo ~/.issuegraph-planning-
 issuegraph ready
 issuegraph list --json
 
-# Complete team work and sync
-issuegraph dolt push
+# Review local snapshot changes
+git status --short .issuegraph/
 ```
 
 ## Multi-Phase Development
@@ -390,8 +395,7 @@ issuegraph config get repos.additional
 # Add missing repos
 issuegraph config set repos.additional "~/repo1,~/repo2"
 
-# Verify hydration
-issuegraph dolt push
+# Verify local issue routing
 issuegraph list --json
 ```
 
@@ -399,7 +403,7 @@ issuegraph list --json
 
 **Problem:** Multiple repos with conflicting changes.
 
-**Solution:** Dolt handles merge conflicts natively with cell-level merge. See [Troubleshooting](/reference/troubleshooting#merge-conflicts) for details.
+**Solution:** Resolve snapshot file conflicts with your Git client. See [Snapshot Merge Conflicts](/recovery/merge-conflicts).
 
 ### Discovered issues in wrong repository
 
@@ -462,7 +466,7 @@ issuegraph create "Issue" -p 1
 - ❌ Don't mix planning and implementation in the same repo
 
 ### Teams
-- ✅ Use `issuegraph dolt push` to sync the shared Dolt database
+- ✅ Share tracked `.issuegraph/` snapshots with Git when clones need common issue state
 - ✅ Use protected branch workflow for main/master
 - ✅ Review issue changes in PRs like code changes
 - ❌ Don't delete `.issuegraph/` - you lose all issue data

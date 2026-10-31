@@ -18,7 +18,7 @@
 
 ## Non-goals
 
-不迁移仓库目录和包布局（RFC [0006](../0006-issuegraph-monorepo.md)）；不改变存储或远程同步（RFC [0003](../0003-drop-remote-sync.md)）；不搬动既有 `.beads` 数据库或重写已有 issue id；不提供 `bd` 可执行文件、软链接或别名。
+不迁移仓库目录和包布局（RFC [0006](../0006-issuegraph-monorepo.md)）；不改变存储或远程同步（RFC [0003](0003-drop-remote-sync.md)）；不搬动既有 `.beads` 数据库或重写已有 issue id；不提供 `bd` 可执行文件、软链接或别名。
 
 ## Design
 

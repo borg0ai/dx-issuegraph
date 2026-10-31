@@ -12,9 +12,9 @@ This section provides step-by-step recovery procedures for common IssueGraph iss
 | Schema Version Mismatch | `issuegraph` refuses with `schema version mismatch: database is at vNN, binary knows up to vNN` | [Accidental v1.2.1 Release](/recovery/accidental-1-2-1-release) |
 | Init Safety Refusals | `issuegraph init` or `issuegraph dolt` refuses with a pattern code like `pk-fork-refused` | [Recovery Playbooks](/recovery/init-safety) |
 | Database Corruption | Database errors, missing data | [Database Corruption](/recovery/database-corruption) |
-| Merge Conflicts | Dolt conflicts during sync | [Merge Conflicts](/recovery/merge-conflicts) |
+| Snapshot Conflicts | Git conflicts in `.issuegraph/` snapshot files | [Snapshot Merge Conflicts](/recovery/merge-conflicts) |
 | Circular Dependencies | Cycle detection errors | [Circular Dependencies](/recovery/circular-dependencies) |
-| Sync Failures | `issuegraph dolt push`/`issuegraph dolt pull` errors | [Sync Failures](/recovery/sync-failures) |
+| Remote Sync | Remote issue sync commands are disabled | [Remote Sync](/recovery/sync-failures) |
 | History Bloat | Store grows unbounded; `dolt gc` reclaims nothing | [History Bloat](/recovery/history-squash) |
 | Removing issuegraph | Uninstall issuegraph or strip issuegraph from a repo | [Uninstalling](/recovery/uninstalling) |
 

@@ -515,21 +515,11 @@ var doltPushCmd = &cobra.Command{
 	Use:           "push",
 	SilenceUsage:  true,
 	SilenceErrors: true,
-	Short:         "Push commits to Dolt remote",
-	Long: `Push local Dolt commits to the configured remote.
+	Short:         "Disabled: Dolt remote issue sync is unsupported",
+	Long: `Dolt remote issue sync is disabled. IssueGraph stores issues locally and
+tracks the complete workspace snapshot in Git. Manage repository transport with Git.
 
-Requires a Dolt remote to be configured in the database directory. With no
-remote configured, issuegraph can adopt one derived from git origin — only with
-consent: interactively, or via --yes; --no-adopt or ISSUEGRAPH_NO_REMOTE_ADOPT=1
-disables adoption entirely.
-For Hosted Dolt, set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD environment
-variables for authentication.
-
-Use --force to overwrite remote changes (e.g., when the remote has
-uncommitted changes in its working set).
-
-Use --remote to push to a specific named remote instead of the default.
-The remote must already exist (see 'issuegraph dolt remote add').`,
+This command exits with an error before opening the database or contacting a remote.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if config.GetBool("no-push") {
 			fmt.Println("skipping push: rig is local-only (no-push: true)")
@@ -614,21 +604,11 @@ var doltPullCmd = &cobra.Command{
 	Use:           "pull",
 	SilenceUsage:  true,
 	SilenceErrors: true,
-	Short:         "Pull commits from Dolt remote",
-	Long: `Pull commits from the configured Dolt remote into the local database.
+	Short:         "Disabled: Dolt remote issue sync is unsupported",
+	Long: `Dolt remote issue sync is disabled. IssueGraph stores issues locally and
+tracks the complete workspace snapshot in Git. Manage repository transport with Git.
 
-Requires a Dolt remote to be configured in the database directory.
-For Hosted Dolt, set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD environment
-variables for authentication.
-
-Use --remote to pull from a specific named remote instead of the default.
-The remote must already exist (see 'issuegraph dolt remote add').
-
-Use --strategy ours|theirs to resolve conflicts the auto-resolver declines
-(e.g. both sides edited the same issue since the last sync) instead of
-aborting the pull for manual resolution. Embedded storage only (#4992); on
-server-mode/sql-server storage use 'issuegraph conflicts resolve' after a pull that
-reports conflicts.`,
+This command exits with an error before opening the database or contacting a remote.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if isDoltLocalOnly() {
 			if jsonOutput {
@@ -1635,8 +1615,9 @@ func ensureDoltRemote(ctx context.Context, st doltRemoteAddStore, name, url stri
 
 var doltRemoteCmd = &cobra.Command{
 	Use:   "remote",
-	Short: "Manage Dolt remotes",
-	Long: `Manage Dolt remotes for push/pull replication.
+	Short: "Disabled: Dolt remote issue sync is unsupported",
+	Long: `Dolt remote management is disabled. IssueGraph keeps issue data local and
+uses Git-tracked workspace snapshots for repository transport.
 
 Subcommands:
   add <name> <url>     Add a new remote

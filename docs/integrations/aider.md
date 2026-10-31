@@ -54,7 +54,7 @@ read:
   - .aider/ISSUEGRAPH.md
 ```
 
-`.aider/ISSUEGRAPH.md` holds the workflow rules the AI follows: track all work in issuegraph (never markdown TODOs), suggest `issuegraph ready` to find work, suggest `issuegraph create` for new issues, suggest `issuegraph dolt push` at end of session — and always *suggest* commands for you to run via `/run`. You can edit it to add project-specific instructions, but rerunning `issuegraph setup aider` regenerates it.
+`.aider/ISSUEGRAPH.md` holds workflow rules for issue tracking and Git snapshots. Aider suggests IssueGraph commands for you to run via `/run`. You can edit it to add project-specific instructions, but rerunning `issuegraph setup aider` regenerates it.
 
 ## Workflow
 
@@ -103,16 +103,16 @@ issuegraph dep add issuegraph-77 issuegraph-42 --type discovered-from
 ### End Session
 
 ```bash
-issuegraph dolt push
+git status --short .issuegraph/
 ```
 
 ## Best Practices
 
 1. **Keep issues visible** - Use `issuegraph prime` to inject issue context
-2. **Push regularly** - Run `issuegraph dolt push` after significant changes
+2. **Share snapshots** - Use Git to share tracked `.issuegraph/` files
 3. **Use discovered-from** - Track issues found during work
 4. **Document context** - Include descriptions in issues
-5. **Aider commits, issuegraph syncs** - Aider auto-commits your code changes; issue data moves separately with `issuegraph dolt push`
+5. **Aider commits** - IssueGraph leaves Git commits and pushes to your Git client
 
 ## Example Workflow
 
@@ -130,7 +130,7 @@ issuegraph create "Found related bug" --deps discovered-from:issuegraph-42 --jso
 
 # 5. Complete and push
 issuegraph close issuegraph-42 --reason "Fixed"
-issuegraph dolt push
+git status --short .issuegraph/
 ```
 
 ## Troubleshooting

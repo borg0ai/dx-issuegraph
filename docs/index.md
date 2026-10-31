@@ -44,7 +44,7 @@ The whole model on one page: [How IssueGraph Works](/core-concepts/index).
 |---------|-------------|
 | [**IssueGraph (issues)**](/core-concepts/issues) | Work items with priorities, types, labels, and dependencies |
 | [**Dependencies**](/core-concepts/dependencies) | `blocks`, `parent-child`, `discovered-from`, `related` |
-| [**Sync**](/core-concepts/sync-concepts) | Dolt push/pull over your git remote — no server to run |
+| [**Snapshot**](/reference/git-integration) | Complete workspace snapshot tracked by Git |
 | [**Formulas**](/workflows/formulas) | Declarative workflow templates (TOML or JSON) |
 | [**Molecules**](/workflows/molecules) | Work graphs instantiated from formulas |
 | [**Gates**](/workflows/gates) | Async coordination primitives (human, timer, GitHub) |
@@ -62,8 +62,9 @@ issuegraph show issuegraph-42 --json
 issuegraph create "Found bug in auth" --description="Details..." \
   --deps discovered-from:issuegraph-100 --json
 
-# Push changes at end of session
-issuegraph dolt push
+# Commit the workspace snapshot with your normal Git workflow
+git add .issuegraph/issues.jsonl .issuegraph/manifest.json
+git commit -m "Update issuegraph snapshot"
 ```
 
 See the [Claude Code integration](/integrations/claude-code) for detailed agent instructions.
@@ -75,11 +76,13 @@ Dolt DB (.issuegraph/embeddeddolt/ in embedded mode,
          .issuegraph/dolt/ in server mode; gitignored)
     ↕ dolt commit
 Local Dolt history
-    ↕ dolt push/pull
-Remote Dolt repository (shared across machines)
+    ↓ snapshot export
+Git-tracked workspace snapshot
+    ↓ user-managed Git
+Other clones
 ```
 
-The magic is automatic synchronization via Dolt's version-controlled database with built-in replication.
+IssueGraph stores the working database locally. Git carries the complete workspace snapshot between clones.
 
 ## Next Steps
 

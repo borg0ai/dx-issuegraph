@@ -430,6 +430,7 @@
               "cli-reference/setup",
               "cli-reference/ship",
               "cli-reference/show",
+              "cli-reference/snapshot",
               "cli-reference/sql",
               "cli-reference/stale",
               "cli-reference/state",

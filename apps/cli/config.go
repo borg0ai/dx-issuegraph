@@ -47,7 +47,7 @@ Common namespaces:
 Auto-Export (config.yaml):
   Optional JSONL export to .issuegraph/issues.jsonl after write commands (throttled).
   Useful for viewers (bv), interchange, and issue-level migration; not a backup.
-  It is not cross-machine sync; use issuegraph dolt push/pull with a Dolt remote.
+  It is a Git-tracked workspace snapshot, not cross-machine database sync.
   Disabled by default. Enable only for integrations that need fresh JSONL.
   Auto-staging is separate and disabled by default.
 
@@ -106,7 +106,6 @@ Examples:
   issuegraph config set claim.pools "fable-crew,night-crew"    # Pool aliases claimable by any actor
   issuegraph config set doctor.suppress.pending-migrations true
   issuegraph config set dolt.debug true                        # Enable Dolt sql-server debug mode (loglevel=debug, --prof cpu)
-  issuegraph config set dolt.local-only true                   # Skip wiring a Dolt sync remote during issuegraph init
   issuegraph config set lint.sections.epic "Standards scorecard, Cost"   # Extra sections issuegraph lint requires for epics
   issuegraph config get export.auto
   issuegraph config list
@@ -131,6 +130,9 @@ var configSetCmd = &cobra.Command{
 
 		key := args[0]
 		value := args[1]
+		if isDisabledRemoteConfigKey(key) {
+			return HandleErrorRespectJSON(remoteSyncDisabledMessage)
+		}
 		if key == "github.token" {
 			return HandleError("github.token is not stored by IssueGraph; authenticate with 'gh auth login' or set GITHUB_TOKEN")
 		}
@@ -647,8 +649,7 @@ var configValidateCmd = &cobra.Command{
 
 Checks:
   - federation.sovereignty is valid (T1, T2, T3, T4, or empty)
-  - federation.remote is set for Dolt sync
-  - Remote URL format is valid (dolthub://, gs://, s3://, az://, file://)
+  - Legacy remote issue sync settings are absent
   - routing.mode is valid (auto, maintainer, contributor, explicit)
 
 	Examples:
@@ -722,32 +723,14 @@ func validateSyncConfig(repoPath string) []string {
 
 	// Get config from yaml
 	federationSov := v.GetString("federation.sovereignty")
-	federationRemote := v.GetString("federation.remote")
-
 	// Validate federation.sovereignty
 	if federationSov != "" && !config.IsValidSovereignty(federationSov) {
 		issues = append(issues, fmt.Sprintf("federation.sovereignty: %q is invalid (valid values: %s, or empty for no restriction)", federationSov, strings.Join(config.ValidSovereigntyTiers(), ", ")))
 	}
 
-	// Validate federation.remote is set (required for Dolt sync)
-	if federationRemote == "" {
-		issues = append(issues, "federation.remote: required for Dolt sync")
-	}
-
-	// Strict security validation of remote URL
-	if federationRemote != "" {
-		if err := remotecache.ValidateRemoteURL(federationRemote); err != nil {
-			issues = append(issues, fmt.Sprintf("federation.remote: %s", err))
-		}
-	}
-
-	// Validate against allowed-remote-patterns if configured
-	if federationRemote != "" {
-		patterns := v.GetStringSlice("federation.allowed-remote-patterns")
-		if len(patterns) > 0 {
-			if err := remotecache.ValidateRemoteURLWithPatterns(federationRemote, patterns); err != nil {
-				issues = append(issues, fmt.Sprintf("federation.remote: %s", err))
-			}
+	for _, key := range []string{"sync.remote", "sync.git-remote", "federation.remote", "dolt.auto-push", "dolt.local-only"} {
+		if v.IsSet(key) {
+			issues = append(issues, fmt.Sprintf("%s: remote issue sync is disabled", key))
 		}
 	}
 
@@ -799,7 +782,7 @@ func resolvedConfigRepoRoot() (string, error) {
 var configSetManyCmd = &cobra.Command{
 	Use:   "set-many <key=value>...",
 	Short: "Set multiple configuration values in one operation",
-	Long: `Set multiple configuration values at once with a single auto-commit and auto-push.
+	Long: `Set multiple configuration values at once with a single database write.
 
 Each argument must be in key=value format. All values are validated before
 any writes occur. This is faster and less noisy than separate 'issuegraph config set'
@@ -832,6 +815,9 @@ Examples:
 		}
 
 		for _, p := range pairs {
+			if isDisabledRemoteConfigKey(p.key) {
+				return HandleErrorRespectJSON(remoteSyncDisabledMessage)
+			}
 			if p.key == "github.token" {
 				return HandleError("github.token is not stored by IssueGraph; authenticate with 'gh auth login' or set GITHUB_TOKEN")
 			}

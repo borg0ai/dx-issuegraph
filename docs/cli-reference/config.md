@@ -29,7 +29,7 @@ Common namespaces:
 Auto-Export (config.yaml):
   Optional JSONL export to .issuegraph/issues.jsonl after write commands (throttled).
   Useful for viewers (bv), interchange, and issue-level migration; not a backup.
-  It is not cross-machine sync; use issuegraph dolt push/pull with a Dolt remote.
+  It is a Git-tracked workspace snapshot, not cross-machine database sync.
   Disabled by default. Enable only for integrations that need fresh JSONL.
   Auto-staging is separate and disabled by default.
 
@@ -88,7 +88,6 @@ Examples:
   issuegraph config set claim.pools "fable-crew,night-crew"    # Pool aliases claimable by any actor
   issuegraph config set doctor.suppress.pending-migrations true
   issuegraph config set dolt.debug true                        # Enable Dolt sql-server debug mode (loglevel=debug, --prof cpu)
-  issuegraph config set dolt.local-only true                   # Skip wiring a Dolt sync remote during issuegraph init
   issuegraph config set lint.sections.epic "Standards scorecard, Cost"   # Extra sections issuegraph lint requires for epics
   issuegraph config get export.auto
   issuegraph config list
@@ -105,7 +104,7 @@ Reconcile actual system state to match declared configuration.
 Runs drift detection and then fixes any mismatches it finds:
 
   - hooks     Reinstall git hooks if missing or outdated
-  - remote    Add/update Dolt origin remote to match federation.remote
+  - remote    Reject legacy Dolt remote configuration
   - server    Start Dolt server if dolt.shared-server is enabled
 
 This command is idempotent — safe to run multiple times. Use --dry-run
@@ -182,7 +181,7 @@ issuegraph config set <key> <value> [flags]
 
 ## issuegraph config set-many
 
-Set multiple configuration values at once with a single auto-commit and auto-push.
+Set multiple configuration values at once with a single database write.
 
 Each argument must be in key=value format. All values are validated before
 any writes occur. This is faster and less noisy than separate 'issuegraph config set'
@@ -246,8 +245,7 @@ Validate sync-related configuration settings.
 
 Checks:
   - federation.sovereignty is valid (T1, T2, T3, T4, or empty)
-  - federation.remote is set for Dolt sync
-  - Remote URL format is valid (dolthub://, gs://, s3://, az://, file://)
+  - Legacy remote issue sync settings are absent
   - routing.mode is valid (auto, maintainer, contributor, explicit)
 
 	Examples:

@@ -254,21 +254,17 @@ issuegraph dep add issuegraph-11 issuegraph-10 --type discovered-from
 # 6. Repeat
 ```
 
-## Auto-Sync with Dolt
+## Local issue data
 
-IssueGraph automatically commits changes to Dolt history after every write operation. This enables seamless collaboration:
+IssueGraph commits writes to local Dolt history and refreshes the tracked snapshot. Use Git to share that snapshot:
 
 ```bash
 # Make changes
 issuegraph create "Add feature" -p 1
 
-# Changes are automatically committed to Dolt history
-# Sync with remotes when ready:
-issuegraph dolt push
-
-# Pull changes from collaborators:
-issuegraph dolt pull
-issuegraph ready  # Shows issues ready to work on (with fresh data)
+# Review snapshot changes
+git status --short .issuegraph/
+issuegraph ready  # Shows local ready work
 ```
 
 ## Updating

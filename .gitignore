@@ -4,40 +4,55 @@
 *.so
 *.dylib
 
-# Test binaries
+# Test binaries & profiles
 *.test
 *.out
-/bd-test
+*.prof
+issuegraph-perf-*.prof
+bench-cpu-*.prof
+issuegraph-profile-*.prof
+issuegraph-trace-*.out
 
-# Go workspace file
+# Go workspace & build cache
 go.work
-
-# Go build cache
 pkg/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# Local Go build output and generated IssueGraph assets
+/apps/cli/bin/*
+/modules/core/internal/generated/issuegraphassets/assets_gen.go
 
-# Agent local state (skills, settings, etc.)
-.amp/
+# Build outputs & dependencies
+/build/
+dist/
+Formula/issuegraph.rb
+.zig-cache/
+node_modules/
+result
 
-# Claude Code - local/runtime state
-.claude/settings.local.json
-.claude/worktrees/
-.claude/*.log
-.claude/*.lock
-
-# Codex CLI - local marker
-.codex
-
+# Temporary files & docs build cache
+tmp/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# IDE & editors
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+*~
+
+# direnv (machine-specific environment)
+.direnv
+.envrc
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
 
 # Dolt database files
 .dolt/
@@ -48,224 +63,43 @@ Thumbs.db
 *.db-wal
 *.db-shm
 
-# Runtime files
-.issuegraph/issuegraph.sock
-.issuegraph/.exclusive-lock
-.issuegraph/issuegraph.sock
-.issuegraph/.exclusive-lock
+# Locks
+*.gate.lock*
 
-# .issuegraph / .issuegraph directory files
-.issuegraph/.gitignore
-.issuegraph/db.sqlite
-.issuegraph/issuegraph.db
-.issuegraph/.gitignore
-.issuegraph/db.sqlite
-.issuegraph/issuegraph.db
-
-# Ignore nix result
-result
-
-# direnv (machine-specific environment)
-.direnv
-.envrc
-
-# Release build artifacts
-dist/
-Formula/issuegraph.rb
-.zig-cache/
-
-# Git worktrees
-.worktrees/
-
-# npm package - exclude downloaded binaries and archives
-apps/cli/bin/issuegraph
-apps/cli/bin/*.tar.gz
-apps/cli/bin/*.zip
-apps/cli/bin/CHANGELOG.md
-apps/cli/bin/LICENSE
-apps/cli/bin/README.md
-apps/cli/node_modules/
-apps/cli/package-lock.json
-.issuegraph/issuegraph.db?*
-.issuegraph/issuegraph.db?*
-bd-original
-mcp_agent_mail/
-bd-test
-bd-fixed
-.cursor/
-
-# Python cache files
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-.envrc
-
-# Performance profiling files (benchmarks, issuegraph doctor --perf, and issuegraph --cpu-profile)
-*.prof
-*.out
-issuegraph-perf-*.prof
-bench-cpu-*.prof
-issuegraph-profile-*.prof
-issuegraph-trace-*.out
-# AI planning documents (ephemeral)
-history/
-
-# Orchestrator agent state
+# IssueGraph local directory and runtime
+# RFC 0004: Git tracks the issue snapshot (issues.jsonl + manifest.json) and formulas;
+# all Dolt runtime databases, sockets, locks, and cache stay local.
+.issuegraph-credential-key
 state.json
-.issuegraph/redirect
-.issuegraph/redirect
-
-# Claude Code runtime
-.runtime/
-
-# Augment AI configuration (user-specific)
-.augment/
-.agents/
-output
-issuegraph_test
-.issuegraph/export-state/
-.issuegraph/issuegraph.db
-.issuegraph/export-state/
-.issuegraph/issuegraph.db
-
-# Orchestrator (added by gt)
-.logs/
 .issuegraph/*
 !.issuegraph/formulas/
 !.issuegraph/formulas/**
-.issuegraph/*
-!.issuegraph/formulas/
-!.issuegraph/formulas/**
-# Complete local issue snapshot (issues.jsonl + manifest.json), tracked by Git (RFC 0004); the Dolt database stays ignored.
 !.issuegraph/issues.jsonl
 !.issuegraph/manifest.json
+
+# Git worktrees & test harnesses
+.worktrees/
+bd-original
+bd-test
+bd-fixed
+issuegraph_test
+
+# Agent & orchestrator local/runtime state
+.amp/
+.agents/
+.augment/
+.claude/settings.local.json
+.claude/worktrees/
+.claude/*.log
+.claude/*.lock
+.codex
+.logs/
 .opencode/
+.playwright-mcp/
+.runtime/
+history/
+mcp_agent_mail/
+output
 
-# IssueGraph / Dolt files (added by issuegraph init / issuegraph init)
-.issuegraph-credential-key
-
-# IssueGraph / Dolt files (added by issuegraph init / issuegraph init)
-.issuegraph/proxieddb/
-.issuegraph/proxieddb/
-/build/
-node_modules/
-tmp/build/cli-docs/admin.md
-tmp/build/cli-docs/ado.md
-tmp/build/cli-docs/assign.md
-tmp/build/cli-docs/audit.md
-tmp/build/cli-docs/backup.md
-tmp/build/cli-docs/batch.md
-tmp/build/cli-docs/blocked.md
-tmp/build/cli-docs/bootstrap.md
-tmp/build/cli-docs/branch.md
-tmp/build/cli-docs/children.md
-tmp/build/cli-docs/close.md
-tmp/build/cli-docs/comment.md
-tmp/build/cli-docs/comments.md
-tmp/build/cli-docs/compact.md
-tmp/build/cli-docs/completion.md
-tmp/build/cli-docs/config.md
-tmp/build/cli-docs/context.md
-tmp/build/cli-docs/cook.md
-tmp/build/cli-docs/count.md
-tmp/build/cli-docs/create-form.md
-tmp/build/cli-docs/create.md
-tmp/build/cli-docs/defer.md
-tmp/build/cli-docs/delete.md
-tmp/build/cli-docs/dep.md
-tmp/build/cli-docs/diff.md
-tmp/build/cli-docs/doctor.md
-tmp/build/cli-docs/dolt.md
-tmp/build/cli-docs/duplicate.md
-tmp/build/cli-docs/duplicates.md
-tmp/build/cli-docs/edit.md
-tmp/build/cli-docs/epic.md
-tmp/build/cli-docs/export.md
-tmp/build/cli-docs/federation.md
-tmp/build/cli-docs/find-duplicates.md
-tmp/build/cli-docs/flatten.md
-tmp/build/cli-docs/forget.md
-tmp/build/cli-docs/formula.md
-tmp/build/cli-docs/gate.md
-tmp/build/cli-docs/gc.md
-tmp/build/cli-docs/github.md
-tmp/build/cli-docs/gitlab.md
-tmp/build/cli-docs/graph.md
-tmp/build/cli-docs/heartbeat.md
-tmp/build/cli-docs/history.md
-tmp/build/cli-docs/hooks.md
-tmp/build/cli-docs/human.md
-tmp/build/cli-docs/import.md
-tmp/build/cli-docs/index.md
-tmp/build/cli-docs/info.md
-tmp/build/cli-docs/init-safety.md
-tmp/build/cli-docs/init.md
-tmp/build/cli-docs/jira.md
-tmp/build/cli-docs/kv.md
-tmp/build/cli-docs/label.md
-tmp/build/cli-docs/linear.md
-tmp/build/cli-docs/link.md
-tmp/build/cli-docs/lint.md
-tmp/build/cli-docs/list.md
-tmp/build/cli-docs/mail.md
-tmp/build/cli-docs/memories.md
-tmp/build/cli-docs/merge-slot.md
-tmp/build/cli-docs/metrics.md
-tmp/build/cli-docs/migrate-personal.md
-tmp/build/cli-docs/migrate.md
-tmp/build/cli-docs/mol.md
-tmp/build/cli-docs/note.md
-tmp/build/cli-docs/notion.md
-tmp/build/cli-docs/onboard.md
-tmp/build/cli-docs/orphans.md
-tmp/build/cli-docs/ping.md
-tmp/build/cli-docs/preflight.md
-tmp/build/cli-docs/prime.md
-tmp/build/cli-docs/priority.md
-tmp/build/cli-docs/promote.md
-tmp/build/cli-docs/prune.md
-tmp/build/cli-docs/purge.md
-tmp/build/cli-docs/q.md
-tmp/build/cli-docs/query.md
-tmp/build/cli-docs/quickstart.md
-tmp/build/cli-docs/ready.md
-tmp/build/cli-docs/recall.md
-tmp/build/cli-docs/reclaim.md
-tmp/build/cli-docs/recompute-blocked.md
-tmp/build/cli-docs/remember.md
-tmp/build/cli-docs/rename-prefix.md
-tmp/build/cli-docs/rename.md
-tmp/build/cli-docs/reopen.md
-tmp/build/cli-docs/repo.md
-tmp/build/cli-docs/restore.md
-tmp/build/cli-docs/rules.md
-tmp/build/cli-docs/search.md
-tmp/build/cli-docs/set-state.md
-tmp/build/cli-docs/setup.md
-tmp/build/cli-docs/ship.md
-tmp/build/cli-docs/show.md
-tmp/build/cli-docs/sql.md
-tmp/build/cli-docs/stale.md
-tmp/build/cli-docs/state.md
-tmp/build/cli-docs/status.md
-tmp/build/cli-docs/statuses.md
-tmp/build/cli-docs/supersede.md
-tmp/build/cli-docs/swarm.md
-tmp/build/cli-docs/tag.md
-tmp/build/cli-docs/todo.md
-tmp/build/cli-docs/types.md
-tmp/build/cli-docs/unclaim.md
-tmp/build/cli-docs/undefer.md
-tmp/build/cli-docs/update.md
-tmp/build/cli-docs/upgrade.md
-tmp/build/cli-docs/vc.md
-tmp/build/cli-docs/version.md
-tmp/build/cli-docs/where.md
-tmp/build/cli-docs/worktree.md
-tmp/docs/CLI_REFERENCE.md
-*.gate.lock*
-# Local Go build output and generated IssueGraph assets
-/apps/cli/bin/*
-/modules/core/internal/generated/issuegraphassets/assets_gen.go
+# Tooling analysis outputs
+graphify-out/

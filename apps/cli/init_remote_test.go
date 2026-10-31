@@ -16,6 +16,28 @@ func TestInitCommandRegistersRemoteFlag(t *testing.T) {
 	}
 }
 
+func TestInitExplicitRemoteFailsClosed(t *testing.T) {
+	flag := initCmd.Flags().Lookup("remote")
+	if err := initCmd.Flags().Set("remote", "https://example.invalid/issues.git"); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = initCmd.Flags().Set("remote", "")
+		flag.Changed = false
+	})
+
+	var runErr error
+	stderr := captureStderr(t, func() {
+		runErr = initCmd.RunE(initCmd, nil)
+	})
+	if runErr == nil {
+		t.Fatal("init accepted --remote")
+	}
+	if !strings.Contains(stderr, remoteSyncDisabledMessage) {
+		t.Fatalf("stderr=%q, want local-only error", stderr)
+	}
+}
+
 func TestInitExplicitRemoteDrivesCloneAndPersistence(t *testing.T) {
 	const remote = "git+ssh://git@example.com/right/repo.git"
 	resolveConfiguredRemote := func() string {

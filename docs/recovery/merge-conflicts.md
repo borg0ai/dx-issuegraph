@@ -1,54 +1,15 @@
 ---
-title: Merge Conflicts
-description: Resolve Dolt merge conflicts
+title: Snapshot merge conflicts
+description: Resolve Git conflicts in tracked IssueGraph snapshots.
 ---
 
-This runbook helps you resolve merge conflicts that occur during Dolt sync operations.
+Separate clones share issue snapshots through Git, so concurrent changes can
+conflict in `.issuegraph/issues.jsonl` or `.issuegraph/manifest.json`. Resolve
+those conflicts with your Git client, then validate the snapshot before
+bootstrap or restore.
 
-## Symptoms
+IssueGraph remote Dolt pull and federation sync commands are disabled. They do
+not merge remote database history.
 
-- `issuegraph dolt pull` fails with conflict errors
-- Different issue states between clones
-
-## Diagnosis
-
-```bash
-# Check database health
-issuegraph doctor
-
-# Preview what fixes would be applied
-issuegraph doctor --dry-run
-```
-
-## Solution
-
-**Step 1:** Back up current state
-```bash
-cp -r .issuegraph .issuegraph.backup
-```
-
-**Step 2:** Check for conflicts
-```bash
-issuegraph doctor
-```
-
-**Step 3:** Fix to reconcile
-```bash
-issuegraph doctor --fix
-```
-
-**Step 4:** Verify state
-```bash
-issuegraph list
-issuegraph stats
-```
-
-**Step 5:** Push resolved state
-```bash
-issuegraph dolt push
-```
-
-## Prevention
-
-- Sync before and after work sessions using `issuegraph dolt pull` / `issuegraph dolt push`
-- Avoid concurrent modifications from multiple clones without the Dolt server running
+See [Move issue data between clones](/getting-started/sync-setup) for the
+snapshot workflow.

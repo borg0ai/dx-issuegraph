@@ -59,7 +59,7 @@ issuegraph setup claude --check
 1. **Session starts** → `issuegraph prime` injects ~1-2k tokens of context
 2. **You work** → Use `issuegraph` CLI commands directly
 3. **Session compacts** → SessionStart fires again and `issuegraph prime` refreshes workflow context
-4. **Session ends** → `issuegraph dolt push` syncs changes
+4. **Session ends** → share tracked `.issuegraph/` snapshots with your Git client when needed
 
 ### Why CLI + hooks instead of MCP?
 
@@ -115,7 +115,7 @@ issuegraph blocked --json
 
 ```bash
 # ALWAYS run at session end
-issuegraph dolt push
+git status --short .issuegraph/
 ```
 
 ## Best Practices
@@ -152,7 +152,7 @@ issuegraph create "Found related bug" \
 
 ```bash
 # ALWAYS run before ending
-issuegraph dolt push
+git status --short .issuegraph/
 ```
 
 ## Plugin (Optional)
@@ -189,7 +189,7 @@ issuegraph prime
 
 ```bash
 # Force push
-issuegraph dolt push
+git status --short .issuegraph/
 
 # Check system health
 issuegraph doctor

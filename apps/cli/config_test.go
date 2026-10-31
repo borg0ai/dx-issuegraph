@@ -329,9 +329,8 @@ func TestValidateSyncConfig(t *testing.T) {
 		}
 
 		issues := validateSyncConfig(tmpDir)
-		// After JSONL removal, Dolt sync requires federation.remote
-		if len(issues) != 1 {
-			t.Errorf("Expected 1 issue (missing federation.remote) for empty config, got: %v", issues)
+		if len(issues) != 0 {
+			t.Errorf("Expected no issues for empty local-only config, got: %v", issues)
 		}
 	})
 
@@ -367,15 +366,8 @@ sync:
 		}
 
 		issues := validateSyncConfig(tmpDir)
-		found := false
-		for _, issue := range issues {
-			if strings.Contains(issue, "federation.remote") && strings.Contains(issue, "required") {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Errorf("Expected issue about federation.remote being required, got: %v", issues)
+		if len(issues) != 0 {
+			t.Errorf("Expected no remote requirement for local-only mode, got: %v", issues)
 		}
 	})
 
@@ -391,13 +383,13 @@ federation:
 		issues := validateSyncConfig(tmpDir)
 		found := false
 		for _, issue := range issues {
-			if strings.Contains(issue, "federation.remote") && (strings.Contains(issue, "not a valid remote URL") || strings.Contains(issue, "no scheme") || strings.Contains(issue, "not allowed")) {
+			if strings.Contains(issue, "federation.remote") && strings.Contains(issue, "remote issue sync is disabled") {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("Expected issue about invalid remote URL, got: %v", issues)
+			t.Errorf("Expected issue about disabled remote config, got: %v", issues)
 		}
 	})
 
@@ -416,8 +408,8 @@ federation:
 		}
 
 		issues := validateSyncConfig(tmpDir)
-		if len(issues) != 0 {
-			t.Errorf("Expected no issues for valid config, got: %v", issues)
+		if len(issues) != 1 || !strings.Contains(issues[0], "federation.remote: remote issue sync is disabled") {
+			t.Errorf("Expected legacy remote config warning, got: %v", issues)
 		}
 	})
 
@@ -430,13 +422,13 @@ federation:
 		issues := validateSyncConfig(tmpDir)
 		found := false
 		for _, issue := range issues {
-			if strings.Contains(issue, "federation.remote") {
+			if strings.Contains(issue, "federation.remote") && strings.Contains(issue, "remote issue sync is disabled") {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("Expected issue about invalid remote URL with null byte, got: %v", issues)
+			t.Errorf("Expected issue about disabled remote config, got: %v", issues)
 		}
 	})
 
@@ -454,13 +446,13 @@ federation:
 		issues := validateSyncConfig(tmpDir)
 		found := false
 		for _, issue := range issues {
-			if strings.Contains(issue, "does not match") {
+			if strings.Contains(issue, "federation.remote") && strings.Contains(issue, "remote issue sync is disabled") {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("Expected issue about remote not matching allowed patterns, got: %v", issues)
+			t.Errorf("Expected disabled remote config warning, got: %v", issues)
 		}
 	})
 
@@ -476,8 +468,8 @@ federation:
 		}
 
 		issues := validateSyncConfig(tmpDir)
-		if len(issues) != 0 {
-			t.Errorf("Expected no issues when remote matches allowed pattern, got: %v", issues)
+		if len(issues) != 1 || !strings.Contains(issues[0], "federation.remote: remote issue sync is disabled") {
+			t.Errorf("Expected disabled remote config warning, got: %v", issues)
 		}
 	})
 
@@ -498,10 +490,62 @@ federation:
 		}
 
 		issues := validateSyncConfig(worktreeDir)
-		if len(issues) != 0 {
-			t.Errorf("Expected no issues when shared worktree config is valid, got: %v", issues)
+		if len(issues) != 1 || !strings.Contains(issues[0], "federation.remote: remote issue sync is disabled") {
+			t.Errorf("Expected disabled remote config warning from shared worktree config, got: %v", issues)
 		}
 	})
+}
+
+func TestRemoteSyncConfigWritesFailClosed(t *testing.T) {
+	oldStore := store
+	store = nil
+	t.Cleanup(func() { store = oldStore })
+
+	for _, tc := range []struct {
+		name string
+		run  func() (error, string)
+	}{
+		{
+			name: "set",
+			run: func() (error, string) {
+				var err error
+				stderr := captureStderr(t, func() {
+					err = configSetCmd.RunE(configSetCmd, []string{"sync.remote", "https://example.invalid/issues.git"})
+				})
+				return err, stderr
+			},
+		},
+		{
+			name: "set-many",
+			run: func() (error, string) {
+				var err error
+				stderr := captureStderr(t, func() {
+					err = configSetManyCmd.RunE(configSetManyCmd, []string{"dolt.auto-push=true"})
+				})
+				return err, stderr
+			},
+		},
+		{
+			name: "local-only toggle",
+			run: func() (error, string) {
+				var err error
+				stderr := captureStderr(t, func() {
+					err = configSetCmd.RunE(configSetCmd, []string{"dolt.local-only", "false"})
+				})
+				return err, stderr
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err, stderr := tc.run()
+			if err == nil || !strings.Contains(stderr, remoteSyncDisabledMessage) {
+				t.Fatalf("error=%v stderr=%q, want refusal %q", err, stderr, remoteSyncDisabledMessage)
+			}
+			if store != nil {
+				t.Fatal("remote config write opened a store")
+			}
+		})
+	}
 }
 
 func TestResolvedConfigRepoRoot(t *testing.T) {

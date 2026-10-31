@@ -44,8 +44,8 @@ func TestApplyRemoteNoDrift(t *testing.T) {
 func TestApplyRemoteDryRun(t *testing.T) {
 	// When drifted but no issuegraph dir, should skip
 	result := applyRemote(true, true)
-	if result.Status != applyStatusSkipped && result.Status != applyStatusDryRun {
-		t.Errorf("expected status %q or %q, got %q", applyStatusSkipped, applyStatusDryRun, result.Status)
+	if result.Status != applyStatusError || result.Error != remoteSyncDisabledMessage {
+		t.Errorf("expected local-only error %q, got %+v", remoteSyncDisabledMessage, result)
 	}
 }
 

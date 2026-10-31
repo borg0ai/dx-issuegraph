@@ -52,13 +52,11 @@ func defaultAgentsEnv() agentsEnv {
 	}
 }
 
-// detectRenderOptsImpl checks whether a Dolt sync remote is configured and returns
-// appropriate RenderOpts. When no remote is configured, the rendered template
-// omits "issuegraph dolt push" from session-completion instructions.
+// detectRenderOptsImpl returns the agent instruction options supported by this CLI.
 // Exposed as a variable so tests can override.
 var detectRenderOptsImpl = func() agents.RenderOpts {
 	return agents.RenderOpts{
-		HasRemote: config.GetString("sync.remote") != "" || config.GetString("sync.git-remote") != "",
+		HasRemote: false,
 		NoPush:    config.GetBool("no-push"),
 	}
 }

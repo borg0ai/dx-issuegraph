@@ -1,75 +1,16 @@
 ---
-title: Sync Failures
-description: Recover from Dolt sync failures
+title: Remote sync is disabled
+description: Explain the fail-closed behavior for removed remote issue sync.
 ---
 
-This runbook helps you recover from Dolt sync failures.
+IssueGraph no longer syncs Dolt history with remote databases. Commands including
+`issuegraph sync`, `issuegraph dolt push`, `issuegraph dolt pull`, and federation
+sync fail before opening the database or contacting a remote.
 
-## Symptoms
+To share issue state between clones, commit and push the tracked
+`.issuegraph/issues.jsonl` and `.issuegraph/manifest.json` files with your Git
+client. Run `issuegraph bootstrap` in a fresh clone to import that snapshot.
 
-- `issuegraph dolt push` or `issuegraph dolt pull` hangs or times out
-- Network-related error messages
-- "failed to push" or "failed to pull" errors
-- Dolt server not responding
-
-## Diagnosis
-
-```bash
-# Check Dolt server health
-issuegraph doctor
-issuegraph dolt show
-
-# View Dolt server logs
-tail -50 .issuegraph/dolt-server.log   # server mode
-```
-
-## Solution
-
-**Step 1:** Stop the Dolt server
-```bash
-issuegraph dolt stop
-```
-
-**Step 2:** Check for lock files
-```bash
-ls -la .issuegraph/*.lock
-# Remove stale locks if Dolt server is definitely stopped
-rm -f .issuegraph/*.lock
-```
-
-**Step 3:** Back up and preview fixes
-```bash
-cp -r .issuegraph .issuegraph.backup
-issuegraph doctor --dry-run
-```
-
-**Step 4:** Apply fixes if needed
-```bash
-issuegraph doctor --fix
-```
-
-**Step 5:** Restart the Dolt server
-```bash
-dolt sql-server
-```
-
-**Step 6:** Verify sync works
-```bash
-issuegraph dolt push
-issuegraph doctor
-```
-
-## Common Causes
-
-| Cause | Solution |
-|-------|----------|
-| Network timeout | Retry with better connection |
-| Stale lock file | Remove lock after stopping Dolt server |
-| Corrupted state | Back up, then `issuegraph doctor --fix` |
-| Merge conflicts | See [Merge Conflicts](/recovery/merge-conflicts) |
-
-## Prevention
-
-- Ensure stable network before sync
-- Let sync complete before closing terminal
-- Use `issuegraph dolt stop` before system shutdown
+For remote backup errors, choose a local filesystem path instead. Remote backup
+destinations are disabled; local backups remain available through
+`issuegraph backup init <path>` and `issuegraph backup sync`.

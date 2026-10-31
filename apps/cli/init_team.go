@@ -145,7 +145,7 @@ func runTeamWizard(ctx context.Context, store storage.DoltStorage) error {
 		fmt.Println("  • Periodically merge", syncBranch, "to main via PR")
 	}
 
-	fmt.Println("  • Dolt handles sync natively — run 'issuegraph dolt push' to push changes")
+	fmt.Println("  • IssueGraph keeps issue data local; share .issuegraph snapshots with Git")
 	fmt.Println()
 	fmt.Printf("Try it: %s\n", ui.RenderAccent("issuegraph create \"Team planning issue\" -p 2"))
 	fmt.Println()

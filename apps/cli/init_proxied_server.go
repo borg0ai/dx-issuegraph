@@ -310,19 +310,7 @@ func resolveInitPrefix(flagPrefix string) (string, error) {
 	return prefix, nil
 }
 
-func resolveProxiedInitRemoteURL(ctx context.Context, gitUC domain.GitUseCase, in initProxiedServerInput) string {
-	url, source := resolveInitConfiguredSyncRemote(in.initRemote, in.initRemoteChanged, resolveSyncRemote)
-	if url != "" {
-		return url
-	}
-	if source != initSyncRemoteNone {
-		return ""
-	}
-	if !in.stealth {
-		if originURL, err := gitUC.OriginRemoteURL(ctx); err == nil && originURL != "" {
-			return normalizeRemoteURL(originURL)
-		}
-	}
+func resolveProxiedInitRemoteURL(context.Context, domain.GitUseCase, initProxiedServerInput) string {
 	return ""
 }
 

@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/setup"
 	"github.com/borg0ai/dx-issuegraph/internal/config"
 	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
@@ -28,8 +30,6 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/borg0ai/dx-issuegraph/issueops"
-	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
-	"github.com/borg0ai/dx-issuegraph/apps/cli/setup"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -331,7 +331,7 @@ var initCmd = &cobra.Command{
 and its storage (a Dolt database by default). Optionally specify a custom issue prefix.
 
 Dolt is the default and only supported storage backend, with full version
-control (history, branching, sync).
+control for local history and branching.
 
 Use --database to specify an existing server database name, overriding the
 default prefix-based naming. This is useful when an external tool (e.g. an orchestrator)
@@ -350,8 +350,8 @@ Password should be set via ISSUEGRAPH_DOLT_PASSWORD environment variable.
 Auto-export is optional. When enabled, issuegraph exports issues to
 .issuegraph/issues.jsonl after write commands (throttled to once per 60s). This is
 for viewers (bv), interchange, and issue-level migration; not backup.
-Cross-machine sync and backups use Dolt remotes/backups, not JSONL import/export.
-To enable: issuegraph config set export.auto true
+Git tracks the complete workspace snapshot. Auto-export remains available for
+tools that read .issuegraph/issues.jsonl. To enable: issuegraph config set export.auto true
 
 Non-interactive mode (--non-interactive or ISSUEGRAPH_NON_INTERACTIVE=1):
   Skips all interactive prompts, using sensible defaults:
@@ -377,6 +377,9 @@ Non-interactive mode (--non-interactive or ISSUEGRAPH_NON_INTERACTIVE=1):
 		fromJSONL, _ := cmd.Flags().GetBool("from-jsonl")
 		initRemote, _ := cmd.Flags().GetString("remote")
 		initRemoteChanged := cmd.Flags().Changed("remote")
+		if initRemoteChanged && initRemote != "" {
+			return HandleErrorRespectJSON(remoteSyncDisabledMessage)
+		}
 		// Dolt server connection flags
 		backendFlag, _ := cmd.Flags().GetString("backend")
 		initServerMode, _ := cmd.Flags().GetBool("server")
@@ -850,7 +853,7 @@ Non-interactive mode (--non-interactive or ISSUEGRAPH_NON_INTERACTIVE=1):
 			earlyRemoteSource := initSyncRemoteNone
 			earlyRemoteHasDoltData := false
 			var earlyProbeNote string
-			earlySyncURL, earlyRemoteSource = resolveInitConfiguredSyncRemote(initRemote, initRemoteChanged, resolveSyncRemote)
+			earlySyncURL, earlyRemoteSource = resolveLocalInitSyncRemote()
 			if earlyRemoteSource == initSyncRemoteExplicit {
 				// An explicit --remote is intent to bootstrap or wire that URL,
 				// but it is not proof that the remote already contains Dolt
@@ -868,7 +871,7 @@ Non-interactive mode (--non-interactive or ISSUEGRAPH_NON_INTERACTIVE=1):
 				// --reinit-local / local init.
 				hasData, err := gitRemoteHasDoltDataRefStatus(earlySyncURL)
 				earlyRemoteHasDoltData, earlyProbeNote = resolveRemoteHasDoltDataProbe(earlySyncURL, hasData, err)
-			} else if earlyRemoteSource == initSyncRemoteNone && !stealth && isGitRepo() && !isBareGitRepo() {
+			} else if earlyRemoteSource == initSyncRemoteNone && !isDoltLocalOnly() && !stealth && isGitRepo() && !isBareGitRepo() {
 				if originURL, err := gitOriginGetURL(); err == nil && originURL != "" {
 					earlySyncURL = normalizeRemoteURL(originURL)
 					hasData, probeErr := gitOriginHasDoltDataRefStatus()
@@ -1202,7 +1205,7 @@ Non-interactive mode (--non-interactive or ISSUEGRAPH_NON_INTERACTIVE=1):
 		// CheckRemoteSafety chokepoint encodes this invariant; any future
 		// flag that can interact with remote history must route through
 		// it rather than adding another `&& !someFlag` here.
-		syncResolutionURL, syncRemoteSource := resolveInitConfiguredSyncRemote(initRemote, initRemoteChanged, resolveSyncRemote)
+		syncResolutionURL, syncRemoteSource := resolveLocalInitSyncRemote()
 		syncURL := syncResolutionURL
 		syncURLFromConfig := syncURL != "" && syncRemoteSource != initSyncRemoteNone // true when URL came from explicit user config
 		bootstrappedFromRemote := false
@@ -1255,7 +1258,7 @@ Non-interactive mode (--non-interactive or ISSUEGRAPH_NON_INTERACTIVE=1):
 					fmt.Printf("  %s Remote has no Dolt data yet; initialized a fresh local database\n", ui.RenderWarn("!"))
 				}
 			}
-		} else if syncRemoteSource == initSyncRemoteNone && !stealth && isGitRepo() && !isBareGitRepo() {
+		} else if syncRemoteSource == initSyncRemoteNone && !isDoltLocalOnly() && !stealth && isGitRepo() && !isBareGitRepo() {
 			if originURL, err := gitOriginGetURL(); err == nil && originURL != "" {
 				syncURL = normalizeRemoteURL(originURL)
 				syncURLFromGitOrigin = true
@@ -2142,63 +2145,6 @@ Non-interactive mode (--non-interactive or ISSUEGRAPH_NON_INTERACTIVE=1):
 			}
 		}
 
-		// Auto-stage and commit issuegraph files so issuegraph doctor doesn't warn about
-		// untracked files or dirty working tree in a clean room setup.
-		// Only runs when not stealth, in a git repo, and using local storage.
-		if !stealth && isGitRepo() && useLocalIssueGraph {
-			gitAddCmd := exec.Command("git", "add", ".issuegraph/")
-			if _, addErr := gitAddCmd.CombinedOutput(); addErr == nil {
-				// Also stage the agents file if it exists
-				agentsFileToStage := config.SafeAgentsFile()
-				if _, statErr := os.Stat(agentsFileToStage); statErr == nil {
-					agentsCmd := exec.Command("git", "add", agentsFileToStage)
-					_ = agentsCmd.Run()
-				}
-				// Also stage Claude settings if created by init
-				claudeSettingsPath := filepath.Join(".claude", "settings.json")
-				if _, statErr := os.Stat(claudeSettingsPath); statErr == nil {
-					claudeCmd := exec.Command("git", "add", claudeSettingsPath)
-					_ = claudeCmd.Run()
-				}
-				// Also stage CLAUDE.md if created by setup
-				if _, statErr := os.Stat("CLAUDE.md"); statErr == nil {
-					claudeMdCmd := exec.Command("git", "add", "CLAUDE.md")
-					_ = claudeMdCmd.Run()
-				}
-				// Also stage Codex and Cursor project integration files if created
-				// by setup. Cursor project hooks/rules are meant to be committed
-				// (a no-op git add if .cursor/ is gitignored in this repo).
-				for _, path := range []string{".agents", ".codex", ".cursor"} {
-					if _, statErr := os.Stat(path); statErr == nil {
-						codexCmd := exec.Command("git", "add", path)
-						_ = codexCmd.Run()
-					}
-				}
-				// Also stage .gitignore if modified by EnsureProjectGitignore
-				if _, statErr := os.Stat(".gitignore"); statErr == nil {
-					giCmd := exec.Command("git", "add", ".gitignore")
-					_ = giCmd.Run()
-				}
-				// Hooks installed by this init can call back into issuegraph. Skip all
-				// of them for the bootstrap commit to avoid self-deadlocking
-				// while init still owns the embedded Dolt lock. --no-verify
-				// alone does not skip prepare-commit-msg.
-				commitArgs := []string{"-c", "core.hooksPath=", "commit", "--no-verify", "-m", "issuegraph init: initialize issuegraph issue tracking"}
-				commitCmd := exec.Command("git", commitArgs...)
-				if commitOut, commitErr := commitCmd.CombinedOutput(); commitErr != nil {
-					if !quiet && !strings.Contains(string(commitOut), "nothing to commit") {
-						fmt.Fprintf(os.Stderr, "Warning: failed to commit issuegraph files: %v\n", commitErr)
-					}
-				} else if !quiet {
-					fmt.Printf("  %s Committed issuegraph files to git\n", ui.RenderPass("✓"))
-				}
-				// WARNING: DO NOT remove, delete, or modify files inside Dolt's .dolt/
-				// directory — including noms/LOCK files. These are Dolt-internal files.
-				// Removing them WILL cause unrecoverable data corruption and data loss.
-				// Dolt manages these files itself; external interference is never safe.
-			}
-		}
-
 		// Check for missing git upstream and warn if not configured.
 		// Only warn when remotes exist (has origin but no upstream).
 		// Skip for brand-new repos with no remotes — the warning is noise there.
@@ -2318,7 +2264,7 @@ func init() {
 	initCmd.Flags().String("agents-template", "", "Path to custom AGENTS.md template (overrides embedded default)")
 	initCmd.Flags().String("agents-profile", "", "AGENTS.md profile: 'minimal' (default, pointer to issuegraph prime) or 'full' (complete command reference)")
 	initCmd.Flags().String("agents-file", "", "Custom filename for agent instructions (default: AGENTS.md)")
-	initCmd.Flags().String("remote", "", "Dolt remote URL to clone from and persist as sync.remote")
+	initCmd.Flags().String("remote", "", "Unsupported: IssueGraph does not clone or configure Dolt remotes")
 
 	// Non-interactive mode for CI/cloud agents
 	initCmd.Flags().Bool("non-interactive", false, "Skip all interactive prompts (auto-detected in CI or non-TTY environments)")
@@ -3172,19 +3118,11 @@ func configureInitDoltRemote(ctx context.Context, store storage.DoltStorage, syn
 }
 
 func printInitNoDoltRemoteWarning(withExportNote bool) {
-	fmt.Fprintf(os.Stderr, "\n%s No Dolt remote configured\n", ui.RenderWarn("⚠"))
+	fmt.Fprintf(os.Stderr, "\n%s IssueGraph stores issue data locally\n", ui.RenderWarn("⚠"))
 	if withExportNote {
 		fmt.Fprintln(os.Stderr, "  Issues are stored in local Dolt. .issuegraph/issues.jsonl is an export,")
-		fmt.Fprintln(os.Stderr, "  not cross-machine sync or the source of truth.")
+		fmt.Fprintln(os.Stderr, "  Git tracks the complete workspace snapshot.")
 	}
-	if originURL, err := gitOriginGetURL(); err == nil && originURL != "" {
-		fmt.Fprintln(os.Stderr, "  To use your git origin for durable sync, run:")
-		fmt.Fprintf(os.Stderr, "    %s\n", ui.RenderAccent("issuegraph dolt remote add origin "+normalizeRemoteURL(originURL)))
-		fmt.Fprintf(os.Stderr, "    %s\n\n", ui.RenderAccent("issuegraph dolt push"))
-		return
-	}
-	fmt.Fprintln(os.Stderr, "  To enable durable sync, add a git origin and then run:")
-	fmt.Fprintf(os.Stderr, "    %s\n", ui.RenderAccent("issuegraph dolt push"))
 }
 
 type initSyncRemoteSource int
@@ -3202,6 +3140,10 @@ func resolveInitConfiguredSyncRemote(initRemote string, initRemoteChanged bool, 
 	if syncURL := resolveConfiguredRemote(); syncURL != "" {
 		return syncURL, initSyncRemoteConfigured
 	}
+	return "", initSyncRemoteNone
+}
+
+func resolveLocalInitSyncRemote() (string, initSyncRemoteSource) {
 	return "", initSyncRemoteNone
 }
 

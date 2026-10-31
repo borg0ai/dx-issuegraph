@@ -32,14 +32,7 @@ const muxToolPostHookTemplate = `#!/usr/bin/env bash
 set -euo pipefail
 
 ` + muxHookMarkerBegin + `
-# Claude PreCompact approximation for Mux: keep issuegraph metadata synced after file edits.
-if [ "${MUX_TOOL:-}" = "file_edit_replace_string" ] || [ "${MUX_TOOL:-}" = "file_edit_insert" ]; then
-  if command -v issuegraph >/dev/null 2>&1; then
-    issuegraph dolt push >/dev/null 2>&1 || true
-  elif [ -x "$HOME/bin/issuegraph" ]; then
-    "$HOME/bin/issuegraph" dolt push >/dev/null 2>&1 || true
-  fi
-fi
+# IssueGraph no longer sends issue data to remote stores.
 ` + muxHookMarkerEnd + `
 `
 

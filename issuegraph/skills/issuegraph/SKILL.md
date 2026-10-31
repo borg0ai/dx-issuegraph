@@ -44,7 +44,7 @@ issuegraph --version  # Requires v0.60.0+
 **Run `issuegraph prime`** for AI-optimized workflow context (auto-loaded by hooks).
 **Run `issuegraph <command> --help`** for specific command usage.
 
-Essential commands: `issuegraph ready`, `issuegraph create`, `issuegraph show`, `issuegraph update`, `issuegraph close`, `issuegraph dolt push`
+Essential commands: `issuegraph ready`, `issuegraph create`, `issuegraph show`, `issuegraph update`, `issuegraph close`
 
 ## Session Protocol
 
@@ -53,7 +53,7 @@ Essential commands: `issuegraph ready`, `issuegraph create`, `issuegraph show`, 
 3. `issuegraph update <id> --claim` — Claim and start work atomically
 4. Add notes as you work (critical for compaction survival)
 5. `issuegraph close <id> --reason "..."` — Complete task
-6. `issuegraph dolt push` — Push to Dolt remote (if configured)
+6. Share `.issuegraph/` snapshot with your Git client when needed
 
 ## Output
 

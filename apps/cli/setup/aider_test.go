@@ -22,7 +22,7 @@ func TestAiderIssueGraphInstructions(t *testing.T) {
 		"issuegraph create",
 		"issuegraph update",
 		"issuegraph close",
-		"issuegraph dolt push",
+		"Git to share repository snapshots",
 		"/run",
 		"bug",
 		"feature",
@@ -44,7 +44,7 @@ func TestAiderReadmeTemplate(t *testing.T) {
 		"issuegraph ready",
 		"issuegraph create",
 		"issuegraph close",
-		"issuegraph dolt push",
+		"share the repository snapshot",
 	}
 
 	for _, req := range requiredContent {
@@ -366,8 +366,11 @@ func TestAiderInstructionsWorkflowPattern(t *testing.T) {
 	if !strings.Contains(instructions, "/run issuegraph ready") {
 		t.Error("Should mention /run issuegraph ready")
 	}
-	if !strings.Contains(instructions, "/run issuegraph dolt push") {
-		t.Error("Should mention /run issuegraph dolt push")
+	if strings.Contains(instructions, "issuegraph dolt push") {
+		t.Error("Should not suggest remote issue sync")
+	}
+	if !strings.Contains(instructions, "Git manages repository sharing") {
+		t.Error("Should explain Git snapshot sharing")
 	}
 
 	// Should explain that Aider requires explicit commands

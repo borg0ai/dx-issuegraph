@@ -1,8 +1,8 @@
 # RFC 0003: 移除 IssueGraph 远程 issue 数据同步 (child of 0001)
 
-**Status:** Approved
+**Status:** Implemented
 
-**Parent:** [0001](0001-issuegraph-local-git.md)
+**Parent:** [0001](../0001-issuegraph-local-git.md)
 
 ## Summary
 
@@ -18,7 +18,7 @@ IssueGraph 只读写本地 issue 数据和本地完整快照。它不连接 Dolt
 
 ## Non-goals
 
-不禁用 Git，也不禁止用户提交、拉取或推送整个仓库；不在此 RFC 移除外部 tracker API（由 RFC [0008](0008-external-trackers-local-only.md) 单独处理）；不卸载 Dolt 或替换本地存储引擎；不定义快照格式（RFC [0004](completed/0004-git-tracked-snapshot.md)）。
+不禁用 Git，也不禁止用户提交、拉取或推送整个仓库；不在此 RFC 移除外部 tracker API（由 RFC [0008](../0008-external-trackers-local-only.md) 单独处理）；不卸载 Dolt 或替换本地存储引擎；不定义快照格式（RFC [0004](0004-git-tracked-snapshot.md)）。
 
 ## Design
 

@@ -71,7 +71,7 @@ issuegraph setup mux      # Mux - creates/updates AGENTS.md
 - Codex 0.129.0+ uses native `/hooks`: SessionStart injects `issuegraph prime`, compact hooks mark context stale, and the next prompt after compaction refreshes IssueGraph context once
 - `issuegraph prime` provides ~1-2k tokens of workflow context
 - You use `issuegraph` CLI commands directly
-- Git hooks (installed by `issuegraph init`) refresh exports and legacy fallbacks; `issuegraph dolt push/pull` syncs the database
+- Git hooks (installed by `issuegraph init`) refresh local exports. Use Git to share tracked `.issuegraph/` snapshots.
 - `issuegraph onboard` prints the small manual snippet for unsupported agents or custom instruction files
 
 **Why this is recommended:**
@@ -128,24 +128,16 @@ Check that the package manager's bin directory is on your PATH, then reinstall w
 
 Upgrade checklist:
 
-1. With your current `issuegraph`, sync remote-backed databases before installing the
-   new binary:
-   `issuegraph dolt push`
-   `issuegraph dolt pull`
-2. Back up before migration:
+1. Back up the local database before migration:
    `issuegraph export --all -o .issuegraph/backup/pre-migrate-$(date +%Y%m%d).jsonl`
-3. Upgrade using the command for your install method below.
-4. After upgrading:
+2. Upgrade using the command for your install method below.
+3. After upgrading:
    `issuegraph info --whats-new`
    `issuegraph hooks install`
    `issuegraph version`
-5. If crossing a schema migration on a remote-backed database, only the
-   designated migrator runs:
-   `issuegraph migrate`
-   `issuegraph dolt push`
+4. Share the tracked snapshot with your normal Git workflow when needed.
 
-Other clones should install the new binary and run `issuegraph bootstrap`, not
-independently migrate. For the full procedure, see [Upgrading](/getting-started/upgrading).
+For schema migration details, see [Upgrading](/getting-started/upgrading).
 
 ### Upgrade command per OS
 

@@ -4,7 +4,7 @@
 
 # IssueGraph
 
-**Distributed graph issue tracker for AI agents, powered by [Dolt](https://github.com/dolthub/dolt).**
+**Local-first graph issue tracker for AI agents, powered by [Dolt](https://github.com/dolthub/dolt).**
 
 **Platforms:** macOS, Linux, Windows
 
@@ -24,7 +24,8 @@ flowchart LR
     ready --> claim["issuegraph update --claim<br/>agent takes it"]
     claim --> close["issuegraph close<br/>work done"]
     close -->|blockers released| ready
-    depgraph <-->|"issuegraph dolt push / pull"| remote[("other machines<br/>and agents")]
+    depgraph --> snapshot["Git-tracked workspace snapshot"]
+    snapshot --> git["User-managed Git transport"]
 ```
 
 ## ⚡ Quick Start
@@ -61,7 +62,7 @@ This project uses issuegraph (IssueGraph) for issue tracking.
 
 ## 🛠 Features
 
-* **[Dolt](https://github.com/dolthub/dolt)-Powered:** Version-controlled SQL database with cell-level merge, native branching, and built-in sync via Dolt remotes.
+* **[Dolt](https://github.com/dolthub/dolt)-Powered:** Local version-controlled SQL database with cell-level merge and native branching.
 * **Agent-Optimized:** JSON output, dependency tracking, and auto-ready task detection.
 * **Zero Conflict:** Hash-based IDs (`issuegraph-a1b2`) prevent merge collisions in multi-agent/multi-branch workflows.
 * **Compaction:** Semantic "memory decay" summarizes old closed tasks to save context window.
@@ -120,13 +121,9 @@ scoop install shennong/issuegraph
 
 Each channel installs the matching archive from the tagged GitHub Release and pins its SHA-256 from the release `SHA256SUMS`.
 
-**Upgrading?** Replacing the binary is not always the whole story. Short
-version: sync remote-backed databases with your current `issuegraph`, back up with
-`issuegraph export --all`, upgrade the binary, then run `issuegraph info --whats-new`,
-`issuegraph hooks install`, and `issuegraph version`. If the upgrade crosses a schema
-migration on a remote-backed database, exactly one designated clone runs
-`issuegraph migrate` and `issuegraph dolt push`; other clones install the new binary
-and run `issuegraph bootstrap`. See the full
+**Upgrading?** Back up with `issuegraph export --all`, upgrade the binary, then run
+`issuegraph info --whats-new`, `issuegraph hooks install`, and `issuegraph version`.
+Move issue data between clones with the Git-tracked workspace snapshot. See the full
 [upgrade guide](https://github.com/borg0ai/dx-issuegraph/tree/main/docs/getting-started/upgrading).
 
 See [docs/reference/antivirus.md](docs/reference/antivirus.md) for Windows AV false-positive guidance and verification workflow.
@@ -145,7 +142,7 @@ Every write also refreshes a complete snapshot, `.issuegraph/issues.jsonl` plus
 commit and push those two files with Git yourself, then run
 `issuegraph snapshot restore` there: it validates the manifest and makes the local
 database equal to the snapshot, deleting issues the snapshot no longer lists.
-IssueGraph itself never runs Git or contacts a remote for this. Turn the snapshot
+IssueGraph itself never runs Git or contacts a remote for issue data. Turn the snapshot
 off with `issuegraph config set export.auto false`. Back up and migrate between
 modes with `issuegraph backup`; reclaim space with `issuegraph prune` /
 `issuegraph purge`.

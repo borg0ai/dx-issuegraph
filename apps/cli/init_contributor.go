@@ -188,15 +188,6 @@ Created by: issuegraph init --contributor
 			fmt.Fprintf(os.Stderr, "Warning: failed to create README: %v\n", err)
 		}
 
-		// Initial commit in planning repo
-		cmd = exec.Command("git", "add", ".")
-		cmd.Dir = planningPath
-		_ = cmd.Run()
-
-		cmd = exec.Command("git", "commit", "-m", "Initial commit: issuegraph planning repository")
-		cmd.Dir = planningPath
-		_ = cmd.Run()
-
 		fmt.Printf("%s Planning repository created\n", ui.RenderPass("✓"))
 	} else {
 		fmt.Printf("%s Using existing planning repository\n", ui.RenderPass("✓"))

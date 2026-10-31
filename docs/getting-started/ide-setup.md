@@ -64,7 +64,7 @@ Template profiles control how much text gets installed. Policy profiles control 
 |--------|---------------|----------------------|
 | `conservative` | Standalone projects, unknown projects, and one-off assistance | Use `issuegraph` for task tracking, then report changed files, validation, and proposed commands. Do not commit, push, or run Dolt remote sync without explicit user or orchestrator approval. |
 | `minimal` | Hook-first integrations where `issuegraph prime` carries the detailed workflow | Same git authority as conservative; the installed file stays short and points to `issuegraph prime`. |
-| `team-maintainer` | Repositories that explicitly delegate session close to agents | Agents may close issuegraph, run quality gates, commit, run `issuegraph dolt push`, and `git push` as part of routine work. Current "do not commit" or "do not push" instructions still override the profile. |
+| `team-maintainer` | Repositories that explicitly delegate session close to agents | Agents may close issues, run quality gates, commit, and use Git as part of routine work. Current "do not commit" or "do not push" instructions still override the profile. |
 
 The generated issuegraph section and `issuegraph prime` default to conservative git authority. Set the profile explicitly with the `agent.profile` config key or the `ISSUEGRAPH_AGENT_PROFILE` environment variable (values: `conservative`, `minimal`, `team-maintainer`; the env var takes precedence; an unrecognized value falls back to `conservative`):
 

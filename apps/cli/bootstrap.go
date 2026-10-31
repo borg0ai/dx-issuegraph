@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
 	"github.com/borg0ai/dx-issuegraph/internal/config"
 	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
@@ -25,8 +27,6 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/schema"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"
-	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
-	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -114,15 +114,10 @@ var bootstrapCmd = &cobra.Command{
 Unlike 'issuegraph init --force', bootstrap will never delete existing issues.
 
 Bootstrap auto-detects the right action:
-  • If sync.remote is configured: clones from the remote
-  • If git origin has Dolt data (refs/dolt/data): clones from git and wires origin for future push/pull
   • If .issuegraph/backup/*.jsonl exists: restores from backup
   • If .issuegraph/issues.jsonl exists: imports from git-tracked JSONL
   • If no database exists: creates a fresh one
   • If database already exists: validates and reports status
-
-If sync.remote points at a git repository, bootstrap verifies refs/dolt/data
-before cloning. Bootstrap exits non-zero when it cannot set up a database.
 
 This is the recommended command for:
   • Setting up issuegraph on a fresh clone
@@ -171,7 +166,7 @@ Examples:
 
 		// Find issuegraph directory
 		issuegraphDir := issuegraph.FindIssueGraphDir()
-		if issuegraphDir == "" {
+		if issuegraphDir == "" && !isDoltLocalOnly() {
 			// No .issuegraph directory exists yet. Before giving up, probe the
 			// git remote for Dolt data stored in git (refs/dolt/data). This
 			// is the "fresh second clone" case: clone1 pushed IssueGraph state
@@ -248,7 +243,7 @@ Examples:
 		}
 
 		// Determine action based on state
-		plan := detectBootstrapAction(issuegraphDir, cfg)
+		plan := detectLocalBootstrapAction(issuegraphDir, cfg)
 
 		if jsonOutput {
 			if err := outputJSON(plan); err != nil {
@@ -392,7 +387,15 @@ func requireBootstrapDoltBackend(cfg *configfile.Config, issuegraphDir string) e
 // function of the finished plan ("took no action AND found no database"), so no
 // branch can leave a stale flag behind for a later branch to inherit.
 func detectBootstrapAction(issuegraphDir string, cfg *configfile.Config) BootstrapPlan {
-	plan := detectBootstrapPlan(issuegraphDir, cfg)
+	return detectBootstrapActionWithRemote(issuegraphDir, cfg, true)
+}
+
+func detectLocalBootstrapAction(issuegraphDir string, cfg *configfile.Config) BootstrapPlan {
+	return detectBootstrapActionWithRemote(issuegraphDir, cfg, false)
+}
+
+func detectBootstrapActionWithRemote(issuegraphDir string, cfg *configfile.Config, allowRemote bool) BootstrapPlan {
+	plan := detectBootstrapPlan(issuegraphDir, cfg, allowRemote)
 	plan.Blocked = plan.Action == "none" && !plan.HasExisting
 	if !plan.Blocked {
 		plan.BlockedRemote = ""
@@ -400,7 +403,7 @@ func detectBootstrapAction(issuegraphDir string, cfg *configfile.Config) Bootstr
 	return plan
 }
 
-func detectBootstrapPlan(issuegraphDir string, cfg *configfile.Config) BootstrapPlan {
+func detectBootstrapPlan(issuegraphDir string, cfg *configfile.Config, allowRemote bool) BootstrapPlan {
 	plan := BootstrapPlan{
 		IssueGraphDir: issuegraphDir,
 		Database:      cfg.GetDoltDatabase(),
@@ -447,7 +450,10 @@ func detectBootstrapPlan(issuegraphDir string, cfg *configfile.Config) Bootstrap
 	// remember why so an unverifiable remote can become fatal only after local
 	// recovery is exhausted. With no sync.remote, auto-detect Dolt data on git
 	// origin instead.
-	syncRemote := resolveSyncRemote()
+	syncRemote := ""
+	if allowRemote {
+		syncRemote = resolveSyncRemote()
+	}
 	unusableRemoteReason, unusableRemoteURL := "", ""
 	if syncRemote != "" {
 		done, reason, url := planConfiguredSyncRemote(&plan, syncRemote)
@@ -456,8 +462,10 @@ func detectBootstrapPlan(issuegraphDir string, cfg *configfile.Config) Bootstrap
 		}
 		// Cloning is off the table; purely local recovery is not.
 		unusableRemoteReason, unusableRemoteURL = reason, url
-	} else if originPlan, ok := gitOriginSyncPlan(plan); ok {
-		return originPlan
+	} else if allowRemote {
+		if originPlan, ok := gitOriginSyncPlan(plan); ok {
+			return originPlan
+		}
 	}
 
 	// On-disk recovery sources: a non-empty backup JSONL, then a git-tracked
@@ -788,6 +796,9 @@ func confirmPrompt(message string, nonInteractive bool) bool {
 }
 
 func executeBootstrapPlan(plan BootstrapPlan, cfg *configfile.Config, nonInteractive bool) error {
+	if plan.Action == "sync" || plan.SyncRemote != "" {
+		return fmt.Errorf("%s", remoteSyncDisabledMessage)
+	}
 	if err := requireBootstrapDoltBackend(cfg, plan.IssueGraphDir); err != nil {
 		return err
 	}

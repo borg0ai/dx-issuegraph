@@ -149,7 +149,7 @@ For logical consistency issues — this is not corruption:
 issuegraph doctor --fix
 ```
 
-For physical corruption, rebuild from a Dolt remote or a backup:
+For physical corruption, restore a local database backup:
 
 ```bash
 # Move the damaged data directory aside:
@@ -157,8 +157,6 @@ mv .issuegraph/embeddeddolt .issuegraph/embeddeddolt.backup   # embedded mode (d
 mv .issuegraph/dolt .issuegraph/dolt.backup                   # server mode
 
 issuegraph init
-issuegraph dolt pull    # Pull from Dolt remote if configured
-
 # Or restore from a backup:
 # issuegraph backup restore [path] --force
 ```
@@ -461,43 +459,12 @@ Run the command from the owning rig's own workspace instead, where the ID
 resolves locally rather than through a route. Tracked in
 [#5861](https://github.com/borg0ai/dx-issuegraph/issues/5861).
 
-## Sync Issues
+## Remote issue sync is disabled
 
-### Changes not syncing
-
-```bash
-# Force push to Dolt remote
-issuegraph dolt push
-
-# Check hooks
-issuegraph hooks list
-```
-
-### Recovery from backup
-
-```bash
-# Restore from a Dolt backup
-issuegraph backup restore [path] --force
-
-# Or pull from Dolt remote
-issuegraph dolt pull
-```
-
-### Merge conflicts
-
-Dolt merges at the cell level, so concurrent changes conflict only when they
-touch the same field of the same issue. Hash-based IDs mean different issues
-never collide on ID.
-
-```bash
-# Check for and fix Dolt conflicts
-issuegraph doctor --fix
-
-# Re-push
-issuegraph dolt push
-```
-
-See [Merge Conflicts](/recovery/merge-conflicts) for the full runbook.
+Commands such as `issuegraph sync`, `issuegraph dolt push`,
+`issuegraph dolt pull`, and federation sync fail before opening the database or
+contacting a remote. Use Git to share tracked `.issuegraph/` snapshots between
+clones. Local filesystem backup and restore remain available.
 
 ## Git Hook Issues
 
@@ -690,9 +657,7 @@ below.
 ### Storage reclaim fails with "context canceled"
 
 `issuegraph flatten` and the Dolt-history compaction in `issuegraph admin compact` finish by
-hard-resetting `main` onto a temporary branch; the merge-settle path behind
-`issuegraph dolt pull` / `issuegraph sync` falls back to a hard reset when it abandons a
-merge. On Dolt 2.3.x a few percent of freshly created databases come up with
+hard-resetting `main` onto a temporary branch. On Dolt 2.3.x a few percent of freshly created databases come up with
 `CALL DOLT_RESET('--hard')` broken for the life of the server process, so on
 an affected database those commands stop with:
 
@@ -770,12 +735,8 @@ issuegraph --sandbox ready
 issuegraph --sandbox create "Fix bug" -p 1
 ```
 
-Sandbox mode disables Dolt auto-push so issuegraph works without server control or
-network access. Sync manually once outside the sandbox:
-
-```bash
-issuegraph dolt push
-```
+Sandbox mode keeps all issue data local. Use Git outside the sandbox if you need
+to share the tracked workspace snapshot.
 
 If staleness errors persist, `issuegraph doctor --fix` forces a metadata refresh
 (low risk — it updates tracking metadata, not issues). Background:
@@ -884,11 +845,11 @@ Set any of them to `1` to enable; `unset` to disable.
 ISSUEGRAPH_DEBUG=1 issuegraph ready
 
 # Capture debug output to a file
-ISSUEGRAPH_DEBUG=1 issuegraph dolt push 2> debug.log
+ISSUEGRAPH_DEBUG=1 issuegraph ready 2> debug.log
 
 # Sync timestamp protection, e.g.:
 # [debug] Protected issuegraph-123: local=2024-01-20T10:00:00Z >= incoming=2024-01-20T09:55:00Z
-ISSUEGRAPH_DEBUG_SYNC=1 issuegraph dolt push
+ISSUEGRAPH_DEBUG_SYNC=1 issuegraph ready
 
 # Freshness output goes to the server log (server mode), not stderr
 ISSUEGRAPH_DEBUG_FRESHNESS=1 issuegraph dolt start

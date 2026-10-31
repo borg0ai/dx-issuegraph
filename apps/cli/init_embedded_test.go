@@ -1018,7 +1018,7 @@ func TestEmbeddedInit(t *testing.T) {
 		}
 	})
 
-	t.Run("auto_commit_bypasses_hooks", func(t *testing.T) {
+	t.Run("init_does_not_stage_or_commit_git_files", func(t *testing.T) {
 		dir := t.TempDir()
 		initGitRepoAt(t, dir)
 		templatePath := filepath.Join(dir, "custom-agents.md")
@@ -1058,7 +1058,16 @@ func TestEmbeddedInit(t *testing.T) {
 		}
 
 		if _, err := os.Stat(filepath.Join(dir, ".hook-ran")); err == nil {
-			t.Fatal("expected init auto-commit to bypass git hooks")
+			t.Fatal("init unexpectedly ran a Git commit hook")
+		}
+		statusCmd := exec.Command("git", "diff", "--cached", "--name-only")
+		statusCmd.Dir = dir
+		staged, err := statusCmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git diff --cached failed: %v\n%s", err, staged)
+		}
+		if strings.TrimSpace(string(staged)) != "" {
+			t.Fatalf("init staged Git paths: %s", staged)
 		}
 		logCmd := exec.Command("git", "log", "--oneline", "-n", "1")
 		logCmd.Dir = dir
@@ -1066,8 +1075,8 @@ func TestEmbeddedInit(t *testing.T) {
 		if err != nil {
 			t.Fatalf("git log failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
 		}
-		if !strings.Contains(stdout.String(), "issuegraph init: initialize issuegraph issue tracking") {
-			t.Fatalf("expected init commit to succeed, got log: %s", stdout.String())
+		if strings.Contains(stdout.String(), "issuegraph init: initialize issuegraph issue tracking") {
+			t.Fatalf("init unexpectedly created a Git commit: %s", stdout.String())
 		}
 	})
 

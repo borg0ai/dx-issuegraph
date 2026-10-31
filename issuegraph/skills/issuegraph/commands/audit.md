@@ -23,5 +23,5 @@ Each line is one event. Labeling is done by appending a new `"label"` event refe
 ## Notes
 
 - Audit entries are **append-only** (no in-place edits).
-- `issuegraph dolt push` includes `.issuegraph/interactions.jsonl` in the commit allowlist.
+- Git commits include `.issuegraph/interactions.jsonl` when the user stages that file.
 

@@ -82,7 +82,7 @@ issuegraph doctor --deep      # Validates full graph integrity
 ## Protected Branch Workflows
 
 Protected Git branches need no special issuegraph branch because issue data is
-stored in Dolt under `refs/dolt/data`, separate from code branches:
+stored in each workspace's local database. The tracked `.issuegraph/` snapshot follows the Git worktree:
 
 ```bash
 # Choose one initialization path:
@@ -90,8 +90,7 @@ issuegraph init                            # Standard repository setup
 # OR
 issuegraph init --contributor              # OSS fork setup with contributor routing
 
-issuegraph dolt pull                       # Pull shared issue data
-issuegraph dolt push                       # Push shared issue data
+git pull                                    # Share repository snapshot with Git
 ```
 
 No `--branch` flag or `.git/issuegraph-worktrees/` directory is used. Keep using
@@ -102,8 +101,7 @@ your normal Git feature branches and worktrees for code changes.
 Multi-clone, multi-branch workflows:
 
 - Hash-based IDs (`issuegraph-abc`) eliminate collision across clones
-- Each clone syncs through the configured Dolt remote with `issuegraph dolt pull` and
-  `issuegraph dolt push`
+- Each clone gets tracked issue snapshots through normal Git operations
 - See [WORKTREES.md](https://github.com/borg0ai/dx-issuegraph/blob/main/docs/reference/worktrees.md) for comprehensive guide
 
 ## External References

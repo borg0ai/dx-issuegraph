@@ -5,6 +5,11 @@ description: Upgrade the issuegraph binary, refresh git hooks, run schema migrat
 
 How to upgrade issuegraph and keep your projects in sync.
 
+IssueGraph no longer syncs database history through Dolt remotes or Git refs.
+Any older remote-sync procedures in this guide are obsolete and fail closed.
+Back up with a local filesystem destination, then share tracked `.issuegraph/`
+snapshots with your normal Git workflow.
+
 ## Checking for Updates
 
 ```bash
@@ -21,24 +26,19 @@ issuegraph info --whats-new
 
 ## Short Version
 
-1. With your current `issuegraph`, sync remote-backed databases before installing the
-   new binary:
-   `issuegraph dolt push`
-   `issuegraph dolt pull`
-2. Back up **with that same current binary**, before installing:
+1. Back up **with your current binary**, before installing:
    `issuegraph export --all -o .issuegraph/backup/pre-migrate-$(date +%Y%m%d).jsonl`
-3. Upgrade using the command that matches your install method.
-4. After upgrading:
+2. Upgrade using the command that matches your install method.
+3. After upgrading:
    `issuegraph upgrade review`
    `issuegraph hooks install`
    `issuegraph version`
-5. If crossing a schema migration on a remote-backed database, only the
-   designated migrator runs:
+4. Share tracked `.issuegraph/` snapshots through your normal Git workflow.
+5. For a local schema migration, run:
    `issuegraph migrate`
-   `issuegraph dolt push`
 
-Other clones should install the new binary and run `issuegraph bootstrap`, not
-independently migrate. The full procedure is below.
+Procedures below that mention remote Dolt history, `refs/dolt/data`, Dolt push,
+or Dolt pull describe old releases. Current IssueGraph rejects those paths.
 
 ## Upgrading
 

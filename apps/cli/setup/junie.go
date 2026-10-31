@@ -16,7 +16,7 @@ This project uses **IssueGraph (issuegraph)** for issue tracking. Use the issueg
 2. **Check ready work first** - Run ` + "`issuegraph ready`" + ` to find unblocked issues
 3. **Always include descriptions** - Provide meaningful context when creating issues
 4. **Link discovered work** - Use ` + "`discovered-from`" + ` dependencies for issues found during work
-5. **Sync at session end** - Run ` + "`issuegraph dolt push`" + ` before ending your session
+5. **Keep issue data local** - Use Git to share repository snapshots
 
 ## Quick Command Reference
 
@@ -48,10 +48,8 @@ issuegraph dep add <issue> <depends-on>      # Add dependency (issue depends on 
 issuegraph dep add <issue> <depends-on> --type=related  # Soft link
 ` + "```" + `
 
-### Syncing
-` + "```bash" + `
-issuegraph dolt push  # ALWAYS run at session end - commits and pushes changes
-` + "```" + `
+### Sharing issue data
+IssueGraph stores issue data in the local database and the .issuegraph snapshot. Use your Git client to share repository changes.
 
 ## Issue Types
 
@@ -88,7 +86,7 @@ If the MCP server is configured, you can use these tools directly:
 - ✅ Always use ` + "`--json`" + ` flag for programmatic use
 - ✅ Link discovered work with ` + "`discovered-from`" + ` dependencies
 - ✅ Check ` + "`issuegraph ready`" + ` before asking "what should I work on?"
-- ✅ Run ` + "`issuegraph dolt push`" + ` at end of session
+- ✅ Use Git to share .issuegraph snapshots when needed
 - ❌ Do NOT create markdown TODO lists
 - ❌ Do NOT use external issue trackers
 - ❌ Do NOT duplicate tracking systems

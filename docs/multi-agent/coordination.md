@@ -182,5 +182,5 @@ covered in [Routing](/multi-agent/routing) and
 4. **Avoid conflicts** - Claim atomically; use merge slots to serialize
    conflict-prone work
 5. **Monitor progress** - Regular status checks
-6. **Sync at session end** - Run `issuegraph dolt push` so other agents see your
-   updates
+6. **Share snapshots** - Use Git to share tracked `.issuegraph/` changes when
+   other clones need them

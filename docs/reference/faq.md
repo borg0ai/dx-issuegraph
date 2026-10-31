@@ -44,7 +44,7 @@ Nothing specific — it's a metaphor for linked work items, like issuegraph on a
 
 ### Is issuegraph production-ready?
 
-IssueGraph is a 1.x product used in production for AI-assisted development. The core functionality — create, update, dependencies, ready work, Dolt-backed sync — is stable, and releases follow semantic versioning. Data stays portable: `issuegraph export` produces human-readable JSONL, and `issuegraph backup` pushes Dolt-native backups. As with any tracker holding work you care about, keep normal backup hygiene (a Dolt remote or an `issuegraph backup` destination).
+IssueGraph is a 1.x product used in production for AI-assisted development. The core functionality includes create, update, dependencies, ready work, and local Dolt history. Data stays portable through JSONL exports and tracked `.issuegraph/` snapshots. Keep a local filesystem backup for recovery.
 
 ## Architecture
 
@@ -54,7 +54,7 @@ Dolt is a version-controlled SQL database — git semantics at the database leve
 
 - **Version-controlled SQL**: full SQL queries with branch, diff, and merge built in
 - **Cell-level merge**: concurrent changes merge automatically at the field level
-- **No separate sync format**: `issuegraph dolt push` / `issuegraph dolt pull` move history natively
+- **Local database**: issue history stays in the local Dolt database; tracked snapshots move through Git
 - **Multi-writer**: server mode supports concurrent agents
 - **Portable**: `issuegraph export` produces JSONL for migration and interoperability
 
@@ -105,37 +105,36 @@ issuegraph init          # Humans: interactive, prompts for git hooks
 issuegraph init --quiet  # Agents: non-interactive, auto-installs hooks
 ```
 
-For an existing project, clone and run `issuegraph init`; it creates the Dolt database and pulls from the configured remote. For a new project, run `issuegraph init`, then commit the `.issuegraph/` directory.
+For an existing project, clone and run `issuegraph init`; it creates the local Dolt database. For a new project, run `issuegraph init`, then share tracked `.issuegraph/` snapshot files through Git.
 
-### How do I sync issues across machines?
+### How do I share issues across clones?
 
 ```bash
-issuegraph dolt push    # Push changes to the Dolt remote
-issuegraph dolt pull    # Pull changes from the Dolt remote
+git status --short .issuegraph/
+git add .issuegraph/ && git commit -m "Update issue snapshot"
 ```
 
-`issuegraph init` auto-configures your git origin as the Dolt remote when present; use `issuegraph init --remote <url>` for an explicit remote. See [Sync Setup](/getting-started/sync-setup).
+IssueGraph does not send database history to a remote. On a fresh clone, run `issuegraph bootstrap` to import the tracked snapshot. See [Sync Setup](/getting-started/sync-setup).
 
 ### Do I need to run export/import manually?
 
-No. All writes go directly to the Dolt database and are committed to Dolt history automatically; `issuegraph dolt push` / `issuegraph dolt pull` handle sync. `issuegraph export` exists for portability and interchange — `.issuegraph/issues.jsonl` is a passive export, never the database. For backups, use `issuegraph backup init <path>` / `issuegraph backup sync` / `issuegraph backup restore`. See [Sync Concepts](/core-concepts/sync-concepts) for the full model and the sync patterns to avoid.
+No. Writes update the local Dolt database and tracked snapshot. Use `issuegraph export` for portability and `issuegraph backup` with a local filesystem destination for database backups.
 
 ### What if my database feels stale after a colleague pushes changes?
 
 ```bash
-issuegraph dolt pull    # Fetch and merge updates from the Dolt remote
-issuegraph ready        # Shows fresh data
+issuegraph bootstrap    # Import tracked snapshot when creating a local database
+issuegraph ready        # Show local data
 ```
 
-For federation setups, `issuegraph federation sync` syncs with all configured peers. See [Federation](/multi-agent/federation).
+Remote issue sync and federation commands are disabled.
 
 ### How do I handle merge conflicts?
 
-Dolt merges at the cell level, so most concurrent changes resolve automatically. Importing an issue with the same ID but different fields is an update, not a collision — hash IDs are stable, so same ID means same issue. If `issuegraph dolt pull` does report conflicts:
+Dolt merges at the cell level, so local database history can merge automatically. Snapshot conflicts between clones are ordinary Git conflicts; resolve them with your Git client. Remote Dolt pull is disabled.
 
 ```bash
 issuegraph doctor --fix
-issuegraph dolt push
 ```
 
 See the [merge conflicts runbook](/recovery/merge-conflicts).
@@ -167,7 +166,7 @@ In orchestrated workflows an orchestrator usually assigns work (`issuegraph assi
 
 ### Does issuegraph work offline?
 
-Yes — issuegraph is offline-first. All queries run against the local Dolt database, no command needs the network, and sync happens via `issuegraph dolt push` / `issuegraph dolt pull` when you're online. That makes it suitable for planes, unstable connections, air-gapped environments, and privacy-sensitive projects.
+Yes. Queries run against the local Dolt database. Git network access is user-managed, and IssueGraph remote sync is disabled.
 
 ### How do I use issuegraph in CI/CD?
 
@@ -312,7 +311,6 @@ See [Troubleshooting](/reference/troubleshooting).
 ### Why aren't my changes syncing?
 
 ```bash
-issuegraph dolt push     # Push to the Dolt remote
 issuegraph hooks list    # Verify git hooks are installed
 issuegraph doctor        # Check for deeper issues
 ```
@@ -331,7 +329,7 @@ These are two distinct integrity issues:
 cp -r .issuegraph .issuegraph.backup
 rm -rf .issuegraph/embeddeddolt   # or .issuegraph/dolt in server mode
 issuegraph init
-issuegraph dolt pull
+issuegraph bootstrap
 ```
 
 For multi-writer scenarios, use server mode so concurrent access goes through the server instead of racing on files.

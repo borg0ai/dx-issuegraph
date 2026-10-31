@@ -110,34 +110,28 @@ flowchart LR
 - A **gate** parks a step until something external happens: a human sign-off,
   a timer, or a GitHub run or PR — see [Gates](/workflows/gates).
 
-## Sync — how work moves between machines
+## Local issue data and Git snapshots
 
-IssueGraph stores everything in [Dolt](https://github.com/dolthub/dolt), a
-version-controlled SQL database. Every write auto-commits to Dolt history;
-sync is native push/pull, piggybacking on your existing git remote under a
-separate ref — no server to run.
+IssueGraph stores runtime data in a local Dolt database and writes a complete
+tracked snapshot for Git to share across clones.
 
 ```mermaid
 flowchart LR
     subgraph you["your machine"]
         db[("Dolt DB<br/>.issuegraph/embeddeddolt/")]
     end
-    subgraph remote["git remote (origin)"]
-        ref[("refs/dolt/data")]
+    subgraph repo["tracked repository files"]
+        snapshot[".issuegraph/issues.jsonl<br/>.issuegraph/manifest.json"]
     end
     subgraph teammate["teammate / other clone"]
         db2[("Dolt DB")]
     end
-    db -->|issuegraph dolt push| ref
-    ref -->|issuegraph dolt pull| db
-    db2 <-->|push / pull| ref
+    db -->|write snapshot| snapshot
+    snapshot -->|Git clone or pull| db2
 ```
 
-`.issuegraph/issues.jsonl` is a passive export for viewers and interchange — it
-is not the database, not the sync protocol, and not a backup. The full model
-(and its anti-patterns) is in [Sync Concepts](/core-concepts/sync-concepts);
-**federation** — peer-to-peer sharing across repos and organizations — is in
-[Federation](/multi-agent/federation).
+The snapshot carries the complete issue set, including deletions. Remote Dolt
+sync and federation commands are disabled. See [Sync Concepts](/core-concepts/sync-concepts).
 
 ## Storage modes
 

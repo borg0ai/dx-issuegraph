@@ -230,6 +230,30 @@ func TestDetectBootstrapAction_ServerModeMissingConfiguredDBDoesNotReturnNone(t 
 	}
 }
 
+func TestDetectLocalBootstrapActionIgnoresConfiguredRemote(t *testing.T) {
+	issuegraphDir := filepath.Join(t.TempDir(), ".issuegraph")
+	if err := os.MkdirAll(issuegraphDir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	cfg := configfile.DefaultConfig()
+	cleanupConfig := setupSyncRemoteConfig(t, issuegraphDir, "https://example.invalid/issues.git")
+	defer cleanupConfig()
+	oldProbe := probeGitRemoteDoltData
+	probeGitRemoteDoltData = func(string) (bool, error) {
+		t.Fatal("local bootstrap planner probed configured remote")
+		return false, nil
+	}
+	t.Cleanup(func() { probeGitRemoteDoltData = oldProbe })
+
+	plan := detectLocalBootstrapAction(issuegraphDir, cfg)
+	if plan.Action != "init" {
+		t.Fatalf("action=%q, want init", plan.Action)
+	}
+	if plan.SyncRemote != "" {
+		t.Fatalf("sync_remote=%q, want empty", plan.SyncRemote)
+	}
+}
+
 func TestDetectBootstrapAction_ServerModeProbeErrorStopsWithReason(t *testing.T) {
 	t.Setenv("ISSUEGRAPH_DOLT_DATA_DIR", "")
 	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")

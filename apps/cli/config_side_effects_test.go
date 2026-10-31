@@ -7,11 +7,8 @@ import (
 
 func TestCheckConfigSetSideEffects_FederationRemote(t *testing.T) {
 	effects := checkConfigSetSideEffects("federation.remote", "dolthub://org/proj")
-	if len(effects) != 1 {
-		t.Fatalf("expected 1 effect, got %d", len(effects))
-	}
-	if effects[0].Command == "" {
-		t.Error("expected a suggested command")
+	if len(effects) != 0 {
+		t.Fatalf("disabled remote setting returned effects: %+v", effects)
 	}
 }
 
@@ -93,8 +90,8 @@ func TestCheckConfigSetSideEffects_BackupEnabled(t *testing.T) {
 
 func TestCheckConfigSetSideEffects_SyncGitRemote(t *testing.T) {
 	effects := checkConfigSetSideEffects("sync.git-remote", "origin")
-	if len(effects) != 1 {
-		t.Fatalf("expected 1 effect, got %d", len(effects))
+	if len(effects) != 0 {
+		t.Fatalf("disabled remote setting returned effects: %+v", effects)
 	}
 }
 
@@ -107,11 +104,8 @@ func TestCheckConfigSetSideEffects_UnknownKey(t *testing.T) {
 
 func TestCheckConfigUnsetSideEffects_FederationRemote(t *testing.T) {
 	effects := checkConfigUnsetSideEffects("federation.remote")
-	if len(effects) != 1 {
-		t.Fatalf("expected 1 effect, got %d", len(effects))
-	}
-	if effects[0].Command != "issuegraph dolt remote remove origin" {
-		t.Errorf("expected 'issuegraph dolt remote remove origin', got %q", effects[0].Command)
+	if len(effects) != 0 {
+		t.Fatalf("legacy remote unset returned effects: %+v", effects)
 	}
 }
 

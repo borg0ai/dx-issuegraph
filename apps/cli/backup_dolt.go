@@ -20,7 +20,7 @@ import (
 // --- Dolt-native backup commands ---
 //
 // These wrap Dolt's built-in backup feature (CALL DOLT_BACKUP(...)) for standalone
-// users who want their issuegraph database backed up to a filesystem path, NAS, or DoltHub.
+// users who want their issuegraph database backed up to a local filesystem path or NAS.
 //
 // Unlike issue JSONL exports, Dolt-native backups preserve full commit history
 // and are faster for large databases.
@@ -30,21 +30,18 @@ const defaultDoltBackupName = "default"
 var backupInitCmd = &cobra.Command{
 	Use:     "init <path>",
 	Aliases: []string{"add"},
-	Short:   "Set up a Dolt backup destination",
-	Long: `Configure a filesystem path or URL as a backup destination.
+	Short:   "Set up a local Dolt backup destination",
+	Long: `Configure a local filesystem path as a backup destination.
 
-The path can be a local directory (external drive, NAS, Dropbox folder) or a
-DoltHub remote URL. If the destination was previously configured, it is
+The path can be a local directory on this machine or a mounted NAS. Remote
+destinations are disabled. If a destination was previously configured, it is
 updated to the new path.
 
 Filesystem examples:
   issuegraph backup add /mnt/usb/issuegraph-backup
   issuegraph backup add ~/Dropbox/issuegraph-backup
 
-DoltHub (recommended for cloud backup):
-  issuegraph backup add https://doltremoteapi.dolthub.com/myuser/issuegraph-backup
-
-After adding, run 'issuegraph backup sync' to push your data.`,
+After adding, run 'issuegraph backup sync' to write a local backup.`,
 	Args: cobra.ExactArgs(1),
 	// As on `backup status`: the failures here are configuration and I/O
 	// errors, not usage errors, and cobra's default prints the message, then
@@ -72,7 +69,7 @@ After adding, run 'issuegraph backup sync' to push your data.`,
 		}
 
 		// Resolve filesystem paths to absolute and add file:// prefix.
-		// DoltHub URLs are passed through as-is.
+		// Remote URLs are rejected by the root command guard.
 		backupURL := resolveDoltBackupURL(rawPath)
 
 		bs, ok := storage.UnwrapStore(store).(storage.BackupStore)
@@ -115,18 +112,19 @@ After adding, run 'issuegraph backup sync' to push your data.`,
 		}
 
 		fmt.Printf("Backup destination configured: %s\n", backupURL)
-		fmt.Println("Run 'issuegraph backup sync' to push your data.")
+		fmt.Println("Run 'issuegraph backup sync' to write a local backup.")
 		return nil
 	},
 }
 
 var backupSyncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "Push database to configured Dolt backup",
-	Long: `Sync the current issuegraph database to the configured Dolt backup destination.
+	Short: "Write database to configured local Dolt backup",
+	Long: `Write the current issuegraph database to the configured local backup destination.
 
-This pushes the entire database state (all branches, full history) to the
-backup location configured with 'issuegraph backup init'.
+This copies the entire database state (all branches, full history) to the
+filesystem path configured with 'issuegraph backup init'. Remote destinations
+are disabled.
 
 The backup is atomic — if the sync fails, the previous backup state is preserved.
 

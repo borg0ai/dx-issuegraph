@@ -154,20 +154,10 @@ issuegraph dolt killall [flags]
 
 ## issuegraph dolt pull
 
-Pull commits from the configured Dolt remote into the local database.
+Dolt remote issue sync is disabled. IssueGraph stores issues locally and
+tracks the complete workspace snapshot in Git. Manage repository transport with Git.
 
-Requires a Dolt remote to be configured in the database directory.
-For Hosted Dolt, set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD environment
-variables for authentication.
-
-Use --remote to pull from a specific named remote instead of the default.
-The remote must already exist (see 'issuegraph dolt remote add').
-
-Use --strategy ours|theirs to resolve conflicts the auto-resolver declines
-(e.g. both sides edited the same issue since the last sync) instead of
-aborting the pull for manual resolution. Embedded storage only (#4992); on
-server-mode/sql-server storage use 'issuegraph conflicts resolve' after a pull that
-reports conflicts.
+This command exits with an error before opening the database or contacting a remote.
 
 ```
 issuegraph dolt pull [flags]
@@ -182,20 +172,10 @@ issuegraph dolt pull [flags]
 
 ## issuegraph dolt push
 
-Push local Dolt commits to the configured remote.
+Dolt remote issue sync is disabled. IssueGraph stores issues locally and
+tracks the complete workspace snapshot in Git. Manage repository transport with Git.
 
-Requires a Dolt remote to be configured in the database directory. With no
-remote configured, issuegraph can adopt one derived from git origin — only with
-consent: interactively, or via --yes; --no-adopt or ISSUEGRAPH_NO_REMOTE_ADOPT=1
-disables adoption entirely.
-For Hosted Dolt, set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD environment
-variables for authentication.
-
-Use --force to overwrite remote changes (e.g., when the remote has
-uncommitted changes in its working set).
-
-Use --remote to push to a specific named remote instead of the default.
-The remote must already exist (see 'issuegraph dolt remote add').
+This command exits with an error before opening the database or contacting a remote.
 
 ```
 issuegraph dolt push [flags]
@@ -212,7 +192,8 @@ issuegraph dolt push [flags]
 
 ## issuegraph dolt remote
 
-Manage Dolt remotes for push/pull replication.
+Dolt remote management is disabled. IssueGraph keeps issue data local and
+uses Git-tracked workspace snapshots for repository transport.
 
 Subcommands:
   add &lt;name&gt; &lt;url&gt;     Add a new remote

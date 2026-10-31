@@ -89,8 +89,8 @@ The interactive wizard:
 2. Sets `routing.mode: auto` and `routing.contributor` to the planning repo
 3. Adds the planning repo to `repos.additional` so routed issuegraph stay visible
    (see [hydration](#multi-repo-hydration))
-4. On forks, points sync at the `upstream` remote so `issuegraph dolt pull` fetches
-   issue data from the source repo rather than your fork
+4. On forks, tracked issue snapshots move only through Git operations chosen by
+   the user; IssueGraph does not fetch data from `upstream`.
 
 Plain `issuegraph init` also detects the fork pattern (an `upstream` remote that
 differs from `origin`) and applies the same contributor configuration

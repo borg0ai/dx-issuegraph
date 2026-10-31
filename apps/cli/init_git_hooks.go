@@ -303,10 +303,7 @@ func buildJJPreCommitHook(chainHooks bool, existingHooks []hookInfo) string {
 // Since jj doesn't have native hooks yet, users need to set up aliases.
 func printJJAliasInstructions() {
 	fmt.Printf("\n%s Jujutsu repository detected (not colocated with git)\n\n", ui.RenderWarn("⚠"))
-	fmt.Printf("Jujutsu doesn't support hooks yet. To auto-export issuegraph on push,\n")
-	fmt.Printf("add this alias to your jj config (~/.config/jj/config.toml):\n\n")
-	fmt.Printf("  %s\n", ui.RenderAccent("[aliases]"))
-	fmt.Printf("  %s\n", ui.RenderAccent(`push = ["util", "exec", "--", "sh", "-c", "issuegraph dolt commit && issuegraph dolt push && jj git push \"$@\"", ""]`))
-	fmt.Printf("\nThen use %s instead of %s\n\n", ui.RenderAccent("jj push"), ui.RenderAccent("jj git push"))
+	fmt.Printf("IssueGraph stores issue data locally and does not push issue data.\n")
+	fmt.Printf("Use %s to publish Git commits and tracked issue snapshots.\n\n", ui.RenderAccent("jj git push"))
 	fmt.Printf("For more details, see: https://github.com/borg0ai/dx-issuegraph/blob/main/docs/reference/git-integration.md#branchless-workflows-jujutsu--jj\n\n")
 }

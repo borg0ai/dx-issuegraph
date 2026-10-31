@@ -236,7 +236,7 @@ func TestCursorRulesTemplate(t *testing.T) {
 		"issuegraph create",
 		"issuegraph update",
 		"issuegraph close",
-		"issuegraph dolt push",
+		".issuegraph/",
 		"ISSUEGRAPH INTEGRATION",
 	}
 

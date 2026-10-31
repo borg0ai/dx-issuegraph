@@ -50,7 +50,7 @@ the hook is installed or refreshed:
 | Hook | What it does |
 |------|--------------|
 | `pre-commit` | Runs chained hooks; when `export.auto` is enabled, exports `.issuegraph/issues.jsonl` so it lands in the same commit |
-| `post-merge` | Runs chained hooks; imports JSONL only as a legacy fallback when no Dolt remote is configured — with `sync.remote` set, `issuegraph dolt pull` is the canonical sync |
+| `post-merge` | Runs chained hooks and restores the tracked snapshot when configured |
 | `pre-push` | Runs chained hooks before push |
 | `post-checkout` | Runs chained hooks after branch checkout |
 | `prepare-commit-msg` | Adds an `Executed-By:` agent identity trailer when an agent (`ISSUEGRAPH_ACTOR`) makes the commit |
@@ -176,14 +176,10 @@ issuegraph doctor --fix
 
 ## Protected Branches
 
-Dolt stores data under `refs/dolt/data`, separate from Git refs. This means
-issuegraph data does not conflict with protected Git branches, and no separate
-`issuegraph-sync` branch or protected-branch exception is needed. On new projects
-with a Git `origin`, `issuegraph init` configures that origin as the Dolt remote
-automatically.
-
-See [Protected Branches](/reference/protected-branches) for the full
-workflow, including legacy `issuegraph-sync` cleanup.
+IssueGraph stores its working database locally. Git tracks
+`.issuegraph/issues.jsonl` and `.issuegraph/manifest.json` as the complete
+workspace snapshot. IssueGraph does not create `refs/dolt/data` or configure a
+Dolt remote.
 
 ## Git Worktrees
 
@@ -194,8 +190,6 @@ repository's `.issuegraph` workspace and sync issue data through Dolt:
 # In a linked worktree
 issuegraph create "Task"
 issuegraph list
-issuegraph dolt pull
-issuegraph dolt push
 ```
 
 All worktrees share the repository's `.issuegraph` workspace: discovery follows
@@ -206,8 +200,7 @@ a worktree. Embedded mode (the default) serves one writer at a time; for
 concurrent writers across worktrees, use server mode. See
 [Git Worktrees](/reference/worktrees) for the full guide.
 
-Older issuegraph versions documented a `sync.branch` workflow that created hidden
-Git worktrees. That workflow has been removed; current sync uses Dolt remotes.
+Commit and push the tracked snapshot with Git to share work across clones.
 
 ## Branch Workflows
 
@@ -217,7 +210,6 @@ Git worktrees. That workflow has been removed; current sync uses Dolt remotes.
 git checkout -b feature-x
 issuegraph create "Feature X" -t feature
 # Work...
-issuegraph dolt push
 git push
 ```
 
@@ -227,7 +219,6 @@ git push
 # In fork
 issuegraph init --contributor   # Interactive wizard
 # Work in separate planning repo...
-issuegraph dolt push
 ```
 
 The contributor wizard keeps issue data in a separate planning repository,
@@ -239,18 +230,8 @@ contributors, solo developers, and private task tracking on public repos.
 via `--role contributor` or `--role maintainer` (the default in
 non-interactive mode).
 
-### Team Workflow
-
-```bash
-issuegraph init --team
-# All team members share the Dolt database
-issuegraph dolt pull   # Pull latest changes from Dolt remote
-issuegraph dolt push   # Push your changes to Dolt remote
-```
-
-Best for teams on protected branches and review-before-merge policies. See
-[Multi-Repo Migration](/multi-agent/multi-repo-migration) for multi-repo
-patterns.
+Commit `.issuegraph/issues.jsonl` and `.issuegraph/manifest.json` through your
+normal Git branch and review workflow to share snapshots with your team.
 
 ### Duplicate Detection
 
@@ -275,7 +256,7 @@ All core issuegraph functionality works without git hooks:
 |---------|----------------|-------|
 | `issuegraph create`, `issuegraph update`, `issuegraph close` | No | Core CRUD uses Dolt directly |
 | `issuegraph ready`, `issuegraph list`, `issuegraph show` | No | Read-only queries |
-| `issuegraph dolt push` / `issuegraph dolt pull` | No | Dolt-native sync, independent of git |
+| Tracked `.issuegraph/` snapshot | No | Share with your Git client |
 | `issuegraph onboard`, `issuegraph doctor` | No | Diagnostics and onboarding |
 | Agent identity trailers | Yes | `prepare-commit-msg` hook adds `Executed-By:` to commits |
 | Hook chaining | Yes | Preserves existing pre-commit, post-merge hooks |
@@ -303,20 +284,12 @@ issuegraph init --stealth        # Full invisible mode (also skips hooks + agent
 IssueGraph installs simplified hooks (`pre-commit` and `post-merge` only, no
 staging logic).
 
-**Pure jj repos** (no git): Since jj doesn't have native hooks yet, set up
-push aliases:
-
-```toml
-# ~/.config/jj/config.toml
-[aliases]
-push = ["util", "exec", "--", "sh", "-c", "issuegraph dolt commit && issuegraph dolt push && jj git push \"$@\"", ""]
-```
-
-Then use `jj push` instead of `jj git push`.
+**Pure jj repos** (no git): use Jujutsu to share tracked `.issuegraph/`
+snapshot files. IssueGraph does not run Jujutsu or Git network commands.
 
 ## Best Practices
 
 1. **Install hooks** - `issuegraph hooks install`
-2. **Push regularly** - `issuegraph dolt push` at session end
-3. **Pull before work** - `issuegraph dolt pull` to get latest issues
-4. **Use normal Git worktrees** - no sync branch is required
+2. **Review snapshot changes** - `git status --short .issuegraph/`
+3. **Share with Git** - commit tracked `.issuegraph/` files as needed
+4. **Use normal Git worktrees** - linked worktrees share the local database

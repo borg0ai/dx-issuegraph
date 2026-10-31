@@ -60,14 +60,13 @@ issuegraph init --contributor
 issuegraph init --team
 
 # Protected main branch (GitHub/GitLab)
-# Note: Dolt stores data under refs/dolt/data, separate from
-# Git refs, so no --branch flag is needed.
+# Commit and share .issuegraph snapshots through your normal Git workflow.
 ```
 
 The wizard will:
 - Create `.issuegraph/` directory and embedded Dolt database
 - **Prompt for your role** (maintainer or contributor) unless a flag is provided
-- Import existing issues from git (if any)
+- Import existing local issue data when configured
 - Install git hooks (skip with `--skip-hooks`)
 
 Notes:
@@ -247,25 +246,19 @@ issuegraph blocked
 issuegraph stats
 ```
 
-## Team sync
+## Move issue data between clones
 
-Share issues with your team using Dolt remotes. Dolt stores data under `refs/dolt/data` on the same Git remote, separate from standard Git refs. In repos with `origin`, `issuegraph init` configures that Dolt remote automatically.
+IssueGraph keeps the working database local and writes a complete snapshot to
+`.issuegraph/issues.jsonl` and `.issuegraph/manifest.json`. Commit and push those
+files with Git to share the snapshot. IssueGraph does not run Git network commands.
 
-```bash
-# Verify the remote, or add one if the repo had no origin during init
-issuegraph dolt remote list
-issuegraph dolt remote add origin git+ssh://git@github.com/org/repo.git  # if needed
+On a fresh clone, `issuegraph bootstrap` imports the tracked snapshot when no local
+database exists. To replace an existing local database with the snapshot, run
+`issuegraph snapshot restore` after reviewing the snapshot because restore removes
+issues absent from it.
 
-# Push your issues
-issuegraph dolt push
-
-# Pull teammates' changes
-issuegraph dolt pull
-```
-
-When a teammate clones the repo, `issuegraph bootstrap` auto-detects the existing database on `refs/dolt/data`, clones it, and wires `origin` for future `issuegraph dolt push` / `issuegraph dolt pull`.
-
-See [`issuegraph dolt`](/cli-reference/dolt) for CLI details. For remote configuration, see [Dolt architecture](/architecture/dolt); for federation, see [federation](/multi-agent/federation).
+`issuegraph dolt push`, `issuegraph dolt pull`, `issuegraph sync`, and federation
+commands are disabled. See [Git integration](/reference/git-integration).
 
 ## Optional: Notion sync
 

@@ -124,7 +124,7 @@ func runBackupInitProxied(ctx context.Context, rawPath string) error {
 		})
 	}
 	fmt.Printf("Backup destination configured: %s\n", backupURL)
-	fmt.Println("Run 'issuegraph backup sync' to push your data.")
+	fmt.Println("Run 'issuegraph backup sync' to write a local backup.")
 	return nil
 }
 

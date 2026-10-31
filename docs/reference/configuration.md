@@ -14,7 +14,7 @@ issuegraph has two complementary configuration systems:
 1. **Tool-level configuration** (YAML, managed by [Viper](https://github.com/spf13/viper)) — startup flags and tool behavior, stored in `config.yaml` files. These are user preferences: output format, auto-commit behavior, CLI ergonomics.
 2. **Project-level configuration** (managed by `issuegraph config`) — integration credentials, status maps, and project-specific settings, stored in the Dolt database. Some keys are routed to `config.yaml` instead (see [YAML-only keys](#yaml-only-keys-startup-settings) below).
 
-The split is deliberate: tool settings are user-specific; project config is team-shared and travels with the database when you run `issuegraph dolt push`. That is also why secrets are refused in the database — see [Security](#security-where-secrets-live).
+Tool settings are user-specific. Project config lives in the local Dolt database. Share tracked `.issuegraph/` snapshots with your Git client. Secrets are refused in the database; see [Security](#security-where-secrets-live).
 
 Dolt is the only storage backend. Embedded mode (the default) stores data at `.issuegraph/embeddeddolt/`; server mode (`issuegraph init --server` or `ISSUEGRAPH_DOLT_SERVER_MODE=1`) uses `.issuegraph/dolt/`. See [Dolt architecture](/architecture/dolt).
 
@@ -101,15 +101,15 @@ Any key whose name contains `api_key`, `api-key`, `secret`, `token`, or `passwor
 | `actor` | `--actor` | `ISSUEGRAPH_ACTOR` | `git config user.name` | Actor name for audit trail (see [Actor identity](#actor-identity-resolution)) |
 | `identity` | `--identity` | `ISSUEGRAPH_IDENTITY` | (git user / hostname) | Sender identity for `issuegraph mail` |
 | `no-db` | `--no-db` | `ISSUEGRAPH_NO_DAEMON` (related) | `false` | Run without opening the database |
-| `no-push` | `--no-push` | `ISSUEGRAPH_NO_PUSH` | `false` | Skip pushing to the remote in `issuegraph dolt push` |
+| `no-push` | `--no-push` | `ISSUEGRAPH_NO_PUSH` | `false` | Legacy setting; remote issue sync is disabled |
 | `no-git-ops` | — | — | `false` | Disable git ops in `issuegraph prime` close protocol |
 | `agent.profile` | — | `ISSUEGRAPH_AGENT_PROFILE` | `conservative` | Policy profile `issuegraph prime` uses for git/commit authority: `conservative`, `minimal`, `team-maintainer`; invalid values fall back to `conservative` |
 | `prime.max-memories` | `--max-memories` | `ISSUEGRAPH_PRIME_MAX_MEMORIES` | `0` | Max persistent memories injected by `issuegraph prime` (0 = unlimited) |
 | `prime.max-memory-chars` | `--max-memory-chars` | `ISSUEGRAPH_PRIME_MAX_MEMORY_CHARS` | `0` | Max total bytes of memory entries injected by `issuegraph prime`, at whole-memory boundaries (0 = unlimited) |
 | `dolt.auto-commit` | `--dolt-auto-commit` | `ISSUEGRAPH_DOLT_AUTO_COMMIT` | `on` | Create a Dolt history commit after each successful write (see [below](#auto-commit-sql-commits-vs-dolt-commits)) |
-| `dolt.auto-push` | — | `ISSUEGRAPH_DOLT_AUTO_PUSH` | `false` | Auto-push to Dolt remote after writes (opt-in; see [below](#auto-push)) |
-| `dolt.auto-push-interval` | — | `ISSUEGRAPH_DOLT_AUTO_PUSH_INTERVAL` | `5m` | Minimum time between auto-pushes |
-| `dolt.auto-push-timeout` | — | `ISSUEGRAPH_DOLT_AUTO_PUSH_TIMEOUT` | `30s` | Timeout for a single auto-push attempt |
+| `dolt.auto-push` | — | `ISSUEGRAPH_DOLT_AUTO_PUSH` | `false` | Legacy setting; config writes reject remote sync settings |
+| `dolt.auto-push-interval` | — | `ISSUEGRAPH_DOLT_AUTO_PUSH_INTERVAL` | `5m` | Legacy setting; no auto-push runs |
+| `dolt.auto-push-timeout` | — | `ISSUEGRAPH_DOLT_AUTO_PUSH_TIMEOUT` | `30s` | Legacy setting; no auto-push runs |
 | `dolt.shared-server` | `--shared-server` | `ISSUEGRAPH_DOLT_SHARED_SERVER` | `false` | Share one Dolt server at `~/.issuegraph/shared-server/` |
 | `dolt.max-conns` | — | `ISSUEGRAPH_DOLT_MAX_CONNS` | `10` | Connection pool size |
 | `git.author` | — | `ISSUEGRAPH_GIT_AUTHOR` | (none) | Override commit author for issuegraph commits |
@@ -162,17 +162,16 @@ issuegraph config set export.auto true
 issuegraph config set export.git-add true
 ```
 
-Use `issuegraph dolt push` / `issuegraph dolt pull` for sync and `issuegraph backup` for restorable
-database backups.
+Use Git to share the tracked `.issuegraph/` snapshot. Local filesystem backups remain available through `issuegraph backup`.
 </Warning>
 
 Routing note: `output.title-length` and `agents.file` are functionally tool-level settings, but `issuegraph config set` writes them to the Dolt database. They are typically read from `config.yaml` when set there directly.
 
 `issuegraph config show` is the source of truth for what's currently effective on your machine, including provenance.
 
-## Dolt History, Backup, and Push
+## Dolt history and local backup
 
-Three post-write behaviors run after each successful write command, in this order: auto-commit, auto-backup, auto-push.
+Successful writes can create local Dolt history commits and local backups. IssueGraph does not push issue data to remotes.
 
 ### Auto-commit: SQL Commits vs Dolt Commits
 
@@ -215,33 +214,14 @@ How it works:
 Manual commands (see [issuegraph backup](/cli-reference/backup)):
 
 ```bash
-issuegraph backup init <path>     # Register a destination (filesystem or DoltHub URL)
-issuegraph backup sync            # Push to the configured destination
+issuegraph backup init <path>     # Register a local filesystem destination
+issuegraph backup sync            # Write to the configured local destination
 issuegraph backup restore [path]  # Restore from a backup (--force to overwrite)
 issuegraph backup remove          # Unregister the destination
 issuegraph backup status          # Show configuration and last sync time
 ```
 
-### Auto-push
-
-By default, `issuegraph` does not push automatically after write commands. Auto-push is explicit opt-in because concurrent pushes to git-protocol Dolt remotes can corrupt or strand remote history when multiple writers race.
-
-```yaml
-dolt:
-  auto-push: true         # Explicit opt-in; safe for single-writer setups
-  auto-push-interval: 5m  # Minimum time between auto-pushes
-  auto-push-timeout: 30s  # Bound one push attempt when the remote is unreachable
-```
-
-How it works:
-
-- After each write command (after auto-commit and auto-backup), `issuegraph` checks whether a push is due.
-- Pushes are debounced: skipped if the last push was less than `dolt.auto-push-interval` ago.
-- Change detection: skipped if the Dolt HEAD commit hasn't changed since the last push.
-- Push failures are warnings only (non-fatal), and failed attempts are throttled too.
-- Last push time and commit are tracked in `.issuegraph/push-state.json`, a per-machine file (not in the database, to avoid merge conflicts across machines).
-
-Before pushing, `issuegraph` verifies the local chunk store with `dolt fsck --quiet`, bounded by a 30-second timeout. For large stores, raise it with the runtime-only `ISSUEGRAPH_FSCK_TIMEOUT` environment variable (accepts durations like `2m` or bare seconds like `90`).
+Legacy `dolt.auto-push` settings do not enable remote sync. `issuegraph config set` rejects remote sync keys, and `issuegraph sync`, `issuegraph dolt push`, and `issuegraph dolt pull` fail before opening the database.
 
 ## Actor Identity Resolution
 
@@ -374,24 +354,7 @@ Claiming reads this key from the database only. A `claim.pools` value in `config
 
 ## Sync and Federation
 
-IssueGraph syncs exclusively through Dolt remotes (`issuegraph dolt push` / `issuegraph dolt pull`) with cell-level merge. Use `issuegraph export` for issue portability and `issuegraph backup` for restorable database backups.
-
-Federation settings live in `config.yaml`:
-
-```yaml
-federation:
-  remote: dolthub://myorg/issuegraph
-  sovereignty: T2
-```
-
-- `federation.remote`: Dolt remote URL (`dolthub://org/issuegraph`, `gs://bucket/issuegraph`, `s3://bucket/issuegraph`, `az://account.blob.core.windows.net/container/issuegraph`, `file://...`)
-- `federation.sovereignty`: data sovereignty tier:
-  - `T1`: Full sovereignty — data never leaves controlled infrastructure
-  - `T2`: Regional sovereignty — data stays within region/jurisdiction
-  - `T3`: Provider sovereignty — data with trusted cloud provider
-  - `T4`: No restrictions — data can be anywhere
-
-`issuegraph config validate` checks the remote URL format, the sovereignty tier, `federation.allowed-remote-patterns`, and `routing.mode`.
+IssueGraph keeps issue data local. Use Git to share tracked `.issuegraph/` snapshots. Legacy `sync.remote`, `sync.git-remote`, `federation.remote`, and `dolt.auto-push` settings cannot enable remote issue sync; validation reports those settings as disabled.
 
 ## Integration Configuration
 

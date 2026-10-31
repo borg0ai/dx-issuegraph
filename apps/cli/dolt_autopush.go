@@ -9,9 +9,7 @@ import (
 	"time"
 
 	"github.com/borg0ai/dx-issuegraph/internal/config"
-	"github.com/borg0ai/dx-issuegraph/internal/debug"
 	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
-	"github.com/borg0ai/dx-issuegraph/internal/storage"
 )
 
 // pushState tracks auto-push state in a local file (.issuegraph/push-state.json)
@@ -102,105 +100,4 @@ func pushWithContext(ctx context.Context, target autoPushTarget) error {
 
 // maybeAutoPush pushes to the Dolt remote if enabled and the debounce interval has passed.
 // Called from PersistentPostRun after auto-commit and auto-backup.
-func maybeAutoPush(ctx context.Context) {
-	if isSandboxMode() {
-		debug.Logf("dolt auto-push: skipped (sandbox mode)\n")
-		return
-	}
-	if isDoltLocalOnly() {
-		debug.Logf("dolt auto-push: skipped (dolt.local-only=true)\n")
-		return
-	}
-	if !isDoltAutoPushEnabled(ctx) {
-		return
-	}
-
-	st := getStore()
-	if st == nil {
-		return
-	}
-	if lm, ok := storage.UnwrapStore(st).(storage.LifecycleManager); ok && lm.IsClosed() {
-		return
-	}
-
-	// Load local push state (file-based, not in Dolt metadata table).
-	// This avoids merge conflicts on multi-machine setups (GH#2466).
-	ps, err := loadPushState()
-	if err != nil {
-		debug.Logf("dolt auto-push: failed to load push state: %v\n", err)
-		return
-	}
-
-	// Debounce: skip if we pushed recently
-	interval := config.GetDuration("dolt.auto-push-interval")
-	if interval == 0 {
-		interval = 5 * time.Minute
-	}
-
-	if ps != nil && ps.LastPush != "" {
-		lastPush, err := time.Parse(time.RFC3339, ps.LastPush)
-		if err == nil && time.Since(lastPush) < interval {
-			debug.Logf("dolt auto-push: throttled (last push %s ago, interval %s)\n",
-				time.Since(lastPush).Round(time.Second), interval)
-			return
-		}
-	}
-
-	// Change detection: skip if nothing changed since last push
-	currentCommit, err := st.GetCurrentCommit(ctx)
-	if err != nil {
-		debug.Logf("dolt auto-push: failed to get current commit: %v\n", err)
-		return
-	}
-	if ps != nil && currentCommit == ps.LastCommit && ps.LastCommit != "" {
-		debug.Logf("dolt auto-push: no changes since last push\n")
-		return
-	}
-
-	// Push with a bounded timeout so an unreachable remote doesn't block
-	// the CLI indefinitely (GH#3370). The timeout is configurable via
-	// dolt.auto-push-timeout (default 30s).
-	pushTimeout := config.GetDuration("dolt.auto-push-timeout")
-	if pushTimeout == 0 {
-		pushTimeout = autoPushTimeout
-	}
-	pushCtx, pushCancel := context.WithTimeout(ctx, pushTimeout)
-	defer pushCancel()
-
-	debug.Logf("dolt auto-push: pushing to origin (timeout %s)...\n", pushTimeout)
-	if err := pushWithContext(pushCtx, st); err != nil {
-		if !isQuiet() && !jsonOutput {
-			if pushCtx.Err() == context.DeadlineExceeded {
-				fmt.Fprintf(os.Stderr, "Warning: dolt auto-push timed out after %s (remote may be unreachable)\n", pushTimeout)
-			} else {
-				fmt.Fprintf(os.Stderr, "Warning: dolt auto-push failed: %v\n", err)
-			}
-			if isAncestorPKMismatchErr(err) {
-				printAncestorPKMismatchGuidance(err)
-			} else if isDivergedHistoryErr(err) {
-				printDivergedHistoryGuidance("push")
-			}
-		}
-		debug.Logf("dolt auto-push: push error: %v\n", err)
-		// Throttle retries after failure so a hanging remote doesn't make every
-		// subsequent issuegraph command pay the push timeout. We record the attempt
-		// timestamp but NOT a new LastCommit, so when the remote recovers the
-		// change-detection check (currentCommit != LastCommit) still triggers.
-		if ps == nil {
-			ps = &pushState{}
-		}
-		ps.LastPush = time.Now().UTC().Format(time.RFC3339)
-		if saveErr := savePushState(ps); saveErr != nil {
-			debug.Logf("dolt auto-push: failed to save push state after error: %v\n", saveErr)
-		}
-		return
-	}
-
-	// Record last push time and commit to local file
-	now := time.Now().UTC().Format(time.RFC3339)
-	if err := savePushState(&pushState{LastPush: now, LastCommit: currentCommit}); err != nil {
-		debug.Logf("dolt auto-push: failed to save push state: %v\n", err)
-	}
-
-	debug.Logf("dolt auto-push: pushed successfully\n")
-}
+func maybeAutoPush(context.Context) {}

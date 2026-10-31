@@ -393,13 +393,9 @@ Labels are stored in the Dolt database and synced automatically with all issue d
 issuegraph create "Fix bug" -l backend,urgent
 issuegraph label add issuegraph-42 needs-review
 
-# Changes are committed to Dolt history automatically
-# Sync with remotes when ready:
-issuegraph dolt push
-
-# After pulling changes:
-issuegraph dolt pull
-issuegraph list --label backend  # Fresh data including labels
+# Review and share the tracked snapshot with Git when needed
+git status --short .issuegraph/
+issuegraph list --label backend  # Query local data
 ```
 
 ## Markdown Import/Export
@@ -836,8 +832,7 @@ issuegraph label list-all
 ### Syncing Labels
 Labels are stored in the Dolt database. If labels seem out of sync:
 ```bash
-# Pull from Dolt remote
-issuegraph dolt pull
+# Issue data is local; use Git to share the tracked snapshot between clones.
 
 # Or run doctor to diagnose
 issuegraph doctor

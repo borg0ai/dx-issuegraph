@@ -42,7 +42,7 @@ var configApplyCmd = &cobra.Command{
 Runs drift detection and then fixes any mismatches it finds:
 
   - hooks     Reinstall git hooks if missing or outdated
-  - remote    Add/update Dolt origin remote to match federation.remote
+  - remote    Reject legacy Dolt remote configuration
   - server    Start Dolt server if dolt.shared-server is enabled
 
 This command is idempotent — safe to run multiple times. Use --dry-run
@@ -259,6 +259,15 @@ func applyRemote(drifted bool, dryRun bool) ApplyResult {
 			Action:  "none",
 			Status:  applyStatusOK,
 			Message: "Dolt remote configuration is consistent",
+		}
+	}
+	if isDoltLocalOnly() {
+		return ApplyResult{
+			Check:   "remote",
+			Action:  "disabled",
+			Status:  applyStatusError,
+			Message: remoteSyncDisabledMessage,
+			Error:   remoteSyncDisabledMessage,
 		}
 	}
 

@@ -420,7 +420,7 @@ func warnIfClaudeHooksUseRemovedSync(env claudeEnv) {
 		if !claudeSettingsUsesRemovedSyncCommand(data) {
 			continue
 		}
-		_, _ = fmt.Fprintf(env.stderr, "Warning: %s contains a hook using removed \"issuegraph sync\". Run issuegraph setup claude to refresh hooks (issuegraph prime / issuegraph dolt push), or edit settings manually.\n", p)
+		_, _ = fmt.Fprintf(env.stderr, "Warning: %s contains a hook using removed remote sync. Run issuegraph setup claude to refresh hooks, or edit settings manually.\n", p)
 	}
 }
 

@@ -102,11 +102,11 @@ Reference for issuegraph Latest. Generated from `issuegraph help --all`.
 ### Sync & Data:
 
 - [issuegraph backup](#bd-backup) — Back up your issuegraph database
-  - [issuegraph backup init](#bd-backup-init) — Set up a Dolt backup destination
+  - [issuegraph backup init](#bd-backup-init) — Set up a local Dolt backup destination
   - [issuegraph backup remove](#bd-backup-remove) — Remove the configured backup destination
   - [issuegraph backup restore](#bd-backup-restore) — Restore database from a Dolt backup
   - [issuegraph backup status](#bd-backup-status) — Show last backup status
-  - [issuegraph backup sync](#bd-backup-sync) — Push database to configured Dolt backup
+  - [issuegraph backup sync](#bd-backup-sync) — Write database to configured local Dolt backup
 - [issuegraph branch](#bd-branch) — List or create branches
 - [issuegraph conflicts](#bd-conflicts) — Inspect and resolve live merge conflicts
   - [issuegraph conflicts list](#bd-conflicts-list) — List tables and issues with live merge conflicts
@@ -116,7 +116,7 @@ Reference for issuegraph Latest. Generated from `issuegraph help --all`.
 - [issuegraph federation](#bd-federation) — Manage peer-to-peer federation (requires CGO)
 - [issuegraph import](#bd-import) — Import issues from a JSONL file or stdin into the database
 - [issuegraph restore](#bd-restore) — Restore the pre-compaction content of a compacted issue
-- [issuegraph sync](#bd-sync) — Pull, check for conflicts, repair is_blocked, and push (the federation loop)
+- [issuegraph sync](#bd-sync) — Disabled: remote issue synchronization is unsupported
 - [issuegraph vc](#bd-vc) — Version control operations
   - [issuegraph vc commit](#bd-vc-commit) — Create a commit with all staged changes
   - [issuegraph vc merge](#bd-vc-merge) — Merge a branch into the current branch
@@ -140,9 +140,9 @@ Reference for issuegraph Latest. Generated from `issuegraph help --all`.
   - [issuegraph dolt clean-databases](#bd-dolt-clean-databases) — Drop stale test databases from the Dolt server
   - [issuegraph dolt commit](#bd-dolt-commit) — Create a Dolt commit from pending changes
   - [issuegraph dolt killall](#bd-dolt-killall) — Kill all orphan Dolt server processes
-  - [issuegraph dolt pull](#bd-dolt-pull) — Pull commits from Dolt remote
-  - [issuegraph dolt push](#bd-dolt-push) — Push commits to Dolt remote
-  - [issuegraph dolt remote](#bd-dolt-remote) — Manage Dolt remotes
+  - [issuegraph dolt pull](#bd-dolt-pull) — Disabled: Dolt remote issue sync is unsupported
+  - [issuegraph dolt push](#bd-dolt-push) — Disabled: Dolt remote issue sync is unsupported
+  - [issuegraph dolt remote](#bd-dolt-remote) — Disabled: Dolt remote issue sync is unsupported
   - [issuegraph dolt set](#bd-dolt-set) — Set a Dolt configuration value
   - [issuegraph dolt show](#bd-dolt-show) — Show current Dolt configuration with connection status
   - [issuegraph dolt start](#bd-dolt-start) — Start the Dolt SQL server for this project
@@ -281,6 +281,8 @@ Reference for issuegraph Latest. Generated from `issuegraph help --all`.
 - [issuegraph schema](#bd-schema) — Print the JSON Schema for issuegraph's --json / export output
 - [issuegraph serve](#bd-serve) — Serve the issuegraph HTTP API over loopback
 - [issuegraph ship](#bd-ship) — Publish a capability for cross-project dependencies
+- [issuegraph snapshot](#bd-snapshot) — Work with the Git-tracked issue snapshot
+  - [issuegraph snapshot restore](#bd-snapshot-restore) — Make the local database equal to the snapshot
 - [issuegraph undefer](#bd-undefer) — Undefer one or more issues (restore to open)
 - [issuegraph version](#bd-version) — Print version information
 
@@ -2639,7 +2641,7 @@ issuegraph swarm validate [epic-id] [flags]
 
 ### issuegraph backup
 
-Back up your issuegraph database for off-machine recovery.
+Back up your issuegraph database to a local filesystem destination.
 
 This is a Dolt-native database backup. It preserves the database state,
 including tables, branches, commit history, and working-set data. This is
@@ -2647,15 +2649,13 @@ different from 'issuegraph export', which writes issue records to JSONL for migr
 and interoperability.
 
 Commands:
-  issuegraph backup init &lt;path&gt;    Set up a backup destination (filesystem or DoltHub)
-  issuegraph backup sync           Push to configured backup destination
+  issuegraph backup init &lt;path&gt;    Set up a local filesystem backup destination
+  issuegraph backup sync           Write to configured local backup destination
   issuegraph backup restore [path] Restore from a backup directory
   issuegraph backup remove         Remove backup destination
   issuegraph backup status         Show backup status
 
-DoltHub is recommended for cloud backup:
-  issuegraph backup init https://doltremoteapi.dolthub.com/&lt;user&gt;/&lt;repo&gt;
-  Set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD for authentication.
+Remote backup destinations are disabled.
 
 Auto-backup default:
   When backup.enabled is unset, auto-backup turns ON in embedded mode if a
@@ -2678,20 +2678,17 @@ issuegraph backup [command]
 
 #### issuegraph backup init
 
-Configure a filesystem path or URL as a backup destination.
+Configure a local filesystem path as a backup destination.
 
-The path can be a local directory (external drive, NAS, Dropbox folder) or a
-DoltHub remote URL. If the destination was previously configured, it is
+The path can be a local directory on this machine or a mounted NAS. Remote
+destinations are disabled. If a destination was previously configured, it is
 updated to the new path.
 
 Filesystem examples:
   issuegraph backup add /mnt/usb/issuegraph-backup
   issuegraph backup add ~/Dropbox/issuegraph-backup
 
-DoltHub (recommended for cloud backup):
-  issuegraph backup add https://doltremoteapi.dolthub.com/myuser/issuegraph-backup
-
-After adding, run 'issuegraph backup sync' to push your data.
+After adding, run 'issuegraph backup sync' to write a local backup.
 
 ```
 issuegraph backup init <path>
@@ -2748,10 +2745,11 @@ issuegraph backup status
 
 #### issuegraph backup sync
 
-Sync the current issuegraph database to the configured Dolt backup destination.
+Write the current issuegraph database to the configured local backup destination.
 
-This pushes the entire database state (all branches, full history) to the
-backup location configured with 'issuegraph backup init'.
+This copies the entire database state (all branches, full history) to the
+filesystem path configured with 'issuegraph backup init'. Remote destinations
+are disabled.
 
 The backup is atomic — if the sync fails, the previous backup state is preserved.
 
@@ -3034,63 +3032,11 @@ issuegraph restore <issue-id> [flags]
 
 ### issuegraph sync
 
-Run one full synchronization cycle against the Dolt remote.
+Remote issue synchronization is disabled.
 
-This is the loop every multi-machine issuegraph deployment otherwise hand-rolls in
-shell:
-
-  1. pull from the remote
-  2. check for merge conflicts POSITIVELY, from the merge's own conflict rows
-     and from Dolt's conflict tables — never inferred from the pull's exit
-     status, which is not a trustworthy conflict signal in either direction
-  3. recompute the denormalized is_blocked flag, so dependency edges merged in
-     from another replica do not leave 'issuegraph ready' stale
-  4. push, retrying a bounded number of times when another replica wins the
-     push race
-
-The repair in step 3 refuses to run while another writer has uncommitted changes
-to issues/dependencies. That is transient and not this sync's doing, so it is
-retried on the same budget as a push race rather than failing the run. A working
-set that is NOT transient exits 4 instead, because no amount of retrying will
-ever publish and only an operator can clear it. Two kinds of evidence say so:
-constraint violations on the dirty tables are detected positively and escalate
-on the very attempt that finds them; an abandoned uncommitted edit has no such
-positive signal, so it is only inferred once the same pending graph edits have
-blocked every attempt of several consecutive runs.
-
-Conflicts sync cannot resolve safely are NEVER auto-resolved: it halts before
-recomputing or pushing and exits 2, and repeated runs keep halting the same way
-until an operator resolves the divergence. (The pull underneath does auto-settle
-the conflict classes it can settle convergently — machine-local metadata,
-audit-only dependency rows, and last-write-wins on issue cells. Anything beyond
-those halts here.) Whether the halted merge was aborted or left live in the
-working set depends on the pull route, so the halt message reports which.
-
-Exit codes (a sync timer can branch on these without parsing output):
-
-  0  synced, or nothing to do
-  1  error (transport, auth, storage)
-  2  merge conflict — halted, nothing pushed, resolve it by hand
-  3  retries exhausted (push race, or a concurrent writer's dirty working set)
-     — transient, nothing pushed, retry on the next tick
-  4  the dirty working set is stuck, not busy: identical pending graph edits
-     blocked every attempt of several consecutive runs — nothing pushed, and no
-     later tick will publish until an operator clears it
-
-On the default-remote path, a rig with no Dolt remote yet but a git origin
-configured adopts that origin as its Dolt remote first, exactly as 'issuegraph dolt push'
-does — so 'issuegraph sync' works as a first-time federation bring-up step instead of
-reporting 'no remote' and doing nothing. Passing --remote never adopts anything.
-
-This is not 'issuegraph federation sync', which syncs with named peer towns and takes a
---strategy ours|theirs to resolve whatever conflicts it meets. 'issuegraph sync' targets
-the configured remote and has no such switch: what it cannot settle, it halts on.
-
-Examples:
-  issuegraph sync                        # sync with the default remote
-  issuegraph sync --remote mini          # sync with a specific remote
-  issuegraph sync --attempts 5           # allow more push-race retries
-  issuegraph sync --json                 # machine-parseable outcome
+IssueGraph stores issues in the local Dolt database and tracks a complete
+workspace snapshot in Git. Use Git to move repository files between clones.
+This command exits with an error before opening the database or contacting a remote.
 
 ```
 issuegraph sync [flags]
@@ -3099,10 +3045,10 @@ issuegraph sync [flags]
 **Flags:**
 
 ```
-      --attempts int    Maximum pull/push attempts before reporting a transient retry exhaustion (exit 3) (default 3)
-      --no-adopt        Never derive a Dolt remote from git origin (also ISSUEGRAPH_NO_REMOTE_ADOPT=1)
-      --remote string   Sync with a specific named remote instead of the default
-  -y, --yes             Consent to adopting a Dolt remote derived from git origin when none is configured
+      --attempts int    Deprecated; remote issue synchronization is disabled (default 3)
+      --no-adopt        Deprecated; remote issue synchronization is disabled
+      --remote string   Unsupported: remote issue synchronization is disabled
+  -y, --yes             Deprecated; remote issue synchronization is disabled
 ```
 
 ### issuegraph vc
@@ -3180,15 +3126,10 @@ Bootstrap sets up the issuegraph database without destroying existing data.
 Unlike 'issuegraph init --force', bootstrap will never delete existing issues.
 
 Bootstrap auto-detects the right action:
-  • If sync.remote is configured: clones from the remote
-  • If git origin has Dolt data (refs/dolt/data): clones from git and wires origin for future push/pull
   • If .issuegraph/backup/*.jsonl exists: restores from backup
   • If .issuegraph/issues.jsonl exists: imports from git-tracked JSONL
   • If no database exists: creates a fresh one
   • If database already exists: validates and reports status
-
-If sync.remote points at a git repository, bootstrap verifies refs/dolt/data
-before cloning. Bootstrap exits non-zero when it cannot set up a database.
 
 This is the recommended command for:
   • Setting up issuegraph on a fresh clone
@@ -3242,7 +3183,7 @@ Common namespaces:
 Auto-Export (config.yaml):
   Optional JSONL export to .issuegraph/issues.jsonl after write commands (throttled).
   Useful for viewers (bv), interchange, and issue-level migration; not a backup.
-  It is not cross-machine sync; use issuegraph dolt push/pull with a Dolt remote.
+  It is a Git-tracked workspace snapshot, not cross-machine database sync.
   Disabled by default. Enable only for integrations that need fresh JSONL.
   Auto-staging is separate and disabled by default.
 
@@ -3301,7 +3242,6 @@ Examples:
   issuegraph config set claim.pools "fable-crew,night-crew"    # Pool aliases claimable by any actor
   issuegraph config set doctor.suppress.pending-migrations true
   issuegraph config set dolt.debug true                        # Enable Dolt sql-server debug mode (loglevel=debug, --prof cpu)
-  issuegraph config set dolt.local-only true                   # Skip wiring a Dolt sync remote during issuegraph init
   issuegraph config set lint.sections.epic "Standards scorecard, Cost"   # Extra sections issuegraph lint requires for epics
   issuegraph config get export.auto
   issuegraph config list
@@ -3318,7 +3258,7 @@ Reconcile actual system state to match declared configuration.
 Runs drift detection and then fixes any mismatches it finds:
 
   - hooks     Reinstall git hooks if missing or outdated
-  - remote    Add/update Dolt origin remote to match federation.remote
+  - remote    Reject legacy Dolt remote configuration
   - server    Start Dolt server if dolt.shared-server is enabled
 
 This command is idempotent — safe to run multiple times. Use --dry-run
@@ -3395,7 +3335,7 @@ issuegraph config set <key> <value> [flags]
 
 #### issuegraph config set-many
 
-Set multiple configuration values at once with a single auto-commit and auto-push.
+Set multiple configuration values at once with a single database write.
 
 Each argument must be in key=value format. All values are validated before
 any writes occur. This is faster and less noisy than separate 'issuegraph config set'
@@ -3459,8 +3399,7 @@ Validate sync-related configuration settings.
 
 Checks:
   - federation.sovereignty is valid (T1, T2, T3, T4, or empty)
-  - federation.remote is set for Dolt sync
-  - Remote URL format is valid (dolthub://, gs://, s3://, az://, file://)
+  - Legacy remote issue sync settings are absent
   - routing.mode is valid (auto, maintainer, contributor, explicit)
 
 	Examples:
@@ -3637,20 +3576,10 @@ issuegraph dolt killall
 
 #### issuegraph dolt pull
 
-Pull commits from the configured Dolt remote into the local database.
+Dolt remote issue sync is disabled. IssueGraph stores issues locally and
+tracks the complete workspace snapshot in Git. Manage repository transport with Git.
 
-Requires a Dolt remote to be configured in the database directory.
-For Hosted Dolt, set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD environment
-variables for authentication.
-
-Use --remote to pull from a specific named remote instead of the default.
-The remote must already exist (see 'issuegraph dolt remote add').
-
-Use --strategy ours|theirs to resolve conflicts the auto-resolver declines
-(e.g. both sides edited the same issue since the last sync) instead of
-aborting the pull for manual resolution. Embedded storage only (#4992); on
-server-mode/sql-server storage use 'issuegraph conflicts resolve' after a pull that
-reports conflicts.
+This command exits with an error before opening the database or contacting a remote.
 
 ```
 issuegraph dolt pull [flags]
@@ -3665,20 +3594,10 @@ issuegraph dolt pull [flags]
 
 #### issuegraph dolt push
 
-Push local Dolt commits to the configured remote.
+Dolt remote issue sync is disabled. IssueGraph stores issues locally and
+tracks the complete workspace snapshot in Git. Manage repository transport with Git.
 
-Requires a Dolt remote to be configured in the database directory. With no
-remote configured, issuegraph can adopt one derived from git origin — only with
-consent: interactively, or via --yes; --no-adopt or ISSUEGRAPH_NO_REMOTE_ADOPT=1
-disables adoption entirely.
-For Hosted Dolt, set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD environment
-variables for authentication.
-
-Use --force to overwrite remote changes (e.g., when the remote has
-uncommitted changes in its working set).
-
-Use --remote to push to a specific named remote instead of the default.
-The remote must already exist (see 'issuegraph dolt remote add').
+This command exits with an error before opening the database or contacting a remote.
 
 ```
 issuegraph dolt push [flags]
@@ -3695,7 +3614,8 @@ issuegraph dolt push [flags]
 
 #### issuegraph dolt remote
 
-Manage Dolt remotes for push/pull replication.
+Dolt remote management is disabled. IssueGraph keeps issue data local and
+uses Git-tracked workspace snapshots for repository transport.
 
 Subcommands:
   add &lt;name&gt; &lt;url&gt;     Add a new remote
@@ -4147,7 +4067,7 @@ Initialize issuegraph in the current directory by creating a .issuegraph/ direct
 and its storage (a Dolt database by default). Optionally specify a custom issue prefix.
 
 Dolt is the default and only supported storage backend, with full version
-control (history, branching, sync).
+control for local history and branching.
 
 Use --database to specify an existing server database name, overriding the
 default prefix-based naming. This is useful when an external tool (e.g. an orchestrator)
@@ -4166,8 +4086,8 @@ Password should be set via ISSUEGRAPH_DOLT_PASSWORD environment variable.
 Auto-export is optional. When enabled, issuegraph exports issues to
 .issuegraph/issues.jsonl after write commands (throttled to once per 60s). This is
 for viewers (bv), interchange, and issue-level migration; not backup.
-Cross-machine sync and backups use Dolt remotes/backups, not JSONL import/export.
-To enable: issuegraph config set export.auto true
+Git tracks the complete workspace snapshot. Auto-export remains available for
+tools that read .issuegraph/issues.jsonl. To enable: issuegraph config set export.auto true
 
 Non-interactive mode (--non-interactive or ISSUEGRAPH_NON_INTERACTIVE=1):
   Skips all interactive prompts, using sensible defaults:
@@ -4217,7 +4137,7 @@ issuegraph init [flags]
       --proxied-server-root-path string                   [EXPERIMENTAL] Absolute directory holding the proxied dolt sql-server's lockfiles, pidfiles, and child .dolt repository (proxied-server mode only). Default: <issuegraphDir>/dolt. May not exist yet — issuegraph will create it. Relative paths are rejected.
   -q, --quiet                                             Suppress output (quiet mode)
       --reinit-local                                      Re-initialize local .issuegraph/ over existing local data. Does NOT authorize remote divergence; see --discard-remote.
-      --remote string                                     Dolt remote URL to clone from and persist as sync.remote
+      --remote string                                     Unsupported: IssueGraph does not clone or configure Dolt remotes
       --role string                                       Set issuegraph role without prompting: "maintainer" or "contributor"
       --server                                            Use external dolt sql-server instead of embedded engine
       --server-host string                                Dolt server host (default: 127.0.0.1)
@@ -7586,6 +7506,27 @@ issuegraph ship <capability> [flags]
 ```
       --dry-run   Preview without making changes
       --force     Ship even if issue is not closed
+```
+
+### issuegraph snapshot
+
+The snapshot is .issuegraph/issues.jsonl plus .issuegraph/manifest.json.
+Commit and move those two files with Git yourself; IssueGraph never runs Git
+or contacts a remote.
+
+```
+issuegraph snapshot [command]
+```
+
+#### issuegraph snapshot restore
+
+Validate .issuegraph/issues.jsonl against .issuegraph/manifest.json, then in one
+transaction upsert every snapshot issue and delete local issues the manifest
+does not list. A missing manifest, corrupt file or digest mismatch fails
+without changing the database.
+
+```
+issuegraph snapshot restore
 ```
 
 ### issuegraph undefer

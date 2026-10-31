@@ -28,7 +28,7 @@ issuegraph setup junie --check
 1. **Session starts** → Junie reads `.junie/guidelines.md` for workflow context
 2. **MCP tools available** → Junie can use issuegraph MCP tools directly
 3. **You work** → Use `issuegraph` CLI commands or MCP tools
-4. **Session ends** → Run `issuegraph dolt push` to push changes to Dolt remote
+4. **Session ends** → Use Git to share the tracked `.issuegraph/` snapshot when needed
 
 ## Configuration Files
 
@@ -111,7 +111,7 @@ issuegraph blocked --json
 
 ```bash
 # ALWAYS run at session end
-issuegraph dolt push
+git status --short .issuegraph/
 ```
 
 ## Best Practices
@@ -148,7 +148,7 @@ issuegraph create "Found related bug" \
 
 ```bash
 # ALWAYS run before ending
-issuegraph dolt push
+git status --short .issuegraph/
 ```
 
 ## Troubleshooting
@@ -177,7 +177,7 @@ pip show issuegraph-mcp
 
 ```bash
 # Force push
-issuegraph dolt push
+git status --short .issuegraph/
 
 # Check system health
 issuegraph doctor

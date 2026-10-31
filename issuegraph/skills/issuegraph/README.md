@@ -102,7 +102,7 @@ NEXT: Implement rate limiting"
 | v0.60.0+ | CLI credential pass-through for Dolt server push/pull |
 | v0.58.0+ | `issuegraph prime --claim`, `issuegraph show --long`, `--stdin` flag |
 | v0.54.0+ | `issuegraph doctor` detects committed runtime/sensitive files, `ISSUEGRAPH_BACKUP_ENABLED=false` |
-| v0.52.0+ | the JSONL-era `issuegraph sync` deprecated (superseded by `issuegraph dolt push`; a new federation-loop `issuegraph sync` was added later — see `commands/sync.md`), `--claim` for atomic start-work |
+| v0.52.0+ | JSONL-era `issuegraph sync` deprecated; later remote-sync commands are now disabled, `--claim` for atomic start-work |
 | v0.47.0+ | Pull-first sync, resolve-conflicts, dry-run create, gate auto-discovery |
 | v0.43.0+ | Full support: agents, gates, worktrees, chemistry patterns |
 | v0.40.0+ | Agent issuegraph, async gates, worktree management |

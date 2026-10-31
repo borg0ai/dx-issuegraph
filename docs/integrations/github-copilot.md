@@ -94,7 +94,7 @@ You: Close issuegraph-42 with reason "Fixed timeout handling"
 Copilot: Closed issuegraph-42: Fixed timeout handling
 ```
 
-Syncing stays on the CLI: run `issuegraph dolt push` at the end of a session. There is no MCP push tool.
+Issue data stays local. Use Git to share tracked `.issuegraph/` snapshots between clones.
 
 ## MCP Tools
 
@@ -127,7 +127,7 @@ Quick reference:
 - `issuegraph ready` - Find unblocked work
 - `issuegraph create "Title" --type task --priority 2` - Create issue
 - `issuegraph close <id>` - Complete work
-- `issuegraph dolt push` - Push changes to Dolt remote (run at session end)
+- `git status --short .issuegraph/` - Review snapshot changes
 ```
 
 ## CLI vs MCP
@@ -171,13 +171,9 @@ uv tool install issuegraph-mcp --force
 issuegraph init --quiet
 ```
 
-### Changes not persisting
+### Changes not appearing in another clone
 
-Push to the Dolt remote at the end of your session, from the terminal:
-
-```bash
-issuegraph dolt push
-```
+Commit and push tracked `.issuegraph/` snapshot files with your Git client.
 
 ### Organization policies blocking MCP
 
@@ -191,7 +187,7 @@ For Copilot Business/Enterprise, your organization must enable the "MCP servers 
 
 ### What about git hooks?
 
-Git hooks are optional. They refresh exports and legacy fallback checks, while issue sync uses `issuegraph dolt push` / `issuegraph dolt pull`. They never modify your source code; skip them with `issuegraph init --skip-hooks`.
+Git hooks are optional. They refresh local snapshots and never send issue data to a remote.
 
 ### Can I use issuegraph without Copilot?
 

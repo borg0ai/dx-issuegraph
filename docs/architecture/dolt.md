@@ -1,9 +1,13 @@
 ---
 title: Dolt Backend for IssueGraph
-description: "How issuegraph uses Dolt for versioned issue storage: embedded vs server mode, remotes, sync, and backups"
+description: "How issuegraph uses Dolt for local versioned issue storage, embedded and server modes, and local backups"
 ---
 
 IssueGraph uses Dolt as its storage backend. Dolt provides a version-controlled SQL database with cell-level merge, native branching, and two deployment modes.
+
+IssueGraph remote sync and federation are disabled. The remote-sync procedures
+in older releases no longer apply. IssueGraph keeps its database local and
+shares tracked `.issuegraph/` snapshots through the user's Git client.
 
 ## Why Dolt?
 
@@ -111,8 +115,7 @@ durable fix is to move to the pinned version.
 
 This matters because `issuegraph flatten` and the Dolt-history compaction in
 `issuegraph admin compact` both finish by hard-resetting `main` onto a temporary
-branch, and the merge-settle path behind `issuegraph dolt pull` / `issuegraph sync` falls
-back to a hard reset when it has to abandon a merge. See
+branch. See
 [Maintenance](#maintenance--issuegraph-prune-and-issuegraph-purge).
 
 ### New Project
@@ -162,7 +165,7 @@ standalone IssueGraph users. The `issuegraph` binary includes everything; just `
 
 - Single-writer (one process at a time)
 - Data lives in `.issuegraph/embeddeddolt/` alongside your code
-- Push to GitHub with `issuegraph dolt push` — code and issues in one repo
+- Share tracked issue snapshots with Git using the user's Git client
 - Zero ops: no server, no ports, no PID files
 
 ### Server Mode (Multi-Writer / Orchestrator)
@@ -245,9 +248,7 @@ with `issuegraph flatten`.
 
 **On Dolt 2.3.x, storage-reclaim operations can fail partway.** `issuegraph flatten`
 and the Dolt-history compaction in `issuegraph admin compact` both build a temporary
-branch and then hard-reset `main` onto it, and the merge-settle path behind
-`issuegraph dolt pull` / `issuegraph sync` falls back to a hard reset when it abandons a
-merge. On an affected database that hard reset returns
+branch and then hard-reset `main` onto it. On an affected database that hard reset returns
 `Error 1105 (HY000): context canceled`: `issuegraph flatten` and `issuegraph admin compact`
 stop at that step, and an abandoned merge is left without its rollback. See
 [Which Dolt version to install](#which-dolt-version-to-install) for the check
@@ -343,8 +344,8 @@ database backup.
 
 | Command | Description |
 |---------|-------------|
-| `issuegraph backup init <path>` | Register a backup destination (filesystem or DoltHub URL) |
-| `issuegraph backup sync` | Push database to the configured backup destination |
+| `issuegraph backup init <path>` | Register a local filesystem backup destination |
+| `issuegraph backup sync` | Write database backup to the configured local destination |
 | `issuegraph backup restore [path]` | Restore from a backup directory (`--force` to overwrite) |
 | `issuegraph backup remove` | Unregister the backup destination |
 | `issuegraph backup status` | Show backup configuration and last sync time |
@@ -352,100 +353,29 @@ database backup.
 ### Notes
 
 - Data locations differ between modes: `.issuegraph/embeddeddolt/` (embedded) vs `.issuegraph/dolt/` (server)
-- The backup directory is a full Dolt backup, not an `issues.jsonl` export — it can be on a local drive, NAS, or DoltHub
-- You can also migrate via Dolt remotes (`issuegraph dolt push` / `issuegraph dolt pull`) if both projects share a remote
+- The backup directory is a full Dolt backup, not an `issues.jsonl` export; it can be on a local drive or NAS
+- Tracked `.issuegraph/` snapshots are shared through the user's Git client
 
 The sections below are the canonical backend migration reference.
 
-## Federation (Peer-to-Peer Sync)
+## Federation
 
-Federation lets independent Dolt-backed workspaces ("towns") sync issues
-directly with each other via `issuegraph federation add-peer`/`sync`/`status`,
-without a central hub. Credentials are AES-256 encrypted and stored locally.
+Remote federation is disabled. Federation commands fail before opening the
+database or contacting peers. Use tracked `.issuegraph/` snapshots and Git to
+share issue state between clones.
 
-See [Federation Setup Guide](/multi-agent/federation) for the full setup guide, including
-peer configuration, sovereignty tiers, sync/status/topology details, and
-troubleshooting.
+## Sharing issue data
 
-## Dolt Remotes
+IssueGraph maintains the tracked snapshot at `.issuegraph/issues.jsonl` and
+`.issuegraph/manifest.json`. Use `git status`, `git add`, `git commit`, and your
+Git client to share those files. A fresh clone imports them with
+`issuegraph bootstrap` when it creates the local database.
 
-Use `issuegraph dolt remote add` to configure remotes. This ensures the running Dolt SQL
-server sees the remote immediately. Remotes added directly with the `dolt` CLI
-are written to filesystem config and may not be visible to the server until
-restart.
+`issuegraph dolt push`, `issuegraph dolt pull`, `issuegraph dolt remote`,
+`issuegraph sync`, and federation commands fail before opening the database.
+Legacy remote settings cannot re-enable these commands.
 
-```bash
-# DoltHub (public or private)
-issuegraph dolt remote add origin https://doltremoteapi.dolthub.com/org/issuegraph
-
-# S3
-issuegraph dolt remote add origin aws://[bucket]/path/to/repo
-
-# GCS
-issuegraph dolt remote add origin gs://[bucket]/path/to/repo
-
-# Git SSH (GitHub, GitLab, etc.)
-issuegraph dolt remote add origin git+ssh://git@github.com/org/repo.git
-
-# Local file system
-issuegraph dolt remote add origin file:///path/to/remote
-```
-
-### Push/Pull
-
-```bash
-issuegraph dolt push
-issuegraph dolt pull
-```
-
-`issuegraph dolt remote add` registers the remote through the Dolt store API. SQL
-remotes are the source of truth for `issuegraph dolt remote list`, `issuegraph dolt push`, and
-`issuegraph dolt pull`.
-
-For git-protocol remotes, credentialed external-server remotes, and cloud
-remotes whose credentials are only present in the current shell, `issuegraph dolt push`
-and `issuegraph dolt pull` automatically materialize a matching local CLI remote before
-using the `dolt` CLI transport. The CLI remote is a local transport mirror, not
-a separate configuration source.
-
-If you are upgrading from an older issuegraph version and previously added remotes
-with raw `dolt remote add`, re-register them with `issuegraph dolt remote add <name>
-<url>` so they are visible through SQL. `issuegraph doctor` reports legacy CLI-only or
-mismatched CLI remotes under `Dolt Remote Migration`.
-
-> **Sharing a Git repo**: Dolt stores data under `refs/dolt/data`, separate
-> from standard Git refs (`refs/heads/`, `refs/tags/`). You can safely point a
-> `git+ssh://` remote at the same repository as your project source code. See
-> [Dolt Git Remotes](https://docs.dolthub.com/concepts/dolt/git/remotes).
-
-### List/Remove Remotes
-
-```bash
-issuegraph dolt remote list            # Shows SQL-configured remotes
-issuegraph dolt remote remove origin   # Removes the remote
-```
-
-## Contributor Onboarding (Clone Bootstrap)
-
-When someone clones a repository that uses Dolt backend:
-
-1. Run `issuegraph bootstrap` in the clone
-2. If the git remote has `refs/dolt/data` (pushed via `issuegraph dolt push`),
-   `issuegraph bootstrap` auto-detects it and clones the database from the remote
-3. Work continues normally — all existing issues are available
-
-**No manual steps required** beyond `issuegraph bootstrap`. The auto-detect:
-- Probes `origin` for `refs/dolt/data`
-- Clones the Dolt database from the remote (instead of creating a fresh one)
-- Configures the Dolt remote for future `issuegraph dolt push`/`pull`
-
-If `sync.remote` is set in `.issuegraph/config.yaml`, that takes precedence
-over auto-detection. Any Dolt-compatible remote URL is supported (DoltHub,
-S3, GCS, file, or git). On brand-new projects, `issuegraph init` auto-detects
-`git origin` and persists it as `sync.remote`, so the first `issuegraph dolt push`
-publishes Dolt history to `refs/dolt/data` on the same git remote.
-
-### Verifying Bootstrap Worked
+### Verifying bootstrap
 
 ```bash
 issuegraph list              # Should show issues

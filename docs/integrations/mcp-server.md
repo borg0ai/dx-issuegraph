@@ -129,8 +129,7 @@ The MCP server exposes these tools:
 | `admin` | Administrative operations |
 | `discover_tools` / `get_tool_info` | Tool discovery and schemas |
 
-There is no MCP sync tool — syncing stays on the CLI (`issuegraph dolt push` /
-`issuegraph dolt pull`).
+Remote issue sync is disabled. Use Git to share tracked `.issuegraph/` snapshots.
 
 ## Usage
 

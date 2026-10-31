@@ -13,7 +13,7 @@ func TestJunieGuidelinesTemplate(t *testing.T) {
 		"issuegraph create",
 		"issuegraph update",
 		"issuegraph close",
-		"issuegraph dolt push",
+		"Git to share repository snapshots",
 		"mcp_issuegraph_ready",
 		"mcp_issuegraph_list",
 		"mcp_issuegraph_create",
@@ -493,8 +493,11 @@ func TestJunieGuidelinesWorkflowPattern(t *testing.T) {
 	if !strings.Contains(guidelines, "issuegraph ready") {
 		t.Error("Should mention issuegraph ready")
 	}
-	if !strings.Contains(guidelines, "issuegraph dolt push") {
-		t.Error("Should mention issuegraph dolt push")
+	if strings.Contains(guidelines, "issuegraph dolt push") {
+		t.Error("Should not suggest remote issue sync")
+	}
+	if !strings.Contains(guidelines, "Use Git to share repository snapshots") {
+		t.Error("Should explain Git snapshot sharing")
 	}
 
 	// Should explain MCP tools

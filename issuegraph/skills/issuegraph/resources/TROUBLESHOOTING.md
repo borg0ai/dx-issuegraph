@@ -256,38 +256,20 @@ operator's storage and backup procedure. If the error occurs only when the live
 Dolt root is cloud-synchronized, keep that root on a local filesystem and use a
 supported sync mechanism.
 
-**3. Use a Dolt remote to share live issue history between working copies:**
+**3. Share issue data through the tracked workspace snapshot:**
 
-```bash
-# Existing, verified-authoritative working copy
-issuegraph dolt remote list
-
-# If no Dolt remote is configured, push can adopt the project's Git origin.
-issuegraph dolt push
-```
-
-In a fresh Git clone whose origin contains `refs/dolt/data`:
-
-```bash
-issuegraph bootstrap
-
-# Normal synchronization after bootstrap
-issuegraph dolt pull
-issuegraph dolt push
-```
-
-`issuegraph dolt push` and `issuegraph dolt pull` synchronize Dolt history; a normal Git clone
-does not fetch `refs/dolt/data`, so new clones must run `issuegraph bootstrap`.
-Before the first push, verify that this local database is the authoritative,
-healthy copy. If the remote already contains different Dolt history, stop and
-reconcile it instead of forcing or replacing either side.
+IssueGraph stores issue data locally and updates `.issuegraph/` snapshot files.
+Use your Git client to share those files with repository changes. IssueGraph
+remote sync, federation, and remote Dolt backups are disabled. A normal Git
+clone does not carry the local Dolt database; use the tracked snapshot as the
+portable issue data.
 
 **4. Use `issuegraph backup` for a restorable copy:**
 
 ```bash
 # Embedded or same-host locally managed server:
 # the Dolt process must be able to access this absolute filesystem path.
-issuegraph backup init ~/Dropbox/issuegraph-backup
+issuegraph backup init ~/issuegraph-backup
 issuegraph backup sync
 issuegraph backup status
 ```

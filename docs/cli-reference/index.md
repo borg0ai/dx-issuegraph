@@ -7,7 +7,7 @@ description: Generated reference for every issuegraph command
 
 Generated from `issuegraph help --docs-root`.
 
-This reference covers all 113 live top-level `issuegraph` commands. Regenerate it with:
+This reference covers all 114 live top-level `issuegraph` commands. Regenerate it with:
 
 ```bash
 ./scripts/generate-cli-docs.sh
@@ -131,6 +131,7 @@ These flags apply to all commands:
 - [`issuegraph setup`](/cli-reference/setup)
 - [`issuegraph ship`](/cli-reference/ship)
 - [`issuegraph show`](/cli-reference/show)
+- [`issuegraph snapshot`](/cli-reference/snapshot)
 - [`issuegraph sql`](/cli-reference/sql)
 - [`issuegraph stale`](/cli-reference/stale)
 - [`issuegraph state`](/cli-reference/state)

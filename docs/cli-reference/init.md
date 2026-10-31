@@ -11,7 +11,7 @@ Initialize issuegraph in the current directory by creating a .issuegraph/ direct
 and its storage (a Dolt database by default). Optionally specify a custom issue prefix.
 
 Dolt is the default and only supported storage backend, with full version
-control (history, branching, sync).
+control for local history and branching.
 
 Use --database to specify an existing server database name, overriding the
 default prefix-based naming. This is useful when an external tool (e.g. an orchestrator)
@@ -30,8 +30,8 @@ Password should be set via ISSUEGRAPH_DOLT_PASSWORD environment variable.
 Auto-export is optional. When enabled, issuegraph exports issues to
 .issuegraph/issues.jsonl after write commands (throttled to once per 60s). This is
 for viewers (bv), interchange, and issue-level migration; not backup.
-Cross-machine sync and backups use Dolt remotes/backups, not JSONL import/export.
-To enable: issuegraph config set export.auto true
+Git tracks the complete workspace snapshot. Auto-export remains available for
+tools that read .issuegraph/issues.jsonl. To enable: issuegraph config set export.auto true
 
 Non-interactive mode (--non-interactive or ISSUEGRAPH_NON_INTERACTIVE=1):
   Skips all interactive prompts, using sensible defaults:
@@ -81,7 +81,7 @@ issuegraph init [flags]
       --proxied-server-root-path string                   [EXPERIMENTAL] Absolute directory holding the proxied dolt sql-server's lockfiles, pidfiles, and child .dolt repository (proxied-server mode only). Default: <issuegraphDir>/dolt. May not exist yet — issuegraph will create it. Relative paths are rejected.
   -q, --quiet                                             Suppress output (quiet mode)
       --reinit-local                                      Re-initialize local .issuegraph/ over existing local data. Does NOT authorize remote divergence; see --discard-remote.
-      --remote string                                     Dolt remote URL to clone from and persist as sync.remote
+      --remote string                                     Unsupported: IssueGraph does not clone or configure Dolt remotes
       --role string                                       Set issuegraph role without prompting: "maintainer" or "contributor"
       --server                                            Use external dolt sql-server instead of embedded engine
       --server-host string                                Dolt server host (default: 127.0.0.1)

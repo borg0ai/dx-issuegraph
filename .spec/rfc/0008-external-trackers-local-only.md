@@ -22,7 +22,7 @@ Does not remove local issue creation, queries, dependencies, file import/export,
 
 ## Design
 
-Remove unsupported tracker sync commands from the supported CLI surface or return one stable local-only error before loading credentials, opening clients, resolving remote metadata, or making network calls. Keep GitHub tracker clients reachable only from explicit GitHub commands, using RFC 0014's explicit repository, dry-run/apply, mapping, and conflict rules. Remove automatic tracker sync from hooks and issue lifecycle paths. Keep file-based formats that operate entirely on local files. Remove obsolete integration documentation and examples from supported IssueGraph assets; retain historical records only where explicitly archived and marked obsolete. RFC [0003](0003-drop-remote-sync.md) separately removes Dolt remote replication.
+Remove unsupported tracker sync commands from the supported CLI surface or return one stable local-only error before loading credentials, opening clients, resolving remote metadata, or making network calls. Keep GitHub tracker clients reachable only from explicit GitHub commands, using RFC 0014's explicit repository, dry-run/apply, mapping, and conflict rules. Remove automatic tracker sync from hooks and issue lifecycle paths. Keep file-based formats that operate entirely on local files. Remove obsolete integration documentation and examples from supported IssueGraph assets; retain historical records only where explicitly archived and marked obsolete. RFC [0003](completed/0003-drop-remote-sync.md) separately removes Dolt remote replication.
 
 ## Acceptance
 

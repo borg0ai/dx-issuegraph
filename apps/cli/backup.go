@@ -14,7 +14,7 @@ import (
 var backupCmd = &cobra.Command{
 	Use:   "backup",
 	Short: "Back up your issuegraph database",
-	Long: `Back up your issuegraph database for off-machine recovery.
+	Long: `Back up your issuegraph database to a local filesystem destination.
 
 This is a Dolt-native database backup. It preserves the database state,
 including tables, branches, commit history, and working-set data. This is
@@ -22,15 +22,13 @@ different from 'issuegraph export', which writes issue records to JSONL for migr
 and interoperability.
 
 Commands:
-  issuegraph backup init <path>    Set up a backup destination (filesystem or DoltHub)
-  issuegraph backup sync           Push to configured backup destination
+  issuegraph backup init <path>    Set up a local filesystem backup destination
+  issuegraph backup sync           Write to configured local backup destination
   issuegraph backup restore [path] Restore from a backup directory
   issuegraph backup remove         Remove backup destination
   issuegraph backup status         Show backup status
 
-DoltHub is recommended for cloud backup:
-  issuegraph backup init https://doltremoteapi.dolthub.com/<user>/<repo>
-  Set DOLT_REMOTE_USER and DOLT_REMOTE_PASSWORD for authentication.
+Remote backup destinations are disabled.
 
 Auto-backup default:
   When backup.enabled is unset, auto-backup turns ON in embedded mode if a
@@ -113,7 +111,7 @@ func newBackupStatusCommand(sizeDatabase backupSizeFunc) *cobra.Command {
 				fmt.Println()
 				fmt.Println("Setup:")
 				fmt.Println("  issuegraph backup init <path>    Set up a backup destination")
-				fmt.Println("  issuegraph backup sync           Push to backup destination")
+				fmt.Println("  issuegraph backup sync           Write to local backup destination")
 				if sizeAvailable {
 					showDBSize(databaseSize)
 				}

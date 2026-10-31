@@ -11,15 +11,10 @@ Bootstrap sets up the issuegraph database without destroying existing data.
 Unlike 'issuegraph init --force', bootstrap will never delete existing issues.
 
 Bootstrap auto-detects the right action:
-  • If sync.remote is configured: clones from the remote
-  • If git origin has Dolt data (refs/dolt/data): clones from git and wires origin for future push/pull
   • If .issuegraph/backup/*.jsonl exists: restores from backup
   • If .issuegraph/issues.jsonl exists: imports from git-tracked JSONL
   • If no database exists: creates a fresh one
   • If database already exists: validates and reports status
-
-If sync.remote points at a git repository, bootstrap verifies refs/dolt/data
-before cloning. Bootstrap exits non-zero when it cannot set up a database.
 
 This is the recommended command for:
   • Setting up issuegraph on a fresh clone

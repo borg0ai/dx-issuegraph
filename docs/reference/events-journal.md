@@ -452,10 +452,8 @@ assumes otherwise.
   active branch. Records arrive by direct write, not by merge, so read on the
   same branch the writer commits to; a branch checkout or merge carries no
   records across.
-- **[Sync](/core-concepts/sync-concepts) is not journaled.** `issuegraph dolt pull`,
-  and the changes a merge settles into this clone, arrived as data — nothing
-  here wrote them through the mutation path. A consumer mirroring a synced
-  workspace re-baselines after a sync.
+- **Remote sync is disabled.** Share tracked workspace snapshots with your Git
+  client when another clone needs the changes.
 - **Raw SQL is not journaled.** DML run through `issuegraph sql` bypasses the write
   paths that record, and is a known non-coverage.
 - **Store-open writes are not journaled.** Schema migrations and the version
