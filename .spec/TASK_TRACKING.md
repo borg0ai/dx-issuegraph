@@ -21,4 +21,7 @@
   - [ ] Implement RFC 0017: Ship only through the three shipify channels (child of 0001) (RFC 0017)
   - [ ] Implement RFC 0018: Move the MCP server into the Go CLI (child of 0001) (RFC 0018)
   - [x] Implement RFC 0019: Release only through shipify, with no release machinery in the repository (child of 0001) (RFC 0019)
-- [ ] Implement RFC 0020: Pre-commit hook reads go version from go.work (RFC 0020)
+
+## Done
+- [x] Implement RFC 0020: Pre-commit hook reads go version from go.work (RFC 0020)
+

@@ -1,6 +1,6 @@
 # RFC 0020: Pre-commit hook reads go version from go.work
 
-**Status:** Approved
+**Status:** Implemented
 
 ## Summary
 
