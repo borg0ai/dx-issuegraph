@@ -228,6 +228,14 @@ type VersionChange struct {
 // versionChanges contains agent-actionable changes for recent versions
 var versionChanges = []VersionChange{
 	{
+		Version: "1.3.3",
+		Date:    "2026-11-01",
+		Changes: []string{
+			"BREAKING: 'issuegraph setup' is now 'issuegraph install'. With no argument it installs the IssueGraph skill into the global skills directory of claude, codex, gemini, hermes, antigravity and pi. 'issuegraph init' still creates the repository's issue database.",
+			"Release binaries are cgo builds with embedded Dolt bundled; 1.3.1 and 1.3.2 could not run 'init' because they were built without cgo.",
+		},
+	},
+	{
 		Version: "1.3.2",
 		Date:    "2026-11-01",
 		Changes: []string{

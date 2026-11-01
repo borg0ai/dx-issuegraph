@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-11-01
+
+### Fixed
+
+- **Release binaries open embedded Dolt again.** The 1.3.1 and 1.3.2 binaries were built with `CGO_ENABLED=0`, so a bare `issuegraph init` failed with "embedded Dolt requires a CGO build". Releases are now cgo builds with Dolt bundled, produced by `scripts/build-release.sh`. Archives are about 70 to 90 MB. The Windows archives are built but were not run.
+
+### Changed
+
+- **BREAKING:** `issuegraph setup` is now `issuegraph install`. With no argument it installs the full IssueGraph skill into the global skills directory of claude, codex, gemini, hermes, antigravity and pi (`--check`, `--dry-run`, `--remove`, `--json`). `issuegraph init` still creates the repository's issue database.
+- `info`, `doctor` and `version` print styled output on a terminal; plain text is unchanged for pipes, `NO_COLOR`, agent mode and `--json`.
+- `make build` generates the embedded skill assets first.
+
 ## [1.3.2] - 2026-11-01
 
 ### Removed

@@ -121,10 +121,12 @@ scoop install shennong/issuegraph
 
 Each channel installs the matching archive from the tagged GitHub Release and pins its SHA-256 from the release `SHA256SUMS`.
 
-**Latest release: 1.3.2.** BREAKING: the legacy BEADS names are gone. `BEADS_DIR`,
-`BEADS_MAIL_DELEGATE` and the `.beads` workspace directory are no longer read; use
-`ISSUEGRAPH_DIR`, `ISSUEGRAPH_MAIL_DELEGATE` and `.issuegraph`. Also fixes the
-pre-commit hook so commits that stage Go files work again.
+**Latest release: 1.3.3.** Fixes `issuegraph init` on the release binaries: 1.3.1 and
+1.3.2 were built without cgo and could not open embedded Dolt; releases are now cgo
+builds with Dolt bundled (archives are about 70 to 90 MB; the Windows archives were
+built but not run). BREAKING: `issuegraph setup` is now `issuegraph install`, which
+installs the agent skill globally. `info`, `doctor` and `version` get styled output on
+a terminal.
 
 **Then install the agent skill (once per machine):**
 
