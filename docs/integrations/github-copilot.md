@@ -5,7 +5,7 @@ description: Use issuegraph from Copilot Chat in VS Code via the issuegraph-mcp 
 
 IssueGraph gives Copilot a persistent, structured memory for tracking work: with the MCP server configured, you create, update, and track issues in natural language without leaving the editor.
 
-This page covers **Copilot Chat in VS Code via MCP**. For the terminal-based Copilot CLI plugin installed by `issuegraph setup copilot`, see [Copilot CLI](/integrations/copilot-cli).
+This page covers **Copilot Chat in VS Code via MCP**. For the terminal-based Copilot CLI plugin installed by `issuegraph install copilot`, see [Copilot CLI](/integrations/copilot-cli).
 
 ## Prerequisites
 

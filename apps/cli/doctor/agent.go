@@ -587,7 +587,7 @@ func enrichCursor(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Cursor integration: %s. IssueGraph integrates with Cursor via agent hooks in .cursor/hooks.json (or ~/.cursor/hooks.json) that run 'issuegraph cursor-hook' to inject issuegraph prime on sessionStart and recover context after compaction.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "Cursor hooks configured for issuegraph (issuegraph cursor-hook on sessionStart/preCompact/postToolUse)",
-		commands:    []string{"issuegraph setup cursor"},
+		commands:    []string{"issuegraph install cursor"},
 		sourceFiles: []string{"apps/cli/doctor/cursor.go:CheckCursor"},
 	}
 }
@@ -598,7 +598,7 @@ func enrichCursorSettings(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Cursor hooks file is malformed: %s. A corrupted .cursor/hooks.json prevents Cursor from loading any hooks, which silently breaks issuegraph context injection and post-compaction recovery.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    ".cursor/hooks.json (and ~/.cursor/hooks.json) are valid JSON",
-		commands:    []string{"cat .cursor/hooks.json | python3 -m json.tool", "issuegraph setup cursor"},
+		commands:    []string{"cat .cursor/hooks.json | python3 -m json.tool", "issuegraph install cursor"},
 		sourceFiles: []string{"apps/cli/doctor/cursor.go:CheckCursorSettingsHealth"},
 	}
 }
@@ -609,7 +609,7 @@ func enrichCursorHooks(dc DoctorCheck) agentEnrichment {
 		explanation: fmt.Sprintf("Cursor hook completeness: %s. IssueGraph recovers context across compaction in Cursor using three hooks: sessionStart, preCompact, and postToolUse. A partial install degrades recovery.", dc.Message),
 		observed:    dc.Message + "\n" + dc.Detail,
 		expected:    "sessionStart, preCompact, and postToolUse hooks all configured for issuegraph",
-		commands:    []string{"issuegraph setup cursor"},
+		commands:    []string{"issuegraph install cursor"},
 		sourceFiles: []string{"apps/cli/doctor/cursor.go:CheckCursorHookCompleteness"},
 	}
 }

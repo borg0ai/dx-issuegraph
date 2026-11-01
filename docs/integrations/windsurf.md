@@ -6,8 +6,8 @@ description: Enable issuegraph in Windsurf through a .windsurf/rules/issuegraph.
 Use IssueGraph with Windsurf through a project rules file.
 
 ```bash
-issuegraph setup windsurf
-issuegraph setup windsurf --check
+issuegraph install windsurf
+issuegraph install windsurf --check
 ```
 
 The setup command creates `.windsurf/rules/issuegraph.md` with IssueGraph workflow guidance.
@@ -15,5 +15,5 @@ The setup command creates `.windsurf/rules/issuegraph.md` with IssueGraph workfl
 ## Remove
 
 ```bash
-issuegraph setup windsurf --remove
+issuegraph install windsurf --remove
 ```

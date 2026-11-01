@@ -6,8 +6,8 @@ description: Set up issuegraph for Codex with the issuegraph skill, a managed AG
 Use IssueGraph with Codex through the `issuegraph` skill, managed `AGENTS.md` guidance, and native Codex hooks.
 
 ```bash
-issuegraph setup codex
-issuegraph setup codex --check
+issuegraph install codex
+issuegraph install codex --check
 ```
 
 Project setup writes:
@@ -17,7 +17,7 @@ Project setup writes:
 - `.codex/config.toml` with `[features].hooks = true`.
 - `.codex/hooks.json` with the IssueGraph hook fallback.
 
-`issuegraph init` runs this project setup by default unless `--skip-agents` or `--stealth` is used. Global setup uses `issuegraph setup codex --global` and writes under `$CODEX_HOME` when set, otherwise `~/.codex`.
+`issuegraph init` runs this project setup by default unless `--skip-agents` or `--stealth` is used. Global setup uses `issuegraph install codex --global` and writes under `$CODEX_HOME` when set, otherwise `~/.codex`.
 
 Codex 0.129.0+ supports `/hooks`, compact lifecycle hooks, and hook-provided developer context. IssueGraph uses that lifecycle to inject `issuegraph prime` on session start and recover context after compaction. Use `/hooks` to inspect or toggle the installed handlers.
 
@@ -32,11 +32,11 @@ Codex 0.129.0+ supports `/hooks`, compact lifecycle hooks, and hook-provided dev
 
 Refresh markers are stored in a user cache/temp directory keyed by Codex `session_id` and workspace path. They are not written to tracked files or to the IssueGraph database.
 
-The IssueGraph Codex plugin stores hooks at `issuegraph/.codex-plugin/hooks/hooks.json` and declares them in `issuegraph/.codex-plugin/plugin.json` as `"hooks": "./.codex-plugin/hooks/hooks.json"`. Without the plugin, `issuegraph setup codex` installs the same hook config in `.codex/hooks.json` and enables `[features].hooks = true`.
+The IssueGraph Codex plugin stores hooks at `issuegraph/.codex-plugin/hooks/hooks.json` and declares them in `issuegraph/.codex-plugin/plugin.json` as `"hooks": "./.codex-plugin/hooks/hooks.json"`. Without the plugin, `issuegraph install codex` installs the same hook config in `.codex/hooks.json` and enables `[features].hooks = true`.
 
 ## Manual Fallback
 
-If you manage `.codex/hooks.json` by hand instead of running `issuegraph setup codex`, the equivalent shape is:
+If you manage `.codex/hooks.json` by hand instead of running `issuegraph install codex`, the equivalent shape is:
 
 ```json
 {

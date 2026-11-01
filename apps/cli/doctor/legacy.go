@@ -74,7 +74,7 @@ func CheckLegacyIssueGraphSlashCommands(repoPath string) DoctorCheck {
 		Fix: "Migrate to issuegraph prime hooks for better token efficiency:\n" +
 			"\n" +
 			"Migration Steps:\n" +
-			"  1. Run 'issuegraph setup claude' to add SessionStart hooks\n" +
+			"  1. Run 'issuegraph install claude' to add SessionStart hooks\n" +
 			"  2. Update " + config.AgentsFile() + "/CLAUDE.md:\n" +
 			"     - Remove /issuegraph:* slash command references\n" +
 			"     - Add: \"Run 'issuegraph prime' for workflow context\" (for users without hooks)\n" +
@@ -84,7 +84,7 @@ func CheckLegacyIssueGraphSlashCommands(repoPath string) DoctorCheck {
 			"  • CLI mode: ~1-2k tokens with automatic context recovery\n" +
 			"  • Hooks auto-refresh context on session start and before compaction\n" +
 			"\n" +
-			"See: issuegraph setup claude --help",
+			"See: issuegraph install claude --help",
 	}
 }
 
@@ -136,7 +136,7 @@ func CheckLegacyMCPToolReferences(repoPath string) DoctorCheck {
 		Fix: "Migrate to issuegraph prime hooks for better token efficiency:\n" +
 			"\n" +
 			"Migration Steps:\n" +
-			"  1. Run 'issuegraph setup claude' to add SessionStart hooks\n" +
+			"  1. Run 'issuegraph install claude' to add SessionStart hooks\n" +
 			"  2. Replace MCP tool references with CLI commands:\n" +
 			"     - mcp__issuegraph_issuegraph__list  → issuegraph list\n" +
 			"     - mcp__issuegraph_issuegraph__show  → issuegraph show <id>\n" +
@@ -147,12 +147,12 @@ func CheckLegacyMCPToolReferences(repoPath string) DoctorCheck {
 			"  • issuegraph prime + hooks: ~50-2k tokens vs ~10.5k for MCP tool scan\n" +
 			"  • Automatic context recovery on session start and compaction\n" +
 			"\n" +
-			"See: issuegraph setup claude --help",
+			"See: issuegraph install claude --help",
 	}
 }
 
 // CheckAgentDocumentation checks if agent documentation (AGENTS.md or CLAUDE.md) exists
-// and recommends adding it if missing, suggesting issuegraph onboard or issuegraph setup claude.
+// and recommends adding it if missing, suggesting issuegraph onboard or issuegraph install claude.
 // Also supports local-only variants (claude.local.md) that are gitignored.
 func CheckAgentDocumentation(repoPath string) DoctorCheck {
 	docFiles := agentDocFiles(repoPath)
@@ -180,7 +180,7 @@ func CheckAgentDocumentation(repoPath string) DoctorCheck {
 			"  Documenting workflow helps AI agents work more effectively",
 		Fix: "Add agent documentation:\n" +
 			"  • Run 'issuegraph onboard' to create " + config.AgentsFile() + " with workflow guidance\n" +
-			"  • Or run 'issuegraph setup claude' to add Claude-specific documentation\n" +
+			"  • Or run 'issuegraph install claude' to add Claude-specific documentation\n" +
 			"\n" +
 			"For local-only documentation (not committed to repo):\n" +
 			"  • Create claude.local.md or .claude/claude.local.md\n" +
@@ -258,7 +258,7 @@ func sameInode(a, b string) (bool, error) {
 // independent regular files whose user-authored regions (everything outside
 // the BEGIN/END ISSUEGRAPH INTEGRATION markers) have drifted apart. Hand-edits to
 // only one of the pair are a common source of inconsistency; the warning
-// recommends symlinking, regenerating via issuegraph setup, or reconciling manually.
+// recommends symlinking, regenerating via issuegraph install, or reconciling manually.
 //
 // Skipped when:
 //   - Either file is missing
@@ -350,7 +350,7 @@ func CheckAgentDocDivergence(repoPath string) DoctorCheck {
 			"\n" +
 			"  (b) Regenerate the managed sections (preserves user-authored content\n" +
 			"      from AGENTS.md as the source of truth):\n" +
-			"      issuegraph setup claude && issuegraph setup codex\n" +
+			"      issuegraph install claude && issuegraph install codex\n" +
 			"\n" +
 			"  (c) Reconcile manually — diff the files and copy the intended\n" +
 			"      user-authored content into both:\n" +

@@ -23,7 +23,7 @@ const claudeInstructionsFile = "CLAUDE.md"
 
 var claudeAgentsIntegration = agentsIntegration{
 	name:         "Claude Code",
-	setupCommand: "issuegraph setup claude",
+	setupCommand: "issuegraph install claude",
 	profile:      agents.ProfileMinimal,
 }
 
@@ -83,7 +83,7 @@ func marshalSettings(settings map[string]interface{}) ([]byte, error) {
 }
 
 // writeSettingsIfChanged writes data to path only when it differs from what is
-// already on disk. GH#5693: issuegraph init / issuegraph setup claude marshaled and wrote
+// already on disk. GH#5693: issuegraph init / issuegraph install claude marshaled and wrote
 // settings.json on every run, so a no-op run still churned the file's mtime
 // and — because MarshalIndent emits no trailing newline — silently stripped it.
 func writeSettingsIfChanged(env claudeEnv, path string, data []byte) error {
@@ -420,7 +420,7 @@ func warnIfClaudeHooksUseRemovedSync(env claudeEnv) {
 		if !claudeSettingsUsesRemovedSyncCommand(data) {
 			continue
 		}
-		_, _ = fmt.Fprintf(env.stderr, "Warning: %s contains a hook using removed remote sync. Run issuegraph setup claude to refresh hooks, or edit settings manually.\n", p)
+		_, _ = fmt.Fprintf(env.stderr, "Warning: %s contains a hook using removed remote sync. Run issuegraph install claude to refresh hooks, or edit settings manually.\n", p)
 	}
 }
 
@@ -446,13 +446,13 @@ func checkClaude(env claudeEnv) error {
 		_, _ = fmt.Fprintf(env.stdout, "✓ Global hooks installed: %s\n", globalSettings)
 	case hasIssueGraphHooks(legacySettings):
 		_, _ = fmt.Fprintf(env.stdout, "✓ Project hooks installed (legacy): %s\n", legacySettings)
-		_, _ = fmt.Fprintf(env.stdout, "  Consider running 'issuegraph setup claude' to migrate to .claude/settings.json\n")
+		_, _ = fmt.Fprintf(env.stdout, "  Consider running 'issuegraph install claude' to migrate to .claude/settings.json\n")
 	case hasIssueGraphPlugin(env):
 		// GH#3192: Plugin provides hooks via plugin.json — no project-level hooks needed
 		_, _ = fmt.Fprintln(env.stdout, "✓ Hooks provided by issuegraph plugin (plugin-managed)")
 	default:
 		_, _ = fmt.Fprintln(env.stdout, "✗ No hooks installed")
-		_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph setup claude")
+		_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph install claude")
 		return errClaudeHooksMissing
 	}
 
@@ -660,7 +660,7 @@ func removeHookCommand(hooks map[string]interface{}, event, command string) {
 
 // hasIssueGraphPlugin checks if the issuegraph Claude Code plugin is enabled in any
 // settings file. The plugin declares its own SessionStart hooks in plugin.json,
-// so project-level hooks from issuegraph setup claude would duplicate them.
+// so project-level hooks from issuegraph install claude would duplicate them.
 func hasIssueGraphPlugin(env claudeEnv) bool {
 	paths := []string{
 		projectSettingsPath(env.projectDir),

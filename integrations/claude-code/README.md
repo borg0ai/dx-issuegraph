@@ -14,7 +14,7 @@ nix profile install github:systembugtj/cangjie-nix#issuegraph
 scoop bucket add shennong https://github.com/systembugtj/shennong-bucket && scoop install shennong/issuegraph
 
 # Install hooks (auto-injects workflow context on session start)
-issuegraph setup claude
+issuegraph install claude
 ```
 
 ## Installation
@@ -61,7 +61,7 @@ Run `issuegraph ready` to start.
 ## Related
 
 - `issuegraph prime` - Workflow context (auto-injected via hooks)
-- `issuegraph setup claude` - Install/manage Claude Code hooks
+- `issuegraph install claude` - Install/manage Claude Code hooks
 - `issuegraph ready` - Find unblocked work
 
 ## License

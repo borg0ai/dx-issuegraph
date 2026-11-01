@@ -10,7 +10,7 @@ How to use issuegraph with Claude Code.
 ### Quick Setup
 
 ```bash
-issuegraph setup claude
+issuegraph install claude
 ```
 
 This installs:
@@ -20,12 +20,12 @@ This installs:
 By default the hook is written to the project's `.claude/settings.json`. Variants:
 
 ```bash
-issuegraph setup claude --global   # Install to ~/.claude/settings.json instead
-issuegraph setup claude --stealth  # Stealth mode: flush only, no git operations
-issuegraph setup claude --remove   # Remove the hook and the CLAUDE.md section
+issuegraph install claude --global   # Install to ~/.claude/settings.json instead
+issuegraph install claude --stealth  # Stealth mode: flush only, no git operations
+issuegraph install claude --remove   # Remove the hook and the CLAUDE.md section
 ```
 
-If the [issuegraph plugin](/integrations/claude-code-plugin) is enabled, `issuegraph setup claude` skips writing hooks - the plugin provides its own, and duplicates would run `issuegraph prime` twice per session.
+If the [issuegraph plugin](/integrations/claude-code-plugin) is enabled, `issuegraph install claude` skips writing hooks - the plugin provides its own, and duplicates would run `issuegraph prime` twice per session.
 
 ### Manual Setup
 
@@ -51,7 +51,7 @@ The `--hook-json` flag wraps the output in the hook JSON envelope Claude Code ex
 ### Verify Setup
 
 ```bash
-issuegraph setup claude --check
+issuegraph install claude --check
 ```
 
 ## How It Works
@@ -179,7 +179,7 @@ Adds slash commands:
 
 ```bash
 # Check hook setup
-issuegraph setup claude --check
+issuegraph install claude --check
 
 # Manually prime
 issuegraph prime

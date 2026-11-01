@@ -4,7 +4,7 @@ import "github.com/borg0ai/dx-issuegraph/internal/templates/agents"
 
 var opencodeIntegration = agentsIntegration{
 	name:         "OpenCode",
-	setupCommand: "issuegraph setup opencode",
+	setupCommand: "issuegraph install opencode",
 	readHint:     "OpenCode reads AGENTS.md at the start of each session. Restart OpenCode if it is already running.",
 	profile:      agents.ProfileFull,
 }

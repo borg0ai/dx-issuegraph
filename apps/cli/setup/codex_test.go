@@ -184,7 +184,7 @@ func TestCheckCodexMissingPieces(t *testing.T) {
 	if !errors.Is(err, errAgentSkillMissing) {
 		t.Fatalf("expected errAgentSkillMissing, got %v", err)
 	}
-	if !strings.Contains(stdout.String(), "issuegraph setup codex") {
+	if !strings.Contains(stdout.String(), "issuegraph install codex") {
 		t.Error("expected setup guidance for codex")
 	}
 
@@ -396,7 +396,7 @@ func TestCodexConfigEnablesIssueGraphPlugin(t *testing.T) {
 		},
 		{
 			// The exact-name match must still find a real issuegraph@<marketplace>;
-			// this is the quoted form issuegraph setup codex actually writes.
+			// this is the quoted form issuegraph install codex actually writes.
 			name:    "real quoted issuegraph plugin detected",
 			content: "[plugins.\"issuegraph@local\"]\nenabled = true\n",
 			want:    true,

@@ -194,8 +194,8 @@ func TestCheckLegacyIssueGraphSlashCommands(t *testing.T) {
 				if check.Fix == "" {
 					t.Error("Expected fix message for warning, got empty string")
 				}
-				if !strings.Contains(check.Fix, "issuegraph setup claude") {
-					t.Error("Expected fix message to mention 'issuegraph setup claude'")
+				if !strings.Contains(check.Fix, "issuegraph install claude") {
+					t.Error("Expected fix message to mention 'issuegraph install claude'")
 				}
 				if !strings.Contains(check.Fix, "token") {
 					t.Error("Expected fix message to mention token savings")
@@ -313,8 +313,8 @@ func TestCheckLegacyMCPToolReferences(t *testing.T) {
 				if check.Fix == "" {
 					t.Error("Expected fix message for warning, got empty string")
 				}
-				if !strings.Contains(check.Fix, "issuegraph setup claude") {
-					t.Error("Expected fix message to mention 'issuegraph setup claude'")
+				if !strings.Contains(check.Fix, "issuegraph install claude") {
+					t.Error("Expected fix message to mention 'issuegraph install claude'")
 				}
 				if !strings.Contains(check.Fix, "token") {
 					t.Error("Expected fix message to mention token savings")
@@ -563,8 +563,8 @@ func TestCheckAgentDocDivergence(t *testing.T) {
 		if !strings.Contains(check.Fix, "ln -sf") {
 			t.Error("expected fix to suggest symlink option")
 		}
-		if !strings.Contains(check.Fix, "issuegraph setup claude") {
-			t.Error("expected fix to suggest issuegraph setup claude")
+		if !strings.Contains(check.Fix, "issuegraph install claude") {
+			t.Error("expected fix to suggest issuegraph install claude")
 		}
 	})
 

@@ -498,7 +498,7 @@ var proxyPermittedPaths = []string{
 	// workspace lifecycle and configuration
 	"bootstrap", "config apply", "config drift", "config get", "config list", "config set",
 	"config set-many", "config show", "config unset", "config validate", "context",
-	"init", "init-safety", "onboard", "preflight", "quickstart", "schema", "setup", "where",
+	"init", "init-safety", "onboard", "preflight", "quickstart", "schema", "install", "where",
 	"version", "worktree create", "worktree info", "worktree list", "worktree remove",
 
 	// storage, history and migration paths that are already routed or store-free

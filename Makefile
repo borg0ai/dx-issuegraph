@@ -101,6 +101,8 @@ REGRESSION_TIMEOUT ?= 20m
 
 # Build the native CLI binary for apps/cli
 build:
+	@echo "Generating embedded skill assets..."
+	@node scripts/generate-issuegraph-assets.mjs
 	@echo "Building CLI..."
 ifeq ($(OS),Windows_NT)
 	@if [ -n "$$CC" ]; then \

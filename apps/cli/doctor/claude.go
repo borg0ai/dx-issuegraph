@@ -54,14 +54,14 @@ func CheckClaude(repoPath string) DoctorCheck {
 			Detail: "MCP-only mode: relies on tools for every query (~10.5k tokens)\n" +
 				"  issuegraph prime hooks provide much better token efficiency",
 			Fix: "Add issuegraph prime hooks for better token efficiency:\n" +
-				"  1. Run 'issuegraph setup claude' to add SessionStart hooks\n" +
+				"  1. Run 'issuegraph install claude' to add SessionStart hooks\n" +
 				"\n" +
 				"Benefits:\n" +
 				"  • MCP mode: ~50 tokens vs ~10.5k for full tool scan (99% reduction)\n" +
 				"  • Automatic context refresh on session start and compaction\n" +
 				"  • Works alongside MCP tools for when you need them\n" +
 				"\n" +
-				"See: issuegraph setup claude --help",
+				"See: issuegraph install claude --help",
 		}
 	} else if !inClaudeCode || !isClaudePresent() {
 		// Not in Claude Code, or CLAUDECODE=1 was set by another AI tool but
@@ -70,7 +70,7 @@ func CheckClaude(repoPath string) DoctorCheck {
 			Name:    "Claude Integration",
 			Status:  "ok",
 			Message: "CLI-only mode",
-			Detail:  "To enable Claude integration, run issuegraph setup claude",
+			Detail:  "To enable Claude integration, run issuegraph install claude",
 		}
 	} else {
 		// In Claude Code but plugin not installed
@@ -85,7 +85,7 @@ func CheckClaude(repoPath string) DoctorCheck {
 				"    • See: https://github.com/borg0ai/dx-issuegraph/blob/main/docs/integrations/claude-code-plugin.md\n" +
 				"\n" +
 				"  Option 2: CLI-only mode\n" +
-				"    • Run 'issuegraph setup claude' to add SessionStart hooks\n" +
+				"    • Run 'issuegraph install claude' to add SessionStart hooks\n" +
 				"    • No slash commands, but hooks provide workflow context\n" +
 				"\n" +
 				"Benefits:\n" +
@@ -756,7 +756,7 @@ func CheckClaudeHookCompleteness(repoPath string) DoctorCheck {
 		Status:  StatusWarning,
 		Message: "Missing hook event(s): SessionStart",
 		Detail:  "SessionStart injects context on new sessions and after compaction.",
-		Fix: "Run 'issuegraph setup claude' to install hooks, or\n" +
+		Fix: "Run 'issuegraph install claude' to install hooks, or\n" +
 			"install the issuegraph plugin which includes hooks automatically.",
 	}
 }

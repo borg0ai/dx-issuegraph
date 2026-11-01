@@ -8,7 +8,7 @@ import (
 
 // resetPhysicalRootEnv neutralizes every env var ResolvePhysicalRoots (and
 // the helpers under it) consults, so tests describe the mode themselves
-// rather than inheriting the developer machine's issuegraph setup. The central
+// rather than inheriting the developer machine's issuegraph install. The central
 // config is pointed at a nonexistent file for the same reason — a real
 // ~/.config/issuegraph/server.json on the host must not leak modes into tests.
 func resetPhysicalRootEnv(t *testing.T) {

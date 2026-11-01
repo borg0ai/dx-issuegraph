@@ -1,4 +1,4 @@
-// Package recipes provides recipe-based configuration for issuegraph setup.
+// Package recipes provides recipe-based configuration for issuegraph install.
 // Recipes define where issuegraph workflow instructions are written for different AI tools.
 package recipes
 

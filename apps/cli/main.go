@@ -1193,6 +1193,7 @@ var rootCmd = &cobra.Command{
 			"hooks",
 			"human",
 			"init",
+			"install", // global agent skill install; works in any directory
 			"merge",
 			"metrics", // config-only: status/on/off/example never touch the DB
 			"onboard",
@@ -1200,7 +1201,6 @@ var rootCmd = &cobra.Command{
 			"prime",
 			"quickstart",
 			metrics.SendMetricsSubcommand,
-			"setup",
 			"version",
 			"where",
 			"zsh",
@@ -1398,7 +1398,7 @@ var rootCmd = &cobra.Command{
 			} else {
 				// No database found — allow some commands to run without a database
 				// - import: auto-initializes database if missing
-				// - setup: creates editor integration files (no DB needed)
+				// - install: creates editor integration files (no DB needed)
 				// - config subcommands that operate on config.yaml, git config,
 				//   or best-effort diagnostics only (GH#536, bd-934, bd-omc, bd-3rw)
 				if configCommandCanRunWithoutStore(cmd, args) {
@@ -1433,7 +1433,7 @@ var rootCmd = &cobra.Command{
 					}
 				}
 
-				if dbPath == "" && cmd.Name() != "import" && cmd.Name() != "setup" {
+				if dbPath == "" && cmd.Name() != "import" && cmd.Name() != "install" {
 					// No database found - provide context-aware error message
 					fmt.Fprintf(os.Stderr, "Error: no issuegraph database found\n")
 					fmt.Fprintf(os.Stderr, "Hint: %s\n", diagHint())
@@ -1442,7 +1442,7 @@ var rootCmd = &cobra.Command{
 				}
 
 				if dbPath == "" {
-					// For import/setup commands, set default database path
+					// For import/install commands, set default database path
 					// Invariant: dbPath must always be absolute. Use CanonicalizePath for OS-agnostic
 					// handling (symlinks, case normalization on macOS).
 					//

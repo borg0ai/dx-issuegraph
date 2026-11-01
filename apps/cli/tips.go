@@ -292,7 +292,7 @@ func isClaudeDetected() bool {
 
 // isClaudeSetupComplete checks if the issuegraph Claude integration is properly configured.
 // Returns true if the issuegraph plugin is installed (provides hooks via plugin.json),
-// or if hooks were manually installed via 'issuegraph setup claude'.
+// or if hooks were manually installed via 'issuegraph install claude'.
 func isClaudeSetupComplete() bool {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -317,7 +317,7 @@ func isClaudeSetupComplete() bool {
 		}
 	}
 
-	// Check for manual hooks installation via 'issuegraph setup claude'
+	// Check for manual hooks installation via 'issuegraph install claude'
 	// Global hooks in settings.json
 	if hasIssueGraphPrimeHooks(settingsPath) {
 		return true
@@ -389,7 +389,7 @@ func initDefaultTips() {
 	// but the integration is not configured
 	InjectTip(
 		"claude_setup",
-		"Install the issuegraph plugin for automatic workflow context, or run 'issuegraph setup claude' for CLI-only mode",
+		"Install the issuegraph plugin for automatic workflow context, or run 'issuegraph install claude' for CLI-only mode",
 		100,          // Highest priority - this is important for Claude users
 		24*time.Hour, // Daily minimum gap
 		0.6,          // 60% chance when eligible (~4 times per week)

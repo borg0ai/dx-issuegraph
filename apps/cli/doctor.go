@@ -474,13 +474,14 @@ func printEmbeddedUnsupported(commandLabel string) {
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, "Note: 'issuegraph %s' is not yet supported in embedded mode.\n\n", commandLabel)
-	fmt.Fprintln(os.Stderr, "For embedded mode troubleshooting:")
+	fmt.Fprintln(os.Stderr, ui.Info(fmt.Sprintf("Note: 'issuegraph %s' is not yet supported in embedded mode.", commandLabel)))
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, ui.Section("For embedded mode troubleshooting"))
 	for _, h := range hints {
 		fmt.Fprintf(os.Stderr, "  • %s\n", h)
 	}
 	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "Checks available in embedded mode:")
+	fmt.Fprintln(os.Stderr, ui.Section("Checks available in embedded mode"))
 	fmt.Fprintln(os.Stderr, "  • issuegraph doctor --check=artifacts")
 	fmt.Fprintln(os.Stderr, "  • issuegraph doctor --check=conventions")
 	fmt.Fprintln(os.Stderr, "  • issuegraph doctor --check=pollution")

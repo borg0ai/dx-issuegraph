@@ -8,6 +8,7 @@ import (
 	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/borg0ai/dx-issuegraph/internal/workapi"
 	"github.com/spf13/cobra"
 )
@@ -152,27 +153,26 @@ func renderInfo(info map[string]interface{}, schemaFlag bool, absDBPath string, 
 
 	mode, _ := info["mode"].(string)
 
-	fmt.Println("\nIssueGraph Database Information")
-	fmt.Println("===========================")
-	fmt.Printf("Database: %s\n", absDBPath)
-	fmt.Printf("Mode: %s\n", mode)
+	fmt.Println("\n" + ui.Banner("IssueGraph Database Information"))
+	fmt.Println(ui.Field("Database", absDBPath))
+	fmt.Println(ui.Field("Mode", mode))
 
 	if count, ok := info["issue_count"].(int); ok {
-		fmt.Printf("\nIssue Count: %d\n", count)
+		fmt.Println("\n" + ui.Field("Issue Count", fmt.Sprint(count)))
 	}
 
 	if schemaFlag {
 		if schemaInfo, ok := info["schema"].(map[string]interface{}); ok {
-			fmt.Println("\nSchema Information:")
-			fmt.Printf("  Tables: %v\n", schemaInfo["tables"])
+			fmt.Println("\n" + ui.Section("Schema Information"))
+			fmt.Println("  " + ui.Field("Tables", fmt.Sprint(schemaInfo["tables"])))
 			if version, ok := schemaInfo["schema_version"].(string); ok {
-				fmt.Printf("  Schema Version: %s\n", version)
+				fmt.Println("  " + ui.Field("Schema Version", version))
 			}
 			if prefix, ok := schemaInfo["detected_prefix"].(string); ok && prefix != "" {
-				fmt.Printf("  Detected Prefix: %s\n", prefix)
+				fmt.Println("  " + ui.Field("Detected Prefix", prefix))
 			}
 			if samples, ok := schemaInfo["sample_issue_ids"].([]string); ok && len(samples) > 0 {
-				fmt.Printf("  Sample Issues: %v\n", samples)
+				fmt.Println("  " + ui.Field("Sample Issues", fmt.Sprint(samples)))
 			}
 		}
 	}
@@ -180,7 +180,7 @@ func renderInfo(info map[string]interface{}, schemaFlag bool, absDBPath string, 
 	if !suppressHookWarning {
 		hookStatuses := CheckGitHooks()
 		if warning := FormatHookWarnings(hookStatuses); warning != "" {
-			fmt.Printf("\n%s\n", warning)
+			fmt.Printf("\n%s\n", ui.Warn(warning))
 		}
 	}
 
@@ -540,7 +540,7 @@ var versionChanges = []VersionChange{
 			"NEW: issuegraph list --tree is now the default display mode",
 			"NEW: issuegraph doctor detects fresh clone state on Dolt server",
 			"NEW: issuegraph init distinguishes server-reachable from DB-exists",
-			"NEW: issuegraph setup includes OpenCode recipe",
+			"NEW: issuegraph install includes OpenCode recipe",
 			"NEW: issuegraph doctor warning suppression via config",
 			"CHANGED: Daemon infrastructure fully removed — issuegraph is purely CLI-driven",
 			"CHANGED: Backup git-push defaults to OFF (explicit opt-in required)",
@@ -1249,7 +1249,7 @@ var versionChanges = []VersionChange{
 			"REMOVED: issuegraph mail commands (send, inbox, read, ack, reply) - Mail is orchestration, not data plane",
 			"NOTE: Data model unchanged - type=message, Sender, Ephemeral, replies_to fields remain",
 			"NOTE: Orchestration tools should implement mail UI on top of issuegraph data model",
-			"FIX: Symlink preservation in atomicWriteFile - issuegraph setup no longer clobbers nix/home-manager configs",
+			"FIX: Symlink preservation in atomicWriteFile - issuegraph install no longer clobbers nix/home-manager configs",
 			"FIX: Broken link to LABELS.md in examples",
 		},
 	},
@@ -1322,7 +1322,7 @@ var versionChanges = []VersionChange{
 		Version: "0.30.2",
 		Date:    "2025-12-16",
 		Changes: []string{
-			"issuegraph setup droid - Factory.ai (Droid) IDE support",
+			"issuegraph install droid - Factory.ai (Droid) IDE support",
 			"Messaging schema fields - New 'message' issue type, sender/wisp/replies_to/relates_to/duplicate_of/superseded_by fields",
 			"New dependency types: replies-to, relates-to, duplicates, supersedes",
 			"Windows build fixes - gosec lint errors resolved",

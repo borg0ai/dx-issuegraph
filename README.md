@@ -38,18 +38,18 @@ cd your-project
 issuegraph init
 
 # Optional: refresh or install richer instructions for your agent
-issuegraph setup codex    # Codex CLI - installs skill, AGENTS.md guidance, and hooks
-issuegraph setup claude   # Claude Code - installs hooks/settings
-issuegraph setup factory  # Factory.ai Droid - creates/updates AGENTS.md
+issuegraph install codex    # Codex CLI - installs skill, AGENTS.md guidance, and hooks
+issuegraph install claude   # Claude Code - installs hooks/settings
+issuegraph install factory  # Factory.ai Droid - creates/updates AGENTS.md
 ```
 
 **Note:** IssueGraph is a CLI tool you install once and use everywhere. You don't need to clone this repository into your project.
 
-`issuegraph init` creates or updates `AGENTS.md` by default so agents can discover the issuegraph workflow, and also installs project Claude/Codex integrations unless you pass `--skip-agents` or `--stealth`. Use `issuegraph setup --list` to see supported integrations, including `issuegraph setup codex`, `issuegraph setup factory`, `issuegraph setup claude`, `issuegraph setup mux`, `issuegraph setup cursor`, and more. See [Agent and IDE setup](docs/getting-started/ide-setup.md).
+`issuegraph init` creates or updates `AGENTS.md` by default so agents can discover the issuegraph workflow, and also installs project Claude/Codex integrations unless you pass `--skip-agents` or `--stealth`. Use `issuegraph install --list` to see supported integrations, including `issuegraph install codex`, `issuegraph install factory`, `issuegraph install claude`, `issuegraph install mux`, `issuegraph install cursor`, and more. See [Agent and IDE setup](docs/getting-started/ide-setup.md).
 
-Manual copy-paste is only for unsupported agents, existing projects where you cannot rerun `issuegraph init`/`issuegraph setup`, or custom instruction files. In those cases, run `issuegraph onboard` and paste the printed snippet into the file your agent reads.
+Manual copy-paste is only for unsupported agents, existing projects where you cannot rerun `issuegraph init`/`issuegraph install`, or custom instruction files. In those cases, run `issuegraph onboard` and paste the printed snippet into the file your agent reads.
 
-If your agent is not covered by `issuegraph setup`, add this minimal `AGENTS.md` section:
+If your agent is not covered by `issuegraph install`, add this minimal `AGENTS.md` section:
 
 ```markdown
 This project uses issuegraph (IssueGraph) for issue tracking.
@@ -125,6 +125,17 @@ Each channel installs the matching archive from the tagged GitHub Release and pi
 `BEADS_MAIL_DELEGATE` and the `.beads` workspace directory are no longer read; use
 `ISSUEGRAPH_DIR`, `ISSUEGRAPH_MAIL_DELEGATE` and `.issuegraph`. Also fixes the
 pre-commit hook so commits that stage Go files work again.
+
+**Then install the agent skill (once per machine):**
+
+```bash
+issuegraph install        # every detected agent: claude, codex, gemini, hermes, antigravity, pi
+issuegraph install pi     # one agent
+issuegraph install --check
+```
+
+The skill teaches your coding agents how to use issuegraph in any repository. In each
+repository, run `issuegraph init` to create its issue database.
 
 **Upgrading?** Back up with `issuegraph export --all`, upgrade the binary, then run
 `issuegraph info --whats-new`, `issuegraph hooks install`, and `issuegraph version`.

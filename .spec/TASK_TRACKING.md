@@ -21,9 +21,15 @@
   - [ ] Implement RFC 0017: Ship only through the three shipify channels (child of 0001) (RFC 0017)
   - [ ] Implement RFC 0018: Move the MCP server into the Go CLI (child of 0001) (RFC 0018)
   - [x] Implement RFC 0019: Release only through shipify, with no release machinery in the repository (child of 0001) (RFC 0019)
+- [ ] Implement RFC 0024: Release binaries bundle embedded Dolt (cgo builds) (RFC 0024)
+
 
 ## Done
 - [x] Implement RFC 0020: Pre-commit hook reads go version from go.work (RFC 0020)
 - [x] Implement RFC 0021: Remove BEADS env and .beads directory fallbacks (RFC 0021)
+- [x] Implement RFC 0022: Rich colorful CLI output for key commands (RFC 0022)
+- [x] Implement RFC 0023: issuegraph install: global agent skill install (RFC 0023)
+
+
 
 

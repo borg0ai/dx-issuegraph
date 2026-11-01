@@ -27,31 +27,41 @@ var (
 )
 
 var setupCmd = &cobra.Command{
-	Use:     "setup [recipe]",
+	Use:     "install [recipe]",
 	GroupID: "setup",
-	Short:   "Setup integration with AI editors",
-	Long: `Setup integration files for AI editors and coding assistants.
+	Short:   "Install IssueGraph skills and integrations into AI agents and editors",
+	Long: `Install the IssueGraph agent skill and editor integrations.
+
+With no recipe, installs the complete IssueGraph skill into the global skills
+directory of every detected coding agent (claude, codex, gemini, hermes,
+antigravity, pi). Safe to re-run; nothing is written inside the current repository.
+Naming one of those agents installs the skill for that agent only (claude, codex
+and gemini also run their integration recipe).
 
 Recipes define where issuegraph workflow instructions are written. Built-in recipes
 include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, and kilocode.
 
 Examples:
-  issuegraph setup cursor          # Install Cursor IDE integration (rules + agent hooks)
-  issuegraph setup cursor --global # Install global Cursor hooks (~/.cursor/hooks.json)
-  issuegraph setup kiro            # Install Kiro steering guidance
-  issuegraph setup codex           # Install Codex skill + AGENTS.md guidance + native hooks
-  issuegraph setup codex --global  # Install global Codex skill + guidance + native hooks
-  issuegraph setup copilot         # Install Copilot CLI plugin + repository instructions
-  issuegraph setup mux --project   # Install Mux workspace layer (.mux/AGENTS.md)
-  issuegraph setup mux --global    # Install Mux global layer (~/.mux/AGENTS.md)
-  issuegraph setup mux --project --global  # Install both Mux layers
-  issuegraph setup --list          # Show all available recipes
-  issuegraph setup --print         # Print the template to stdout
-  issuegraph setup -o rules.md     # Write template to custom path
-  issuegraph setup --add myeditor .myeditor/rules.md  # Add custom recipe
+  issuegraph install                 # Install the skill for every detected agent
+  issuegraph install --dry-run       # Show what would change
+  issuegraph install --check         # Verify the skill is installed and current
+  issuegraph install pi              # Install the skill for one agent
+  issuegraph install cursor          # Install Cursor IDE integration (rules + agent hooks)
+  issuegraph install cursor --global # Install global Cursor hooks (~/.cursor/hooks.json)
+  issuegraph install kiro            # Install Kiro steering guidance
+  issuegraph install codex           # Install Codex skill + AGENTS.md guidance + native hooks
+  issuegraph install codex --global  # Install global Codex skill + guidance + native hooks
+  issuegraph install copilot         # Install Copilot CLI plugin + repository instructions
+  issuegraph install mux --project   # Install Mux workspace layer (.mux/AGENTS.md)
+  issuegraph install mux --global    # Install Mux global layer (~/.mux/AGENTS.md)
+  issuegraph install mux --project --global  # Install both Mux layers
+  issuegraph install --list          # Show all available recipes
+  issuegraph install --print         # Print the template to stdout
+  issuegraph install -o rules.md     # Write template to custom path
+  issuegraph install --add myeditor .myeditor/rules.md  # Add custom recipe
 
-Use 'issuegraph setup <recipe> --check' to verify installation status.
-Use 'issuegraph setup <recipe> --remove' to uninstall.`,
+Use 'issuegraph install <recipe> --check' to verify installation status.
+Use 'issuegraph install <recipe> --remove' to uninstall.`,
 	Args:          cobra.MaximumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: true,
@@ -59,7 +69,7 @@ Use 'issuegraph setup <recipe> --remove' to uninstall.`,
 }
 
 func runSetup(cmd *cobra.Command, args []string) error {
-	evt := metrics.NewCommandEvent("setup")
+	evt := metrics.NewCommandEvent("install")
 	defer func() {
 		if c := metrics.Global(); c != nil {
 			c.CloseEventAndAdd(evt)
@@ -85,7 +95,7 @@ func runSetup(cmd *cobra.Command, args []string) error {
 
 	if setupAdd != "" {
 		if len(args) != 1 {
-			return HandleErrorWithHint("--add requires a path argument", "Usage: issuegraph setup --add <name> <path>")
+			return HandleErrorWithHint("--add requires a path argument", "Usage: issuegraph install --add <name> <path>")
 		}
 		if err := addRecipe(setupAdd, args[0]); err != nil {
 			return HandleError("%v", err)
@@ -94,11 +104,13 @@ func runSetup(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(args) == 0 {
-		_ = cmd.Help()
-		return nil
+		return runInstallSkills(nil)
 	}
 
 	recipeName := strings.ToLower(args[0])
+	if isSkillAgent(recipeName) {
+		return runInstallAgent(recipeName)
+	}
 	return runRecipe(recipeName)
 }
 
@@ -170,8 +182,8 @@ func listRecipes() error {
 		fmt.Printf("Hint: %s\n", diagHint())
 		fmt.Println()
 	}
-	fmt.Println("Use 'issuegraph setup <recipe>' to install.")
-	fmt.Println("Use 'issuegraph setup --add <name> <path>' to add a custom recipe.")
+	fmt.Println("Use 'issuegraph install <recipe>' to install.")
+	fmt.Println("Use 'issuegraph install --add <name> <path>' to add a custom recipe.")
 	return nil
 }
 
@@ -203,7 +215,7 @@ func addRecipe(name, path string) error {
 	fmt.Printf("✓ Added recipe '%s' → %s\n", name, path)
 	fmt.Printf("  Config: %s/recipes.toml\n", issuegraphDir)
 	fmt.Println()
-	fmt.Printf("Install with: issuegraph setup %s\n", name)
+	fmt.Printf("Install with: issuegraph install %s\n", name)
 	return nil
 }
 
@@ -231,7 +243,7 @@ func runRecipe(name string) error {
 
 	recipe, err := lookupSetupRecipe(name)
 	if err != nil {
-		return HandleErrorWithHint(fmt.Sprintf("%v", err), "Use 'issuegraph setup --list' to see available recipes.")
+		return HandleErrorWithHint(fmt.Sprintf("%v", err), "Use 'issuegraph install --list' to see available recipes.")
 	}
 
 	if recipe.Type != recipes.TypeFile && recipe.Type != recipes.TypeMultiFile {
@@ -252,7 +264,7 @@ func runRecipe(name string) error {
 		}
 		if len(missing) > 0 {
 			fmt.Printf("✗ %s integration not installed\n", recipe.Name)
-			fmt.Printf("  Run: issuegraph setup %s\n", name)
+			fmt.Printf("  Run: issuegraph install %s\n", name)
 			for _, path := range missing {
 				fmt.Printf("  Missing: %s\n", path)
 			}
@@ -422,6 +434,7 @@ func init() {
 	setupCmd.Flags().BoolVar(&setupList, "list", false, "List all available recipes")
 	setupCmd.Flags().BoolVar(&setupPrint, "print", false, "Print the template to stdout")
 	setupCmd.Flags().StringVarP(&setupOutput, "output", "o", "", "Write template to custom path")
+	setupCmd.Flags().BoolVar(&installDryRun, "dry-run", false, "Show what would change without writing files")
 	setupCmd.Flags().StringVar(&setupAdd, "add", "", "Add a custom recipe with given name")
 
 	// Per-recipe flags

@@ -20,7 +20,7 @@ With Codex 0.129.0+, `/hooks` shows these lifecycle handlers:
 - `PostCompact` runs `issuegraph codex-hook PostCompact` for `manual|auto` and records a one-shot refresh marker in the user cache/temp directory.
 - `UserPromptSubmit` runs `issuegraph codex-hook UserPromptSubmit` and, when a refresh marker exists, injects full `issuegraph prime` output once before clearing it.
 
-If the plugin is not installed, `issuegraph setup codex` writes an equivalent `.codex/hooks.json` fallback and enables `[features].hooks = true`.
+If the plugin is not installed, `issuegraph install codex` writes an equivalent `.codex/hooks.json` fallback and enables `[features].hooks = true`.
 
 ## Local Development
 

@@ -21,7 +21,7 @@ const geminiInstructionsFile = "GEMINI.md"
 
 var geminiAgentsIntegration = agentsIntegration{
 	name:         "Gemini CLI",
-	setupCommand: "issuegraph setup gemini",
+	setupCommand: "issuegraph install gemini",
 	profile:      agents.ProfileMinimal,
 }
 
@@ -187,16 +187,16 @@ func checkGemini(env geminiEnv) error {
 	case hasGeminiIssueGraphHooks(globalSettings):
 		_, _ = fmt.Fprintf(env.stdout, "⚠ Global hooks installed (legacy format): %s\n", globalSettings)
 		_, _ = fmt.Fprintln(env.stdout, "  Legacy 'issuegraph prime' hooks emit raw markdown; Gemini requires JSON stdout.")
-		_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph setup gemini  (upgrades to 'issuegraph prime --hook-json')")
+		_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph install gemini  (upgrades to 'issuegraph prime --hook-json')")
 		return errGeminiHooksLegacy
 	case hasGeminiIssueGraphHooks(projectSettings):
 		_, _ = fmt.Fprintf(env.stdout, "⚠ Project hooks installed (legacy format): %s\n", projectSettings)
 		_, _ = fmt.Fprintln(env.stdout, "  Legacy 'issuegraph prime' hooks emit raw markdown; Gemini requires JSON stdout.")
-		_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph setup gemini --project  (upgrades to 'issuegraph prime --hook-json')")
+		_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph install gemini --project  (upgrades to 'issuegraph prime --hook-json')")
 		return errGeminiHooksLegacy
 	default:
 		_, _ = fmt.Fprintln(env.stdout, "✗ No hooks installed")
-		_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph setup gemini")
+		_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph install gemini")
 		return errGeminiHooksMissing
 	}
 
@@ -331,7 +331,7 @@ func hasCurrentGeminiHooks(settingsPath string) bool {
 
 // hasGeminiIssueGraphHooks reports whether a settings file has any issuegraph prime hook
 // on SessionStart — current format or legacy. Used to detect pre-fix
-// installations that need upgrading via issuegraph setup gemini.
+// installations that need upgrading via issuegraph install gemini.
 func hasGeminiIssueGraphHooks(settingsPath string) bool {
 	for _, cmd := range geminiSessionStartCommands(settingsPath) {
 		switch cmd {

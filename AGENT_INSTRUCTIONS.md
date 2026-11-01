@@ -298,6 +298,19 @@ Format priority as the P-label with color only (no status glyph — `●` is blo
 - `epic`: Purple (larger scope)
 - Others: Default text
 
+#### Message Output Helpers
+
+Commands print titles, groups, fields, and status lines through
+`modules/core/internal/ui/message.go` instead of raw `fmt.Print*`:
+
+- `ui.Banner(title)`, `ui.Section(title)`, `ui.Field(label, value)`
+- `ui.Success`, `ui.Warn`, `ui.Error`, `ui.Info` use the existing icons
+  (`✓ ⚠ ✖ ℹ`) with pass, warn, fail, and accent colors; `ui.Hint` adds a muted `→`.
+
+Every helper returns the plain text unchanged when `ui.Rich()` is false: non-TTY,
+`NO_COLOR`, `CLICOLOR=0`, git hooks, and agent mode. Never put these helpers in
+`--json` output. Do not add emoji-style icons.
+
 #### Design Principles
 
 1. Small Unicode symbols only; avoid emoji blobs.

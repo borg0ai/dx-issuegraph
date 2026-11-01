@@ -54,8 +54,8 @@ func CheckCursor(repoPath string) DoctorCheck {
 		Message: "Hooks not installed",
 		Detail: "Cursor will only see the static rule (if any) and won't auto-recover\n" +
 			"  issuegraph context after a context compaction.",
-		Fix: "Run 'issuegraph setup cursor' to install sessionStart/preCompact/postToolUse hooks\n" +
-			"  (or 'issuegraph setup cursor --global' for ~/.cursor/hooks.json across all projects).",
+		Fix: "Run 'issuegraph install cursor' to install sessionStart/preCompact/postToolUse hooks\n" +
+			"  (or 'issuegraph install cursor --global' for ~/.cursor/hooks.json across all projects).",
 	}
 }
 
@@ -179,7 +179,7 @@ func CheckCursorHookCompleteness(repoPath string) DoctorCheck {
 		Status:  StatusWarning,
 		Message: "Missing hook event(s): " + strings.Join(missing, ", "),
 		Detail:  "sessionStart primes context; preCompact + postToolUse recover issuegraph context after a compaction.",
-		Fix:     "Run 'issuegraph setup cursor' to reinstall the full hook set.",
+		Fix:     "Run 'issuegraph install cursor' to reinstall the full hook set.",
 	}
 }
 

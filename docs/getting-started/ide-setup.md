@@ -1,6 +1,6 @@
 ---
 title: IDE Setup
-description: Configure issuegraph setup recipes, hooks, and instruction files for Claude Code, Cursor, Gemini, Copilot, and other coding agents
+description: Configure issuegraph install recipes, hooks, and instruction files for Claude Code, Cursor, Gemini, Copilot, and other coding agents
 ---
 
 Configure your IDE or coding agent for optimal issuegraph integration.
@@ -9,15 +9,15 @@ Last reviewed: 2026-07-10
 
 Freshness source: `apps/cli/setup*.go` and `internal/recipes/`.
 
-## How `issuegraph setup` Works
+## How `issuegraph install` Works
 
-The `issuegraph setup` command uses a **recipe-based architecture**: recipes define where issuegraph workflow instructions are written. Built-in recipes cover popular tools, and you can add custom recipes for any other tool (see Custom Recipes below). Integrations complement each other — you can install several at once.
+The `issuegraph install` command uses a **recipe-based architecture**: recipes define where issuegraph workflow instructions are written. Built-in recipes cover popular tools, and you can add custom recipes for any other tool (see Custom Recipes below). Integrations complement each other — you can install several at once.
 
 ```bash
-issuegraph setup --list             # Show all available recipes
-issuegraph setup claude             # Install an integration (claude, cursor, gemini, ...)
-issuegraph setup claude --check     # Verify installation
-issuegraph setup claude --remove    # Uninstall
+issuegraph install --list             # Show all available recipes
+issuegraph install claude             # Install an integration (claude, cursor, gemini, ...)
+issuegraph install claude --check     # Verify installation
+issuegraph install claude --remove    # Uninstall
 ```
 
 | Recipe | Files written | Details |
@@ -78,26 +78,26 @@ ISSUEGRAPH_AGENT_PROFILE=team-maintainer issuegraph prime
 
 ### Managed Sections
 
-`issuegraph setup factory`, `issuegraph setup mux`, and `issuegraph setup opencode` append an issuegraph section to `AGENTS.md`, wrapped in `BEGIN/END ISSUEGRAPH INTEGRATION` HTML-comment markers. The begin marker carries version, profile, and hash metadata (e.g. `<!-- BEGIN ISSUEGRAPH INTEGRATION v:1 profile:full hash:19cc25d9 -->`) so `--check` can report `missing`, `stale`, or `current`; legacy markers without metadata are auto-upgraded on the next install or update. Re-running setup updates the existing section in place (idempotent), and `--remove` deletes only the managed section — the rest of your `AGENTS.md` is untouched.
+`issuegraph install factory`, `issuegraph install mux`, and `issuegraph install opencode` append an issuegraph section to `AGENTS.md`, wrapped in `BEGIN/END ISSUEGRAPH INTEGRATION` HTML-comment markers. The begin marker carries version, profile, and hash metadata (e.g. `<!-- BEGIN ISSUEGRAPH INTEGRATION v:1 profile:full hash:19cc25d9 -->`) so `--check` can report `missing`, `stale`, or `current`; legacy markers without metadata are auto-upgraded on the next install or update. Re-running setup updates the existing section in place (idempotent), and `--remove` deletes only the managed section — the rest of your `AGENTS.md` is untouched.
 
-`issuegraph setup codex` uses its own marker pair (`BEGIN/END ISSUEGRAPH CODEX SETUP`). Running it alongside `issuegraph setup factory` or `issuegraph setup mux` against the same `AGENTS.md` leaves two managed sections side by side; each recipe's `--check` inspects only its own section, and each `--remove` removes only its own section.
+`issuegraph install codex` uses its own marker pair (`BEGIN/END ISSUEGRAPH CODEX SETUP`). Running it alongside `issuegraph install factory` or `issuegraph install mux` against the same `AGENTS.md` leaves two managed sections side by side; each recipe's `--check` inspects only its own section, and each `--remove` removes only its own section.
 
-One `AGENTS.md` works across many tools — Factory Droid, Mux, OpenCode, Cursor, Zed, Jules, and other AGENTS.md-aware assistants — so `issuegraph setup factory` is a good starting point when your team mixes AI tools.
+One `AGENTS.md` works across many tools — Factory Droid, Mux, OpenCode, Cursor, Zed, Jules, and other AGENTS.md-aware assistants — so `issuegraph install factory` is a good starting point when your team mixes AI tools.
 
 ## Claude Code
 
 The recommended approach for Claude Code:
 
 ```bash
-issuegraph setup claude            # Project install: .claude/settings.json
-issuegraph setup claude --global   # Global install: ~/.claude/settings.json
+issuegraph install claude            # Project install: .claude/settings.json
+issuegraph install claude --global   # Global install: ~/.claude/settings.json
 ```
 
 This installs:
 - **SessionStart hook** - Runs `issuegraph prime --hook-json`, which wraps the workflow context in the JSON envelope Claude Code expects. SessionStart fires when a session starts, resumes, or clears, and again after context compaction — no separate compaction hook is needed.
 - **Minimal issuegraph section in `CLAUDE.md`** - A pointer to `issuegraph prime`, managed with hash/version markers for safe updates and `--check` freshness detection.
 
-If the [issuegraph Claude Code plugin](/integrations/claude-code-plugin) is installed, hooks are plugin-managed and `issuegraph setup claude` skips writing them, so `issuegraph prime` doesn't fire twice per session.
+If the [issuegraph Claude Code plugin](/integrations/claude-code-plugin) is installed, hooks are plugin-managed and `issuegraph install claude` skips writing them, so `issuegraph prime` doesn't fire twice per session.
 
 **How it works:**
 1. SessionStart hook runs `issuegraph prime --hook-json` automatically
@@ -118,7 +118,7 @@ Restart Claude Code after installation for the hooks to take effect.
 
 **Verify installation:**
 ```bash
-issuegraph setup claude --check
+issuegraph install claude --check
 ```
 
 ### Manual Setup
@@ -143,7 +143,7 @@ If you prefer manual configuration, add the hook to your Claude Code settings:
 ## Cursor IDE
 
 ```bash
-issuegraph setup cursor            # Always-applied rules file
+issuegraph install cursor            # Always-applied rules file
 ```
 
 This creates `.cursor/rules/issuegraph.mdc` with issuegraph-aware rules that Cursor
@@ -151,7 +151,7 @@ re-includes every turn.
 
 **Verify:**
 ```bash
-issuegraph setup cursor --check
+issuegraph install cursor --check
 ```
 
 See [Cursor](/integrations/cursor) for details.
@@ -159,15 +159,15 @@ See [Cursor](/integrations/cursor) for details.
 ## Gemini CLI
 
 ```bash
-issuegraph setup gemini            # Global hooks in ~/.gemini/settings.json
-issuegraph setup gemini --project  # Project hooks in .gemini/settings.json
+issuegraph install gemini            # Global hooks in ~/.gemini/settings.json
+issuegraph install gemini --project  # Project hooks in .gemini/settings.json
 ```
 
 This installs a SessionStart hook running `issuegraph prime --hook-json` — Gemini requires hook stdout to be valid JSON, and `--hook-json` wraps the markdown in the required envelope — plus a minimal issuegraph section in `GEMINI.md`. `--stealth` works the same as for Claude Code; `--check` and `--remove` cover both the hooks and the managed `GEMINI.md` section.
 
 **Verify:**
 ```bash
-issuegraph setup gemini --check
+issuegraph install gemini --check
 ```
 
 See [Gemini CLI](/integrations/gemini) for details.
@@ -176,7 +176,7 @@ See [Gemini CLI](/integrations/gemini) for details.
 
 ```bash
 # Setup Aider integration
-issuegraph setup aider
+issuegraph install aider
 ```
 
 This writes three files:
@@ -191,16 +191,16 @@ Aider is human-in-the-loop: the AI **suggests** `issuegraph` commands, and you r
 
 **Verify:**
 ```bash
-issuegraph setup aider --check
+issuegraph install aider --check
 ```
 
 ## AGENTS.md Tools: Factory, Mux, OpenCode, Codex
 
 ```bash
-issuegraph setup factory    # Factory.ai Droid — AGENTS.md section
-issuegraph setup mux        # Mux — AGENTS.md section (+ --project/--global layers)
-issuegraph setup opencode   # OpenCode — AGENTS.md section
-issuegraph setup codex      # Codex — issuegraph skill + AGENTS.md guidance + native hooks
+issuegraph install factory    # Factory.ai Droid — AGENTS.md section
+issuegraph install mux        # Mux — AGENTS.md section (+ --project/--global layers)
+issuegraph install opencode   # OpenCode — AGENTS.md section
+issuegraph install codex      # Codex — issuegraph skill + AGENTS.md guidance + native hooks
 ```
 
 These create or update a managed section in `AGENTS.md` (see Managed Sections above). `issuegraph init` runs the project Codex setup automatically unless `--skip-agents` or `--stealth` is used. In worktree, shared, or `ISSUEGRAPH_DIR` setups, use `issuegraph where` to confirm the resolved workspace — these integrations do not require a local `./.issuegraph`. Restart the tool after setup if it is already running.
@@ -212,7 +212,7 @@ Details: [Factory.ai Droid](/integrations/factory), [Mux](/integrations/mux), [O
 **Copilot CLI:**
 
 ```bash
-issuegraph setup copilot
+issuegraph install copilot
 ```
 
 This installs a native Copilot CLI plugin manifest (`.copilot-plugin/plugin.json`, which registers `issuegraph prime` hooks) and repository instructions (`.github/copilot-instructions.md`). See [Copilot CLI](/integrations/copilot-cli).
@@ -323,10 +323,10 @@ See [MCP Server](/integrations/mcp-server) for detailed configuration.
 For editors or tools without a built-in recipe:
 
 ```bash
-issuegraph setup --add myeditor .myeditor/rules.md   # Save a custom recipe
-issuegraph setup myeditor                            # Install it
-issuegraph setup myeditor --check                    # Check it
-issuegraph setup myeditor --remove                   # Remove it
+issuegraph install --add myeditor .myeditor/rules.md   # Save a custom recipe
+issuegraph install myeditor                            # Install it
+issuegraph install myeditor --check                    # Check it
+issuegraph install myeditor --remove                   # Remove it
 ```
 
 Custom recipes are stored in `.issuegraph/recipes.toml` (adding one requires an active issuegraph workspace):
@@ -341,8 +341,8 @@ type = "file"
 For a one-off install without saving a recipe, write the template to any path — or inspect it first:
 
 ```bash
-issuegraph setup -o .my-custom-location/issuegraph.md
-issuegraph setup --print
+issuegraph install -o .my-custom-location/issuegraph.md
+issuegraph install --print
 ```
 
 **Recipe types:**
@@ -392,9 +392,9 @@ issuegraph doctor
 issuegraph hooks list
 
 # Check editor integration
-issuegraph setup claude --check   # or cursor, gemini, aider, ...
+issuegraph install claude --check   # or cursor, gemini, aider, ...
 ```
 
 **Troubleshooting:**
-- *Hooks not working?* Restart your AI tool after installation, then re-run `issuegraph setup claude --check` (or your tool's recipe) and check `issuegraph doctor` output for integration status.
+- *Hooks not working?* Restart your AI tool after installation, then re-run `issuegraph install claude --check` (or your tool's recipe) and check `issuegraph doctor` output for integration status.
 - *Context not appearing?* Make sure `issuegraph prime` works standalone; if it fails, fix the underlying issuegraph issue first.

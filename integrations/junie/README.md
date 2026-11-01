@@ -20,7 +20,7 @@ issuegraph init
 ## Installation
 
 ```bash
-issuegraph setup junie
+issuegraph install junie
 ```
 
 This creates:
@@ -74,13 +74,13 @@ Once installed, Junie will:
 ## Verification
 
 ```bash
-issuegraph setup junie --check
+issuegraph install junie --check
 ```
 
 ## Removal
 
 ```bash
-issuegraph setup junie --remove
+issuegraph install junie --remove
 ```
 
 ## Related

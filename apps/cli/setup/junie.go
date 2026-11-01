@@ -167,17 +167,17 @@ func CheckJunie() error {
 		fmt.Println("⚠ Partial Junie integration (guidelines only)")
 		fmt.Printf("  Guidelines: %s\n", guidelinesPath)
 		fmt.Println("  Missing: MCP config")
-		return HandleErrorWithHint("partial Junie integration", "Run: issuegraph setup junie (to complete installation)")
+		return HandleErrorWithHint("partial Junie integration", "Run: issuegraph install junie (to complete installation)")
 	}
 
 	if mcpExists {
 		fmt.Println("⚠ Partial Junie integration (MCP only)")
 		fmt.Printf("  MCP Config: %s\n", mcpPath)
 		fmt.Println("  Missing: Guidelines")
-		return HandleErrorWithHint("partial Junie integration", "Run: issuegraph setup junie (to complete installation)")
+		return HandleErrorWithHint("partial Junie integration", "Run: issuegraph install junie (to complete installation)")
 	}
 
-	return HandleErrorWithHint("Junie integration not installed", "Run: issuegraph setup junie")
+	return HandleErrorWithHint("Junie integration not installed", "Run: issuegraph install junie")
 }
 
 func RemoveJunie() error {

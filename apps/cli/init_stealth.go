@@ -15,7 +15,7 @@ import (
 
 // setupStealthMode configures git settings for stealth operation.
 // Only configures git-level invisibility (.git/info/exclude).
-// Tool-specific setup (Claude, Cursor, etc.) is handled by `issuegraph setup <tool>`.
+// Tool-specific setup (Claude, Cursor, etc.) is handled by `issuegraph install <tool>`.
 // Uses .git/info/exclude (per-repository) instead of global gitignore because:
 // - Global gitignore doesn't support absolute paths (GitHub #704)
 // - .git/info/exclude is designed for user-specific, repo-local ignores
@@ -35,8 +35,8 @@ func setupStealthMode(verbose bool) error {
 	if verbose {
 		fmt.Printf("\n%s Stealth mode configured successfully!\n\n", ui.RenderPass("✓"))
 		fmt.Printf("  Git exclude: %s\n", ui.RenderAccent(".git/info/exclude configured"))
-		fmt.Printf("\nYour issuegraph setup is now %s - other repo collaborators won't see any issuegraph-related files.\n", ui.RenderAccent("invisible"))
-		fmt.Printf("To set up a specific AI tool, run: %s\n\n", ui.RenderAccent("issuegraph setup <claude|cursor|aider|...> --stealth"))
+		fmt.Printf("\nYour issuegraph install is now %s - other repo collaborators won't see any issuegraph-related files.\n", ui.RenderAccent("invisible"))
+		fmt.Printf("To set up a specific AI tool, run: %s\n\n", ui.RenderAccent("issuegraph install <claude|cursor|aider|...> --stealth"))
 	}
 
 	return nil

@@ -13,7 +13,7 @@ import (
 )
 
 // resetGateTestEnv pins every env var the physical-root resolver consults so
-// a developer machine's issuegraph setup (shared-server mode, custom data dirs,
+// a developer machine's issuegraph install (shared-server mode, custom data dirs,
 // central config) cannot change which gates these tests acquire.
 func resetGateTestEnv(t *testing.T) {
 	t.Helper()

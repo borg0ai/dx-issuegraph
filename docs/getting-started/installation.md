@@ -56,13 +56,13 @@ cd your-project
 issuegraph init --quiet
 
 # 3. Setup editor integration (choose one)
-issuegraph setup claude   # Claude Code - installs SessionStart hooks
-issuegraph setup copilot  # GitHub Copilot CLI - creates .copilot-plugin/plugin.json + .github/copilot-instructions.md
-issuegraph setup cursor   # Cursor IDE - creates .cursor/rules/issuegraph.mdc
-issuegraph setup aider    # Aider - creates .aider.conf.yml
-issuegraph setup codex    # Codex CLI - installs IssueGraph skill, AGENTS.md guidance, and native hooks
-issuegraph setup factory  # Factory.ai Droid - creates/updates AGENTS.md
-issuegraph setup mux      # Mux - creates/updates AGENTS.md
+issuegraph install claude   # Claude Code - installs SessionStart hooks
+issuegraph install copilot  # GitHub Copilot CLI - creates .copilot-plugin/plugin.json + .github/copilot-instructions.md
+issuegraph install cursor   # Cursor IDE - creates .cursor/rules/issuegraph.mdc
+issuegraph install aider    # Aider - creates .aider.conf.yml
+issuegraph install codex    # Codex CLI - installs IssueGraph skill, AGENTS.md guidance, and native hooks
+issuegraph install factory  # Factory.ai Droid - creates/updates AGENTS.md
+issuegraph install mux      # Mux - creates/updates AGENTS.md
 ```
 
 **How it works:**
@@ -79,7 +79,7 @@ issuegraph setup mux      # Mux - creates/updates AGENTS.md
 - **Lower latency** - Direct CLI calls, no MCP protocol overhead
 - **Universal** - Works with any editor that has shell access
 
-**Verify installation:** every recipe supports a check flag, e.g. `issuegraph setup claude --check` or `issuegraph setup copilot --check`.
+**Verify installation:** every recipe supports a check flag, e.g. `issuegraph install claude --check` or `issuegraph install copilot --check`.
 
 ### Claude Code Plugin (Optional)
 
@@ -103,8 +103,8 @@ See [Claude Code Plugin](/integrations/claude-code-plugin) for complete plugin d
 For the **GitHub Copilot CLI** terminal integration:
 
 ```bash
-issuegraph setup copilot         # Install project Copilot plugin + repository instructions
-issuegraph setup copilot --check # Verify the project integration files exist
+issuegraph install copilot         # Install project Copilot plugin + repository instructions
+issuegraph install copilot --check # Verify the project integration files exist
 ```
 
 This setup is currently project-scoped only. It writes `.copilot-plugin/plugin.json` and `.github/copilot-instructions.md`; there is no separate `--global` or `--project` mode for Copilot today, and it does not manage `~/.copilot/...` paths. See [Copilot CLI](/integrations/copilot-cli) for the full guide.
@@ -164,5 +164,5 @@ After installation:
 
 1. **Initialize a project**: `cd your-project && issuegraph init`
 2. **Learn the basics**: See [Quick Start](/getting-started/quickstart)
-3. **Configure your agent**: See [IDE Setup](/getting-started/ide-setup), or run `issuegraph setup --list`
+3. **Configure your agent**: See [IDE Setup](/getting-started/ide-setup), or run `issuegraph install --list`
 4. **Explore examples**: Check out the [examples/](https://github.com/borg0ai/dx-issuegraph/tree/main/examples) directory

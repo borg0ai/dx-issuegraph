@@ -6,8 +6,8 @@ description: Set up issuegraph for Kilo Code by writing a .kilocode/rules/issueg
 Use IssueGraph with Kilo Code through a project rules file.
 
 ```bash
-issuegraph setup kilocode
-issuegraph setup kilocode --check
+issuegraph install kilocode
+issuegraph install kilocode --check
 ```
 
 The setup command creates `.kilocode/rules/issuegraph.md` with IssueGraph workflow guidance.
@@ -15,5 +15,5 @@ The setup command creates `.kilocode/rules/issuegraph.md` with IssueGraph workfl
 ## Remove
 
 ```bash
-issuegraph setup kilocode --remove
+issuegraph install kilocode --remove
 ```

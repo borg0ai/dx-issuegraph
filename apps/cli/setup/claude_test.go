@@ -815,7 +815,7 @@ func TestCheckClaudeScenarios(t *testing.T) {
 		if err := checkClaude(env); !errors.Is(err, errClaudeHooksMissing) {
 			t.Fatalf("expected errClaudeHooksMissing, got %v", err)
 		}
-		if !strings.Contains(stdout.String(), "Run: issuegraph setup claude") {
+		if !strings.Contains(stdout.String(), "Run: issuegraph install claude") {
 			t.Error("expected guidance message")
 		}
 	})
@@ -1450,7 +1450,7 @@ func TestRemoveClaudeRedirectsToAgentsMD(t *testing.T) {
 
 // TestRemoveClaudeRedirectPreservesFullProfileSharedBlock covers the case
 // where AGENTS.md carries a full-profile shared issuegraph block (e.g. created by
-// `issuegraph init` or `issuegraph setup codex`). Removing Claude integration must not touch
+// `issuegraph init` or `issuegraph install codex`). Removing Claude integration must not touch
 // it — other agents still depend on it.
 func TestRemoveClaudeRedirectPreservesFullProfileSharedBlock(t *testing.T) {
 	env, stdout, _ := newClaudeTestEnv(t)
@@ -1685,7 +1685,7 @@ func tailOf(data []byte) string {
 	return string(data)
 }
 
-// GH#5693: issuegraph setup claude must leave settings.json POSIX-clean (trailing
+// GH#5693: issuegraph install claude must leave settings.json POSIX-clean (trailing
 // newline) instead of stripping the newline json.MarshalIndent omits.
 func TestInstallClaudeSettingsEndsWithTrailingNewline(t *testing.T) {
 	t.Run("project", func(t *testing.T) {
@@ -1704,7 +1704,7 @@ func TestInstallClaudeSettingsEndsWithTrailingNewline(t *testing.T) {
 	})
 }
 
-// GH#5693: a second issuegraph setup claude with nothing to change must not rewrite
+// GH#5693: a second issuegraph install claude with nothing to change must not rewrite
 // settings.json.
 func TestInstallClaudeSkipsRewriteWhenSettingsUnchanged(t *testing.T) {
 	env, _, _ := newClaudeTestEnv(t)
@@ -1795,7 +1795,7 @@ func TestClaudeLegacySettingsWritesEndWithNewline(t *testing.T) {
 	// call site — whenever the guard passes, removeHookCommand strips a hook
 	// that hasIssueGraphHooks just matched, so the marshaled bytes always differ.
 	// What this subtest pins is therefore the user-visible property (a repeat
-	// issuegraph setup claude leaves settings.local.json alone) plus the newline, not
+	// issuegraph install claude leaves settings.local.json alone) plus the newline, not
 	// the no-op-skip helper.
 	t.Run("install migration then no further legacy writes", func(t *testing.T) {
 		env, _, _ := newClaudeTestEnv(t)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 	"github.com/borg0ai/dx-issuegraph/internal/metrics"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -55,12 +56,16 @@ var versionCmd = &cobra.Command{
 				return err
 			}
 		} else {
+			detail := Build
 			if commit != "" && branch != "" {
-				fmt.Printf("issuegraph version %s (%s: %s@%s)\n", Version, Build, branch, shortCommit(commit))
+				detail = fmt.Sprintf("%s: %s@%s", Build, branch, shortCommit(commit))
 			} else if commit != "" {
-				fmt.Printf("issuegraph version %s (%s: %s)\n", Version, Build, shortCommit(commit))
+				detail = fmt.Sprintf("%s: %s", Build, shortCommit(commit))
+			}
+			if ui.Rich() {
+				fmt.Println(ui.RenderAccent("issuegraph") + ui.RenderMuted(" version ") + ui.RenderBold(Version) + " " + ui.RenderMuted("("+detail+")"))
 			} else {
-				fmt.Printf("issuegraph version %s (%s)\n", Version, Build)
+				fmt.Printf("issuegraph version %s (%s)\n", Version, detail)
 			}
 		}
 

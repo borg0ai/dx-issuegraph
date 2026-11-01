@@ -134,7 +134,7 @@ func TestInstallAgentsWithProfileCreatesNew(t *testing.T) {
 	env, _, _ := newFactoryTestEnv(t)
 	integration := agentsIntegration{
 		name:         "TestAgent",
-		setupCommand: "issuegraph setup testagent",
+		setupCommand: "issuegraph install testagent",
 		profile:      agents.ProfileMinimal,
 	}
 	if err := installAgents(env, integration); err != nil {
@@ -154,7 +154,7 @@ func TestInstallAgentsDefaultsToFullProfile(t *testing.T) {
 	env, _, _ := newFactoryTestEnv(t)
 	integration := agentsIntegration{
 		name:         "TestAgent",
-		setupCommand: "issuegraph setup testagent",
+		setupCommand: "issuegraph install testagent",
 		// no profile set — should default to full
 	}
 	if err := installAgents(env, integration); err != nil {
@@ -216,7 +216,7 @@ func TestCheckAgentsDetectsStale(t *testing.T) {
 	}
 	integration := agentsIntegration{
 		name:         "TestAgent",
-		setupCommand: "issuegraph setup testagent",
+		setupCommand: "issuegraph install testagent",
 		profile:      agents.ProfileFull,
 	}
 	err := checkAgents(env, integration)
@@ -238,7 +238,7 @@ func TestCheckAgentsCurrent(t *testing.T) {
 	}
 	integration := agentsIntegration{
 		name:         "TestAgent",
-		setupCommand: "issuegraph setup testagent",
+		setupCommand: "issuegraph install testagent",
 		profile:      agents.ProfileFull,
 	}
 	if err := checkAgents(env, integration); err != nil {
@@ -259,7 +259,7 @@ func TestCheckAgentsMinimalAcceptsFullProfile(t *testing.T) {
 	}
 	integration := agentsIntegration{
 		name:         "ClaudeCode",
-		setupCommand: "issuegraph setup claude",
+		setupCommand: "issuegraph install claude",
 		profile:      agents.ProfileMinimal,
 	}
 	if err := checkAgents(env, integration); err != nil {
@@ -274,7 +274,7 @@ func TestCheckAgentsMissingUsesTargetFileName(t *testing.T) {
 		stdout:     stdout,
 		stderr:     &bytes.Buffer{},
 	}
-	integration := agentsIntegration{name: "ClaudeCode", setupCommand: "issuegraph setup claude", profile: agents.ProfileMinimal}
+	integration := agentsIntegration{name: "ClaudeCode", setupCommand: "issuegraph install claude", profile: agents.ProfileMinimal}
 	err := checkAgents(env, integration)
 	if !errors.Is(err, errAgentsFileMissing) {
 		t.Fatalf("expected errAgentsFileMissing, got %v", err)
@@ -293,7 +293,7 @@ func TestInstallAgentsPreservesFullProfile(t *testing.T) {
 	}
 	integration := agentsIntegration{
 		name:         "MinimalAgent",
-		setupCommand: "issuegraph setup minimalagent",
+		setupCommand: "issuegraph install minimalagent",
 		profile:      agents.ProfileMinimal,
 	}
 	if err := installAgents(env, integration); err != nil {
@@ -338,7 +338,7 @@ func TestInstallAgentsSymlinkSafety(t *testing.T) {
 	}
 	integration := agentsIntegration{
 		name:         "ClaudeCode",
-		setupCommand: "issuegraph setup claude",
+		setupCommand: "issuegraph install claude",
 		profile:      agents.ProfileMinimal,
 	}
 	if err := installAgents(env, integration); err != nil {
@@ -370,7 +370,7 @@ func TestInstallAgentsSymlinkSafety(t *testing.T) {
 	if !strings.Contains(stderrText, "CLAUDE.md is a symlink to "+realFile) {
 		t.Errorf("expected warning to include symlink target, got: %s", stderrText)
 	}
-	if !strings.Contains(stderrText, "re-run 'issuegraph setup claude'") {
+	if !strings.Contains(stderrText, "re-run 'issuegraph install claude'") {
 		t.Errorf("expected warning to include corrective command, got: %s", stderrText)
 	}
 }
@@ -391,7 +391,7 @@ func TestInstallAgentsInspectError(t *testing.T) {
 	}
 	integration := agentsIntegration{
 		name:         "TestAgent",
-		setupCommand: "issuegraph setup testagent",
+		setupCommand: "issuegraph install testagent",
 		profile:      agents.ProfileMinimal,
 	}
 
@@ -416,7 +416,7 @@ func TestLegacyToNewMigrationViaInstall(t *testing.T) {
 	}
 	integration := agentsIntegration{
 		name:         "Factory.ai",
-		setupCommand: "issuegraph setup factory",
+		setupCommand: "issuegraph install factory",
 		profile:      agents.ProfileFull,
 	}
 	if err := installAgents(env, integration); err != nil {

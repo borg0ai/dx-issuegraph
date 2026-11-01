@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// issuegraphSetup runs "issuegraph setup" with the given args and returns stdout.
+// issuegraphSetup runs "issuegraph install" with the given args and returns stdout.
 func issuegraphSetup(t *testing.T, issuegraph, dir string, args ...string) string {
 	t.Helper()
 	fullArgs := append([]string{"setup"}, args...)
@@ -20,7 +20,7 @@ func issuegraphSetup(t *testing.T, issuegraph, dir string, args ...string) strin
 	cmd.Env = issuegraphEnv(dir)
 	stdout, stderr, err := runCommandBuffers(t, cmd)
 	if err != nil {
-		t.Fatalf("issuegraph setup %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
+		t.Fatalf("issuegraph install %s failed: %v\nstdout:\n%s\nstderr:\n%s", strings.Join(args, " "), err, stdout.String(), stderr.String())
 	}
 	return stdout.String()
 }

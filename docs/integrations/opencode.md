@@ -6,8 +6,8 @@ description: Give OpenCode issuegraph workflow context via a managed IssueGraph 
 Use IssueGraph with OpenCode through managed `AGENTS.md` guidance.
 
 ```bash
-issuegraph setup opencode
-issuegraph setup opencode --check
+issuegraph install opencode
+issuegraph install opencode --check
 ```
 
 The setup command creates or updates `AGENTS.md` with a managed IssueGraph section. Restart OpenCode after setup if it is already running.
@@ -15,5 +15,5 @@ The setup command creates or updates `AGENTS.md` with a managed IssueGraph secti
 ## Remove
 
 ```bash
-issuegraph setup opencode --remove
+issuegraph install opencode --remove
 ```

@@ -245,7 +245,7 @@ func TestCheckFactoryScenarios(t *testing.T) {
 		if !errors.Is(err, errAgentsFileMissing) {
 			t.Fatalf("expected errAgentsFileMissing, got %v", err)
 		}
-		if !strings.Contains(stdout.String(), "Run: issuegraph setup factory") {
+		if !strings.Contains(stdout.String(), "Run: issuegraph install factory") {
 			t.Error("expected guidance message")
 		}
 	})

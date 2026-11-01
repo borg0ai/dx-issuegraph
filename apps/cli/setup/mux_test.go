@@ -76,7 +76,7 @@ func TestCheckMuxMissingFile(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing AGENTS.md")
 	}
-	if !strings.Contains(stdout.String(), "issuegraph setup mux") {
+	if !strings.Contains(stdout.String(), "issuegraph install mux") {
 		t.Error("expected setup guidance for mux")
 	}
 }

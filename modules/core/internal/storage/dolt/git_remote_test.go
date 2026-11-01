@@ -1595,7 +1595,7 @@ func TestCredentialCLIRoutingE2E(t *testing.T) {
 	}
 
 	// 4. Client CLI directory: separate dolt init WITHOUT the file:// remote.
-	// The issuegraph setup path below writes the remote through SQL/store only; the
+	// The issuegraph install path below writes the remote through SQL/store only; the
 	// push routing guard must materialize the local CLI remote from that SQL
 	// source of truth.
 	clientDataDir := filepath.Join(baseDir, "client-data")
@@ -1638,9 +1638,9 @@ func TestCredentialCLIRoutingE2E(t *testing.T) {
 	}
 	t.Cleanup(func() { store.Close() })
 	if err := store.AddRemote(ctx, "origin", remoteURL); err != nil {
-		t.Fatalf("AddRemote through issuegraph setup path: %v", err)
+		t.Fatalf("AddRemote through issuegraph install path: %v", err)
 	}
-	require.Equal(t, "", doltutil.FindCLIRemote(clientTestdbDir, store.remote), "precondition: issuegraph setup path should not manually seed CLI remote")
+	require.Equal(t, "", doltutil.FindCLIRemote(clientTestdbDir, store.remote), "precondition: issuegraph install path should not manually seed CLI remote")
 
 	// Verify preconditions: not a git-protocol remote, but credentials trigger CLI routing
 	require.False(t, store.isGitProtocolRemote(ctx, store.remote), "file:// is not git-protocol")

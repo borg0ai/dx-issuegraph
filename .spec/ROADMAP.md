@@ -23,3 +23,6 @@
 | 0019 | [Release only through shipify, with no release machinery in the repository (child of 0001)](rfc/completed/0019-shipify-only-release.md) | Implemented |
 | 0020 | [Pre-commit hook reads go version from go.work](rfc/completed/0020-precommit-go-work.md) | Implemented |
 | 0021 | [Remove BEADS env and .beads directory fallbacks](rfc/completed/0021-remove-beads-fallbacks.md) | Implemented |
+| 0022 | [Rich colorful CLI output for key commands](rfc/completed/0022-rich-cli-output.md) | Implemented |
+| 0023 | [issuegraph install: global agent skill install](rfc/completed/0023-global-agent-install.md) | Implemented |
+| 0024 | [Release binaries bundle embedded Dolt (cgo builds)](rfc/0024-init-managed-dolt.md) | Approved |

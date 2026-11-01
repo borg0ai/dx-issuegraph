@@ -201,7 +201,7 @@ func TestInstallGemini_Idempotent(t *testing.T) {
 	}
 }
 
-// TestInstallGemini_MigratesLegacyHooks verifies that re-running issuegraph setup gemini
+// TestInstallGemini_MigratesLegacyHooks verifies that re-running issuegraph install gemini
 // on a pre-fix installation (which had bare "issuegraph prime" on SessionStart and/or
 // PreCompress) results in exactly one canonical "issuegraph prime --hook-json" entry
 // on SessionStart and no PreCompress entries. Leaving stale entries alongside
@@ -325,7 +325,7 @@ func TestCheckGemini_LegacyInstall(t *testing.T) {
 	if !strings.Contains(out, "legacy") {
 		t.Errorf("expected 'legacy' in output, got: %s", out)
 	}
-	if !strings.Contains(out, "issuegraph setup gemini") {
+	if !strings.Contains(out, "issuegraph install gemini") {
 		t.Errorf("expected upgrade instruction in output, got: %s", out)
 	}
 }

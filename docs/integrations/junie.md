@@ -10,7 +10,7 @@ How to use issuegraph with Junie (JetBrains AI Agent).
 ### Quick Setup
 
 ```bash
-issuegraph setup junie
+issuegraph install junie
 ```
 
 This creates:
@@ -20,7 +20,7 @@ This creates:
 ### Verify Setup
 
 ```bash
-issuegraph setup junie --check
+issuegraph install junie --check
 ```
 
 ## How It Works
@@ -43,7 +43,7 @@ Contains workflow instructions that Junie reads automatically:
 ### MCP Config (`.junie/mcp/mcp.json`)
 
 <Warning>
-`issuegraph setup junie` currently writes an MCP config that invokes `issuegraph mcp`, a
+`issuegraph install junie` currently writes an MCP config that invokes `issuegraph mcp`, a
 command that does not exist in current issuegraph builds — that config will not
 start a server. Until the recipe is fixed, point Junie at the standalone
 `issuegraph-mcp` server instead:
@@ -157,10 +157,10 @@ git status --short .issuegraph/
 
 ```bash
 # Check setup
-issuegraph setup junie --check
+issuegraph install junie --check
 
 # Reinstall if needed
-issuegraph setup junie
+issuegraph install junie
 ```
 
 ### MCP tools not available
@@ -193,7 +193,7 @@ issuegraph init --quiet
 ## Removing Integration
 
 ```bash
-issuegraph setup junie --remove
+issuegraph install junie --remove
 ```
 
 This removes:

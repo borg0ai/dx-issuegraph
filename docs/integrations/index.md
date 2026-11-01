@@ -1,17 +1,17 @@
 ---
 title: Integrations
-description: Browse every issuegraph editor and agent integration, from issuegraph setup recipes to MCP-based clients
+description: Browse every issuegraph editor and agent integration, from issuegraph install recipes to MCP-based clients
 ---
 
 IssueGraph integration pages are based on two sources of support in the repository:
 
-- Built-in `issuegraph setup` recipes from `internal/recipes/recipes.go`
+- Built-in `issuegraph install` recipes from `internal/recipes/recipes.go`
 - First-party MCP integrations and editor guides already shipped in the repo
 
 Run this command to see the built-in setup recipes supported by your installed `issuegraph` binary:
 
 ```bash
-issuegraph setup --list
+issuegraph install --list
 ```
 
 ## Built-in Setup Recipes
@@ -34,7 +34,7 @@ issuegraph setup --list
 
 ## MCP-Based Integrations
 
-These integrations use the IssueGraph MCP server rather than a dedicated `issuegraph setup` recipe:
+These integrations use the IssueGraph MCP server rather than a dedicated `issuegraph install` recipe:
 
 - [MCP Server](/integrations/mcp-server) — the issuegraph MCP server for any
   MCP-capable client.

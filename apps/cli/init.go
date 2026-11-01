@@ -340,7 +340,7 @@ has already created the database.
 With --stealth: configures per-repository git settings for invisible issuegraph usage:
   • .git/info/exclude to prevent issuegraph files from being committed
   Perfect for personal use without affecting repo collaborators.
-  To set up a specific AI tool, run: issuegraph setup <claude|cursor|aider|...> --stealth
+  To set up a specific AI tool, run: issuegraph install <claude|cursor|aider|...> --stealth
 
 By default, issuegraph uses an embedded Dolt engine (no external server needed).
 Pass --server to use an external dolt sql-server instead. In server mode,

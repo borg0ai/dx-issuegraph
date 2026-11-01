@@ -212,12 +212,12 @@ Both are instantiated workflows made of real issuegraph. **Molecules** (`issuegr
 ### How do I integrate with my editor?
 
 ```bash
-issuegraph setup claude   # Claude Code
-issuegraph setup cursor   # Cursor
-issuegraph setup aider    # Aider
+issuegraph install claude   # Claude Code
+issuegraph install cursor   # Cursor
+issuegraph install aider    # Aider
 ```
 
-`issuegraph setup` also supports copilot, gemini, factory, codex, mux, opencode, junie, windsurf, cody, and kilocode. See [IDE Setup](/getting-started/ide-setup) and the [integrations index](/integrations/index).
+`issuegraph install` also supports copilot, gemini, factory, codex, mux, opencode, junie, windsurf, cody, and kilocode. See [IDE Setup](/getting-started/ide-setup) and the [integrations index](/integrations/index).
 
 ### Can IssueGraph sync GitHub Issues?
 

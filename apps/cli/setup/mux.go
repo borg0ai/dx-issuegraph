@@ -46,7 +46,7 @@ export PATH="$HOME/bin:$PATH"
 var (
 	muxIntegration = agentsIntegration{
 		name:         "Mux",
-		setupCommand: "issuegraph setup mux",
+		setupCommand: "issuegraph install mux",
 		readHint:     "Mux reads AGENTS.md in workspace and global contexts. Restart the workspace session if it is already running.",
 		docsURL:      muxAgentInstructionsURL,
 		profile:      agents.ProfileFull,
@@ -54,7 +54,7 @@ var (
 
 	muxProjectIntegration = agentsIntegration{
 		name:         "Mux (workspace layer)",
-		setupCommand: "issuegraph setup mux --project",
+		setupCommand: "issuegraph install mux --project",
 		readHint:     "Mux also supports layered workspace instructions via .mux/AGENTS.md.",
 		docsURL:      muxAgentInstructionsURL,
 		profile:      agents.ProfileFull,
@@ -62,7 +62,7 @@ var (
 
 	muxGlobalIntegration = agentsIntegration{
 		name:         "Mux (global layer)",
-		setupCommand: "issuegraph setup mux --global",
+		setupCommand: "issuegraph install mux --global",
 		readHint:     "Mux global defaults can be stored in ~/.mux/AGENTS.md.",
 		docsURL:      muxAgentInstructionsURL,
 		profile:      agents.ProfileFull,
@@ -110,7 +110,7 @@ func installMuxHook(env agentsEnv, path, content string, mode os.FileMode) error
 	switch {
 	case err == nil:
 		if !strings.Contains(string(data), muxHookMarkerBegin) {
-			_, _ = fmt.Fprintf(env.stdout, "ℹ Existing hook kept (not managed by issuegraph setup mux): %s\n", path)
+			_, _ = fmt.Fprintf(env.stdout, "ℹ Existing hook kept (not managed by issuegraph install mux): %s\n", path)
 			return nil
 		}
 		if err := writeMuxHook(path, content, mode); err != nil {
@@ -160,7 +160,7 @@ func checkMuxProjectHooks(env agentsEnv) error {
 		return nil
 	}
 	_, _ = fmt.Fprintf(env.stdout, "✗ Missing Mux hooks: %s\n", strings.Join(missing, ", "))
-	_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph setup mux")
+	_, _ = fmt.Fprintln(env.stdout, "  Run: issuegraph install mux")
 	return errMuxHooksMissing
 }
 

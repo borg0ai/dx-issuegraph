@@ -7,11 +7,11 @@ Use IssueGraph with Cursor through a project rules file that keeps the workflow
 guidance in front of the agent every turn.
 
 ```bash
-issuegraph setup cursor
-issuegraph setup cursor --check
+issuegraph install cursor
+issuegraph install cursor --check
 ```
 
-`issuegraph setup cursor` installs **`.cursor/rules/issuegraph.mdc`** — an always-applied
+`issuegraph install cursor` installs **`.cursor/rules/issuegraph.mdc`** — an always-applied
 rule with the canonical IssueGraph workflow guidance (the same content every other
 editor integration uses), so it stays in sync as the workflow evolves. Because
 it is always applied, Cursor re-includes it every turn, including after a
@@ -22,7 +22,7 @@ Restart Cursor after installing so the rule loads.
 ## Verifying it works
 
 ```bash
-issuegraph setup cursor --check
+issuegraph install cursor --check
 ```
 
 In a session, the agent should know your issuegraph workflow without being told — ask
@@ -35,7 +35,7 @@ workflow context, ready work, and project memories.
 ## Remove
 
 ```bash
-issuegraph setup cursor --remove
+issuegraph install cursor --remove
 ```
 
 This removes the rules file while leaving the rest of `.cursor/` intact.

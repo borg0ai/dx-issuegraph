@@ -6,8 +6,8 @@ description: Add issuegraph workflow guidance to Sourcegraph Cody through a .cod
 Use IssueGraph with Sourcegraph Cody through a project rules file.
 
 ```bash
-issuegraph setup cody
-issuegraph setup cody --check
+issuegraph install cody
+issuegraph install cody --check
 ```
 
 The setup command creates `.cody/rules/issuegraph.md` with IssueGraph workflow guidance.
@@ -15,5 +15,5 @@ The setup command creates `.cody/rules/issuegraph.md` with IssueGraph workflow g
 ## Remove
 
 ```bash
-issuegraph setup cody --remove
+issuegraph install cody --remove
 ```

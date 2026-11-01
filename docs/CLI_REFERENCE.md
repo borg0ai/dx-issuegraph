@@ -174,7 +174,7 @@ Reference for issuegraph Latest. Generated from `issuegraph help --all`.
 - [issuegraph quickstart](#bd-quickstart) — Quick start guide for issuegraph
 - [issuegraph recall](#bd-recall) — Retrieve a specific memory
 - [issuegraph remember](#bd-remember) — Store a persistent memory
-- [issuegraph setup](#bd-setup) — Setup integration with AI editors
+- [issuegraph install](#bd-setup) — Setup integration with AI editors
 - [issuegraph where](#bd-where) — Show active issuegraph location
 
 ### Maintenance:
@@ -4076,7 +4076,7 @@ has already created the database.
 With --stealth: configures per-repository git settings for invisible issuegraph usage:
   • .git/info/exclude to prevent issuegraph files from being committed
   Perfect for personal use without affecting repo collaborators.
-  To set up a specific AI tool, run: issuegraph setup &lt;claude|cursor|aider|...&gt; --stealth
+  To set up a specific AI tool, run: issuegraph install &lt;claude|cursor|aider|...&gt; --stealth
 
 By default, issuegraph uses an embedded Dolt engine (no external server needed).
 Pass --server to use an external dolt sql-server instead. In server mode,
@@ -4389,7 +4389,7 @@ issuegraph remember "<insight>" [flags]
       --key string   Explicit key for the memory (auto-generated from content if not set). If a memory with this key already exists, it will be updated in place
 ```
 
-### issuegraph setup
+### issuegraph install
 
 Setup integration files for AI editors and coding assistants.
 
@@ -4397,25 +4397,25 @@ Recipes define where issuegraph workflow instructions are written. Built-in reci
 include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, and kilocode.
 
 Examples:
-  issuegraph setup cursor          # Install Cursor IDE integration (rules + agent hooks)
-  issuegraph setup cursor --global # Install global Cursor hooks (~/.cursor/hooks.json)
-  issuegraph setup kiro            # Install Kiro steering guidance
-  issuegraph setup codex           # Install Codex skill + AGENTS.md guidance + native hooks
-  issuegraph setup codex --global  # Install global Codex skill + guidance + native hooks
-  issuegraph setup copilot         # Install Copilot CLI plugin + repository instructions
-  issuegraph setup mux --project   # Install Mux workspace layer (.mux/AGENTS.md)
-  issuegraph setup mux --global    # Install Mux global layer (~/.mux/AGENTS.md)
-  issuegraph setup mux --project --global  # Install both Mux layers
-  issuegraph setup --list          # Show all available recipes
-  issuegraph setup --print         # Print the template to stdout
-  issuegraph setup -o rules.md     # Write template to custom path
-  issuegraph setup --add myeditor .myeditor/rules.md  # Add custom recipe
+  issuegraph install cursor          # Install Cursor IDE integration (rules + agent hooks)
+  issuegraph install cursor --global # Install global Cursor hooks (~/.cursor/hooks.json)
+  issuegraph install kiro            # Install Kiro steering guidance
+  issuegraph install codex           # Install Codex skill + AGENTS.md guidance + native hooks
+  issuegraph install codex --global  # Install global Codex skill + guidance + native hooks
+  issuegraph install copilot         # Install Copilot CLI plugin + repository instructions
+  issuegraph install mux --project   # Install Mux workspace layer (.mux/AGENTS.md)
+  issuegraph install mux --global    # Install Mux global layer (~/.mux/AGENTS.md)
+  issuegraph install mux --project --global  # Install both Mux layers
+  issuegraph install --list          # Show all available recipes
+  issuegraph install --print         # Print the template to stdout
+  issuegraph install -o rules.md     # Write template to custom path
+  issuegraph install --add myeditor .myeditor/rules.md  # Add custom recipe
 
-Use 'issuegraph setup &lt;recipe&gt; --check' to verify installation status.
-Use 'issuegraph setup &lt;recipe&gt; --remove' to uninstall.
+Use 'issuegraph install &lt;recipe&gt; --check' to verify installation status.
+Use 'issuegraph install &lt;recipe&gt; --remove' to uninstall.
 
 ```
-issuegraph setup [recipe] [flags]
+issuegraph install [recipe] [flags]
 ```
 
 **Flags:**

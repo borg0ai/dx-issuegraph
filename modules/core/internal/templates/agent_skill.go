@@ -12,3 +12,9 @@ func IssueGraphAgentSkill() string {
 func IssueGraphAgentSkillOpenAIYAML() string {
 	return issuegraphassets.AgentSkillOpenAIYAML()
 }
+
+// IssueGraphSkillFiles returns the complete IssueGraph agent skill (SKILL.md,
+// agents/, commands/, resources/) keyed by slash-separated relative path.
+func IssueGraphSkillFiles() map[string]string {
+	return issuegraphassets.SkillFiles()
+}

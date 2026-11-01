@@ -56,13 +56,13 @@ For **VS Code + MCP**, see [GitHub Copilot](/integrations/github-copilot).
 
 ```bash
 # Install the Copilot CLI plugin manifest + repository instructions
-issuegraph setup copilot
+issuegraph install copilot
 
 # Check installation status
-issuegraph setup copilot --check
+issuegraph install copilot --check
 
 # Remove the integration
-issuegraph setup copilot --remove
+issuegraph install copilot --remove
 ```
 
 **What it installs:**
@@ -75,9 +75,9 @@ issuegraph setup copilot --remove
 ## Related Files
 
 - `issuegraph/.copilot-plugin/plugin.json` - Source plugin manifest for the shared plugin package
-- `issuegraph/copilot_manifest.go` - Embedded manifest source used by `issuegraph setup copilot`
+- `issuegraph/copilot_manifest.go` - Embedded manifest source used by `issuegraph install copilot`
 - `internal/recipes/recipes.go` - Lightweight `copilot` recipe definition
-- `internal/recipes/template.go` - Static Copilot instructions template used by `issuegraph setup`
+- `internal/recipes/template.go` - Static Copilot instructions template used by `issuegraph install`
 - [GitHub Copilot integration](/integrations/github-copilot) - VS Code MCP integration
 
 ## References

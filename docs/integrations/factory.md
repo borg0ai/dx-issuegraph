@@ -6,8 +6,8 @@ description: Set up issuegraph for Factory.ai Droid through a managed IssueGraph
 Use IssueGraph with Factory.ai Droid through managed `AGENTS.md` guidance.
 
 ```bash
-issuegraph setup factory
-issuegraph setup factory --check
+issuegraph install factory
+issuegraph install factory --check
 ```
 
 The setup command creates or updates `AGENTS.md` with a managed IssueGraph section. Factory Droid reads `AGENTS.md` automatically when it starts a session.
@@ -15,5 +15,5 @@ The setup command creates or updates `AGENTS.md` with a managed IssueGraph secti
 ## Remove
 
 ```bash
-issuegraph setup factory --remove
+issuegraph install factory --remove
 ```
