@@ -74,31 +74,26 @@ Graphify source indexing located Dolt remote paths in CLI commands, initializati
 Reviewer attention: Verify every remote/autopush/federation/template path named by the graph is covered or explicitly out of scope before merge.
 
 ### Bump all version files to 1.3.1 and verify with check-versions.sh
-Status: directed
-Touches: `check-versions.sh`
+Status: discussed
+Touches: `go.mod`, `check-versions.sh`
 
-The agent bumped all 14 version files to 1.3.1 in a single commit (ac80a2b) so every package reports the same version. It ran check-versions.sh to confirm the files agree before tagging.
+The agent set all 14 version files to 1.3.1 in commit ac80a2b and confirmed that check-versions.sh passes. The Go module version is treated as the source of truth.
 
-Reviewer attention: Confirm the 14 version files listed in the bump commit match the release version.
+Reviewer attention: Confirm the version number is correct given the breaking BEADS removal.
 
 ### Tag v1.3.1 on the RFC-close commit rather than the version bump commit
-Status: directed — tag placement was a deliberate choice in the session
-Touches: `rfc/0020-*.md`
+Status: discussed
+Touches: `rfc/0020-*.md`, `go.mod`
 
-The annotated tag v1.3.1 points at 8bac9e2, the commit that closes RFC 0020 after the version bump commit ac80a2b. The agent treated this placement as intentional, not as an error. No explicit rationale for choosing the later commit was discussed.
+The annotated v1.3.1 tag points at 8bac9e2, the RFC 0020 close commit that follows the version bump. This means the tag includes the RFC closure.
 
-Considered/rejected: Tagging the version bump commit ac80a2b directly.
-Risk: Anyone referencing the tag gets the RFC-close state, which includes changes beyond the version bump.
-Reviewer attention: Confirm the tag should point at 8bac9e2 and that both commits are in the release history.
+Reviewer attention: The tag does not include the later BEADS removal in 8425f8f.
 
 ### Close RFC 0020 through the specify workflow before release
 Status: discussed
-Touches: `rfc/0020-*.md`, `ROADMAP.md`, `TASK_TRACKING.md`
+Touches: `rfc/0020-*.md`
 
-The agent advanced RFC 0020 to closed using the specify workflow and committed it in 8bac9e2 before tagging. The RFC lifecycle record is kept consistent with the release.
-
-Risk: ROADMAP.md and TASK_TRACKING.md sync was not confirmed in the session.
-Reviewer attention: Confirm ROADMAP.md and TASK_TRACKING.md agree with the closed RFC status.
+RFC 0020 was closed through the specify workflow in commit 8bac9e2 before the release was cut.
 
 ### Move federation test cases behind a cgo build tag with a no-op counterpart
 Status: discussed
@@ -112,44 +107,87 @@ Reviewer attention: Confirm the no-op counterpart is intended. TestDoltPullRefus
 
 ### Publish each release archive with the issuegraph binary at its root
 Status: discussed
-Touches: `packages.nix`, `README.md`
+Touches: `Makefile`
 
-Each of the six release archives places the bare issuegraph binary at the archive root. Channel install recipes build their download URLs against this layout.
-
-Risk: Channel URLs break if the archive layout changes in a later release.
-Reviewer attention: Confirm the archive layout matches what each channel recipe expects.
+Each of the six release archives contains a bare issuegraph binary at its root. Package channels install from this layout, so the layout is part of the release contract.
 
 ### Verify release assets are publicly downloadable and match SHA256SUMS
 Status: discussed
 Touches: `SHA256SUMS`
 
-The agent downloaded all six release assets and compared their checksums against SHA256SUMS. It also confirmed the URLs need no authentication, since package channels cannot install from private assets. All six checksums matched.
-
-Reviewer attention: Re-check asset reachability after any later re-upload.
+The agent downloaded the published assets without authentication and compared each checksum against SHA256SUMS. All six assets are public and every checksum matches.
 
 ### Register the Nix package in packages.nix and the README install table
 Status: discussed
 Touches: `packages.nix`, `README.md`
 
-The agent added the issuegraph Nix package entry to packages.nix and listed it in the README install table on the channel base branch. The Nix build was not verified locally because Nix is not installed on the machine.
-
-Risk: The Nix package has not been built or tested.
-Reviewer attention: Run the Nix build before merging the Nix channel PR.
+The Nix package was added to packages.nix and listed in the README install table, following the existing entries of the base branch.
 
 ### Deliver package-channel updates as pull requests and leave them unmerged
-Status: discussed
+Status: discussed — PRs were later merged outside this session
 Touches: `packages.nix`, `README.md`
 
-The agent opened one pull request per package channel (Homebrew, Nix, and a third channel) instead of pushing directly. None of the three PRs was merged or verified on its own platform in the session.
-
-Risk: Channel install paths stay unverified until each PR is tested on its platform.
-Reviewer attention: Confirm each channel PR installs and runs issuegraph on its target platform before merging.
+The agent delivered the Homebrew, Nix, and third-channel updates as pull requests. It did not merge them itself.
 
 ### Build six Docker targets with CGO_ENABLED=0 and the gms_pure_go tag
 Status: discussed
-Touches: `Makefile`
+Touches: `Dockerfile*`, `Makefile`
 
-The agent planned the six-target Docker builds to mirror make build: pure Go, CGO disabled, and the gms_pure_go build tag. The build was interrupted in the session, so its results are unconfirmed.
+The Docker builds use pure Go with CGO_ENABLED=0 and the gms_pure_go tag, matching make build. The final build status for all six targets was not recorded.
 
-Risk: Release binaries for the six targets have not been confirmed to build from the Docker path.
-Reviewer attention: Re-run the six-target build and confirm it matches make build output.
+### Remove BEADS fallbacks without migration or legacy support
+Status: directed
+Touches: `**/legacydir/*`, `apps/cli/mail.go`
+
+The agent deleted the BEADS fallbacks in full with no migration path and no legacy support kept. Directory resolution now reads only ISSUEGRAPH_DIR and the root/.issuegraph workspace, and the BEADS_DIR and .beads lookups are gone.
+
+Risk: Workspaces that only contain .beads or set BEADS_DIR no longer resolve and must be renamed by hand.
+Reviewer attention: Confirm the breaking change is intended. Commit 8425f8f touched 14 files, more than the intended scope, including changes from another session. v1.3.1 was tagged before this removal, so the shipped binary still has the fallbacks. A feat! change normally implies 2.0.0, which is still unresolved.
+
+### Drop BEADS_MAIL_DELEGATE from mail delegate resolution
+Status: directed
+Touches: `apps/cli/mail.go`, `apps/cli/mail*_test.go`
+
+The agent removed the BEADS_MAIL_DELEGATE environment fallback, its help text, and the test case that exercised it. Delegate resolution no longer consults that variable.
+
+Reviewer attention: Confirm no scripts still export BEADS_MAIL_DELEGATE.
+
+### Keep legacydir package name after removing its legacy behavior
+Status: discussed — name is now inaccurate; rename left open
+Touches: `**/legacydir/*`
+
+The package keeps its legacydir name after the legacy behavior was removed. Renaming was not done in the same change, so the diff stays limited to behavior.
+
+Considered/rejected: Renaming the package in the same commit was not done.
+Risk: The name misleads readers about what the package does now.
+Reviewer attention: Decide whether to rename the package in a follow-up.
+
+### Record BEADS removal as a breaking change in RFC 0021
+Status: discussed
+Touches: `rfc/0021-*.md`
+
+RFC 0021 was marked delivered, approved, and closed through the specify workflow. The RFC notes that the removal breaks workspaces that only have .beads or set a BEADS directory variable.
+
+Reviewer attention: Check the RFC wording against the final behavior.
+
+### Supersede RFC 0009 with RFC 0013
+Status: discussed
+Touches: `rfc/0009-*.md`, `rfc/0013-*.md`
+
+RFC 0009 was marked as replaced by RFC 0013 so the RFC set reflects the current design. The change was committed as c85992a.
+
+### Run CLI mail tests with cgo enabled
+Status: discussed — cgo-off run reported no tests
+Touches: `apps/cli/mail*_test.go`
+
+With cgo disabled the CLI mail tests reported no tests to run, so the agent reran them with cgo on. Both mail tests pass, and TestMailDelegateFromConfig skips as it did before the change.
+
+Reviewer attention: Confirm CI runs these tests with cgo enabled, since the default run silently skips them.
+
+### Report unverified Nix build instead of claiming success
+Status: discussed
+Touches: `packages.nix`, `README.md`
+
+Nix is not installed locally, so the Nix build could not be verified. The agent reported that gap and attempted brew audit for the Homebrew recipe instead.
+
+Reviewer attention: Run the Nix build on a machine with Nix before merging the packages.nix change. The brew audit result was not recorded.
