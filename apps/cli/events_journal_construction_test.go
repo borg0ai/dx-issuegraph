@@ -95,7 +95,7 @@ var scannedPackages = map[string]string{
 	".":          "",
 	"doctor":     "doctor/",
 	"doctor/fix": "doctor/fix/",
-	"../../internal/storage/embeddeddolt/cmd": "embeddeddolt-cmd/",
+	"../../modules/core/internal/storage/embeddeddolt/cmd": "embeddeddolt-cmd/",
 }
 
 // constructionExemptions are construction sites that legitimately do NOT

@@ -369,7 +369,6 @@ func TestWhereCommand_UsesConfigPrefixFromSelectedDB(t *testing.T) {
 
 	t.Setenv("ISSUEGRAPH_DIR", "")
 	t.Setenv("ISSUEGRAPH_DB", dbDir)
-	t.Setenv("ISSUEGRAPH_DB", "")
 
 	dbFlag := rootCmd.PersistentFlags().Lookup("db")
 	originalFlagValue := dbFlag.Value.String()

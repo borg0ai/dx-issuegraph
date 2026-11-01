@@ -1963,9 +1963,12 @@ func TestDoltPullRefusesInLocalOnlyMode(t *testing.T) {
 		t.Fatal("test setup: ISSUEGRAPH_NO_PUSH=true must make no-push=true")
 	}
 
-	err := rootCmd.PersistentPreRunE(doltPullCmd, nil)
-	if err == nil || !strings.Contains(err.Error(), "IssueGraph keeps issue data local") {
-		t.Fatalf("dolt pull error = %v, want local-only refusal", err)
+	var err error
+	stderr := captureStderr(t, func() {
+		err = rootCmd.PersistentPreRunE(doltPullCmd, nil)
+	})
+	if err == nil || !strings.Contains(stderr, remoteSyncDisabledMessage) {
+		t.Fatalf("dolt pull = (%v, %q), want local-only refusal", err, stderr)
 	}
 	if fake.pullCalled {
 		t.Error("local-only dolt pull reached the remote store")

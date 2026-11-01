@@ -24,4 +24,6 @@
 
 ## Done
 - [x] Implement RFC 0020: Pre-commit hook reads go version from go.work (RFC 0020)
+- [x] Implement RFC 0021: Remove BEADS env and .beads directory fallbacks (RFC 0021)
+
 

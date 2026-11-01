@@ -62,7 +62,6 @@ func TestWhereCommand_ReadsPrefixFromEmbeddedStore(t *testing.T) {
 	dbDir := filepath.Join(issuegraphDir, "dolt")
 	t.Setenv("ISSUEGRAPH_DIR", "")
 	t.Setenv("ISSUEGRAPH_DB", dbDir)
-	t.Setenv("ISSUEGRAPH_DB", "")
 	t.Setenv("ISSUEGRAPH_DOLT_SERVER_MODE", "")
 	t.Setenv("ISSUEGRAPH_DOLT_SHARED_SERVER", "")
 

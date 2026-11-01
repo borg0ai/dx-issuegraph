@@ -44,7 +44,7 @@ func TestAiderReadmeTemplate(t *testing.T) {
 		"issuegraph ready",
 		"issuegraph create",
 		"issuegraph close",
-		"share the repository snapshot",
+		"Share the repository snapshot",
 	}
 
 	for _, req := range requiredContent {

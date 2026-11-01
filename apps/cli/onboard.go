@@ -14,27 +14,25 @@ const copilotInstructionsContent = `# GitHub Copilot Instructions
 
 ## Issue Tracking
 
-This project uses **issuegraph (issuegraph)** for issue tracking.
-Run ` + "`issuegraph prime`" + ` for workflow context, or install hooks (` + "`issuegraph hooks install`" + `) for auto-injection.
+Use ` + "`issuegraph`" + ` for issue tracking. Run ` + "`issuegraph prime`" + ` for details or ` + "`issuegraph hooks install`" + ` for auto-injection.
 
 **Quick reference:**
 - ` + "`issuegraph ready`" + ` - Find unblocked work
 - ` + "`issuegraph create \"Title\" --type task --priority 2`" + ` - Create issue
 - ` + "`issuegraph close <id>`" + ` - Complete work
-- Git carries the local issue snapshot under .issuegraph/ between clones
+- Git carries the local ` + "`.issuegraph/`" + ` snapshot between clones
 
 For full workflow details: ` + "`issuegraph prime`" + ``
 
 const agentsContent = `## Issue Tracking
 
-This project uses **issuegraph (issuegraph)** for issue tracking.
-Run ` + "`issuegraph prime`" + ` for workflow context, or install hooks (` + "`issuegraph hooks install`" + `) for auto-injection.
+Use ` + "`issuegraph`" + ` for issue tracking. Run ` + "`issuegraph prime`" + ` for details or ` + "`issuegraph hooks install`" + ` for auto-injection.
 
 **Quick reference:**
 - ` + "`issuegraph ready`" + ` - Find unblocked work
 - ` + "`issuegraph create \"Title\" --type task --priority 2`" + ` - Create issue
 - ` + "`issuegraph close <id>`" + ` - Complete work
-- Git carries the local issue snapshot under .issuegraph/ between clones
+- Git carries the local ` + "`.issuegraph/`" + ` snapshot between clones
 
 For full workflow details: ` + "`issuegraph prime`" + ``
 

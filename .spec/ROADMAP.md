@@ -22,3 +22,4 @@
 | 0018 | [Move the MCP server into the Go CLI (child of 0001)](rfc/0018-mcp-go-subcommand.md) | Draft |
 | 0019 | [Release only through shipify, with no release machinery in the repository (child of 0001)](rfc/completed/0019-shipify-only-release.md) | Implemented |
 | 0020 | [Pre-commit hook reads go version from go.work](rfc/completed/0020-precommit-go-work.md) | Implemented |
+| 0021 | [Remove BEADS env and .beads directory fallbacks](rfc/completed/0021-remove-beads-fallbacks.md) | Implemented |
