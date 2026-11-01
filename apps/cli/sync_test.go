@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/borg0ai/dx-issuegraph/internal/config"
 	"github.com/borg0ai/dx-issuegraph/internal/storage"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/versioncontrolops"

@@ -95,11 +95,7 @@ func TestDoltRemoteSyncCommandsFailClosedBeforeStoreAccess(t *testing.T) {
 	}
 	issuegraph.ResetCaches()
 
-	cases := []struct {
-		name string
-		cmd  *cobra.Command
-		args []string
-	}{
+	cases := []localOnlyCase{
 		{name: "dolt push", cmd: doltPushCmd},
 		{name: "dolt pull", cmd: doltPullCmd},
 		{name: "dolt remote add", cmd: doltRemoteAddCmd, args: []string{"origin", "https://example.test/issues.git"}},
@@ -107,12 +103,10 @@ func TestDoltRemoteSyncCommandsFailClosedBeforeStoreAccess(t *testing.T) {
 		{name: "dolt remote remove", cmd: doltRemoteRemoveCmd, args: []string{"origin"}},
 		{name: "dolt remote reset-data", cmd: doltRemoteResetDataCmd, args: []string{"origin"}},
 		{name: "sync", cmd: syncCmd},
-		{name: "federation sync", cmd: federationSyncCmd},
-		{name: "federation status", cmd: federationStatusCmd},
-		{name: "federation add-peer", cmd: federationAddPeerCmd, args: []string{"peer", "file:///tmp/peer"}},
 		{name: "remote backup init", cmd: backupInitCmd, args: []string{"https://example.test/backup"}},
 		{name: "remote backup sync", cmd: backupSyncCmd},
 	}
+	cases = append(cases, federationLocalOnlyCases()...)
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var err error
@@ -128,4 +122,10 @@ func TestDoltRemoteSyncCommandsFailClosedBeforeStoreAccess(t *testing.T) {
 			}
 		})
 	}
+}
+
+type localOnlyCase struct {
+	name string
+	cmd  *cobra.Command
+	args []string
 }

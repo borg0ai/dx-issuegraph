@@ -21,3 +21,4 @@
 | 0017 | [Ship only through the three shipify channels (child of 0001)](rfc/0017-shipify-channels-only.md) | Approved |
 | 0018 | [Move the MCP server into the Go CLI (child of 0001)](rfc/0018-mcp-go-subcommand.md) | Draft |
 | 0019 | [Release only through shipify, with no release machinery in the repository (child of 0001)](rfc/completed/0019-shipify-only-release.md) | Implemented |
+| 0020 | [Pre-commit hook reads go version from go.work](rfc/0020-precommit-go-work.md) | Approved |

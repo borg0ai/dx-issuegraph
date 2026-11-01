@@ -21,9 +21,9 @@ if [ -n "$staged_go_files" ]; then
     # load ("the Go language version (go1.25) used to build golangci-lint is
     # lower than the targeted Go version") and fails every Go commit. Pinning to
     # the go directive reproduces CI's resolution on any host toolchain.
-    go_toolchain="go$(awk '$1 == "go" { print $2; exit }' go.mod)"
+    go_toolchain="go$(awk '$1 == "go" { print $2; exit }' go.work)"
     if [ "$go_toolchain" = "go" ]; then
-        echo >&2 "pre-commit: no go directive in go.mod; cannot pin the lint toolchain"
+        echo >&2 "pre-commit: no go directive in go.work; cannot pin the lint toolchain"
         exit 1
     fi
 
@@ -34,13 +34,19 @@ if [ -n "$staged_go_files" ]; then
     # Lint changed code with auto-fix; block on remaining issues.
     # CGO_ENABLED=0 avoids typecheck failures from CGO-only dependencies
     # (e.g., dolthub/go-icu-regex) that require system headers not always present.
-    CGO_ENABLED=0 GOTOOLCHAIN="$go_toolchain" $GOLANGCI_LINT run --new-from-rev=HEAD --fix || exit 1
+    # The repo root is a go.work with no root module, so lint each workspace
+    # module that has staged Go files from inside that module.
+    for mod in $(awk '$1 ~ /^\.\// { print $1 }' go.work); do
+        if echo "$staged_go_files" | grep -q "^${mod#./}/"; then
+            (cd "$mod" && CGO_ENABLED=0 GOTOOLCHAIN="$go_toolchain" $GOLANGCI_LINT run --new-from-rev=HEAD --fix) || exit 1
+        fi
+    done
 
     # Re-stage any auto-fixes from the linter
     echo "$staged_go_files" | xargs git add
 fi
 
-# --- BEGIN ISSUEGRAPH INTEGRATION v1.3.0 ---
+# --- BEGIN ISSUEGRAPH INTEGRATION v1.3.1 ---
 # This section is managed by issuegraph. Do not remove these markers.
 if command -v issuegraph >/dev/null 2>&1; then
   export ISSUEGRAPH_GIT_HOOK=1
@@ -97,4 +103,4 @@ if command -v issuegraph >/dev/null 2>&1; then
   fi
   if [ "$_issuegraph_exit" -ne 0 ]; then exit "$_issuegraph_exit"; fi
 fi
-# --- END ISSUEGRAPH INTEGRATION v1.3.0 ---
+# --- END ISSUEGRAPH INTEGRATION v1.3.1 ---
