@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-11-01
+
+### Removed
+
+- **BREAKING:** the legacy BEADS fallbacks. `BEADS_DIR`, `BEADS_MAIL_DELEGATE` and the `.beads` workspace directory are no longer read. Use `ISSUEGRAPH_DIR`, `ISSUEGRAPH_MAIL_DELEGATE` and `.issuegraph`. There is no migration.
+
+### Fixed
+
+- The `.githooks/pre-commit` hook reads the Go version from `go.work` and lints each workspace module, so commits that stage Go files no longer fail.
+
 ### Fixed
 
 - **`bd list --watch --format` is refused instead of silently dropping the

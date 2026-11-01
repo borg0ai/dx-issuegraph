@@ -121,6 +121,11 @@ scoop install shennong/issuegraph
 
 Each channel installs the matching archive from the tagged GitHub Release and pins its SHA-256 from the release `SHA256SUMS`.
 
+**Latest release: 1.3.2.** BREAKING: the legacy BEADS names are gone. `BEADS_DIR`,
+`BEADS_MAIL_DELEGATE` and the `.beads` workspace directory are no longer read; use
+`ISSUEGRAPH_DIR`, `ISSUEGRAPH_MAIL_DELEGATE` and `.issuegraph`. Also fixes the
+pre-commit hook so commits that stage Go files work again.
+
 **Upgrading?** Back up with `issuegraph export --all`, upgrade the binary, then run
 `issuegraph info --whats-new`, `issuegraph hooks install`, and `issuegraph version`.
 Move issue data between clones with the Git-tracked workspace snapshot. See the full

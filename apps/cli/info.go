@@ -228,6 +228,13 @@ type VersionChange struct {
 // versionChanges contains agent-actionable changes for recent versions
 var versionChanges = []VersionChange{
 	{
+		Version: "1.3.2",
+		Date:    "2026-11-01",
+		Changes: []string{
+			"BREAKING: the legacy BEADS names are no longer read. Use ISSUEGRAPH_DIR (not BEADS_DIR), ISSUEGRAPH_MAIL_DELEGATE (not BEADS_MAIL_DELEGATE) and the .issuegraph directory (not .beads). A workspace that only has .beads is not found; rename it to .issuegraph.",
+		},
+	},
+	{
 		Version: "1.3.0",
 		Date:    "2026-09-15",
 		Changes: []string{
