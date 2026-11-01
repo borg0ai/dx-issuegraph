@@ -13,8 +13,8 @@
 | 0009 | [根 Go module 与 CLI 构建布局 (child of 0001)](rfc/rejected/0009-go-module-cli-build.md) | Superseded |
 | 0010 | [IssueGraph 集成资产目录迁移 (child of 0001)](rfc/0010-issuegraph-asset-layout.md) | Approved |
 | 0011 | [`@borg0ai/issuegraph` npm installer (child of 0001)](rfc/rejected/0011-go-cli-npm-delivery.md) | Superseded |
-| 0012 | [Luban Homebrew delivery for IssueGraph CLI (child of 0001)](rfc/0012-luban-homebrew-release.md) | Approved |
-| 0013 | [Move Go CLI into apps/cli (child of 0001)](rfc/0013-go-cli-under-apps.md) | Approved |
+| 0012 | [Luban Homebrew delivery for IssueGraph CLI (child of 0001)](rfc/completed/0012-luban-homebrew-release.md) | Implemented |
+| 0013 | [Move Go CLI into apps/cli (child of 0001)](rfc/completed/0013-go-cli-under-apps.md) | Implemented |
 | 0014 | [Optional GitHub Issues synchronization (child of 0001)](rfc/pending/0014-github-issues-sync.md) | Pending |
 | 0015 | [Cangjie Nix delivery for IssueGraph CLI on Linux (child of 0001)](rfc/0015-cangjie-nix-release.md) | Draft |
 | 0016 | [Shennong Scoop bucket delivery for IssueGraph CLI on Windows (child of 0001)](rfc/0016-shennong-bucket-release.md) | Draft |

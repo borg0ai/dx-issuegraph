@@ -6,7 +6,7 @@
 
 ## Decision Update
 
-RFC [0013](0013-go-cli-under-apps.md) supersedes this RFC's placement of an
+RFC [0013](completed/0013-go-cli-under-apps.md) supersedes this RFC's placement of an
 installable npm CLI package in `apps/cli`. pnpm and Turbo workspace decisions
 and reusable npm packages remain in force.
 

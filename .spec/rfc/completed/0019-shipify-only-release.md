@@ -10,7 +10,7 @@ The repository contains no release workflow, release tooling, or release
 documentation. Every release is performed by the `shipify` skill, which reads
 `~/.shipify/setting.json`, bumps versions, tags, builds and publishes the GitHub
 Release assets for macOS, Linux and Windows, and opens one pull request per
-channel repository ([0012](../0012-luban-homebrew-release.md),
+channel repository ([0012](0012-luban-homebrew-release.md),
 [0015](../0015-cangjie-nix-release.md), [0016](../0016-shennong-bucket-release.md)).
 GoReleaser is removed.
 

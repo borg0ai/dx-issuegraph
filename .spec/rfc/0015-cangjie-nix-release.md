@@ -9,7 +9,7 @@
 Distribute the native IssueGraph CLI on Linux through the `cangjie-nix`
 repository. A Nix package there installs the versioned Linux archive from the
 tagged GitHub Release and verifies it against that release's checksum. It is
-the Linux counterpart of the macOS channel in [0012](0012-luban-homebrew-release.md).
+the Linux counterpart of the macOS channel in [0012](completed/0012-luban-homebrew-release.md).
 
 ## Problem
 

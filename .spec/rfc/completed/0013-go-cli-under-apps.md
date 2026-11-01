@@ -1,8 +1,8 @@
 # RFC 0013: Move Go CLI into apps/cli (child of 0001)
 
-**Status:** Approved
+**Status:** Implemented
 
-**Parent:** [0001](0001-issuegraph-local-git.md)
+**Parent:** [0001](../0001-issuegraph-local-git.md)
 
 ## Summary
 

@@ -7,7 +7,7 @@
 ## Summary
 
 IssueGraph is delivered through exactly the three channels the `shipify` skill
-defines in `~/.shipify/setting.json`: `luban-homebrew` (macOS, [0012](0012-luban-homebrew-release.md)),
+defines in `~/.shipify/setting.json`: `luban-homebrew` (macOS, [0012](completed/0012-luban-homebrew-release.md)),
 `cangjie-nix` (Linux, [0015](0015-cangjie-nix-release.md)) and `shennong-bucket`
 (Windows, [0016](0016-shennong-bucket-release.md)), all owned by `systembugtj`.
 Every other distribution path is removed from this repository, with no legacy

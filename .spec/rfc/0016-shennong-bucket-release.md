@@ -9,7 +9,7 @@
 Distribute the native IssueGraph CLI on Windows through the `shennong-bucket`
 Scoop bucket. A Scoop manifest there points at the versioned Windows zip in the
 tagged GitHub Release and pins its sha256. It is the Windows counterpart of
-[0012](0012-luban-homebrew-release.md) and [0015](0015-cangjie-nix-release.md).
+[0012](completed/0012-luban-homebrew-release.md) and [0015](0015-cangjie-nix-release.md).
 
 ## Problem
 
