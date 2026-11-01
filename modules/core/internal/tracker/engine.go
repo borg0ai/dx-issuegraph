@@ -17,8 +17,8 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/storage"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 	"github.com/borg0ai/dx-issuegraph/internal/types"
-	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/borg0ai/dx-issuegraph/internal/ui"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 )
 
 // syncTracer is the OTel tracer for tracker sync spans.

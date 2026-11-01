@@ -12,7 +12,7 @@ and reusable npm packages remain in force.
 
 ## Summary
 
-Move the npm CLI app to `apps/cli`, reusable npm packages to `packages/*`, and coordinate JavaScript/TypeScript workspace tasks with pnpm and Turborepo. Go source layout and product asset relocation belong to RFCs [0009](0009-go-module-cli-build.md) and [0010](0010-issuegraph-asset-layout.md).
+Move the npm CLI app to `apps/cli`, reusable npm packages to `packages/*`, and coordinate JavaScript/TypeScript workspace tasks with pnpm and Turborepo. Go source layout and product asset relocation belong to RFCs [0009](rejected/0009-go-module-cli-build.md) and [0010](0010-issuegraph-asset-layout.md).
 
 ## Problem
 

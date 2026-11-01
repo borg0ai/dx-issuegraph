@@ -10,7 +10,7 @@
   - [ ] Implement RFC 0006: IssueGraph pnpm and Go monorepo structure (child of 0001) (RFC 0006)
   - [ ] Implement RFC 0007: Use repository-native Git hooks for local checks (child of 0001) (RFC 0007)
   - [ ] Implement RFC 0008: Disable external tracker network sync (child of 0001) (RFC 0008)
-  - [ ] Implement RFC 0009: 根 Go module 与 CLI 构建布局 (child of 0001) (RFC 0009)
+  - [x] Implement RFC 0009: 根 Go module 与 CLI 构建布局 (child of 0001) (RFC 0009)
   - [ ] Implement RFC 0010: IssueGraph 集成资产目录迁移 (child of 0001) (RFC 0010)
   - [x] Implement RFC 0011: `@borg0ai/issuegraph` npm installer (child of 0001) (RFC 0011)
   - [ ] Implement RFC 0012: Luban Homebrew delivery for IssueGraph CLI (child of 0001) (RFC 0012)
