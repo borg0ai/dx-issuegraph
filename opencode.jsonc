@@ -1,0 +1,14 @@
+{
+  "mcp": {
+    "reviewgraph": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "reviewgraph",
+        "serve",
+        "--repo",
+        "/Volumes/ORICO/ws/prj/skills/dx-issuegraph"
+      ]
+    }
+  }
+}

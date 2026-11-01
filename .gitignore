@@ -104,3 +104,5 @@ output
 
 # Tooling analysis outputs
 graphify-out/
+# Added by reviewgraph
+.reviewgraph/

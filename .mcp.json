@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "reviewgraph": {
+      "command": "uvx",
+      "args": [
+        "reviewgraph",
+        "serve"
+      ],
+      "cwd": "/Volumes/ORICO/ws/prj/skills/dx-issuegraph",
+      "type": "stdio"
+    }
+  }
+}
