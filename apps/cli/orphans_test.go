@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/internal/types"
 )
 
 // mockProvider implements types.IssueProvider for testing

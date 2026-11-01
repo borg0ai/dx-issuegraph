@@ -25,7 +25,7 @@ func TestCodexHookSessionStartInjectsPrimeContext(t *testing.T) {
 		if memoriesOnly {
 			t.Fatal("SessionStart should request full prime output")
 		}
-		return "ISSUEGRAPH PRIME\nbd ready --json\n", nil
+		return "ISSUEGRAPH PRIME\nissuegraph ready --json\n", nil
 	})
 
 	var out bytes.Buffer

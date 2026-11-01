@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -196,7 +197,12 @@ const testH1 = "h1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
 func readCheckedCatalog(t *testing.T) Catalog {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("..", "release-catalog.json"))
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
+	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(filename), "../../../../.."))
+	raw, err := os.ReadFile(filepath.Join(repoRoot, "scripts", "migration-test", "release-catalog.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

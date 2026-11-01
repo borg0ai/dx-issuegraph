@@ -9,13 +9,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/borg0ai/dx-issuegraph/internal/config"
 	"github.com/borg0ai/dx-issuegraph/internal/debug"
 	"github.com/borg0ai/dx-issuegraph/internal/git"
 	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 	"github.com/borg0ai/dx-issuegraph/internal/ui"
-	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/spf13/cobra"
 )
 

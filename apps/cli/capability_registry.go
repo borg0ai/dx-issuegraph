@@ -280,6 +280,7 @@ var proxyCapabilityRegistry = []capabilityRow{
 	backupRefusal("backup remove"),
 	backupRefusal("backup status"),
 	backupRefusal("backup restore"),
+	refusedPath("snapshot restore", "proxy.snapshot.unsupported", ProxyReasonDesign, "restoring a full snapshot replaces shared issue state"),
 
 	// --- version control over a shared history ------------------------------
 	// Refused by design: these mutate or traverse a history that several
@@ -453,19 +454,9 @@ var proxyCapabilityRegistry = []capabilityRow{
 	// typed refusals changes observable output and belongs to the slice that
 	// owns each family. Tracker verbs are ordinary store reads plus a network
 	// call; nothing about the proxied topology makes them wrong.
-	refusedInRunE("ado status", "ado.go"),
-	refusedInRunE("ado projects", "ado.go"),
-	refusedInRunE("ado sync", "ado.go"),
 	refusedInRunE("github status", "github.go"),
 	refusedInRunE("github repos", "github.go"),
 	refusedInRunE("github sync", "github.go"),
-	refusedInRunE("gitlab status", "gitlab.go"),
-	refusedInRunE("gitlab projects", "gitlab.go"),
-	refusedInRunE("gitlab sync", "gitlab.go"),
-	refusedInRunE("notion status", "notion.go"),
-	refusedInRunE("notion init", "notion.go"),
-	refusedInRunE("notion connect", "notion.go"),
-	refusedInRunE("notion sync", "notion.go"),
 	refusedInRunE("create-form", "create_form.go"),
 }
 
@@ -526,11 +517,8 @@ var proxyPermittedPaths = []string{
 	// human-in-the-loop queue
 	"human", "human dismiss", "human list", "human respond", "human stats",
 
-	// trackers: the verbs with no proxied refusal of any kind
-	"ado pull", "ado push", "github pull", "github push", "gitlab pull", "gitlab push",
-	"jira pull", "jira push", "jira status", "jira sync",
-	"linear pull", "linear push", "linear status", "linear sync", "linear teams",
-	"notion pull", "notion push",
+	// Tracker commands that remain in the Cobra tree.
+	"github pull", "github push",
 
 	// hooks, metrics, serving and internal entry points
 	"hooks install", "hooks list", "hooks run", "hooks uninstall",

@@ -609,8 +609,8 @@ func TestDefaultsMatchCLIFlags(t *testing.T) {
 		file string
 		want string
 	}{
-		{"../../../cli/list.go", "workapi.DefaultListLimit"},
-		{"../../../cli/ready.go", "workapi.DefaultReadyLimit"},
+		{"../../../../apps/cli/list.go", "workapi.DefaultListLimit"},
+		{"../../../../apps/cli/ready.go", "workapi.DefaultReadyLimit"},
 	} {
 		src, err := os.ReadFile(tc.file)
 		if err != nil {
@@ -637,7 +637,7 @@ func TestDefaultsMatchCLIFlags(t *testing.T) {
 	// that forwards an absent `sort` as "" reintroduces the divergence with
 	// the spec still saying the right thing.
 	sortFlag := regexp.MustCompile(`StringP\("sort",\s*"s",\s*"([a-z]+)"`)
-	src, err := os.ReadFile("../../../cli/ready.go")
+	src, err := os.ReadFile("../../../../apps/cli/ready.go")
 	if err != nil {
 		t.Fatalf("read apps/cli/ready.go: %v", err)
 	}

@@ -204,6 +204,9 @@ func getGitHubConfigValue(ctx context.Context, key string) string {
 				return token
 			}
 		}
+		if token := config.GetString(key); token != "" {
+			return token
+		}
 		return os.Getenv("GITHUB_TOKEN")
 	}
 	// Secret keys (e.g. github.token) are stored in config.yaml, not the

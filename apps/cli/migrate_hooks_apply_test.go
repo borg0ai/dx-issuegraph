@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/borg0ai/dx-issuegraph/internal/git"
 	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/internal/git"
 )
 
 func TestApplyHookMigrationExecution_LegacyWithOldSidecar(t *testing.T) {

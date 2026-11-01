@@ -90,7 +90,7 @@ type HookIntegrationStatus struct {
 }
 
 // issuegraphHookPattern matches the recommended issuegraph hooks run pattern with word boundaries
-var issuegraphHookPattern = regexp.MustCompile(`\bbd\s+hooks\s+run\b`)
+var issuegraphHookPattern = regexp.MustCompile(`\bissuegraph\s+hooks\s+run\b`)
 
 // hookManagerPattern pairs a manager name with its detection pattern.
 type hookManagerPattern struct {
@@ -512,7 +512,7 @@ func CheckHkBdIntegration(path string) *HookIntegrationStatus {
 	// Since issuegraph hooks run commands include the hook name, we can match them directly.
 	for _, hookName := range recommendedBdHooks {
 		sectionPattern := regexp.MustCompile(`\[\s*"` + regexp.QuoteMeta(hookName) + `"\s*\]`)
-		hasBdRun := regexp.MustCompile(`\bbd\s+hooks\s+run\s+` + regexp.QuoteMeta(hookName) + `\b`)
+		hasBdRun := regexp.MustCompile(`\bissuegraph\s+hooks\s+run\s+` + regexp.QuoteMeta(hookName) + `\b`)
 
 		sectionExists := sectionPattern.MatchString(contentStr)
 		issuegraphRunExists := hasBdRun.MatchString(contentStr)

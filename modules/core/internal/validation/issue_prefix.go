@@ -143,7 +143,7 @@ func ValidateIDPrefixAllowed(id, dbPrefix, allowedPrefixes string, force bool) e
 	}
 
 	// Check if ID starts with the database prefix
-	if strings.HasPrefix(id, dbPrefix+"-") {
+	if utils.IssueIDHasPrefix(id, dbPrefix) {
 		return nil
 	}
 
@@ -153,7 +153,7 @@ func ValidateIDPrefixAllowed(id, dbPrefix, allowedPrefixes string, force bool) e
 			allowed = strings.TrimSpace(allowed)
 			// Normalize: remove trailing - if present (we add it for matching)
 			allowed = strings.TrimSuffix(allowed, "-")
-			if allowed != "" && strings.HasPrefix(id, allowed+"-") {
+			if allowed != "" && utils.IssueIDHasPrefix(id, allowed) {
 				return nil
 			}
 		}

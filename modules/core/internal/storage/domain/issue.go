@@ -10,6 +10,7 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/storage"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/dberrors"
 	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/borg0ai/dx-issuegraph/internal/validation"
 	publicops "github.com/borg0ai/dx-issuegraph/issueops"
 )
@@ -1064,12 +1065,12 @@ func (u *issueUseCaseImpl) create(ctx context.Context, params CreateIssueParams,
 }
 
 func validateExplicitIDPrefix(id, prefix, allowedPrefixes string) error {
-	if strings.HasPrefix(id, prefix+"-") {
+	if utils.IssueIDHasPrefix(id, prefix) {
 		return nil
 	}
 	for _, allowed := range strings.Split(allowedPrefixes, ",") {
 		allowed = strings.TrimSpace(allowed)
-		if allowed != "" && strings.HasPrefix(id, allowed+"-") {
+		if allowed != "" && utils.IssueIDHasPrefix(id, allowed) {
 			return nil
 		}
 	}

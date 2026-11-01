@@ -5,15 +5,15 @@ set -euo pipefail
 
 allowed=$(
   cat <<'EOF'
-internal/hooks/hooks_test.go::TestRunSync_Timeout
-internal/hooks/hooks_test.go::TestRunSync_KillsDescendants
-internal/testutil/fixtures/fixtures_test.go::TestXLargeDolt
-internal/testutil/fixtures/fixtures_test.go::TestLargeFromJSONL
-internal/storage/dolt/concurrent_test.go::TestHighContentionStress
-internal/storage/dolt/concurrent_test.go::TestConcurrentWorkQueueDrain
-internal/storage/dolt/lease_test.go::TestConcurrentHeartbeatReclaimClose
-internal/storage/uow/lostupdate_dolt_test.go::TestUOW_ConcurrentMergeOps_NoLostUpdate
-internal/workapi/sweep_test.go::TestCandidateIDMatcherLargeFixture
+modules/core/internal/hooks/hooks_test.go::TestRunSync_Timeout
+modules/core/internal/hooks/hooks_test.go::TestRunSync_KillsDescendants
+modules/core/internal/testutil/fixtures/fixtures_test.go::TestXLargeDolt
+modules/core/internal/testutil/fixtures/fixtures_test.go::TestLargeFromJSONL
+modules/core/internal/storage/dolt/concurrent_test.go::TestHighContentionStress
+modules/core/internal/storage/dolt/concurrent_test.go::TestConcurrentWorkQueueDrain
+modules/core/internal/storage/dolt/lease_test.go::TestConcurrentHeartbeatReclaimClose
+modules/core/internal/storage/uow/lostupdate_dolt_test.go::TestUOW_ConcurrentMergeOps_NoLostUpdate
+modules/core/internal/workapi/sweep_test.go::TestCandidateIDMatcherLargeFixture
 EOF
 )
 

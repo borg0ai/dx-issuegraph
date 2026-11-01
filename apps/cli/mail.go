@@ -23,12 +23,12 @@ is typically provided by the orchestrator. This command bridges that gap
 by delegating to the configured mail provider.
 
 Configuration (checked in order):
-  1. ISSUEGRAPH_MAIL_DELEGATE or ISSUEGRAPH_MAIL_DELEGATE environment variable
+	  1. ISSUEGRAPH_MAIL_DELEGATE or BEADS_MAIL_DELEGATE environment variable
   2. 'mail.delegate' config setting (issuegraph config set mail.delegate "gt mail")
 
 Examples:
   # Configure delegation (one-time setup)
-  export ISSUEGRAPH_MAIL_DELEGATE="gt mail"
+	  export ISSUEGRAPH_MAIL_DELEGATE="gt mail"
   # or
   issuegraph config set mail.delegate "gt mail"
 
@@ -89,7 +89,7 @@ Examples:
 // Priority: env vars > issuegraph config
 func findMailDelegate() string {
 	// Check environment variables first
-	if delegate := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE"); delegate != "" {
+	if delegate := os.Getenv("BEADS_MAIL_DELEGATE"); delegate != "" {
 		return delegate
 	}
 	if delegate := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE"); delegate != "" {

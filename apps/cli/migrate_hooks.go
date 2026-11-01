@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )

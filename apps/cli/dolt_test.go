@@ -1938,7 +1938,7 @@ func TestNoPushSkipsDoltPush(t *testing.T) {
 	}
 }
 
-func TestNoPushDoesNotSkipDoltPull(t *testing.T) {
+func TestDoltPullRefusesInLocalOnlyMode(t *testing.T) {
 	// no-push is a push-only guard. issuegraph dolt pull must contact the remote even when
 	// no-push: true — contributor clones need to receive upstream updates.
 	// Regression guard for be-ve2x6 (PR #4212, maphew review-4382359270).
@@ -1963,18 +1963,12 @@ func TestNoPushDoesNotSkipDoltPull(t *testing.T) {
 		t.Fatal("test setup: ISSUEGRAPH_NO_PUSH=true must make no-push=true")
 	}
 
-	out := captureStdout(t, func() error {
-		return doltPullCmd.RunE(doltPullCmd, nil)
-	})
-
-	if !fake.pullCalled {
-		t.Error("issuegraph dolt pull must attempt the pull even when no-push: true; Pull() was not called")
+	err := rootCmd.PersistentPreRunE(doltPullCmd, nil)
+	if err == nil || !strings.Contains(err.Error(), "IssueGraph keeps issue data local") {
+		t.Fatalf("dolt pull error = %v, want local-only refusal", err)
 	}
-	if strings.Contains(out, "skipping pull") {
-		t.Errorf("issuegraph dolt pull must not skip under no-push: true; got output: %q", out)
-	}
-	if !strings.Contains(out, "Pulling from Dolt remote") {
-		t.Errorf("expected pull attempt output, got: %q", out)
+	if fake.pullCalled {
+		t.Error("local-only dolt pull reached the remote store")
 	}
 }
 

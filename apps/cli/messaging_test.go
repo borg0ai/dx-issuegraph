@@ -356,17 +356,17 @@ func TestMessagingSuite(t *testing.T) {
 // Kept separate because it modifies global state (env vars, store).
 func TestFindMailDelegate(t *testing.T) {
 	origIssueGraph := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE")
-	origBD := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE")
+	origBD := os.Getenv("BEADS_MAIL_DELEGATE")
 	defer func() {
 		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", origIssueGraph)
-		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", origBD)
+		os.Setenv("BEADS_MAIL_DELEGATE", origBD)
 	}()
 
 	t.Run("ISSUEGRAPH_MAIL_DELEGATE takes priority", func(t *testing.T) {
 		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", "gt mail")
-		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", "other mail")
+		os.Setenv("BEADS_MAIL_DELEGATE", "other mail")
 		defer func() {
-			os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
+			os.Unsetenv("BEADS_MAIL_DELEGATE")
 			os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
 		}()
 
@@ -378,8 +378,8 @@ func TestFindMailDelegate(t *testing.T) {
 
 	t.Run("ISSUEGRAPH_MAIL_DELEGATE fallback", func(t *testing.T) {
 		os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
-		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", "custom mail")
-		defer os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
+		os.Setenv("BEADS_MAIL_DELEGATE", "custom mail")
+		defer os.Unsetenv("BEADS_MAIL_DELEGATE")
 
 		got := findMailDelegate()
 		if got != "custom mail" {
@@ -388,7 +388,7 @@ func TestFindMailDelegate(t *testing.T) {
 	})
 
 	t.Run("no delegate returns empty", func(t *testing.T) {
-		os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
+		os.Unsetenv("BEADS_MAIL_DELEGATE")
 		os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
 
 		oldStore := store
@@ -414,12 +414,12 @@ func TestMailDelegateFromConfig(t *testing.T) {
 	}
 
 	origIssueGraph := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE")
-	origBD := os.Getenv("ISSUEGRAPH_MAIL_DELEGATE")
-	os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
+	origBD := os.Getenv("BEADS_MAIL_DELEGATE")
+	os.Unsetenv("BEADS_MAIL_DELEGATE")
 	os.Unsetenv("ISSUEGRAPH_MAIL_DELEGATE")
 	defer func() {
 		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", origIssueGraph)
-		os.Setenv("ISSUEGRAPH_MAIL_DELEGATE", origBD)
+		os.Setenv("BEADS_MAIL_DELEGATE", origBD)
 	}()
 
 	oldStore := store

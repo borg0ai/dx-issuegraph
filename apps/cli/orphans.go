@@ -9,12 +9,12 @@ import (
 
 	"context"
 
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/borg0ai/dx-issuegraph/internal/config"
 	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/borg0ai/dx-issuegraph/internal/utils"
-	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/spf13/cobra"
 )
 

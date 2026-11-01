@@ -52,7 +52,7 @@ func TestTrackerConfigPrefixesRecognized(t *testing.T) {
 }
 
 func TestConfigHelpMentionsDoltLocalOnly(t *testing.T) {
-	if !strings.Contains(configCmd.Long, "issuegraph config set dolt.local-only true") {
+	if !strings.Contains(configCmd.Long, "dolt.local-only") || !strings.Contains(configCmd.Long, "remote issue sync is disabled") {
 		t.Fatalf("config help missing dolt.local-only example:\n%s", configCmd.Long)
 	}
 }

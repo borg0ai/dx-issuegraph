@@ -45,8 +45,8 @@ func TestOnboardCommand(t *testing.T) {
 		if !strings.Contains(agentsContent, "issuegraph close") {
 			t.Error("agentsContent should include quick reference to 'issuegraph close'")
 		}
-		if !strings.Contains(agentsContent, "issuegraph dolt push") {
-			t.Error("agentsContent should include quick reference to 'issuegraph dolt push'")
+		if !strings.Contains(agentsContent, "Git carries the local `.issuegraph/` snapshot") {
+			t.Error("agentsContent should describe Git snapshot transport")
 		}
 
 		// Verify it's actually minimal (less than 500 chars)

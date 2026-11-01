@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/borg0ai/dx-issuegraph/internal/workapi"
-	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/spf13/cobra"
 )
 

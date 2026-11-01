@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"golang.org/x/term"
 )
 

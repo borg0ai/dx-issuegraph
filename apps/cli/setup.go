@@ -7,10 +7,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/apps/cli/setup"
 	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 	"github.com/borg0ai/dx-issuegraph/internal/metrics"
 	"github.com/borg0ai/dx-issuegraph/internal/recipes"
-	"github.com/borg0ai/dx-issuegraph/apps/cli/setup"
 	"github.com/spf13/cobra"
 )
 

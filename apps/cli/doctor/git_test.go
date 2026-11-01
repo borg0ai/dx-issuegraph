@@ -156,7 +156,7 @@ func TestCheckGitHooks_CorruptedHookFiles(t *testing.T) {
 				gitDir := filepath.Join(dir, ".git")
 				hooksDir := filepath.Join(gitDir, "hooks")
 				os.MkdirAll(hooksDir, 0755)
-				oldHook := "#!/bin/sh\n# bd-hooks-version: 0.49.1\nbd hooks run pre-push\n"
+				oldHook := "#!/bin/sh\n# bd-hooks-version: 0.49.1\nissuegraph hooks run pre-push\n"
 				os.WriteFile(filepath.Join(hooksDir, "pre-commit"), []byte(oldHook), 0755)
 				os.WriteFile(filepath.Join(hooksDir, "post-merge"), []byte(oldHook), 0755)
 				os.WriteFile(filepath.Join(hooksDir, "pre-push"), []byte(oldHook), 0755)
@@ -171,7 +171,7 @@ func TestCheckGitHooks_CorruptedHookFiles(t *testing.T) {
 				gitDir := filepath.Join(dir, ".git")
 				hooksDir := filepath.Join(gitDir, "hooks")
 				os.MkdirAll(hooksDir, 0755)
-				currentHook := "#!/bin/sh\n# bd-hooks-version: 0.49.6\nbd hooks run pre-push\n"
+				currentHook := "#!/bin/sh\n# bd-hooks-version: 0.49.6\nissuegraph hooks run pre-push\n"
 				os.WriteFile(filepath.Join(hooksDir, "pre-commit"), []byte(currentHook), 0755)
 				os.WriteFile(filepath.Join(hooksDir, "post-merge"), []byte(currentHook), 0755)
 				os.WriteFile(filepath.Join(hooksDir, "pre-push"), []byte(currentHook), 0755)
@@ -304,7 +304,7 @@ func TestIsBdHookContent(t *testing.T) {
 		{"shim marker", "#!/bin/sh\n# bd-shim 0.55.0\nbd hooks run pre-commit\n", true},
 		{"inline marker", "#!/bin/sh\n# issuegraph (issuegraph)\nbd sync\n", true},
 		{"section marker", "#!/bin/sh\n# --- BEGIN ISSUEGRAPH INTEGRATION v0.57.0 ---\nbd hooks run pre-commit\n# --- END ISSUEGRAPH INTEGRATION ---\n", true},
-		{"issuegraph hooks run call", "#!/bin/sh\nbd hooks run pre-commit\n", true},
+		{"issuegraph hooks run call", "#!/bin/sh\nissuegraph hooks run pre-commit\n", true},
 		{"not a issuegraph hook", "#!/bin/sh\necho hello\n", false},
 		{"empty", "", false},
 	}
@@ -366,7 +366,7 @@ func TestCheckStaleLegacyHooks(t *testing.T) {
 		setupGitRepoInDir(t, dir)
 		hooksDir := filepath.Join(dir, ".git", "hooks")
 		writeHookFile(t, filepath.Join(hooksDir, "pre-commit.legacy"),
-			"#!/bin/sh\nbd hooks run pre-commit \"$@\"\n")
+			"#!/bin/sh\nissuegraph hooks run pre-commit \"$@\"\n")
 		runInDir(t, dir, func() {
 			check := CheckStaleLegacyHooks()
 			if check.Status != StatusOK {

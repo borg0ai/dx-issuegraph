@@ -245,6 +245,9 @@ func (t *Tracker) getConfig(ctx context.Context, key, envVar string) string {
 				return token
 			}
 		}
+		if token := config.GetString(key); token != "" {
+			return token
+		}
 		return os.Getenv(envVar)
 	}
 	// Secret keys are stored in config.yaml, not the Dolt database,

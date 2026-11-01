@@ -156,7 +156,7 @@ func TestPRCIGateRequiresJSWasmHookExecution(t *testing.T) {
 	if setupGo.Uses != setupGoActionFamily+"@"+setupGoSHA {
 		t.Errorf("setup-go action = %q", setupGo.Uses)
 	}
-	if setupGo.With["go-version-file"] != "go.mod" || setupGo.With["cache"] != "false" {
+	if setupGo.With["go-version-file"] != "modules/core/go.mod" || setupGo.With["cache"] != "false" {
 		t.Errorf("setup-go inputs = %v", setupGo.With)
 	}
 
@@ -186,7 +186,7 @@ func TestPRCIGateRequiresJSWasmHookExecution(t *testing.T) {
 		`go test -tags gms_pure_go -count=1 -timeout=2m`,
 		`-exec="$(go env GOROOT)/lib/wasm/go_js_wasm_exec"`,
 		`-run '^TestRunHookReportsUnsupportedExecution$'`,
-		`-v ./internal/hooks`,
+		`-v github.com/borg0ai/dx-issuegraph/internal/hooks`,
 		`|| test_status=$?`,
 		`=== RUN   TestRunHookReportsUnsupportedExecution`,
 		`^--- PASS: TestRunHookReportsUnsupportedExecution`,
@@ -219,7 +219,7 @@ func TestPRCIGateRequiresGeneratedHookTimeoutProcessBoundary(t *testing.T) {
 	const (
 		jobName     = "pr-preflight-platforms"
 		stepName    = "Exercise generated Git hook timeout process boundary"
-		stepCommand = "go test '-tags=gms_pure_go' -count=1 -run '^TestGeneratedHookTimeoutProcessBoundary$' ./apps/cli"
+		stepCommand = "go test '-tags=gms_pure_go' -count=1 -run '^TestGeneratedHookTimeoutProcessBoundary$' github.com/borg0ai/dx-issuegraph/apps/cli"
 		gateKey     = "PR_PREFLIGHT_PLATFORMS"
 	)
 
@@ -255,10 +255,10 @@ func TestStorageDomainUOWJobsUseNestedTimeoutBudgets(t *testing.T) {
 		jobTimeoutMinutes         = storageTimeoutMinutes + doctorTimeoutMinutes + setupTeardownSlackMinutes
 	)
 	storageCommand := fmt.Sprintf(
-		"go test -tags gms_pure_go -race -count=1 -timeout %dm -v ./internal/storage/domain/... ./internal/storage/uow/... ./internal/tracker/...",
+		"go test -tags gms_pure_go -race -count=1 -timeout %dm -v github.com/borg0ai/dx-issuegraph/internal/storage/domain/... github.com/borg0ai/dx-issuegraph/internal/storage/uow/... github.com/borg0ai/dx-issuegraph/internal/tracker/...",
 		storageTimeoutMinutes)
 	doctorCommand := fmt.Sprintf(
-		"go test -tags gms_pure_go -race -count=1 -timeout %dm -v ./apps/cli/doctor/fix/",
+		"go test -tags gms_pure_go -race -count=1 -timeout %dm -v github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix",
 		doctorTimeoutMinutes)
 
 	for _, workflowName := range []string{"pr.yml", "main.yml"} {
@@ -297,15 +297,15 @@ func TestStorageDomainUOWJobsUseNestedTimeoutBudgets(t *testing.T) {
 func TestMacOSTestJobsReuseWorkspaceIssueGraphBinary(t *testing.T) {
 	const (
 		workspaceIssueGraphBinary = "${{ github.workspace }}/issuegraph"
-		buildCommand              = "go build -v -tags gms_pure_go ./apps/cli"
+		buildCommand              = "go build -v -tags gms_pure_go github.com/borg0ai/dx-issuegraph/apps/cli"
 		// -timeout=30m is pinned on both lanes because ./apps/cli has outgrown
 		// `go test`'s 10m per-package default (#6091, and wy-5b5fbl before it —
 		// that default is what made these legs flaky). In main.yml it sits on
 		// the invocation rather than in matrix.test-flags, so editing the
 		// matrix cannot silently drop it, and so the macOS leg cannot drift
 		// away from the ubuntu -race lanes' deadline.
-		prTestCommand   = "go test -tags gms_pure_go -v -race -short -timeout=30m -skip '^TestEmbedded' ./..."
-		mainTestCommand = "go test -tags gms_pure_go ${{ matrix.test-flags }} -timeout=30m -skip '^TestEmbedded' ./..."
+		prTestCommand   = "go test -tags gms_pure_go -v -race -short -timeout=30m -skip '^TestEmbedded' github.com/borg0ai/dx-issuegraph/..."
+		mainTestCommand = "go test -tags gms_pure_go ${{ matrix.test-flags }} -timeout=30m -skip '^TestEmbedded' github.com/borg0ai/dx-issuegraph/..."
 		// The macOS leg is the only consumer of main.yml's matrix test-flags
 		// (the ubuntu leg's coverage step hardcodes its own). The deadline is
 		// deliberately NOT here — see mainTestCommand.
@@ -852,7 +852,7 @@ type goCacheStep struct {
 }
 
 func goModuleCacheKey() string {
-	return "issuegraph-go-mod-" + goCacheSchema + "-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('go.mod', 'go.sum') }}"
+	return "issuegraph-go-mod-" + goCacheSchema + "-${{ runner.os }}-${{ runner.arch }}-go-${{ steps.setup-go.outputs.go-version }}-${{ hashFiles('modules/core/go.mod', 'modules/core/go.sum', 'apps/cli/go.mod', 'apps/cli/go.sum') }}"
 }
 
 func goModuleCacheRestoreKeys() string {
@@ -1315,7 +1315,7 @@ func TestPinnedDoltCLIMatchesContainerImage(t *testing.T) {
 	}
 	cliVersion := captureOne(t, `(?m)^readonly version="([0-9]+\.[0-9]+\.[0-9]+)"$`, string(installer), "scripts/ci/install-dolt.sh")
 
-	common, err := os.ReadFile(filepath.Join(root, "internal", "testutil", "testdoltcommon.go"))
+	common, err := os.ReadFile(filepath.Join(root, "modules", "core", "internal", "testutil", "testdoltcommon.go"))
 	if err != nil {
 		t.Fatal(err)
 	}

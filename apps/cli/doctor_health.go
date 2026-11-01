@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/doltutil"
 	"github.com/borg0ai/dx-issuegraph/internal/ui"
-	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 )
 
 // runCheckHealth runs lightweight health checks for git hooks.

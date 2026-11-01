@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
 	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	"github.com/borg0ai/dx-issuegraph/internal/git"
 	"github.com/borg0ai/dx-issuegraph/internal/types"
-	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
 )
 
 // gitCmdTimeout is the timeout for git subprocess commands in doctor checks.
@@ -37,7 +37,7 @@ const issuegraphInlineHookMarker = "# issuegraph (issuegraph)"
 const issuegraphSectionMarkerPrefix = "# --- BEGIN ISSUEGRAPH INTEGRATION"
 
 // issuegraphHooksRunPattern matches hooks that call issuegraph hooks run
-var issuegraphHooksRunPattern = regexp.MustCompile(`\bbd\s+hooks\s+run\b`)
+var issuegraphHooksRunPattern = regexp.MustCompile(`\bissuegraph\s+hooks\s+run\b`)
 
 // CheckGitHooks verifies that recommended git hooks are installed.
 func CheckGitHooks(cliVersion string) DoctorCheck {
@@ -532,7 +532,7 @@ func gitRevListCount(ctx context.Context, path string, rangeExpr string) (int, e
 
 // staleBdHookPattern matches the removed "issuegraph hook <name>" command (not "issuegraph hooks run").
 // This was removed in v0.58.0 and replaced by "issuegraph hooks run".
-var staleBdHookPattern = regexp.MustCompile(`\bbd\s+hook\s+(?:pre-commit|post-merge|pre-push|post-checkout|prepare-commit-msg)\b`)
+var staleBdHookPattern = regexp.MustCompile(`\b(?:bd|issuegraph)\s+hook\s+(?:pre-commit|post-merge|pre-push|post-checkout|prepare-commit-msg)\b`)
 
 // CheckStaleLegacyHooks detects *.legacy sidecar hooks (created by Python's pre-commit
 // framework) that still call the removed "issuegraph hook" command. These cause "unknown command"

@@ -11,6 +11,7 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/storage"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/depid"
 	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	gmssql "github.com/dolthub/go-mysql-server/sql"
 	"github.com/go-sql-driver/mysql"
 )
@@ -542,13 +543,13 @@ func PrepareIssueForInsert(issue *types.Issue, customStatuses, customTypes []str
 // ValidateIssueIDPrefix validates that the issue ID matches the configured prefix
 // or any of the allowed_prefixes.
 func ValidateIssueIDPrefix(id, prefix, allowedPrefixes string) error {
-	if strings.HasPrefix(id, prefix+"-") {
+	if utils.IssueIDHasPrefix(id, prefix) {
 		return nil
 	}
 	if allowedPrefixes != "" {
 		for _, allowed := range strings.Split(allowedPrefixes, ",") {
 			allowed = strings.TrimSpace(allowed)
-			if allowed != "" && strings.HasPrefix(id, allowed+"-") {
+			if allowed != "" && utils.IssueIDHasPrefix(id, allowed) {
 				return nil
 			}
 		}

@@ -17,6 +17,7 @@ import (
 	"github.com/borg0ai/dx-issuegraph/internal/storage"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/issueops"
 	"github.com/borg0ai/dx-issuegraph/internal/types"
+	"github.com/borg0ai/dx-issuegraph/internal/utils"
 	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
@@ -1647,7 +1648,7 @@ func isIssueID(id, prefix string) bool {
 	if prefix == "" || id == "" {
 		return false
 	}
-	return strings.HasPrefix(id, prefix+"-")
+	return utils.IssueIDHasPrefix(id, prefix)
 }
 
 // buildIssueIDSet converts a slice of IDs into a set for O(1) lookup.

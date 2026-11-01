@@ -22,7 +22,7 @@ func TestCursorHookSessionStartInjectsPrime(t *testing.T) {
 	t.Cleanup(func() { cursorHookMarkerDirOverride = "" })
 
 	stubCursorHookPrime(t, func() (string, error) {
-		return "ISSUEGRAPH PRIME\nbd ready --json\n", nil
+		return "ISSUEGRAPH PRIME\nissuegraph ready --json\n", nil
 	})
 
 	var out bytes.Buffer

@@ -22,20 +22,34 @@ if [[ -n "${ISSUEGRAPH_LINT_NEW_FROM_MERGE_BASE:-}" ]]; then
 fi
 
 ci_time "gofmt check" -- ./scripts/ci/fmt-check.sh
-ci_time "golangci-lint" -- \
-    golangci-lint run --config=.golangci.yml --modules-download-mode=readonly \
-        --timeout=5m --build-tags=gms_pure_go \
-        ${lint_scope[@]+"${lint_scope[@]}"} ./...
+
+run_lint() {
+    local module="$1"
+    (
+        cd "$REPO_ROOT/$module"
+        ci_time "golangci-lint ($module)" -- \
+            golangci-lint run --config="$REPO_ROOT/modules/core/.golangci.yml" --modules-download-mode=readonly \
+                --timeout=5m --build-tags=gms_pure_go \
+                ${lint_scope[@]+"${lint_scope[@]}"} ./...
+    )
+}
+
+run_lint modules/core
+run_lint apps/cli
 
 # Other target tuples may not load files guarded by //go:build windows && !cgo.
-# Cross-lint that non-CGO Windows build too, unless the native target above
-# already matches it exactly.
+# Cross-lint each module for that non-CGO Windows build.
 native_goos="$(go env GOOS)"
 native_cgo_enabled="$(go env CGO_ENABLED)"
 if [[ "$native_goos" != "windows" || "$native_cgo_enabled" != "0" ]]; then
-    ci_time "golangci-lint (windows)" -- \
-        env GOOS=windows GOARCH=amd64 CGO_ENABLED=0 GOWORK=off \
-            golangci-lint run --config=.golangci.yml --modules-download-mode=readonly \
-                --timeout=5m --build-tags=gms_pure_go \
-                ${lint_scope[@]+"${lint_scope[@]}"} ./...
+    for module in modules/core apps/cli; do
+        (
+            cd "$REPO_ROOT/$module"
+            ci_time "golangci-lint (windows, $module)" -- \
+                env GOOS=windows GOARCH=amd64 CGO_ENABLED=0 GOWORK=off \
+                    golangci-lint run --config="$REPO_ROOT/modules/core/.golangci.yml" --modules-download-mode=readonly \
+                        --timeout=5m --build-tags=gms_pure_go \
+                        ${lint_scope[@]+"${lint_scope[@]}"} ./...
+        )
+    done
 fi

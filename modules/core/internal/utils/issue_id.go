@@ -30,7 +30,7 @@ func ExtractIssuePrefix(issueID string) string {
 	suffix := issueID[lastIdx+1:]
 	if len(suffix) == 0 {
 		// Trailing hyphen like "bd-" - return prefix before the hyphen
-		return issueID[:lastIdx]
+		return canonicalIssuePrefix(issueID[:lastIdx])
 	}
 
 	// Extract the base part before any dot (handle "123.1.2" -> check "123")
@@ -43,7 +43,7 @@ func ExtractIssuePrefix(issueID string) string {
 	// Use isLikelyHash which requires digits for 4+ char suffixes to avoid
 	// treating English words like "test", "gate", "part" as hash IDs
 	if isNumeric(basePart) || isLikelyHash(basePart) {
-		return issueID[:lastIdx]
+		return canonicalIssuePrefix(issueID[:lastIdx])
 	}
 
 	// Suffix looks like an English word (4+ chars, no digits) or contains special chars
@@ -52,7 +52,23 @@ func ExtractIssuePrefix(issueID string) string {
 	if firstIdx <= 0 {
 		return ""
 	}
-	return issueID[:firstIdx]
+	return canonicalIssuePrefix(issueID[:firstIdx])
+}
+
+func canonicalIssuePrefix(prefix string) string {
+	if prefix == "bd" {
+		return "issuegraph"
+	}
+	return prefix
+}
+
+// IssueIDHasPrefix accepts historical Beads IDs under the IssueGraph prefix
+// without changing the ID stored in the database.
+func IssueIDHasPrefix(issueID, prefix string) bool {
+	if strings.HasPrefix(issueID, prefix+"-") {
+		return true
+	}
+	return (prefix == "issuegraph" || prefix == "bd") && strings.HasPrefix(issueID, "bd-")
 }
 
 // isNumeric checks if a string contains only digits
@@ -125,7 +141,7 @@ func ExtractIssuePrefixKnown(issueID string, knownPrefixes []string) string {
 	})
 
 	for _, p := range cleaned {
-		if strings.HasPrefix(issueID, p+"-") {
+		if IssueIDHasPrefix(issueID, p) {
 			return p
 		}
 	}
@@ -175,6 +191,9 @@ func splitIDSegments(id string) []string {
 	}
 	if start < len(id) {
 		segments = append(segments, id[start:])
+	}
+	if len(segments) > 0 {
+		segments[0] = canonicalIssuePrefix(segments[0])
 	}
 	return segments
 }

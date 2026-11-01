@@ -19,8 +19,8 @@ func TestConformanceScriptUsesExplicitTimeoutBudgets(t *testing.T) {
 	}
 
 	want := [][]string{
-		{"test", "-tags", "gms_pure_go", "-v", "-timeout", "30m", "./internal/storage/embeddeddolt/", "-run", "TestConformance"},
-		{"test", "-tags", "gms_pure_go e2e", "-timeout", "10m", "./test/conformance/"},
+		{"-C", "modules/core", "test", "-tags", "gms_pure_go", "-v", "-timeout", "30m", "./internal/storage/embeddeddolt/", "-run", "TestConformance"},
+		{"-C", "modules/core", "test", "-tags", "gms_pure_go e2e", "-timeout", "10m", "./test/conformance/"},
 	}
 	if !reflect.DeepEqual(run.calls, want) {
 		t.Fatalf("go calls = %#v, want %#v", run.calls, want)

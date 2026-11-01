@@ -460,7 +460,11 @@ func TestLegacyGuardUsesSelectedTargetSharedServerConfig(t *testing.T) {
 					t.Fatal(err)
 				}
 				writeFile(t, filepath.Join(targetIssueGraphDir, "metadata.json"), []byte(`{"backend":"dolt"}`))
-				writeFile(t, filepath.Join(targetIssueGraphDir, "config.yaml"), []byte("dolt:\n  shared-server: "+strconv.FormatBool(tt.targetShared)+"\n"))
+				targetConfig := "dolt:\n  shared-server: " + strconv.FormatBool(tt.targetShared) + "\n"
+				if tt.targetShared {
+					targetConfig += "dolt.mode: server\n"
+				}
+				writeFile(t, filepath.Join(targetIssueGraphDir, "config.yaml"), []byte(targetConfig))
 
 				cmd := exec.Command(issuegraph, selector.args(target, targetIssueGraphDir)...)
 				cmd.Dir = caller

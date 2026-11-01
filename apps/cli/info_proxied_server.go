@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/borg0ai/dx-issuegraph/internal/types"
 	"github.com/borg0ai/dx-issuegraph/internal/workapi"
-	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 )
 
 func runInfoProxiedServer(ctx context.Context, schemaFlag bool) error {

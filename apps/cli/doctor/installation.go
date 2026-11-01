@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
 	"github.com/borg0ai/dx-issuegraph/internal/configfile"
 	"github.com/borg0ai/dx-issuegraph/internal/git"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/dolt"
-	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
 )
 
 // CheckInstallation verifies that .issuegraph directory exists

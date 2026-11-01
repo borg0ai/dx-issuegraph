@@ -8,5 +8,5 @@ import "os"
 // caller's descriptor identity check prevents chmod unless it still refers to
 // the directory inspected with Lstat.
 func openIssueGraphDirHandle(path string) (issuegraphDirHandle, error) {
-	return os.Open(path)
+	return os.Open(path) // #nosec G304 -- caller checks opened identity before permission change.
 }

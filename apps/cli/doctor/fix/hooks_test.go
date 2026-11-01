@@ -524,9 +524,9 @@ func TestCheckHuskyBdIntegration(t *testing.T) {
 		{
 			name: "all hooks with issuegraph",
 			hooks: map[string]string{
-				"pre-commit": "#!/bin/sh\nbd hooks run pre-commit\n",
-				"post-merge": "#!/bin/sh\nbd hooks run post-merge\n",
-				"pre-push":   "#!/bin/sh\nbd hooks run pre-push\n",
+				"pre-commit": "#!/bin/sh\nissuegraph hooks run pre-commit\n",
+				"post-merge": "#!/bin/sh\nissuegraph hooks run post-merge\n",
+				"pre-push":   "#!/bin/sh\nissuegraph hooks run pre-push\n",
 			},
 			expectConfigured:  true,
 			expectHooksWithBd: []string{"pre-commit", "post-merge", "pre-push"},
@@ -534,7 +534,7 @@ func TestCheckHuskyBdIntegration(t *testing.T) {
 		{
 			name: "partial issuegraph integration",
 			hooks: map[string]string{
-				"pre-commit": "#!/bin/sh\nbd hooks run pre-commit\n",
+				"pre-commit": "#!/bin/sh\nissuegraph hooks run pre-commit\n",
 				"post-merge": "#!/bin/sh\necho 'no issuegraph'\n",
 			},
 			expectConfigured:     true,
@@ -1034,7 +1034,7 @@ func TestCheckExternalHookManagerIntegration(t *testing.T) {
 				if err := os.MkdirAll(huskyDir, 0755); err != nil {
 					return err
 				}
-				return os.WriteFile(filepath.Join(huskyDir, "pre-commit"), []byte("#!/bin/sh\nbd hooks run pre-commit\n"), 0755)
+				return os.WriteFile(filepath.Join(huskyDir, "pre-commit"), []byte("#!/bin/sh\nissuegraph hooks run pre-commit\n"), 0755)
 			},
 			expectNil:           false,
 			expectManager:       "husky",
@@ -1153,7 +1153,7 @@ func TestMultipleManagersDetected(t *testing.T) {
 				if err := os.MkdirAll(huskyDir, 0755); err != nil {
 					return err
 				}
-				return os.WriteFile(filepath.Join(huskyDir, "pre-commit"), []byte("#!/bin/sh\nbd hooks run pre-commit\n"), 0755)
+				return os.WriteFile(filepath.Join(huskyDir, "pre-commit"), []byte("#!/bin/sh\nissuegraph hooks run pre-commit\n"), 0755)
 			},
 			expectManager: "lefthook",
 		},
@@ -1164,7 +1164,7 @@ func TestMultipleManagersDetected(t *testing.T) {
 				if err := os.MkdirAll(huskyDir, 0755); err != nil {
 					return err
 				}
-				return os.WriteFile(filepath.Join(huskyDir, "pre-commit"), []byte("#!/bin/sh\nbd hooks run pre-commit\n"), 0755)
+				return os.WriteFile(filepath.Join(huskyDir, "pre-commit"), []byte("#!/bin/sh\nissuegraph hooks run pre-commit\n"), 0755)
 			},
 			expectManager: "husky",
 		},

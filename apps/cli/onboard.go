@@ -21,7 +21,7 @@ Run ` + "`issuegraph prime`" + ` for workflow context, or install hooks (` + "`i
 - ` + "`issuegraph ready`" + ` - Find unblocked work
 - ` + "`issuegraph create \"Title\" --type task --priority 2`" + ` - Create issue
 - ` + "`issuegraph close <id>`" + ` - Complete work
-- ` + "`issuegraph dolt push`" + ` - Push issuegraph to remote
+- Git carries the local issue snapshot under .issuegraph/ between clones
 
 For full workflow details: ` + "`issuegraph prime`" + ``
 
@@ -34,7 +34,7 @@ Run ` + "`issuegraph prime`" + ` for workflow context, or install hooks (` + "`i
 - ` + "`issuegraph ready`" + ` - Find unblocked work
 - ` + "`issuegraph create \"Title\" --type task --priority 2`" + ` - Create issue
 - ` + "`issuegraph close <id>`" + ` - Complete work
-- ` + "`issuegraph dolt push`" + ` - Push issuegraph to remote
+- Git carries the local issue snapshot under .issuegraph/ between clones
 
 For full workflow details: ` + "`issuegraph prime`" + ``
 

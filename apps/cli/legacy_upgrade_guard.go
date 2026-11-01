@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"strings"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/borg0ai/dx-issuegraph/internal/configfile"
-	"github.com/borg0ai/dx-issuegraph/internal/doltserver"
 	"github.com/borg0ai/dx-issuegraph/internal/git"
 	"github.com/borg0ai/dx-issuegraph/internal/issuegraph"
 	"github.com/borg0ai/dx-issuegraph/internal/storage/embeddeddolt"
@@ -64,7 +65,7 @@ func guardLegacyUpgradeWorkspace(issuegraphDir string) error {
 		// binary demonstrably created itself.
 		return nil
 	}
-	if doltserver.IsSharedServerMode() && !(present && legacyServerVersion(version)) {
+	if workspaceSelectsSharedServerMode(issuegraphDir) && !(present && legacyServerVersion(version)) {
 		// A shared Dolt sql-server owns .issuegraph/dolt, so there is no embedded
 		// historical schema to protect — unless the witness affirmatively names
 		// the 0.55–0.62 server era. This admission used to sit inside the
@@ -100,6 +101,26 @@ func guardLegacyUpgradeWorkspace(issuegraphDir string) error {
 		return legacyUpgradeRefusal(reason)
 	}
 	return nil
+}
+
+func workspaceSelectsSharedServerMode(issuegraphDir string) bool {
+	if value := os.Getenv("ISSUEGRAPH_DOLT_SHARED_SERVER"); value == "1" || strings.EqualFold(value, "true") {
+		return true
+	}
+	data, err := os.ReadFile(filepath.Join(issuegraphDir, "config.yaml")) // #nosec G304 -- issuegraphDir is the selected workspace
+	if err != nil {
+		return false
+	}
+	var cfg struct {
+		SharedServerFlat bool `yaml:"dolt.shared-server"`
+		Dolt             struct {
+			SharedServer bool `yaml:"shared-server"`
+		} `yaml:"dolt"`
+	}
+	if yaml.Unmarshal(data, &cfg) != nil {
+		return false
+	}
+	return cfg.SharedServerFlat || cfg.Dolt.SharedServer
 }
 
 // workspaceSelectsServerMode reports whether issuegraph will open issuegraphDir through a

@@ -106,10 +106,7 @@ func runInitProxiedServer(cmd *cobra.Command, ctx context.Context, in initProxie
 		in.skipHooks = true
 	}
 
-	prefix, err := resolveInitPrefix(in.prefix)
-	if err != nil {
-		return err
-	}
+	prefix := resolveInitPrefix(in.prefix)
 
 	proxiedInit, err := fsUseCase.ResolveProxiedInit(ctx, domain.ResolveProxiedInitParams{
 		Prefix: prefix,
@@ -293,7 +290,7 @@ func runInitProxiedServer(cmd *cobra.Command, ctx context.Context, in initProxie
 	})
 }
 
-func resolveInitPrefix(flagPrefix string) (string, error) {
+func resolveInitPrefix(flagPrefix string) string {
 	prefix := flagPrefix
 	if prefix == "" {
 		prefix = config.GetString("issue-prefix")
@@ -307,7 +304,7 @@ func resolveInitPrefix(flagPrefix string) (string, error) {
 	if len(prefix) > 0 && !((prefix[0] >= 'a' && prefix[0] <= 'z') || (prefix[0] >= 'A' && prefix[0] <= 'Z') || prefix[0] == '_') {
 		prefix = "issuegraph_" + prefix
 	}
-	return prefix, nil
+	return prefix
 }
 
 func resolveProxiedInitRemoteURL(context.Context, domain.GitUseCase, initProxiedServerInput) string {

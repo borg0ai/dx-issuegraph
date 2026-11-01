@@ -153,7 +153,14 @@ func sourceRepoRoot() string {
 	if !ok {
 		panic("runtime.Caller failed")
 	}
-	return filepath.Dir(filepath.Dir(filepath.Dir(file)))
+	for dir := filepath.Dir(file); ; dir = filepath.Dir(dir) {
+		if _, err := os.Stat(filepath.Join(dir, "AGENT_INSTRUCTIONS.md")); err == nil {
+			return dir
+		}
+		if parent := filepath.Dir(dir); parent == dir {
+			panic("could not locate repository root")
+		}
+	}
 }
 
 func shellVisiblePath(path string) string {

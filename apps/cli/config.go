@@ -40,6 +40,7 @@ Common namespaces:
   - notion.*          Notion integration settings
   - custom.*          Custom integration settings
   - status.*          Issue status configuration
+  - dolt.local-only   Legacy key; remote issue sync is disabled
   - claim.*           Claim arbitration settings (pool-aware claiming)
   - doctor.suppress.* Suppress specific issuegraph doctor warnings (GH#1095)
   - lint.*            Additional per-type lint sections (stored in config.yaml)

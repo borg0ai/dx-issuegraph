@@ -16,7 +16,7 @@ import (
 // would pull testcontainers into the docs guard.
 const (
 	doltPinPage      = "docs/architecture/dolt.md"
-	doltPinImageFile = "internal/testutil/testdoltcommon.go"
+	doltPinImageFile = "modules/core/internal/testutil/testdoltcommon.go"
 )
 
 var (

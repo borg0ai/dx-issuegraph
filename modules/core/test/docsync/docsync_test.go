@@ -23,7 +23,14 @@ import (
 
 func repoRoot() string {
 	_, filename, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(filename), "..", "..")
+	for dir := filepath.Dir(filename); ; dir = filepath.Dir(dir) {
+		if _, err := os.Stat(filepath.Join(dir, "AGENT_INSTRUCTIONS.md")); err == nil {
+			return dir
+		}
+		if parent := filepath.Dir(dir); parent == dir {
+			panic("could not locate repository root")
+		}
+	}
 }
 
 var markdownLinkRE = regexp.MustCompile(`\[[^][]*\]\(([^)]+)\)`)
@@ -345,6 +352,15 @@ func TestEngdocsAndRootMarkdownLinks(t *testing.T) {
 		t.Fatalf("collecting engdocs markdown: %v", err)
 	}
 	files = append(files, engdocs...)
+	activeFiles := files[:0]
+	for _, path := range files {
+		rel, err := filepath.Rel(filepath.Join(root, "engdocs"), path)
+		if err == nil && strings.HasPrefix(filepath.ToSlash(rel), "staged-for-removal/") {
+			continue
+		}
+		activeFiles = append(activeFiles, path)
+	}
+	files = activeFiles
 	for _, name := range rootDocFiles {
 		path := filepath.Join(root, name)
 		if _, err := os.Stat(path); err == nil {

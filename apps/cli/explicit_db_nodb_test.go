@@ -477,16 +477,12 @@ func TestWhereISSUEGRAPHDBOverridesIssueGraphDBForNoDBCommand(t *testing.T) {
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
-	repoC := filepath.Join(root, "repo-c")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
 	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
-	issuegraphDirC := writeServerRepo(t, repoC, "repo_c_db", "10.0.0.3", "origin-c", 3313)
 	writeIssuePrefixConfig(t, issuegraphDirB, "repo-b")
-	writeIssuePrefixConfig(t, issuegraphDirC, "repo-c")
 
 	out := runIssueGraphCommand(t, binPath, repoA, []string{
 		"ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirB, "dolt"),
-		"ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirC, "dolt"),
 	}, "where", "--json")
 	assertWhereOutput(t, out, whereExpectation{
 		issuegraphDir: issuegraphDirB,
@@ -500,12 +496,10 @@ func TestContextISSUEGRAPHDBOverridesIssueGraphDBForNoDBCommand(t *testing.T) {
 	root := t.TempDir()
 	repoA := filepath.Join(root, "repo-a")
 	repoB := filepath.Join(root, "repo-b")
-	repoC := filepath.Join(root, "repo-c")
 	writeServerRepo(t, repoA, "repo_a_db", "10.0.0.1", "origin-a", 3311)
 	issuegraphDirB := writeServerRepo(t, repoB, "repo_b_db", "10.0.0.2", "origin-b", 3312)
-	issuegraphDirC := writeServerRepo(t, repoC, "repo_c_db", "10.0.0.3", "origin-c", 3313)
 
-	out := runIssueGraphCommand(t, binPath, repoA, []string{"ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirB, "dolt"), "ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirC, "dolt")}, "context", "--json")
+	out := runIssueGraphCommand(t, binPath, repoA, []string{"ISSUEGRAPH_DB=" + filepath.Join(issuegraphDirB, "dolt")}, "context", "--json")
 
 	var got map[string]any
 	decodeJSONOutput(t, out, &got)

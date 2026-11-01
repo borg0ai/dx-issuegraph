@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/borg0ai/dx-issuegraph/internal/ui"
 	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor"
 	"github.com/borg0ai/dx-issuegraph/apps/cli/doctor/fix"
+	"github.com/borg0ai/dx-issuegraph/internal/ui"
 )
 
 // runArtifactsCheck runs detailed classic artifact detection.

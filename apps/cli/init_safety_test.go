@@ -125,12 +125,9 @@ func TestInitFreshWithUnreachableGitOriginSucceeds(t *testing.T) {
 	}
 }
 
-// TestInitReinitLocalConfiguredRemoteWithDoltDataRefuses is the sibling case:
-// sync.remote (again via ISSUEGRAPH_SYNC_REMOTE, not --remote) points at a bare repo
-// that DOES have refs/dolt/data pushed to it. `issuegraph init --reinit-local` must
-// still refuse with ExitRemoteDivergenceRefused (10) — this is the ADR-0002
-// invariant the GH#4861 fix must not weaken while closing the false positive.
-func TestInitReinitLocalConfiguredRemoteWithDoltDataRefuses(t *testing.T) {
+// TestInitReinitLocalDoesNotProbeConfiguredDoltRemote verifies legacy sync.remote
+// metadata cannot make local initialization contact a Dolt remote.
+func TestInitReinitLocalDoesNotProbeConfiguredDoltRemote(t *testing.T) {
 	issuegraphBin := buildIssueGraphForInitTests(t)
 
 	bareDir := filepath.Join(t.TempDir(), "bare.git")
@@ -152,23 +149,15 @@ func TestInitReinitLocalConfiguredRemoteWithDoltDataRefuses(t *testing.T) {
 	cmd := exec.Command(issuegraphBin, "init", "--reinit-local", "--prefix", "cfg", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 	cmd.Dir = workDir
 	cmd.Env = hermeticInitEnv(homeDir, "ISSUEGRAPH_SYNC_REMOTE="+bareDir)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err == nil {
-		t.Fatalf("issuegraph init --reinit-local succeeded; expected refusal (sync.remote has Dolt history). stderr:\n%s", stderr.String())
-	}
-	exitErr, ok := err.(*exec.ExitError)
-	if !ok {
-		t.Fatalf("non-exec-exit error: %v\nstderr:\n%s", err, stderr.String())
-	}
-	if code := exitErr.ExitCode(); code != ExitRemoteDivergenceRefused {
-		t.Errorf("exit code = %d, want %d (ExitRemoteDivergenceRefused)", code, ExitRemoteDivergenceRefused)
+	var output bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &output, &output
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("local reinit contacted or rejected legacy remote metadata: %v\noutput:\n%s", err, output.String())
 	}
 
 	issuegraphDir := filepath.Join(workDir, ".issuegraph")
-	if _, err := os.Stat(issuegraphDir); err == nil {
-		t.Errorf("refusal should not have created %s", issuegraphDir)
+	if _, err := os.Stat(issuegraphDir); err != nil {
+		t.Errorf("successful local reinit did not create %s: %v", issuegraphDir, err)
 	}
 }
 
@@ -489,9 +478,9 @@ func TestIsDoltLocalOnly(t *testing.T) {
 		setEnv bool
 		want   bool
 	}{
-		{name: "default off when unset", setEnv: false, want: false},
+		{name: "always local-only when unset", setEnv: false, want: true},
 		{name: "explicit true", envVal: "true", setEnv: true, want: true},
-		{name: "explicit false", envVal: "false", setEnv: true, want: false},
+		{name: "legacy false cannot enable remote sync", envVal: "false", setEnv: true, want: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -527,15 +516,9 @@ func TestFormatDestroyToken(t *testing.T) {
 }
 
 // TestInitForceRefusesWhenRemoteHasDoltData is the end-to-end subprocess
-// regression test for bd-q83. It creates a bare repo with a synthetic
-// `refs/dolt/data` ref, then runs `issuegraph init --force` in a clone of that
-// repo. Expected: non-zero exit, refusal message points to `issuegraph bootstrap`,
-// no `.issuegraph/` directory created.
-//
-// Per the test-engineer position: the fixture uses a synthetic git ref
-// (no real Dolt push needed). `gitOriginHasDoltDataRef` only checks that the
-// ref exists, not its content.
-func TestInitForceRefusesWhenRemoteHasDoltData(t *testing.T) {
+// TestInitForceIgnoresDoltRemoteData verifies --force initializes local state
+// without probing a Git origin's legacy refs/dolt/data history.
+func TestInitForceIgnoresDoltRemoteData(t *testing.T) {
 	issuegraphBin := buildIssueGraphForInitTests(t)
 
 	bareDir := filepath.Join(t.TempDir(), "bare.git")
@@ -557,47 +540,21 @@ func TestInitForceRefusesWhenRemoteHasDoltData(t *testing.T) {
 
 	cmd := exec.Command(issuegraphBin, "init", "--force", "--prefix", "issuegraph", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 	cmd.Dir = cloneDir
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-
-	// Expected: non-zero exit.
-	if err == nil {
-		t.Fatalf("issuegraph init --force succeeded; expected refusal. stderr:\n%s", stderr.String())
-	}
-	exitErr, ok := err.(*exec.ExitError)
-	if !ok {
-		t.Fatalf("non-exec-exit error: %v\nstderr:\n%s", err, stderr.String())
-	}
-	if code := exitErr.ExitCode(); code != ExitRemoteDivergenceRefused {
-		t.Errorf("exit code = %d, want %d (ExitRemoteDivergenceRefused)", code, ExitRemoteDivergenceRefused)
+	var output bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &output, &output
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("local init inspected remote issue history: %v\noutput:\n%s", err, output.String())
 	}
 
-	// Refusal text must name the safe path.
-	stderrStr := stderr.String()
-	for _, must := range []string{"issuegraph bootstrap", "issuegraph help init-safety", "remote 'origin'"} {
-		if !strings.Contains(stderrStr, must) {
-			t.Errorf("refusal missing %q:\n%s", must, stderrStr)
-		}
-	}
-	// Refusal text must NOT echo a destructive one-liner.
-	for _, banned := range []string{"--destroy-token=DESTROY-", "--force --discard-remote --destroy-token"} {
-		if strings.Contains(stderrStr, banned) {
-			t.Errorf("refusal echoes banned one-liner %q:\n%s", banned, stderrStr)
-		}
-	}
-
-	// No .issuegraph/ should have been created.
 	issuegraphDir := filepath.Join(cloneDir, ".issuegraph")
-	if _, err := os.Stat(issuegraphDir); err == nil {
-		t.Errorf("refusal should not have created %s", issuegraphDir)
+	if _, err := os.Stat(issuegraphDir); err != nil {
+		t.Errorf("successful local init did not create %s: %v", issuegraphDir, err)
 	}
 }
 
-// TestInitFromJSONLRefusesWhenRemoteHasDoltData is the GH#3427 regression
-// guard for the safe default: --from-jsonl must not be silently ignored and
-// must not start a remote clone when origin advertises refs/dolt/data.
-func TestInitFromJSONLRefusesWhenRemoteHasDoltData(t *testing.T) {
+// TestInitFromJSONLImportsLocalDataWithDoltRemote verifies a Git origin's
+// legacy refs do not block local JSONL import or trigger remote cloning.
+func TestInitFromJSONLImportsLocalDataWithDoltRemote(t *testing.T) {
 	issuegraphBin := buildIssueGraphForInitTests(t)
 
 	bareDir := filepath.Join(t.TempDir(), "bare.git")
@@ -627,32 +584,13 @@ func TestInitFromJSONLRefusesWhenRemoteHasDoltData(t *testing.T) {
 
 	cmd := exec.Command(issuegraphBin, "init", "--from-jsonl", "--prefix", "jl", "--quiet", "--non-interactive", "--skip-hooks", "--skip-agents")
 	cmd.Dir = cloneDir
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-
-	if err == nil {
-		t.Fatalf("issuegraph init --from-jsonl succeeded; expected remote-divergence refusal. stderr:\n%s", stderr.String())
+	var output bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &output, &output
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("local JSONL import failed with unrelated remote history: %v\noutput:\n%s", err, output.String())
 	}
-	exitErr, ok := err.(*exec.ExitError)
-	if !ok {
-		t.Fatalf("non-exec-exit error: %v\nstderr:\n%s", err, stderr.String())
-	}
-	if code := exitErr.ExitCode(); code != ExitRemoteDivergenceRefused {
-		t.Errorf("exit code = %d, want %d (ExitRemoteDivergenceRefused)", code, ExitRemoteDivergenceRefused)
-	}
-
-	stderrStr := stderr.String()
-	for _, must := range []string{"issuegraph bootstrap", "issuegraph help init-safety", "--from-jsonl", "remote 'origin'"} {
-		if !strings.Contains(stderrStr, must) {
-			t.Errorf("refusal missing %q:\n%s", must, stderrStr)
-		}
-	}
-	if strings.Contains(stderrStr, "failed to clone remote") {
-		t.Errorf("--from-jsonl should refuse before attempting remote clone:\n%s", stderrStr)
-	}
-	if _, err := os.Stat(filepath.Join(issuegraphDir, "embeddeddolt")); err == nil {
-		t.Errorf("refusal should not have created an embedded Dolt database")
+	if _, err := os.Stat(filepath.Join(issuegraphDir, "embeddeddolt")); err != nil {
+		t.Errorf("local import did not create an embedded Dolt database: %v", err)
 	}
 }
 
@@ -696,15 +634,13 @@ func TestInitFromJSONLExplicitRemoteRefusesWhenRemoteHasDoltData(t *testing.T) {
 	if !ok {
 		t.Fatalf("non-exec-exit error: %v\nstderr:\n%s", err, stderr.String())
 	}
-	if code := exitErr.ExitCode(); code != ExitRemoteDivergenceRefused {
-		t.Errorf("exit code = %d, want %d (ExitRemoteDivergenceRefused)", code, ExitRemoteDivergenceRefused)
+	if code := exitErr.ExitCode(); code == 0 {
+		t.Errorf("exit code = %d, want non-zero for an explicitly requested remote bootstrap", code)
 	}
 
 	stderrStr := stderr.String()
-	for _, must := range []string{"issuegraph bootstrap", "issuegraph help init-safety", "--from-jsonl", "remote 'origin'"} {
-		if !strings.Contains(stderrStr, must) {
-			t.Errorf("refusal missing %q:\n%s", must, stderrStr)
-		}
+	if !strings.Contains(stderrStr, "IssueGraph keeps issue data local") {
+		t.Errorf("explicit remote request missing local-only explanation:\n%s", stderrStr)
 	}
 	if strings.Contains(stderrStr, "failed to clone remote") {
 		t.Errorf("--from-jsonl should refuse before attempting remote clone:\n%s", stderrStr)

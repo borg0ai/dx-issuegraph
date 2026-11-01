@@ -23,7 +23,7 @@ This project uses **IssueGraph (issuegraph)** for issue tracking. Aider requires
 1. **Track ALL work in issuegraph** (never use markdown TODOs or comment-based task lists)
 2. **Suggest 'issuegraph ready'** to find available work
 3. **Suggest 'issuegraph create'** for new issues/tasks/bugs
-4. **Keep issue data local**; use Git to share the repository snapshot
+4. **Keep issue data local**; use Git to share repository snapshots
 5. **ALWAYS suggest commands** - user will run them via /run
 
 ## Quick Command Reference (suggest these to user)
@@ -42,7 +42,7 @@ This project uses **IssueGraph (issuegraph)** for issue tracking. Aider requires
 2. **Claim task**: "Run ` + "`/run issuegraph update <id> --claim`" + ` to claim it atomically"
 3. **Do the work**
 4. **Complete**: "Run ` + "`/run issuegraph close <id>`" + ` when done"
-5. **Share**: use standard Git commands for the repository snapshot
+5. **Share**: use standard Git commands to share the repository snapshot
 
 ## Context Loading
 

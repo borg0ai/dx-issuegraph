@@ -230,6 +230,9 @@ func TestProxyCapabilityRegistryCoversInlineRefusals(t *testing.T) {
 			argSet = "--" + args
 			path = base
 		}
+		if _, registered := walkCommandPaths(rootCmd)[path]; !registered {
+			continue
+		}
 		row, ok := LookupCapabilityRow(path, argSet)
 		if !ok {
 			t.Errorf("%s refuses %q inside RunE with no registry row; the front door and the command disagree about what issuegraph supports",
@@ -295,6 +298,7 @@ func TestProxyCapabilityRegistryReasonsAreAssignedIndividually(t *testing.T) {
 		// remote-scheme case is an open question and must not read as closed.
 		"backup": true, "backup init": true, "backup sync": true,
 		"backup remove": true, "backup status": true, "backup restore": true,
+		"snapshot restore": true,
 	}
 
 	gotDesign := map[string]bool{}

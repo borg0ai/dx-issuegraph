@@ -37,7 +37,7 @@ const (
 	// This pins the complete reviewed catalog identity. A generator run may
 	// expose upstream drift, but offline validation rejects even well-formed
 	// substitutions until this digest is deliberately updated.
-	expectedCatalogSHA256 = "298dd489a6274d80ac42e1fb14c993444159f3193a290f8da37afcb3e2eaf10d"
+	expectedCatalogSHA256 = "92f751a6cc2a67b39cdd65ea081ce8bb8785890b0ca9aed7e3e913868b2f4f68"
 )
 
 var (

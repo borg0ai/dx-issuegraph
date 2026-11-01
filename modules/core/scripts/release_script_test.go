@@ -15,7 +15,14 @@ func sourceRepoRoot(t *testing.T) string {
 	if !ok {
 		t.Fatal("runtime.Caller failed")
 	}
-	return filepath.Dir(filepath.Dir(filepath.Dir(file)))
+	for dir := filepath.Dir(file); ; dir = filepath.Dir(dir) {
+		if _, err := os.Stat(filepath.Join(dir, "AGENT_INSTRUCTIONS.md")); err == nil {
+			return dir
+		}
+		if parent := filepath.Dir(dir); parent == dir {
+			t.Fatal("could not locate repository root")
+		}
+	}
 }
 
 func msysPath(path string) string {

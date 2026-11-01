@@ -1,0 +1,10 @@
+go 1.26.5
+
+toolchain go1.26.7
+
+use (
+	./apps/cli
+	./modules/core
+	./modules/examples/issuegraph-example-extension-go
+	./modules/examples/library-usage
+)

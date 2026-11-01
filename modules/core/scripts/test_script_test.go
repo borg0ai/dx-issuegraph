@@ -26,6 +26,10 @@ record() {
     printf '%s\n' "$1" >>"$ISSUEGRAPH_TEST_SCRIPT_FAKE_GO_LOG"
 }
 
+if [[ "${1:-}" == "-C" ]]; then
+    shift 2
+fi
+
 case "${1:-}" in
     env)
         record env

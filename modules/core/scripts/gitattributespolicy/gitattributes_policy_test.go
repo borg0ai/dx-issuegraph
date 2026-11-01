@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -25,7 +26,12 @@ func TestRepositoryTextPolicyKeepsLFWithAutoCrlf(t *testing.T) {
 	gitPath := resolveEOLPolicyGit(t)
 	requireEOLPolicyGitVersion(t, gitPath, repository)
 
-	attributes, err := os.ReadFile(filepath.Join("..", "..", ".gitattributes"))
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
+	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(filename), "../../../.."))
+	attributes, err := os.ReadFile(filepath.Join(repoRoot, ".gitattributes"))
 	if err != nil {
 		t.Fatalf("read repository attributes: %v", err)
 	}
