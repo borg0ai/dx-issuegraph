@@ -162,6 +162,7 @@ Reference for issuegraph Latest. Generated from `issuegraph help --all`.
   - [issuegraph human stats](#bd-human-stats) — Show summary statistics for human-needed issuegraph
 - [issuegraph info](#bd-info) — Show database information
 - [issuegraph init](#bd-init) — Initialize issuegraph in the current directory
+- [issuegraph install](#bd-install) — Install IssueGraph skills and integrations into AI agents and editors
 - [issuegraph kv](#bd-kv) — Key-value store commands
   - [issuegraph kv clear](#bd-kv-clear) — Delete a key-value pair
   - [issuegraph kv get](#bd-kv-get) — Get a value by key
@@ -174,7 +175,6 @@ Reference for issuegraph Latest. Generated from `issuegraph help --all`.
 - [issuegraph quickstart](#bd-quickstart) — Quick start guide for issuegraph
 - [issuegraph recall](#bd-recall) — Retrieve a specific memory
 - [issuegraph remember](#bd-remember) — Store a persistent memory
-- [issuegraph install](#bd-setup) — Setup integration with AI editors
 - [issuegraph where](#bd-where) — Show active issuegraph location
 
 ### Maintenance:
@@ -3176,6 +3176,7 @@ Common namespaces:
   - notion.*          Notion integration settings
   - custom.*          Custom integration settings
   - status.*          Issue status configuration
+  - dolt.local-only   Legacy key; remote issue sync is disabled
   - claim.*           Claim arbitration settings (pool-aware claiming)
   - doctor.suppress.* Suppress specific issuegraph doctor warnings (GH#1095)
   - lint.*            Additional per-type lint sections (stored in config.yaml)
@@ -4154,6 +4155,60 @@ issuegraph init [flags]
       --team-server                                       [EXPERIMENTAL] The shared database's schema is managed by issuegraph-team-server (bts): issuegraph never creates the database or runs schema migrations, only verifies the schema version (proxied-server mode only). Not related to --team.
 ```
 
+### issuegraph install
+
+Install the IssueGraph agent skill and editor integrations.
+
+With no recipe, installs the complete IssueGraph skill into the global skills
+directory of every detected coding agent (claude, codex, gemini, hermes,
+antigravity, pi). Safe to re-run; nothing is written inside the current repository.
+Naming one of those agents installs the skill for that agent only (claude, codex
+and gemini also run their integration recipe).
+
+Recipes define where issuegraph workflow instructions are written. Built-in recipes
+include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, and kilocode.
+
+Examples:
+  issuegraph install                 # Install the skill for every detected agent
+  issuegraph install --dry-run       # Show what would change
+  issuegraph install --check         # Verify the skill is installed and current
+  issuegraph install pi              # Install the skill for one agent
+  issuegraph install cursor          # Install Cursor IDE integration (rules + agent hooks)
+  issuegraph install cursor --global # Install global Cursor hooks (~/.cursor/hooks.json)
+  issuegraph install kiro            # Install Kiro steering guidance
+  issuegraph install codex           # Install Codex skill + AGENTS.md guidance + native hooks
+  issuegraph install codex --global  # Install global Codex skill + guidance + native hooks
+  issuegraph install copilot         # Install Copilot CLI plugin + repository instructions
+  issuegraph install mux --project   # Install Mux workspace layer (.mux/AGENTS.md)
+  issuegraph install mux --global    # Install Mux global layer (~/.mux/AGENTS.md)
+  issuegraph install mux --project --global  # Install both Mux layers
+  issuegraph install --list          # Show all available recipes
+  issuegraph install --print         # Print the template to stdout
+  issuegraph install -o rules.md     # Write template to custom path
+  issuegraph install --add myeditor .myeditor/rules.md  # Add custom recipe
+
+Use 'issuegraph install &lt;recipe&gt; --check' to verify installation status.
+Use 'issuegraph install &lt;recipe&gt; --remove' to uninstall.
+
+```
+issuegraph install [recipe] [flags]
+```
+
+**Flags:**
+
+```
+      --add string      Add a custom recipe with given name
+      --check           Check if integration is installed
+      --dry-run         Show what would change without writing files
+      --global          Install globally (claude/codex/cursor/mux; writes to ~/.claude/settings.json, $CODEX_HOME/AGENTS.md or ~/.codex/AGENTS.md, ~/.cursor/hooks.json, or ~/.mux/AGENTS.md)
+      --list            List all available recipes
+  -o, --output string   Write template to custom path
+      --print           Print the template to stdout
+      --project         Install for this project only (gemini/mux)
+      --remove          Remove the integration
+      --stealth         Use stealth mode (claude/gemini)
+```
+
 ### issuegraph kv
 
 Commands for working with the issuegraph key-value store.
@@ -4387,49 +4442,6 @@ issuegraph remember "<insight>" [flags]
 
 ```
       --key string   Explicit key for the memory (auto-generated from content if not set). If a memory with this key already exists, it will be updated in place
-```
-
-### issuegraph install
-
-Setup integration files for AI editors and coding assistants.
-
-Recipes define where issuegraph workflow instructions are written. Built-in recipes
-include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, and kilocode.
-
-Examples:
-  issuegraph install cursor          # Install Cursor IDE integration (rules + agent hooks)
-  issuegraph install cursor --global # Install global Cursor hooks (~/.cursor/hooks.json)
-  issuegraph install kiro            # Install Kiro steering guidance
-  issuegraph install codex           # Install Codex skill + AGENTS.md guidance + native hooks
-  issuegraph install codex --global  # Install global Codex skill + guidance + native hooks
-  issuegraph install copilot         # Install Copilot CLI plugin + repository instructions
-  issuegraph install mux --project   # Install Mux workspace layer (.mux/AGENTS.md)
-  issuegraph install mux --global    # Install Mux global layer (~/.mux/AGENTS.md)
-  issuegraph install mux --project --global  # Install both Mux layers
-  issuegraph install --list          # Show all available recipes
-  issuegraph install --print         # Print the template to stdout
-  issuegraph install -o rules.md     # Write template to custom path
-  issuegraph install --add myeditor .myeditor/rules.md  # Add custom recipe
-
-Use 'issuegraph install &lt;recipe&gt; --check' to verify installation status.
-Use 'issuegraph install &lt;recipe&gt; --remove' to uninstall.
-
-```
-issuegraph install [recipe] [flags]
-```
-
-**Flags:**
-
-```
-      --add string      Add a custom recipe with given name
-      --check           Check if integration is installed
-      --global          Install globally (claude/codex/cursor/mux; writes to ~/.claude/settings.json, $CODEX_HOME/AGENTS.md or ~/.codex/AGENTS.md, ~/.cursor/hooks.json, or ~/.mux/AGENTS.md)
-      --list            List all available recipes
-  -o, --output string   Write template to custom path
-      --print           Print the template to stdout
-      --project         Install for this project only (gemini/mux)
-      --remove          Remove the integration
-      --stealth         Use stealth mode (claude/gemini)
 ```
 
 ### issuegraph where
@@ -6570,12 +6582,12 @@ is typically provided by the orchestrator. This command bridges that gap
 by delegating to the configured mail provider.
 
 Configuration (checked in order):
-  1. ISSUEGRAPH_MAIL_DELEGATE or ISSUEGRAPH_MAIL_DELEGATE environment variable
+	  1. ISSUEGRAPH_MAIL_DELEGATE environment variable
   2. 'mail.delegate' config setting (issuegraph config set mail.delegate "gt mail")
 
 Examples:
   # Configure delegation (one-time setup)
-  `export ISSUEGRAPH_MAIL_DELEGATE="gt mail"`
+	  `export ISSUEGRAPH_MAIL_DELEGATE="gt mail"`
   # or
   issuegraph config set mail.delegate "gt mail"
 

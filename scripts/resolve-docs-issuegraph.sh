@@ -54,6 +54,10 @@ trap cleanup EXIT
 
 git -C "$PROJECT_ROOT" worktree add --detach --quiet "$WT" "refs/tags/$PIN"
 mkdir -p "$CACHE_DIR"
+# Tags from 1.3.3 on do not commit the generated skill assets the build embeds.
+if [ -f "$WT/scripts/generate-issuegraph-assets.mjs" ]; then
+    node "$WT/scripts/generate-issuegraph-assets.mjs" >/dev/null
+fi
 CGO_ENABLED=0 go -C "$WT/apps/cli" build -tags gms_pure_go -o "$CACHED_BD" . >&2
 
 echo "$CACHED_BD"
