@@ -1,6 +1,6 @@
 # Why: main
 
-<!-- reasongraph:v1 generated 2026-11-01 — review before sharing; edit freely, edits are preserved -->
+<!-- reasongraph:v1 generated 2026-11-02 — review before sharing; edit freely, edits are preserved -->
 
 ## Intent
 Advance the next approved RFC by removing Dolt remote issue synchronization from the CLI, storage, and agent-facing surfaces while leaving Pending RFCs unimplemented.
@@ -72,11 +72,11 @@ Reviewer attention: Verify every remote/autopush/federation/template path named 
 
 ### Bump all version files to 1.3.3 and verify with check-versions.sh
 Status: directed
-Touches: `scripts/update-versions.sh`, `scripts/check-versions.sh`, `.githooks/pre-commit`, `.githooks/prepare-commit-msg`, `apps/cli/info.go`, `CHANGELOG.md`, `README.md`
+Touches: `check-versions.sh`, `.githooks/pre-commit`
 
-The agent synchronized every managed version file to 1.3.3, including the git hook markers, and ran scripts/check-versions.sh, which passed. The managed hook sections were included in the version update so the check stays green.
+The agent synced every version file to 1.3.3 so the release commit matches the 1.3.2 release commit's file set of 17 files (16 release paths plus the 4 stamp lines). It ran check-versions.sh and the Info and Version tests, and both passed.
 
-Reviewer attention: Re-run scripts/check-versions.sh on the tagged commit before publishing assets.
+Reviewer attention: Confirm no version file was missed by the bump.
 
 ### Tag v1.3.1 on the RFC-close commit rather than the version bump commit
 Status: directed
@@ -111,12 +111,12 @@ The agent matched the 1.3.2 release layout so each new archive holds a single is
 Reviewer attention: Confirm the archive listing matches the 1.3.2 layout.
 
 ### Verify release assets are publicly downloadable and match SHA256SUMS
-Status: directed
-Touches: `SHA256SUMS`, `Makefile`
+Status: discussed
+Touches: `Formula/issuegraph.rb`, `nix/issuegraph.nix`
 
-The agent downloaded each published archive without authentication and compared its checksum to the published SHA256SUMS file. All six checksums matched for 1.3.1 and 1.3.2.
+The agent re-downloaded the 1.3.3 release archives from the public release and compared their SHA256 values with the published checksums. The channel manifests were written only after the hashes matched.
 
-Reviewer attention: Re-run the checksum comparison if assets are re-uploaded.
+Reviewer attention: Confirm the per-platform hashes in each channel PR match the published SHA256SUMS.
 
 ### Register the Nix package in packages.nix and the README install table
 Status: directed
@@ -128,9 +128,9 @@ Reviewer attention: Confirm the Nix package attribute name matches the flake out
 
 ### Deliver package-channel updates as pull requests and leave them unmerged
 Status: discussed
-Touches: `Makefile`
+Touches: `Formula/issuegraph.rb`, `nix/issuegraph.nix`
 
-Package-channel updates for the previous release remain open as pull requests and are not merged in this work.
+The Homebrew and Nix channel updates were opened as pull requests and left unmerged for review. The Scoop update was handled the same way.
 
 ### Build six Docker targets with CGO_ENABLED=0 and the gms_pure_go tag
 Status: directed
@@ -188,12 +188,12 @@ The agent ran the mail delegate tests with cgo on because they carry a cgo build
 Risk: A cgo-off test run reports these tests as skipped, not passed.
 
 ### Report unverified Nix build instead of claiming success
-Status: directed
-Touches: `nix/packages.nix`
+Status: discussed
+Touches: `nix/issuegraph.nix`
 
-Nix is not installed on the build machine, so the agent could not run the Nix build. It reported the Nix channel as unverified and listed the commands needed on Linux.
+The agent did not run nix build or nix flake check because no Linux machine was available. It reported the Nix change as untested in the channel PR summary rather than as verified.
 
-Risk: The Nix package may fail to build despite a valid version bump.
+Reviewer attention: Treat the Nix channel change as unverified until a Linux build passes.
 
 ### Bump all version files to 1.3.2 and verify with check-versions.sh
 Status: discussed
@@ -205,21 +205,20 @@ Reviewer attention: Confirm the 1.3.2 bump touches only release paths.
 
 ### Tag v1.3.3 on the release commit
 Status: directed
-Touches: `scripts/update-versions.sh`
+Touches: `.githooks/pre-commit`
 
-The agent confirmed no v1.3.3 tag existed locally or on origin, created an annotated v1.3.3 tag on the release commit f372157, and pushed main and the tag. The remote was checked afterward and both point to the same commit.
+The agent created an annotated tag v1.3.3 on the release commit (f372157) after confirming the tag did not already exist. The commit and tag were pushed, and the remote main and tag were checked to point at the same commit.
 
-Considered/rejected: Tagging the earlier RFC commit was not used; the tag marks the version bump commit.
-Reviewer attention: Confirm v1.3.3 resolves to the release commit and not the RFC work commit.
+Reviewer attention: Confirm v1.3.3 points at f372157 on the remote.
 
 ### Use main as base branch for Homebrew release PR
-Status: discussed
-Touches: `Formula/issuegraph.rb`
+Status: discussed — same base branch applied to the Nix and Scoop channel PRs
+Touches: `Formula/*`, `nix/issuegraph.nix`
 
-The agent based the Homebrew channel branch on main rather than develop because the formula already existed on main. The channel's documented base is develop, which lags main.
+The agent opened the 1.3.3 channel update PRs against the main branch of each channel repository. Each channel repository was checked out and fast-forwarded to main before the update branch was created.
 
-Considered/rejected: Targeting develop, which is documented as the base but is behind main.
-Reviewer attention: Confirm the intended base branch for the Homebrew channel.
+Considered/rejected: Targeting a develop branch for the Homebrew tap, which that repository does not use.
+Reviewer attention: Confirm each channel repository's default branch is the intended base.
 
 ### Leave TestDoltPullRefusesInLocalOnlyMode failing as pre-existing
 Status: discussed
@@ -267,12 +266,11 @@ Reviewer attention: Decide whether the generated agent directories and the 58 MB
 
 ### Add 1.3.3 release notes to README, CHANGELOG and info versionChanges
 Status: directed
-Touches: `CHANGELOG.md`, `README.md`, `apps/cli/info.go`
+Touches: `CHANGELOG.md`, `README.md`, `**/info.go`
 
-The 1.3.3 entry records that release binaries are built with cgo so embedded Dolt opens again, after 1.3.1 and 1.3.2 were built with CGO_ENABLED=0 and could not. The same note appears in the changelog, the README latest-release line and the info versionChanges list, dated 2026-11-01.
+The agent added a 1.3.3 release-notes entry to the CHANGELOG, the README, and the versionChanges text in info.go. Each was updated with a single entry for this release.
 
-Considered/rejected: Listing the fix only in the changelog was not used, since the README and the info command also show the latest release.
-Reviewer attention: Confirm the release notes state the cgo build fix accurately and do not claim Windows runtime verification.
+Reviewer attention: Confirm the release notes describe Windows archives as built but not run.
 
 ### Ship BEADS removal as release 1.3.2 instead of patching 1.3.1
 Status: discussed
@@ -849,13 +847,12 @@ Reviewer attention: Confirm the darwin-amd64 binary is built on a macOS host wit
 
 ### Grade cgo binary verification by runtime evidence per target
 Status: discussed
-Touches: `scripts/build-release.sh`
+Touches: `scripts/build-release.sh`, `issuegraph_1.3.3_*`
 
-The agent ran the extracted binaries without dolt on PATH: darwin-arm64 natively and both linux architectures in Docker. Each ran init, create and list successfully. Windows archives were only compiled, not executed, so their verification is recorded as build-only.
+Verification was graded per target by what actually ran. Official darwin-arm64, linux-amd64 and linux-arm64 binaries were executed, while Windows amd64 and arm64 were only built. The darwin-amd64 official archive was not executed; only an earlier test build was run under Rosetta.
 
-Considered/rejected: Reporting all three platforms as runtime-verified was not used because Windows was not executed.
-Risk: Windows cgo binaries have not been run, so an embedded Dolt failure there would not be caught before release.
-Reviewer attention: Confirm release notes and channel PRs state Windows archives are compile-verified only.
+Risk: Windows and darwin-amd64 release binaries have no runtime evidence for the official archives.
+Reviewer attention: Run init, create and list on both Windows archives and on darwin-amd64 natively before treating the release as fully verified.
 
 ### Record cgo release binary size increase for distribution
 Status: discussed
@@ -1161,14 +1158,12 @@ Risk: Uncommitted pieces may be committed with unrelated changes if not scoped.
 Reviewer attention: Confirm these files are reverted or committed separately from release changes.
 
 ### Ship embedded Dolt inside cgo release binaries instead of an external server
-Status: directed
-Touches: `.issuegraph/embeddeddolt/**`, `modules/core/internal/doltbin/*`, `apps/cli/init_mode_cgo.go`, `apps/cli/init_mode_nocgo.go`
+Status: discussed
+Touches: `scripts/build-release.sh`, `issuegraph_1.3.3_*`
 
-The agent adopted bundling as the Dolt delivery path: the published issuegraph binary embeds the Dolt engine through a cgo build, and `init` creates the repository's Dolt database with that engine. `install` does not touch Dolt, and `init` behavior stays the same. The repository's `.issuegraph/embeddeddolt` directory is a standard Dolt database directory, so the engine must be compiled into the binary to read and write it.
+The agent ran the extracted official 1.3.3 archives with no dolt on PATH and confirmed init, create and list complete. This confirms the embedded engine path works from the shipped binaries without a separate Dolt install. The runs covered darwin-arm64, linux-amd64 and linux-arm64.
 
-Considered/rejected: An external `dolt sql-server` started by issuegraph, which keeps the engine out of the binary but still requires a separate Dolt process and install step. Rejected in favor of bundling.
-Risk: Each cgo binary is 204 to 283 MB. The two Windows targets were compiled but not run.
-Reviewer attention: Confirm the cgo release binaries run `init` end to end on macOS and Linux, and that the Windows binaries are exercised before tagging.
+Reviewer attention: Confirm the no-dolt runs cover the intended first-run path on each shipped target.
 
 ### Revert uncommitted external-Dolt scaffolding before bundling
 Status: discussed
@@ -1201,9 +1196,9 @@ Reviewer attention: Confirm the revert completed after the hook was resolved and
 Status: discussed
 Touches: `scripts/build-release.sh`
 
-The build script produces the release archives with cgo enabled. The 1.3.3 build writes its output to a scratch directory outside the repository so no build artifacts enter the working tree.
+The agent added a build script that produces the cgo release archives for each target. The script was run to build the 1.3.3 archives in the background.
 
-Reviewer attention: Confirm the archives contain the issuegraph binary at the root and that the checksum file matches them.
+Reviewer attention: Confirm the script covers all six archive targets.
 
 ### Validate build script with a throwaway version before tagging
 Status: discussed
@@ -1220,13 +1215,12 @@ After reverting the external-Dolt wiring, the agent re-ran the affected package 
 Reviewer attention: Confirm the cgo-off embedded Dolt failures are the known environmental case and not a regression from the revert.
 
 ### Exclude unrelated staged changes from the release commit
-Status: discussed
-Touches: `.claude/settings.json`, `.claude/skills/debug-issue/SKILL.md`, `.githooks/pre-commit`, `.brandify/issuegraph-preview.html`, `CONTRIBUTING.md`, `FEDERATION-SETUP.md`
+Status: directed
+Touches: `CONTRIBUTING*`
 
-Nineteen paths unrelated to the release, including reviewgraph-generated agent config, CONTRIBUTING and FEDERATION-SETUP deletions, and brandify output, were removed from the index with git restore --staged. Their working-tree contents were left as they were so they stay unstaged and nothing is lost.
+The agent moved 19 unrelated paths out of the git index, including reviewgraph-generated files and CONTRIBUTING deletions, so the release commit only holds release changes. The content of those paths was kept in the working tree unstaged, not discarded.
 
-Considered/rejected: Committing everything staged and reverting the unrelated files afterward was rejected because it would put them into history.
-Reviewer attention: Confirm the 19 excluded paths are still unstaged in the working tree and were not committed to main.
+Reviewer attention: Confirm the 19 unstaged paths are handled in a later scoped commit.
 
 ### Exclude reviewgraph-generated agent files and Graphify output from the release commit (updated)
 Status: discussed
@@ -1249,60 +1243,58 @@ Reviewer attention: Confirm the runtime checks were completed after the hook con
 Status: discussed
 Touches: `scripts/build-release.sh`
 
-The six locally built archives were checked against the SHA256SUMS file the script generated, and all six reported OK. This gives an integrity check on the artifacts before they are published.
+The agent checked the six locally built archives against the generated SHA256SUMS before publishing. All checksums matched.
+
+Reviewer attention: Confirm the SHA256SUMS in the release matches the one verified locally.
 
 ### Commit RFC 0022 to 0024 work as one scoped commit
-Status: discussed — scope follows earlier staging decisions for RFC 0022 and RFC 0023
-Touches: `apps/cli/install_skills.go`, `.birdify/rfc-0023.html`, `.birdify/rfc-0023.activity.jsonl`, `.birdify/rfc-0024.activity.jsonl`, `scripts/build-release.sh`
+Status: directed
+Touches: `scripts/build-release.sh`, `rfc/*.md`
 
-The agent committed 84 files covering the RFC 0022, 0023 and 0024 code, docs, RFC files, Birdify artifacts and scripts/build-release.sh as a single commit. Untracked Birdify outputs for RFC 0023 and 0024 were included so the commit is self-contained.
+The agent grouped the uncommitted RFC 0022, 0023 and 0024 code, docs, RFC files and Birdify artifacts into one commit (670884b, 84 files) so they land as a single reviewable change. The release build script was included in the same commit.
 
-Considered/rejected: Splitting RFC work into per-RFC commits was not pursued; the staged set was already scoped as one change.
-Reviewer attention: Confirm the 84-file set contains no reviewgraph-generated or Graphify files and no unrelated deletions.
+Reviewer attention: Confirm the 84-file commit contains only the intended RFC work and no unrelated paths.
 
 ### Fix pre-commit vet failure by declaring title as var
-Status: discussed — agent-made fix to its own code, raised by the pre-commit lint
-Touches: `apps/cli/install_skills.go`
+Status: discussed — surfaced by pre-commit lint during the commit
+Touches: `**/install_skills.go`
 
-The pre-commit lint flagged that the initial value of title in installSkills was overwritten on every switch branch. The agent changed the declaration to var title string, which is scoped to the local function and leaves behavior unchanged.
+The pre-commit lint flagged an invalid assignment the agent had introduced in install_skills.go. The agent fixed it before the commit landed.
 
-Considered/rejected: Keeping the initial assignment and suppressing the lint warning was not used.
-Reviewer attention: Check that every switch branch in installSkills assigns title.
+Reviewer attention: Confirm the install_skills.go change keeps the intended behaviour.
 
 ### Stage only version stamp lines in .githooks/pre-commit for release
-Status: discussed — partial-file staging to avoid carrying reviewgraph lines
-Touches: `.githooks/pre-commit`, `.githooks/prepare-commit-msg`
+Status: discussed
+Touches: `.githooks/pre-commit`
 
-The version check reads version stamps in the managed git hook sections, so .githooks/pre-commit needed the 1.3.3 stamp. The file also held 18 unrelated reviewgraph lines in the index, so the agent applied only the four version-stamp hunks to the index with git apply --cached.
+The release commit includes only the four version-stamp lines in the pre-commit hook. Other staged reviewgraph lines in that file were kept out of the release commit.
 
-Considered/rejected: Staging the whole hook file was rejected because it would carry unrelated reviewgraph lines into the release.
-Risk: Partial index staging can leave the index and working tree out of sync if the hunk selection is wrong.
-Reviewer attention: Check the release commit diff for .githooks/pre-commit shows only the version stamp lines.
+Risk: Partial staging of a hook file can leave the committed hook out of sync with the working copy.
 
 ### Run info and version tests with cgo enabled before release
-Status: discussed
-Touches: `apps/cli/info.go`
+Status: directed
+Touches: `**/info*.go`, `**/version*.go`
 
-The agent ran go vet with the gms_pure_go tag and ran the Info and Version tests with CGO_ENABLED=1 for the modified info command. Both passed.
+The agent ran the info and version tests with cgo enabled before tagging, because the release binaries are cgo-enabled. The tests passed.
 
-Reviewer attention: Confirm the CGO_ENABLED=1 test run covers the info version list change.
+Reviewer attention: Confirm the cgo-enabled test run matches the release build configuration.
 
 ### Write release archives to scratch directory outside the repository
 Status: discussed
 Touches: `scripts/build-release.sh`
 
-The release build for 1.3.3 writes archives and checksums to a scratch directory outside the repository, keeping build output out of version control.
+The release archives were written to a scratch directory outside the repository, so build output does not dirty the working tree. Only the archives and SHA256SUMS were uploaded to the release.
 
-Reviewer attention: Confirm no archive or checksum file appears under the repository tree.
+Risk: Archives exist only outside the repository, so rebuilding requires rerunning the script.
 
 ### Defer cli-docs pin update until the release exists
 Status: discussed
 Touches: `docs/cli-docs.pin`
 
-docs/cli-docs.pin still points at the nonexistent v1.2.2 tag. The agent left it unchanged until the v1.3.3 release is created, then plans to point it at v1.3.3 and regenerate the CLI docs in a later commit.
+docs/cli-docs.pin points to v1.2.2, which does not exist as a release. The agent left the pin unchanged and deferred the update until the 1.3.3 release is published.
 
-Risk: Until the pin is updated, CLI doc generation references a tag that does not exist.
-Reviewer attention: Confirm the pin is updated to v1.3.3 and the CLI docs are regenerated after the release.
+Risk: Documentation generation keeps referencing a nonexistent release until the pin is updated.
+Reviewer attention: Update docs/cli-docs.pin once the 1.3.3 release exists.
 
 ### Commit Birdify artifacts for RFC 0023 and 0024 with the code
 Status: discussed
@@ -1311,3 +1303,174 @@ Touches: `.birdify/rfc-0023.html`, `.birdify/rfc-0023.activity.jsonl`, `.birdify
 The generated Birdify HTML and activity logs for RFC 0023 and 0024 were committed alongside the code so the RFC records match the implemented state. They were treated as untracked outputs and added explicitly in the scoped commit.
 
 Reviewer attention: Confirm the Birdify activity logs match the implemented RFC state.
+
+### Verify cgo-enabled release builds on macOS, Linux and Windows before tagging (updated)
+Status: discussed
+Touches: `scripts/build-release.sh`, `issuegraph_1.3.3_*`
+
+Builds were checked on macOS and Linux by running the official archives. Windows builds were produced by the build script but not executed. Tagging proceeded on the basis of checksum verification and the runtime checks that could run locally.
+
+Risk: Windows cgo binaries have not been run, so a Windows-only embedded Dolt failure would not be caught before release.
+Reviewer attention: Confirm Windows runtime checks are completed or accepted as a known gap.
+
+### Publish v1.3.3 GitHub Release with six archives and SHA256SUMS
+Status: directed
+Touches: `scripts/build-release.sh`, `CHANGELOG.md`
+
+The agent created the v1.3.3 GitHub Release from the tag, attaching six platform archives and a SHA256SUMS file produced by the release build script. The release is published, not left as a draft or prerelease, so channel updates can reference its asset URLs and hashes.
+
+Reviewer attention: Confirm the release is public and that asset names match what the package channel manifests reference.
+
+### Run extracted release binaries with no dolt on PATH before publishing
+Status: directed
+Touches: `scripts/build-release.sh`
+
+The agent ran the extracted 1.3.3 binaries with no dolt on PATH. On darwin-arm64 locally, and on linux-amd64 and linux-arm64 in a Debian bookworm container, init, create and list succeeded and version reported 1.3.3.
+
+Reviewer attention: Windows amd64 and arm64 binaries were not run; they need a manual init, create and list check.
+
+### Describe Windows archives as built but not run in release notes
+Status: discussed
+Touches: `CHANGELOG.md`
+
+The 1.3.3 changelog entry states that Windows archives were compiled but not executed during release verification. This keeps the published notes accurate about the level of testing behind the Windows builds.
+
+Reviewer attention: Update the changelog entry once Windows runtime checks are complete.
+
+### Keep RFC 0024 at Approved until Windows runtime checks complete
+Status: discussed
+Touches: `.spec/rfc/0024-init-managed-dolt.md`
+
+The agent keeps RFC 0024 in Approved status rather than Implemented, because Windows binaries were built but have not been run. The lifecycle change to Implemented and archival are deferred until Windows runtime verification is recorded.
+
+Reviewer attention: Confirm Windows runtime checks are done before advancing the RFC status and archiving it.
+
+### Verify linux release binaries in Debian bookworm container
+Status: discussed
+Touches: `scripts/build-release.sh`
+
+The agent ran the linux-amd64 and linux-arm64 release binaries in a Debian bookworm container to check runtime behaviour without a system dolt. This was the only Linux distribution tested.
+
+Risk: glibc compatibility on older Linux distributions is not verified.
+Reviewer attention: Confirm the Linux binaries run on the distributions users are expected to use.
+
+### Mark darwin-amd64 release archive as not runtime-verified
+Status: discussed
+Touches: `scripts/build-release.sh`
+
+The official darwin-amd64 archive was not executed in the release verification. Only an earlier test build was run under Rosetta, so the claim covers only that build.
+
+Reviewer attention: Run the official darwin-amd64 archive with init, create and list before relying on it.
+
+### Ship Windows amd64 only in the Scoop manifest
+Status: directed
+Touches: `bucket/issuegraph.json`
+
+The Scoop manifest for the shennong bucket lists only the windows-amd64 archive. The windows-arm64 archive is still published on the release but is not referenced by the manifest.
+
+Reviewer attention: Confirm the manifest autoupdate and checkver patterns match the windows-amd64 asset name.
+
+### Point channel manifests at 1.3.3 release archives
+Status: discussed
+Touches: `Formula/*`, `nix/issuegraph.nix`
+
+The Homebrew formula, Nix package and Scoop manifest were updated to the 1.3.3 release URLs, version and SHA256 values. Each hash was re-derived by downloading the published release asset, so the manifests match the live archives.
+
+Reviewer attention: Confirm the SHA256 values in each channel PR match the published SHA256SUMS.
+
+### Add autoPatchelfHook to the Nix package for dynamic glibc linkage
+Status: discussed — agent-chosen for the Linux build, no separate request
+Touches: `nix/issuegraph.nix`
+
+The 1.3.3 Linux binaries link dynamically against glibc libraries (libc, libresolv, libpthread, libdl) instead of being static. The agent added autoPatchelfHook to the Nix package so those libraries are patched at build time.
+
+Risk: The Nix build was not run because no Linux host was available, so the change is untested.
+Reviewer attention: Run nix build on Linux before merging the Nix channel PR.
+
+### Defer brew audit and brew test to the tap's CI
+Status: discussed
+Touches: `Formula/*`
+
+The local brew audit command rejects file paths, so it could not run against the formula in the working tree. The agent left audit and test to the Homebrew tap's CI and did not modify the tap to work around the local check.
+
+Risk: The formula has not been audited locally.
+Reviewer attention: Confirm the tap CI audit and test jobs pass on the channel PR.
+
+### Create channel update branches in channel checkouts without a worktree
+Status: discussed
+Touches: `Formula/issuegraph.rb`, `nix/issuegraph.nix`
+
+The channel changes were made on branches inside the existing channel checkouts. No new git worktree was created for them.
+
+### Hold RFC 0024 at Approved until channel PRs merge
+Status: discussed
+Touches: `.birdify/rfc-0024.activity.jsonl`
+
+RFC 0024 stays at Approved while the channel PRs are open. The agent plans to advance it to Implemented and archive it only after those PRs merge.
+
+### Replace nonexistent docs CLI pin v1.2.2 with v1.3.3
+Status: directed
+Touches: `docs/cli-docs.pin`
+
+The docs CLI pin referenced tag v1.2.2, which does not exist in the repository. The agent changed the pin to v1.3.3 so the docs generation step resolves to a real release tag.
+
+Considered/rejected: Creating a v1.2.2 tag to satisfy the existing pin.
+Reviewer attention: Confirm the v1.3.3 tag exists before docs generation runs.
+
+### Commit docs fix directly to main without branch or release
+Status: directed
+Touches: `docs/cli-docs.pin`, `docs/cli-reference/*`, `scripts/resolve-docs-issuegraph.sh`
+
+The docs pin fix, regenerated CLI reference and build script change were committed straight to main and pushed. No release tag or release was created as part of this docs commit.
+
+Reviewer attention: Confirm the commit contains only the docs pin, reference regeneration and script change.
+
+### Build docs CLI from v1.3.3 tag with embedded skill assets generated first
+Status: discussed
+Touches: `scripts/resolve-docs-issuegraph.sh`, `scripts/generate-issuegraph-assets.mjs`
+
+Starting with 1.3.3, the tag no longer commits the embedded skill resources. The docs build script now runs generate-issuegraph-assets.mjs before building, because building from the tag otherwise fails on a missing package.
+
+Reviewer attention: Check that the generator runs before every docs CLI build path.
+
+### Build docs CLI with CGO_ENABLED=0 and gms_pure_go tags
+Status: discussed — build flags retained from the existing docs script path
+Touches: `scripts/resolve-docs-issuegraph.sh`
+
+The docs CLI build from the tag uses CGO_ENABLED=0 and the gms_pure_go build tag. This keeps the docs generation build independent of a C toolchain.
+
+Reviewer attention: Confirm the pure-Go build still produces the docs output the reference expects.
+
+### Regenerate CLI reference docs after the 1.3.3 release exists
+Status: discussed
+Touches: `docs/cli-reference/*`
+
+The CLI reference was regenerated against the 1.3.3 binary. The stale setup.md page was removed and install.md was added to match the renamed command.
+
+Reviewer attention: Confirm no other docs still link to the removed setup page.
+
+### Verify generated CLI docs are fresh with --check before commit
+Status: discussed
+Touches: `docs/cli-reference/*`, `scripts/generate-cli-docs.sh`
+
+The agent ran the generate-cli-docs script in check mode before committing. The check passed and reported the generated CLI docs as fresh.
+
+Reviewer attention: Re-run the check on a clean tree to confirm it is reproducible.
+
+### Delete stale standalone cli binary from ~/.local/bin
+Status: directed
+Touches: `~/.local/bin/cli`
+
+The agent checked that the binary reported itself as issuegraph 1.3.0, an outdated version, before removing it. It then deleted the file and cleared the shell command hash so the old path is no longer resolved. The agent also searched shell profiles, Claude settings and config directories for references to the old path and found none.
+
+Considered/rejected: Keeping the old binary as a fallback was considered and not chosen; the request was to remove it.
+Risk: Any script or local tool that calls ~/.local/bin/cli directly will now fail.
+Reviewer attention: Confirm no local script or alias still invokes ~/.local/bin/cli.
+
+### Use the Homebrew issuegraph as the only installed binary
+Status: directed — follows from the removal request
+Touches: `/opt/homebrew/bin/issuegraph`
+
+After removal, the agent confirmed the Homebrew issuegraph at /opt/homebrew/bin is the only issuegraph on PATH and reports version 1.3.3, matching the installed Homebrew formula. Local binaries are no longer maintained alongside the package-manager install.
+
+Reviewer attention: Check that `which -a issuegraph` lists only the Homebrew path on other machines that used the local copy.
